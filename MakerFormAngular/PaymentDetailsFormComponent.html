@@ -1,0 +1,165 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-container">
+    <!-- Security Number -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('securityNumber')?.invalid && form.get('securityNumber')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Security Number
+      </mat-label>
+      <input matInput formControlName="securityNumber" />
+      <mat-error *ngIf="form.get('securityNumber')?.invalid && form.get('securityNumber')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Event Type -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('eventType')?.invalid && form.get('eventType')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Event Type
+      </mat-label>
+      <input matInput formControlName="eventType" />
+      <mat-error *ngIf="form.get('eventType')?.invalid && form.get('eventType')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Event Value Date -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('eventValueDate')?.invalid && form.get('eventValueDate')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Event Value Date
+      </mat-label>
+      <input matInput [matDatepicker]="eventValueDatePicker" formControlName="eventValueDate" />
+      <mat-datepicker-toggle matSuffix [for]="eventValueDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #eventValueDatePicker></mat-datepicker>
+      <mat-error *ngIf="form.get('eventValueDate')?.invalid && form.get('eventValueDate')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Event Record Date -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('eventRecordDate')?.invalid && form.get('eventRecordDate')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Event Record Date
+      </mat-label>
+      <input matInput [matDatepicker]="eventRecordDatePicker" formControlName="eventRecordDate" />
+      <mat-datepicker-toggle matSuffix [for]="eventRecordDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #eventRecordDatePicker></mat-datepicker>
+      <mat-error *ngIf="form.get('eventRecordDate')?.invalid && form.get('eventRecordDate')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Entitlement -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('entitlement')?.invalid && form.get('entitlement')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Entitlement
+      </mat-label>
+      <input matInput formControlName="entitlement" />
+      <mat-error *ngIf="form.get('entitlement')?.invalid && form.get('entitlement')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Payment Type -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('paymentType')?.invalid && form.get('paymentType')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Payment Type
+      </mat-label>
+      <input matInput formControlName="paymentType" />
+      <mat-error *ngIf="form.get('paymentType')?.invalid && form.get('paymentType')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Payment Method -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Payment Method
+      </mat-label>
+      <input matInput formControlName="paymentMethod" />
+      <mat-error *ngIf="form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Payment Date -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Payment Date
+      </mat-label>
+      <input matInput [matDatepicker]="paymentDatePicker" formControlName="paymentDate" />
+      <mat-datepicker-toggle matSuffix [for]="paymentDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #paymentDatePicker></mat-datepicker>
+      <mat-error *ngIf="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Payment Amount -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('paymentAmount')?.invalid && form.get('paymentAmount')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Payment Amount
+      </mat-label>
+      <input matInput type="number" formControlName="paymentAmount" />
+      <mat-error *ngIf="form.get('paymentAmount')?.invalid && form.get('paymentAmount')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Presenter Position -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('presenterPosition')?.invalid && form.get('presenterPosition')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Presenter Position
+      </mat-label>
+      <input matInput formControlName="presenterPosition" />
+      <mat-error *ngIf="form.get('presenterPosition')?.invalid && form.get('presenterPosition')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Creditor Entity -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('creditorEntity')?.invalid && form.get('creditorEntity')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Creditor Entity
+      </mat-label>
+      <input matInput formControlName="creditorEntity" />
+      <mat-error *ngIf="form.get('creditorEntity')?.invalid && form.get('creditorEntity')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Creditor Word -->
+    <mat-form-field>
+      <mat-label [style.color]="form.get('creditorWord')?.invalid && form.get('creditorWord')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+        Creditor Word
+      </mat-label>
+      <input matInput formControlName="creditorWord" />
+      <mat-error *ngIf="form.get('creditorWord')?.invalid && form.get('creditorWord')?.touched">
+        Required
+      </mat-error>
+    </mat-form-field>
+  
+    <!-- Creditor Information (full width) -->
+    <div class="full-width">
+      <mat-form-field style="width: 100%;">
+        <mat-label [style.color]="form.get('creditorInformation')?.invalid && form.get('creditorInformation')?.touched ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)'">
+          Creditor Information
+        </mat-label>
+        <input matInput formControlName="creditorInformation" />
+        <mat-error *ngIf="form.get('creditorInformation')?.invalid && form.get('creditorInformation')?.touched">
+          Required
+        </mat-error>
+      </mat-form-field>
+    </div>
+  
+    <!-- Checkboxes (flex layout) -->
+    <div class="checkboxes">
+      <mat-checkbox formControlName="standardPayment">Standard Payment</mat-checkbox>
+      <mat-checkbox formControlName="target">Target</mat-checkbox>
+      <mat-checkbox formControlName="creditPayment">Credit Payment</mat-checkbox>
+      <mat-checkbox formControlName="fedwire">Fedwire</mat-checkbox>
+    </div>
+  
+    <!-- Submit Button (centered) -->
+    <div class="submit-button">
+      <button mat-raised-button type="submit" [disabled]="!isFormValid">Submit</button>
+    </div>
+  </form>

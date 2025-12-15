@@ -1,0 +1,3 @@
+Install Angular Material if not already: ng add @angular/material.
+For dayjs-like date formatting, switch to MatMomentDateModule and configure it in app.module.ts (e.g., import { MAT_MOMENT_DATE_ADAPTER_OPTIONS } from '@angular/material-moment-adapter';).
+If using a custom API service, add it to providers or make it injectable.
