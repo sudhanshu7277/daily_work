@@ -127,3 +127,22 @@ textarea {
   border-radius: 3px;
   cursor: pointer;
 }
+
+
+.error-msg {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.input-error {
+  border: 1px solid #dc3545 !important;
+}
+
+/* Optional: spacing for form rows to accommodate error text */
+.form-row {
+  margin-bottom: 15px; 
+  display: flex;
+  flex-direction: column;
+}

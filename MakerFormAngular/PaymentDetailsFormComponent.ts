@@ -1,4 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { FormValidatorDirective } from '../directives/form-validator.directive';
 
 interface FormData {
   securityNumber: string;
@@ -23,9 +26,17 @@ interface FormData {
 
 @Component({
   selector: 'app-payment-details-form',
+  standalone: true, // Ensure this is true
+  imports: [CommonModule, FormsModule, FormValidatorDirective], 
   templateUrl: './payment-details-form.component.html',
   styleUrls: ['./payment-details-form.component.css']
 })
+
+// @Component({
+//   selector: 'app-payment-details-form',
+//   templateUrl: './payment-details-form.component.html',
+//   styleUrls: ['./payment-details-form.component.css']
+// })
 export class PaymentDetailsFormComponent implements OnInit {
   formData: FormData = {
     securityNumber: '',

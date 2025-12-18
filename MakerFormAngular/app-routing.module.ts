@@ -22,7 +22,6 @@ const routes: Routes = [
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],
-  // 🛑 The export is what makes 'router-outlet' work in app.component.html
   exports: [RouterModule] 
 })
 export class AppRoutingModule { }
