@@ -1,0 +1,31 @@
+import { Component, Input } from '@angular/core';
+import { Router } from '@angular/router';  // Required for programmatic navigation if needed
+
+// @Component({
+//   selector: 'app-tab',
+//   templateUrl: './tab.component.html',
+//   styleUrls: ['./tab.component.scss']
+// })
+
+@Component({
+    selector: 'app-tab',
+    standalone: true,  // This is missing in your code
+    imports: [RouterModule, /* other dependencies like CommonModule if needed */],
+    templateUrl: './tab.component.html',
+    styleUrls: ['./tab.component.scss']
+  })
+export class TabComponent {
+  @Input() tabs: { key: string, title: string, disabled: boolean }[] = [];
+  @Input() activeTabKey: string = '';
+
+  constructor(private router: Router) {}  // Inject Router if you need to navigate programmatically
+
+  selectTab(key: string, disabled: boolean) {
+    if (disabled) {
+      // Prevent navigation if disabled
+      return;
+    }
+    // Optional: If you need extra logic beyond routerLink, navigate here
+    // this.router.navigate([key]);
+  }
+}
