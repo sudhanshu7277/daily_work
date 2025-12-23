@@ -1,0 +1,2 @@
+ng generate component features/ppa-entry/components/input --module=features/ppa-entry/ppa-entry.module
+ng generate component features/ppa-entry/components/checker1 --module=features/ppa-entry/ppa-entry.module
