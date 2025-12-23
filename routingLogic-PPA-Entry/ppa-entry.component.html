@@ -1,13 +1,27 @@
 <div class="ppa-entry-container">
-    <!-- Your tab bar -->
+    <app-tab
+      [tabs]="tabs"
+      [activeTabKey]="activeTabKey">
+      <!-- No (tabChange) needed if using routerLink -->
+    </app-tab>
+  
+    <div class="ppa-entry-content">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+
+
+
+
+
+
+<!-- <div class="ppa-entry-container">
     <app-tab
       [tabs]="tabs"
       [activeTabKey]="activeTabKey"
       (tabChange)="onTabChange($event)">
     </app-tab>
-  
-    <!-- This is where child components will load -->
     <div class="ppa-entry-content">
       <router-outlet></router-outlet>
     </div>
-  </div>
+  </div> -->
