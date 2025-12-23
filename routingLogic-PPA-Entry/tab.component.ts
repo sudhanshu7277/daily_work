@@ -15,6 +15,11 @@ import { Router } from '@angular/router';  // Required for programmatic navigati
     styleUrls: ['./tab.component.scss']
   })
 export class TabComponent {
+    // New property
+    @Input() activeTabKey: string = '';
+
+
+
   @Input() tabs: { key: string, title: string, disabled: boolean }[] = [];
   @Input() activeTabKey: string = '';
 
