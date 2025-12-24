@@ -27,8 +27,11 @@ export class PaymentGridComponent {
   }
 
   onRowDoubleClicked(event: RowDoubleClickedEvent) {
-    const colId = event.column.getColId();
-    // Open modal only if double-click on first or second column
+    const column = event.column;
+    if (!column) return; // safety check
+  
+    const colId = column.getColId();
+    // Assuming your first column is checkbox (index 0), check columns 1 or 2
     if (colId === this.columnDefs[1]?.field || colId === this.columnDefs[2]?.field) {
       this.selectedRow = event.data;
       this.showModal = true;
