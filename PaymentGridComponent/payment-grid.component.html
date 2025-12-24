@@ -7,7 +7,7 @@
     </div>
   
     <!-- Grid -->
-    <ag-grid-angular
+    <!-- <ag-grid-angular
       class="ag-theme-alpine payment-grid"
       [rowData]="rowData"
       [columnDefs]="columnDefs"
@@ -16,7 +16,18 @@
       (gridReady)="onGridReady($event)"
       (rowDoubleClicked)="onRowDoubleClicked($event)"
       domLayout="autoHeight">
-    </ag-grid-angular>
+    </ag-grid-angular> -->
+
+    <ag-grid-angular
+  class="ag-theme-alpine payment-grid"
+  [rowData]="rowData"
+  [columnDefs]="columnDefs"
+  [rowSelection]="'multiple'"
+  [suppressRowClickSelection]="true"
+  (gridReady)="onGridReady($event)"
+  (cellDoubleClicked)="onCellDoubleClicked($event)"
+  domLayout="autoHeight">
+</ag-grid-angular>
   
     <!-- Dynamic Modal -->
     <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">

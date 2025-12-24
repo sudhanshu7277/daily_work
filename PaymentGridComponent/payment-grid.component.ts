@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { ColDef, GridApi, GridReadyEvent, RowDoubleClickedEvent } from 'ag-grid-community';
+import { CellDoubleClickedEvent } from 'ag-grid-community';
 
 @Component({
   selector: 'app-payment-grid',
@@ -37,6 +38,15 @@ export class PaymentGridComponent {
       this.showModal = true;
     }
   }
+  
+
+onCellDoubleClicked(event: CellDoubleClickedEvent) {
+  const colId = event.column.getColId();
+  if (colId === this.columnDefs[1]?.field || colId === this.columnDefs[2]?.field) {
+    this.selectedRow = event.data;
+    this.showModal = true;
+  }
+}
 
   closeModal() {
     this.showModal = false;
