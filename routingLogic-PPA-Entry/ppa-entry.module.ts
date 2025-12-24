@@ -11,9 +11,11 @@ import { PpaEntryComponent } from './ppa-entry.component';
 
 // Import routing
 import { PpaEntryRoutingModule } from './ppa-entry-routing.module';
+import { AgGridModule } from 'ag-grid-angular';
 
 // Import shared components (e.g., your tab component)
 import { TabComponent } from '../shared/components/tab/tab.component'; // Adjust path if needed
+import { PaymentGridComponent } from '../PaymentGridComponent/payment-grid.component';
 
 @NgModule({
   declarations: [
@@ -28,6 +30,8 @@ import { TabComponent } from '../shared/components/tab/tab.component'; // Adjust
     FormsModule,
     ReactiveFormsModule,
     PpaEntryRoutingModule,
+    AgGridModule,
+    PaymentGridComponent
     // If TabComponent is standalone, import it here:
     // TabComponent
   ]

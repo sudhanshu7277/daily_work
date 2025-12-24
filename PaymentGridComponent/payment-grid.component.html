@@ -1,0 +1,34 @@
+<div class="payment-grid-container">
+    <!-- Button Bar -->
+    <div class="button-bar">
+      <button class="btn-primary">{{ authoriseButtonText }}</button>
+      <button class="btn-secondary">{{ rejectButtonText }}</button>
+      <button class="btn-secondary">{{ exportButtonText }}</button>
+    </div>
+  
+    <!-- Grid -->
+    <ag-grid-angular
+      class="ag-theme-alpine payment-grid"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [rowSelection]="'multiple'"
+      [suppressRowClickSelection]="true"
+      (gridReady)="onGridReady($event)"
+      (rowDoubleClicked)="onRowDoubleClicked($event)"
+      domLayout="autoHeight">
+    </ag-grid-angular>
+  
+    <!-- Dynamic Modal -->
+    <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <button class="modal-close" (click)="closeModal()">×</button>
+        <h2>{{ title }} Details</h2>
+        <div class="modal-body" *ngIf="selectedRow">
+          <div class="detail-row" *ngFor="let entry of selectedRow | keyvalue">
+            <strong>{{ entry.key | titlecase }}:</strong>
+            <span>{{ entry.value }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
