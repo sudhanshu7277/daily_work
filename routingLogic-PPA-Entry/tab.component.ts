@@ -23,14 +23,27 @@ export class TabComponent {
   @Input() tabs: { key: string, title: string, disabled: boolean }[] = [];
   @Input() activeTabKey: string = '';
 
-  constructor(private router: Router) {}  // Inject Router if you need to navigate programmatically
+  constructor(private router: Router, private tabStateService: TabStateService) {}  // Inject Router if you need to navigate programmatically
 
   selectTab(key: string, disabled: boolean) {
     if (disabled) {
       // Prevent navigation if disabled
       return;
     }
+
+    // Notify the service
+    this.tabStateService.setCurrentTab({ key: tab.key, title: tab.title });
     // Optional: If you need extra logic beyond routerLink, navigate here
     // this.router.navigate([key]);
   }
 }
+
+// ADD BELOW IN GLOBAL-HEADER COMPONENT
+
+constructor(private tabStateService: TabStateService) {}
+
+ngOnInit() {
+    this.tabStateService.currentTab$.subscribe(tab => {
+      this.currentTab = tab;
+    });
+  }
