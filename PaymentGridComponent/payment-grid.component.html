@@ -1,35 +1,22 @@
+<div class="button-bar">
+    <button class="btn btn-authorise">{{ authoriseButtonText }}</button>
+    <button class="btn btn-reject">{{ rejectButtonText }}</button>
+    <button class="btn btn-export">{{ exportButtonText }}</button>
+  </div>
 <div class="payment-grid-container">
-    <!-- Button Bar -->
-    <div class="button-bar">
-      <button class="btn-primary">{{ authoriseButtonText }}</button>
-      <button class="btn-secondary">{{ rejectButtonText }}</button>
-      <button class="btn-secondary">{{ exportButtonText }}</button>
-    </div>
-  
-    <!-- Grid -->
-    <!-- <ag-grid-angular
+    <ag-grid-angular
       class="ag-theme-alpine payment-grid"
       [rowData]="rowData"
       [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
       [rowSelection]="'multiple'"
       [suppressRowClickSelection]="true"
       (gridReady)="onGridReady($event)"
-      (rowDoubleClicked)="onRowDoubleClicked($event)"
-      domLayout="autoHeight">
-    </ag-grid-angular> -->
-
-    <ag-grid-angular
-  class="ag-theme-alpine payment-grid"
-  [rowData]="rowData"
-  [columnDefs]="columnDefs"
-  [rowSelection]="'multiple'"
-  [suppressRowClickSelection]="true"
-  (gridReady)="onGridReady($event)"
-  (cellDoubleClicked)="onCellDoubleClicked($event)"
-  domLayout="autoHeight">
-</ag-grid-angular>
-  
-    <!-- Dynamic Modal -->
+      (cellDoubleClicked)="onCellDoubleClicked($event)"
+      domLayout="autoHeight"
+      animateRows="true"
+      rowHeight="40">
+    </ag-grid-angular>
     <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <button class="modal-close" (click)="closeModal()">×</button>
@@ -43,3 +30,40 @@
       </div>
     </div>
   </div>
+
+
+
+
+
+
+
+
+<!-- <div class="payment-grid-container">
+    <div class="button-bar">
+      <button class="btn-primary">{{ authoriseButtonText }}</button>
+      <button class="btn-secondary">{{ rejectButtonText }}</button>
+      <button class="btn-secondary">{{ exportButtonText }}</button>
+    </div>
+    <ag-grid-angular
+  class="ag-theme-alpine payment-grid"
+  [rowData]="rowData"
+  [columnDefs]="columnDefs"
+  [rowSelection]="'multiple'"
+  [suppressRowClickSelection]="true"
+  (gridReady)="onGridReady($event)"
+  (cellDoubleClicked)="onCellDoubleClicked($event)"
+  domLayout="autoHeight">
+</ag-grid-angular>
+    <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <button class="modal-close" (click)="closeModal()">×</button>
+        <h2>{{ title }} Details</h2>
+        <div class="modal-body" *ngIf="selectedRow">
+          <div class="detail-row" *ngFor="let entry of selectedRow | keyvalue">
+            <strong>{{ entry.key | titlecase }}:</strong>
+            <span>{{ entry.value }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> -->

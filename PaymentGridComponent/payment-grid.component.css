@@ -1,4 +1,82 @@
 .payment-grid-container {
+    padding: 20px;
+    background: #f8f9fa;
+  }
+  
+  .button-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-authorise {
+    background: #28a745;
+    color: white;
+  
+    &:hover { background: #218838; }
+  }
+  
+  .btn-reject {
+    background: #dc3545;
+    color: white;
+  
+    &:hover { background: #c82333; }
+  }
+  
+  .btn-export {
+    background: #007bff;
+    color: white;
+  
+    &:hover { background: #0069d9; }
+  }
+  
+  .payment-grid {
+    width: 100%;
+    height: 600px; // or calc(100vh - 200px)
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  /* AG Grid Customizations */
+  .ag-header {
+    background-color: #0056b3 !important;
+    color: white !important;
+    font-weight: bold;
+  }
+  
+  .ag-header-cell-label {
+    justify-content: center;
+  }
+  
+  .ag-row-even {
+    background-color: #f8f9fa;
+  }
+  
+  .ag-row:hover {
+    background-color: #e9ecef !important;
+  }
+  
+  .ag-cell {
+    border-right: 1px solid #dee2e6;
+  }
+  
+  .ag-theme-alpine .ag-cell-focus {
+    border: none;
+  }
+
+
+
+/* .payment-grid-container {
     padding: 16px;
     background: #f9f9f9;
   }
@@ -34,10 +112,9 @@
   
   .payment-grid {
     width: 100%;
-    height: 600px; // adjust as needed
+    height: 600px;
   }
   
-  /* Modal Styles */
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -83,4 +160,4 @@
     &:last-child { border-bottom: none; }
   
     strong { display: inline-block; width: 180px; color: #444; }
-  }
+  } */
