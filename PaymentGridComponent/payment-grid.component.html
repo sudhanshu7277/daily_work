@@ -4,7 +4,7 @@
     <button class="btn btn-export">{{ exportButtonText }}</button>
   </div>
 <div class="payment-grid-container">
-    <ag-grid-angular
+    <!-- <ag-grid-angular
       class="ag-theme-alpine payment-grid"
       [rowData]="rowData"
       [columnDefs]="columnDefs"
@@ -16,19 +16,34 @@
       domLayout="autoHeight"
       animateRows="true"
       rowHeight="40">
-    </ag-grid-angular>
+    </ag-grid-angular> -->
+
+    <ag-grid-angular
+  class="ag-theme-alpine payment-grid"
+  [rowData]="rowData"
+  [columnDefs]="columnDefs"
+  [defaultColDef]="defaultColDef"
+  [rowSelection]="{ mode: 'multiple', checkbox: true }"
+  [suppressRowClickSelection]="true"
+  [rowHeight]="40"
+  (gridReady)="onGridReady($event)"
+  (cellDoubleClicked)="onCellDoubleClicked($event)"
+  domLayout="autoHeight"
+  animateRows="true">
+</ag-grid-angular>
+
     <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <button class="modal-close" (click)="closeModal()">×</button>
-        <h2>{{ title }} Details</h2>
-        <div class="modal-body" *ngIf="selectedRow">
-          <div class="detail-row" *ngFor="let entry of selectedRow | keyvalue">
-            <strong>{{ entry.key | titlecase }}:</strong>
-            <span>{{ entry.value }}</span>
-          </div>
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <button class="modal-close" (click)="closeModal()">×</button>
+            <h2>{{ title }} Details</h2>
+            <div class="modal-body" *ngIf="selectedRow">
+              <div class="detail-row" *ngFor="let entry of selectedRow | keyvalue">
+                <strong>{{ entry.key }}:</strong>
+                <span>{{ entry.value }}</span>
+              </div>
+            </div>
         </div>
       </div>
-    </div>
   </div>
 
 

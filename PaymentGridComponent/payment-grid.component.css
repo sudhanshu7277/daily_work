@@ -75,6 +75,43 @@
   }
 
 
+  .modal-overlay {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;  /* High z-index */
+  }
+  
+  .modal-content {
+    background: white;
+    width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    position: relative;
+    padding: 24px;
+    z-index: 10000;
+  }
+  
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    font-size: 32px;
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+  }
+
+
 
 /* .payment-grid-container {
     padding: 16px;
