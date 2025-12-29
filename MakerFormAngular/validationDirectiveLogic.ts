@@ -51,29 +51,34 @@ import { CreditorDetailsFormComponent } from '../creditor-details-form/creditor-
 
 @Component({...})
 export class PaymentEntryParentComponent {
-  @ViewChild(PaymentDetailsFormComponent) paymentFormComp!: PaymentDetailsFormComponent;
-  @ViewChild(CreditorDetailsFormComponent) creditorFormComp!: CreditorDetailsFormComponent;
+  // @ViewChild(PaymentDetailsFormComponent) paymentFormComp!: PaymentDetailsFormComponent;
+  // @ViewChild(CreditorDetailsFormComponent) creditorFormComp!: CreditorDetailsFormComponent;
+  <app-payment-details-form #paymentComp></app-payment-details-form>
+<app-creditor-details-form #creditorComp></app-creditor-details-form>
+
+@ViewChild('paymentComp') paymentFormComp!: PaymentDetailsFormComponent;
+@ViewChild('creditorComp') creditorFormComp!: CreditorDetailsFormComponent;
+
+<button (click)="onSave()">Save Payment Data</button>
 
   onSave() {
-    // Trigger validation on both forms → directive will handle marking touched & focus
+    console.log('Payment Form Comp:', this.paymentFormComp);  // Should log the component object
+    console.log('Creditor Form Comp:', this.creditorFormComp);  // If undefined or null, @ViewChild is failing
+  
     this.paymentFormComp?.triggerValidation();
     this.creditorFormComp?.triggerValidation();
-
-    // Check if both forms are now valid
+  
     const isValid = 
       this.paymentFormComp?.paymentForm?.valid && 
       this.creditorFormComp?.creditorForm?.valid;
-
+  
     if (isValid) {
-      // Proceed with actual save logic (API call, etc.)
       console.log('Both forms valid → Saving...');
-      // your save code here
+      // your save code
     } else {
-      // Optional: show a toast or message
-      console.log('Please correct the errors in the forms');
+      console.log('Validation failed');
     }
   }
-}
 
 // Parent Template (no change needed to button):
 
