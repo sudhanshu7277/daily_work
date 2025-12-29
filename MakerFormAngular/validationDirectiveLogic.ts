@@ -35,7 +35,11 @@ export class CreditorDetailsFormComponent {
   public triggerValidation() {
     const formElement = this.elRef.nativeElement.querySelector('form');
     if (formElement) {
-      formElement.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      const event = new SubmitEvent('submit', { bubbles: true, cancelable: true });
+      const dispatched = formElement.dispatchEvent(event);
+      console.log('Submit event dispatched for this form:', dispatched);  // Debug: true if not canceled
+    } else {
+      console.log('Form element not found in this component');
     }
   }
 }
