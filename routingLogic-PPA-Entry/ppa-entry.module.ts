@@ -1,20 +1,27 @@
-// NEW FOR PPA MODULE
-
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
-import { PpaEntryRoutingModule } from './ppa-entry-routing.module';
 
-import { PpaEntryComponent } from './ppa-entry.component'; // Non-standalone
+import { PpaEntryRoutingModule } from './ppa-entry-routing.module';
+import { PpaEntryComponent } from './ppa-entry.component';
 
 // Standalone imports
-import { PaymentGridComponent } from '../shared/components/payment-grid/payment-grid.component'; // Standalone
-import { TabComponent } from '../shared/components/tab/tab.component'; // Standalone
+import { TabComponent } from '../shared/components/tab/tab.component';
+import { InputComponent } from './components/input/input.component';
+import { Checker1Component } from './components/checker1/checker1.component';
+import { Checker2Component } from './components/checker2/checker2.component';
+import { PaymentDenominationGridComponent } from './components/payment-denomination-grid/payment-denomination-grid.component';
+import { CreditorDetailsFormComponent } from './components/creditor-details-form/creditor-details-form.component';
+import { PaymentDetailsFormComponent } from './components/payment-details-form/payment-details-form.component';
+import { PaymentDetailsSummaryComponent } from './components/payment-details-summary/payment-details-summary.component';
+import { TaxDetailsComponent } from './components/tax-details/tax-details.component';
+import { PaymentGridComponent } from '../shared/components/payment-grid/payment-grid.component';
+import { TitlecasePipe } from '../shared/pipes/titlecase.pipe';
 
 @NgModule({
   declarations: [
-    PpaEntryComponent // Non-standalone here
+    PpaEntryComponent
   ],
   imports: [
     CommonModule,
@@ -22,10 +29,17 @@ import { TabComponent } from '../shared/components/tab/tab.component'; // Standa
     ReactiveFormsModule,
     PpaEntryRoutingModule,
     AgGridModule,
-
-    // Standalone components/modules
+    TabComponent,
+    InputComponent,
+    Checker1Component,
+    Checker2Component,
+    PaymentDenominationGridComponent,
+    CreditorDetailsFormComponent,
+    PaymentDetailsFormComponent,
+    PaymentDetailsSummaryComponent,
+    TaxDetailsComponent,
     PaymentGridComponent,
-    TabComponent
+    TitlecasePipe
   ]
 })
 export class PpaEntryModule { }
@@ -39,32 +53,24 @@ export class PpaEntryModule { }
 
 
 
+
+// // NEW FOR PPA MODULE
+
 // import { NgModule } from '@angular/core';
 // import { CommonModule } from '@angular/common';
 // import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-
-// // Import your components
-// import { PpaEntryComponent } from './ppa-entry.component';
-// // Import child components (Input, Checker1, etc.)
-// // import { InputComponent } from './components/input/input.component';
-// // import { Checker1Component } from './components/checker1/checker1.component';
-// // ...
-
-// // Import routing
-// import { PpaEntryRoutingModule } from './ppa-entry-routing.module';
 // import { AgGridModule } from 'ag-grid-angular';
+// import { PpaEntryRoutingModule } from './ppa-entry-routing.module';
 
-// // Import shared components (e.g., your tab component)
-// import { TabComponent } from '../shared/components/tab/tab.component'; // Adjust path if needed
-// import { PaymentGridComponent } from '../PaymentGridComponent/payment-grid.component';
+// import { PpaEntryComponent } from './ppa-entry.component'; // Non-standalone
+
+// // Standalone imports
+// import { PaymentGridComponent } from '../shared/components/payment-grid/payment-grid.component'; // Standalone
+// import { TabComponent } from '../shared/components/tab/tab.component'; // Standalone
 
 // @NgModule({
 //   declarations: [
-//     PpaEntryComponent,
-//     // InputComponent,
-//     // Checker1Component,
-//     // Checker2Component,
-//     // ... declare all child components here
+//     PpaEntryComponent // Non-standalone here
 //   ],
 //   imports: [
 //     CommonModule,
@@ -72,9 +78,10 @@ export class PpaEntryModule { }
 //     ReactiveFormsModule,
 //     PpaEntryRoutingModule,
 //     AgGridModule,
-//     PaymentGridComponent
-//     // If TabComponent is standalone, import it here:
-//     // TabComponent
+
+//     // Standalone components/modules
+//     PaymentGridComponent,
+//     TabComponent
 //   ]
 // })
 // export class PpaEntryModule { }
