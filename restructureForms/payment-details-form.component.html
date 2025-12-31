@@ -1,0 +1,22 @@
+<!-- payment-details-form.component.html -->
+<div class="payment-details-form">
+    <!-- Remove: [formGroup]="paymentForm" and [appFormValidator] -->
+    <!-- Keep everything else, just change bindings -->
+  
+    <div class="form-row">
+      <label class="lmn-form-label lmn-required">Security Id</label>
+      <input
+        type="text"
+        class="lmn-form-control"
+        [class.is-invalid]="isFieldInvalid('securityId')"
+        formControlName="securityId"
+        placeholder="Enter Security ID"
+      />
+      <div class="error-message" *ngIf="getFieldError('securityId')">
+        {{ getFieldError('securityId') }}
+      </div>
+    </div>
+  
+    <!-- Repeat for all other fields: eventType, paymentType, etc. -->
+    <!-- Use formControlName="fieldName" -->
+  </div>

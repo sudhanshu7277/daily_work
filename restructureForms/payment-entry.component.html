@@ -1,0 +1,9 @@
+<!-- payment-entry.component.html -->
+<form [formGroup]="paymentForm" (ngSubmit)="onSave()">
+    <app-payment-details-form [formGroup]="paymentForm"></app-payment-details-form>
+    <app-creditor-details-form [formGroup]="paymentForm"></app-creditor-details-form>
+  
+    <button type="submit" [disabled]="paymentForm.invalid">
+      Save Payment Data
+    </button>
+  </form>
