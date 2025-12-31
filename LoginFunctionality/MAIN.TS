@@ -3,14 +3,19 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { importProvidersFrom } from '@angular/core';
-import { AgGridModule } from 'ag-grid-angular'; // If using AG Grid
+import { AgGridModule } from 'ag-grid-angular';
+import { ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModules } from 'ag-grid-community';
 
 import { AppComponent } from './app/app.component';
-import { appRoutes } from './app/app.routes'; // Your root routes
-import { authInterceptor } from './app/shared/interceptors/auth.interceptor'; // Functional interceptor
-import { RoleService } from './app/shared/services/auth/role.service'; // Example service
-import { RoleGuard } from './app/shared/guards/role.guard'; // Guard
+import { appRoutes } from './app/app.routes';
+import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
+import { RoleService } from './app/shared/services/auth/role.service';
+import { RoleGuard } from './app/shared/guards/role.guard';
 import { environment } from './environments/environment';
+
+// Register AG Grid modules
+ModuleRegistry.registerModules([AllCommunityModules]);
 
 if (environment.production) {
   enableProdMode();
@@ -20,10 +25,10 @@ bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(appRoutes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    RoleService, // Global service
-    RoleGuard, // Guard (providedIn: 'root' if Injectable)
-    importProvidersFrom(AgGridModule) // For AG Grid (if needed, since it's not standalone)
-    // Add other providers, e.g., provideAnimations() if using animations
+    RoleService,
+    RoleGuard,
+    importProvidersFrom(AgGridModule)
+    // Add other global providers here if needed (e.g., provideAnimations())
   ]
 }).catch(err => console.error(err));
 
@@ -33,17 +38,52 @@ bootstrapApplication(AppComponent, {
 
 
 
-// // main.ts (standalone app)
+// import { enableProdMode } from '@angular/core';
 // import { bootstrapApplication } from '@angular/platform-browser';
-// import { provideRouter } from '@angular/router';
 // import { provideHttpClient, withInterceptors } from '@angular/common/http';
-// import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
-// import { appRoutes } from './app/app.routes';
+// import { provideRouter } from '@angular/router';
+// import { importProvidersFrom } from '@angular/core';
+// import { AgGridModule } from 'ag-grid-angular'; // If using AG Grid
+
 // import { AppComponent } from './app/app.component';
+// import { appRoutes } from './app/app.routes'; // Your root routes
+// import { authInterceptor } from './app/shared/interceptors/auth.interceptor'; // Functional interceptor
+// import { RoleService } from './app/shared/services/auth/role.service'; // Example service
+// import { RoleGuard } from './app/shared/guards/role.guard'; // Guard
+// import { environment } from './environments/environment';
+
+// if (environment.production) {
+//   enableProdMode();
+// }
 
 // bootstrapApplication(AppComponent, {
 //   providers: [
 //     provideRouter(appRoutes),
-//     provideHttpClient(withInterceptors([authInterceptor])), // ← functional
+//     provideHttpClient(withInterceptors([authInterceptor])),
+//     RoleService, // Global service
+//     RoleGuard, // Guard (providedIn: 'root' if Injectable)
+//     importProvidersFrom(AgGridModule) // For AG Grid (if needed, since it's not standalone)
+//     // Add other providers, e.g., provideAnimations() if using animations
 //   ]
 // }).catch(err => console.error(err));
+
+
+
+
+
+
+
+// // // main.ts (standalone app)
+// // import { bootstrapApplication } from '@angular/platform-browser';
+// // import { provideRouter } from '@angular/router';
+// // import { provideHttpClient, withInterceptors } from '@angular/common/http';
+// // import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
+// // import { appRoutes } from './app/app.routes';
+// // import { AppComponent } from './app/app.component';
+
+// // bootstrapApplication(AppComponent, {
+// //   providers: [
+// //     provideRouter(appRoutes),
+// //     provideHttpClient(withInterceptors([authInterceptor])), // ← functional
+// //   ]
+// // }).catch(err => console.error(err));

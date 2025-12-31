@@ -8,17 +8,15 @@ import { RoleService } from '../services/auth/role.service';
 export class RoleGuard {
   constructor(private roleService: RoleService, private router: Router) {}
 
-  canActivate: CanActivateFn = (
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ) => {
+  // Place the code here:
+  canActivate: CanActivateFn = (route, state) => {
     const requiredScreen = route.data['screen'] as string;
-
+    console.log('Guard check for screen:', requiredScreen);
     if (this.roleService.hasAccess(requiredScreen)) {
+      console.log('Access granted');
       return true;
     }
-
-    // Redirect to default or unauthorized page
+    console.log('Access denied, redirecting');
     this.router.navigate(['/unauthorized']);
     return false;
   };

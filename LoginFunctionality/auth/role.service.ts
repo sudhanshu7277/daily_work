@@ -16,7 +16,7 @@ export class RoleService {
 
   // Dummy data based on your conditions (replace with backend API in production)
   private roleMappings: { [soeid: string]: { role: string; allowedScreens: string[] } } = {
-    'ss71872': { role: 'Checkerlevel 1', allowedScreens: ['Checker1'] },
+    'ss71872': { role: 'Checker1', allowedScreens: ['Input', 'Checker1'] },
     'sj81534': { role: 'Maker', allowedScreens: ['Checker1'] },
     'vj97973': { role: 'Checker3', allowedScreens: ['Checker2'] },
     'vs21245': { role: 'Maker', allowedScreens: ['Checker3'] }
