@@ -5,18 +5,18 @@
   </div>
 
   <div class="right-panel">
-    <app-payment-details-summary [summary]="paymentSummary"></app-payment-details-summary>
-    <app-payment-denomination-grid [data]="denominationData"></app-payment-denomination-grid>
-    <app-tax-details [data]="taxDetails"></app-tax-details>
+    <app-payment-details-summary></app-payment-details-summary>
+    <app-payment-denomination-grid></app-payment-denomination-grid>
+    <app-tax-details></app-tax-details>
 
     <div class="action-buttons">
-      <button class="lmn-btn lmn-btn-outline" (click)="onSavePayment()">
+      <button class="lmn-btn lmn-btn-outline" (click)="onSaveOrSubmit()">
         Save Payment Data
       </button>
       <button 
-        class="lmn-btn lmn-btn-primary" 
+        class="lmn-btn lmn-btn-primary"
         [disabled]="paymentForm.invalid"
-        (click)="onSubmitPayment()">
+        (click)="onSaveOrSubmit()">
         Submit
       </button>
     </div>

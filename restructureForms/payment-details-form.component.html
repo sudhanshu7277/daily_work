@@ -1,22 +1,18 @@
-<div class="payment-details-form">
-    <h3 class="section-title">PAYMENT DETAILS</h3>
-  
-    <div class="form-row">
-      <div class="lmn-form-group lmn-col-12">
-        <label class="lmn-form-label lmn-required">Security Id</label>
-        <input
-          type="text"
-          class="lmn-form-control"
-          formControlName="securityId"
-          placeholder="Enter Security ID"
-          [class.is-invalid]="isFieldInvalid('securityId')"
-        />
-        <div class="error-message" *ngIf="isFieldInvalid('securityId')">
-          Security ID is required
-        </div>
+<!-- Example fields - keep all your existing structure -->
+<div class="form-row">
+    <div class="lmn-form-group lmn-col-12">
+      <label class="lmn-form-label lmn-required">Security Id</label>
+      <input
+        type="text"
+        class="lmn-form-control"
+        formControlName="securityId"
+        placeholder="Enter Security ID"
+        [class.is-invalid]="isFieldInvalid('securityId')"
+      />
+      <div class="error-message" *ngIf="isFieldInvalid('securityId')">
+        Security ID is required
       </div>
     </div>
-  
-    <!-- Repeat for ALL fields: eventType, paymentType, checkboxes, etc. -->
-    <!-- Use formControlName="fieldName" and isFieldInvalid('fieldName') -->
   </div>
+  
+  <!-- Repeat for every field in this form using formControlName and isFieldInvalid() -->

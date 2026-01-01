@@ -1,35 +1,19 @@
-<div class="creditor-details-form">
-    <h3 class="section-title">CREDITOR DETAILS</h3>
-  
-    <div class="form-row">
-      <div class="lmn-form-group lmn-col-12">
-        <label class="lmn-form-label">Creditor Type</label>
-        <input
-          type="text"
-          class="lmn-form-control"
-          formControlName="creditorType"
-          readonly
-        />
+<div class="form-row">
+    <div class="lmn-form-group lmn-col-12">
+      <label class="lmn-form-label lmn-required">Creditor Name</label>
+      <select
+        class="lmn-form-control"
+        formControlName="creditorName"
+        [class.is-invalid]="isFieldInvalid('creditorName')"
+      >
+        <option *ngFor="let name of creditorNames" [value]="name.value">
+          {{ name.label }}
+        </option>
+      </select>
+      <div class="error-message" *ngIf="isFieldInvalid('creditorName')">
+        Creditor Name is required
       </div>
     </div>
-  
-    <div class="form-row">
-      <div class="lmn-form-group lmn-col-12">
-        <label class="lmn-form-label lmn-required">Creditor Name</label>
-        <select
-          class="lmn-form-control"
-          formControlName="creditorName"
-          [class.is-invalid]="isFieldInvalid('creditorName')"
-        >
-          <option *ngFor="let name of creditorNames" [value]="name.value">
-            {{ name.label }}
-          </option>
-        </select>
-        <div class="error-message" *ngIf="isFieldInvalid('creditorName')">
-          Creditor Name is required
-        </div>
-      </div>
-    </div>
-  
-    <!-- Repeat for all fields -->
   </div>
+  
+  <!-- Repeat for all fields in this form -->
