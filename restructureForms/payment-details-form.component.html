@@ -1,22 +1,185 @@
-<!-- payment-details-form.component.html -->
+<!-- app-payment-details-form.component.html -->
 <div class="payment-details-form">
-    <!-- Remove: [formGroup]="paymentForm" and [appFormValidator] -->
-    <!-- Keep everything else, just change bindings -->
+    <div class="section-header">
+      <h3 class="section-title">PAYMENT DETAILS</h3>
+    </div>
   
     <div class="form-row">
-      <label class="lmn-form-label lmn-required">Security Id</label>
-      <input
-        type="text"
-        class="lmn-form-control"
-        [class.is-invalid]="isFieldInvalid('securityId')"
-        formControlName="securityId"
-        placeholder="Enter Security ID"
-      />
-      <div class="error-message" *ngIf="getFieldError('securityId')">
-        {{ getFieldError('securityId') }}
+      <div class="lmn-form-group lmn-col-12">
+        <label class="lmn-form-label lmn-required" for="securityId">Security Id</label>
+        <input
+          type="text"
+          class="lmn-form-control"
+          id="securityId"
+          formControlName="securityId"
+          placeholder="Enter Security ID"
+          [class.is-invalid]="isFieldInvalid('securityId')"
+        />
+        <div class="error-message" *ngIf="isFieldInvalid('securityId')">
+          Security ID is required
+        </div>
       </div>
     </div>
   
-    <!-- Repeat for all other fields: eventType, paymentType, etc. -->
-    <!-- Use formControlName="fieldName" -->
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label lmn-required">Event Type</label>
+        <select
+          class="lmn-form-control"
+          formControlName="eventType"
+          [class.is-invalid]="isFieldInvalid('eventType')"
+        >
+          <option *ngFor="let type of eventTypes" [value]="type.value">
+            {{ type.label }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="isFieldInvalid('eventType')">
+          Event Type is required
+        </div>
+      </div>
+  
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label lmn-required">Event Value Date</label>
+        <input
+          type="date"
+          class="lmn-form-control"
+          formControlName="eventValueDate"
+          [class.is-invalid]="isFieldInvalid('eventValueDate')"
+        />
+        <div class="error-message" *ngIf="isFieldInvalid('eventValueDate')">
+          Event Value Date is required
+        </div>
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label">Coupon Number</label>
+        <input
+          type="text"
+          class="lmn-form-control"
+          formControlName="couponNumber"
+          placeholder="-"
+        />
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-12">
+        <label class="lmn-form-label">Event Record Date</label>
+        <input
+          type="date"
+          class="lmn-form-control"
+          formControlName="eventRecordDate"
+        />
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-12">
+        <label class="lmn-form-label">Entitlement</label>
+        <select
+          class="lmn-form-control"
+          formControlName="entitlement"
+        >
+          <option value="">Please Select</option>
+          <!-- Add options as needed -->
+        </select>
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label lmn-required">Payment Type</label>
+        <select
+          class="lmn-form-control"
+          formControlName="paymentType"
+          [class.is-invalid]="isFieldInvalid('paymentType')"
+        >
+          <option *ngFor="let type of paymentTypes" [value]="type.value">
+            {{ type.label }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="isFieldInvalid('paymentType')">
+          Payment Type is required
+        </div>
+      </div>
+  
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label lmn-required">Payment Method</label>
+        <select
+          class="lmn-form-control"
+          formControlName="paymentMethod"
+          [class.is-invalid]="isFieldInvalid('paymentMethod')"
+        >
+          <option value="">Please Select</option>
+          <!-- Add options as needed -->
+        </select>
+        <div class="error-message" *ngIf="isFieldInvalid('paymentMethod')">
+          Payment Method is required
+        </div>
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label lmn-required">Payment Date</label>
+        <input
+          type="date"
+          class="lmn-form-control"
+          formControlName="paymentDate"
+          [class.is-invalid]="isFieldInvalid('paymentDate')"
+        />
+        <div class="error-message" *ngIf="isFieldInvalid('paymentDate')">
+          Payment Date is required
+        </div>
+      </div>
+  
+      <div class="lmn-form-group lmn-col-6">
+        <label class="lmn-form-label">Payment Amount</label>
+        <input
+          type="text"
+          class="lmn-form-control"
+          formControlName="paymentAmount"
+          placeholder="Enter amount"
+          [class.is-invalid]="isFieldInvalid('paymentAmount')"
+        />
+        <div class="error-message" *ngIf="isFieldInvalid('paymentAmount')">
+          Payment Amount is required
+        </div>
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-12">
+        <label class="lmn-form-label">Presenter Position</label>
+        <input
+          type="text"
+          class="lmn-form-control"
+          formControlName="presenterPosition"
+          placeholder="Enter presenter position"
+        />
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-12">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="standardPayment">
+          Standard Payment
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="targetPayment">
+          Target
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="debitPayment">
+          Debit Payment
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="rebate">
+          Rebate
+        </label>
+      </div>
+    </div>
   </div>

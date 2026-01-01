@@ -1,3 +1,4 @@
+<!-- app-creditor-details-form.component.html -->
 <div class="creditor-details-form">
     <div class="section-header">
       <h3 class="section-title">CREDITOR DETAILS</h3>
@@ -6,28 +7,59 @@
     <div class="form-row">
       <div class="lmn-form-group lmn-col-12">
         <label class="lmn-form-label">Creditor Type</label>
-        <input 
-          type="text" 
-          class="lmn-form-control" 
-          formControlName="creditorType" 
-          readonly 
+        <input
+          type="text"
+          class="lmn-form-control"
+          formControlName="creditorType"
+          readonly
+          value="N.A."
         />
       </div>
     </div>
   
     <div class="form-row">
       <div class="lmn-form-group lmn-col-12">
-        <label class="lmn-form-label">Creditor Name</label>
-        <select 
-          class="lmn-form-control" 
+        <label class="lmn-form-label lmn-required">Creditor Name</label>
+        <select
+          class="lmn-form-control"
           formControlName="creditorName"
+          [class.is-invalid]="isFieldInvalid('creditorName')"
         >
           <option *ngFor="let name of creditorNames" [value]="name.value">
             {{ name.label }}
           </option>
         </select>
+        <div class="error-message" *ngIf="isFieldInvalid('creditorName')">
+          Creditor Name is required
+        </div>
       </div>
     </div>
   
-    <!-- Repeat for creditorInformation, comments, etc. -->
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-12">
+        <label class="lmn-form-label">Creditor Information</label>
+        <input
+          type="text"
+          class="lmn-form-control"
+          formControlName="creditorInformation"
+          placeholder="Enter creditor information"
+        />
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <div class="lmn-form-group lmn-col-12">
+        <label class="lmn-form-label">Comments</label>
+        <input
+          type="text"
+          class="lmn-form-control"
+          formControlName="comments"
+          placeholder="Enter comments"
+        />
+      </div>
+    </div>
+  
+    <div class="form-row">
+      <button class="select-file-btn">Select File</button>
+    </div>
   </div>
