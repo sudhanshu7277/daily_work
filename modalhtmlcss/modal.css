@@ -1,0 +1,35 @@
+.modal-content {
+    position: relative; /* Essential for absolute positioning of the X */
+    background: #ffffff;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+  
+  .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #999;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.2s, transform 0.2s;
+  }
+  
+  .close-btn:hover {
+    color: #333;
+    transform: scale(1.1);
+  }
+  
+  /* Ensure title doesn't overlap the X if it's long */
+  .modal-title {
+    margin-top: 0;
+    padding-right: 30px; 
+    font-size: 1.25rem;
+  }
