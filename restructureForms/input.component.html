@@ -1,0 +1,49 @@
+<div class="ppa-entry-content">
+  <!-- LEFT PANEL: Forms (No wrapper form needed - children use shared FormGroup) -->
+  <div class="left-panel">
+    <!-- Payment Details Form -->
+    <app-payment-details-form 
+      [formGroup]="paymentForm"
+      (formValidityChange)="onPaymentFormValidityChange($event)">
+    </app-payment-details-form>
+
+    <!-- Creditor Details Form -->
+    <app-creditor-details-form 
+      [formGroup]="paymentForm"
+      (formValidityChange)="onPaymentFormValidityChange($event)">
+    </app-creditor-details-form>
+  </div>
+
+  <!-- RIGHT PANEL: Static Components + Buttons (Exact order from design) -->
+  <div class="right-panel">
+    <!-- 1. Payment Details Summary -->
+    <app-payment-details-summary 
+      [summary]="paymentSummary">
+    </app-payment-details-summary>
+
+    <!-- 2. Payment Denomination Grid -->
+    <app-payment-denomination-grid 
+      [data]="denominationData"
+      (addRow)="onAddDenominationRow()"
+      (removeRow)="onRemoveDenominationRow($event)">
+    </app-payment-denomination-grid>
+
+    <!-- 3. Tax Details -->
+    <app-tax-details 
+      [data]="taxDetailsData">
+    </app-tax-details>
+
+    <!-- 4. Action Buttons (EXACTLY as in design) -->
+    <div class="action-buttons">
+      <button class="lmn-btn lmn-btn-outline" (click)="onSavePayment()">
+        Save Payment Data
+      </button>
+      <button 
+        class="lmn-btn lmn-btn-primary" 
+        [disabled]="!isPaymentFormValid"
+        (click)="onSubmitPayment()">
+        Submit
+      </button>
+    </div>
+  </div>
+</div>

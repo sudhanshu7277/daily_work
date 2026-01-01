@@ -1,29 +1,32 @@
-// payment-details-form.component.ts
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-payment-details-form',
   standalone: true,
-  imports: [/* your existing imports */],
-  templateUrl: './payment-details-form.component.html',
+  templateUrl: './payment-details-form.component.html'
 })
 export class PaymentDetailsFormComponent {
   @Input({ required: true }) formGroup!: FormGroup;
+  @Output() formValidityChange = new EventEmitter<boolean>();
 
-  // Keep your eventTypes, paymentTypes arrays here
-  eventTypes = [ /* ... your array ... */ ];
-  paymentTypes = [ /* ... your array ... */ ];
+  eventTypes = [
+    { value: '', label: 'Please Select' },
+    { value: 'dividend', label: 'Dividend' },
+    { value: 'interest', label: 'Interest' },
+    { value: 'redemption', label: 'Redemption' },
+    { value: 'maturity', label: 'Maturity' }
+  ];
 
-  // If you still want local helpers (optional)
+  paymentTypes = [
+    { value: '', label: 'Please Select' },
+    { value: 'regular', label: 'Regular' },
+    { value: 'special', label: 'Special' },
+    { value: 'final', label: 'Final' }
+  ];
+
   isFieldInvalid(field: string): boolean {
-    const ctrl = this.formGroup.get(field);
-    return !!ctrl && ctrl.invalid && (ctrl.touched || ctrl.dirty);
-  }
-
-  getFieldError(field: string): string | null {
-    const ctrl = this.formGroup.get(field);
-    if (ctrl?.errors?.['required']) return 'This field is required';
-    return null;
+    const control = this.formGroup.get(field);
+    return !!control && control.invalid && (control.touched || control.dirty);
   }
 }
