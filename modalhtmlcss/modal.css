@@ -1,35 +1,60 @@
-.modal-content {
-    position: relative; /* Essential for absolute positioning of the X */
+/* 1. The Backdrop (The Container) */
+.modal-backdrop {
+    /* Positioning */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    
+    /* Sizing */
+    width: 100%;
+    height: 100%;
+    
+    /* Centering Logic */
+    display: flex;          /* Enables Flexbox */
+    justify-content: center; /* Horizontal centering */
+    align-items: center;     /* Vertical centering */
+    
+    /* Visuals */
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px); /* Optional: slight blur for a modern look */
+  }
+  
+  /* 2. The Modal Box (The Flex Item) */
+  .modal-content {
+    position: relative;
     background: #ffffff;
-    padding: 24px;
     width: 90%;
     max-width: 500px;
+    padding: 24px;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    
+    /* Animation to pop from center */
+    animation: modalPop 0.25s ease-out;
   }
   
+  /* 3. The Close Button */
   .close-btn {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    background: transparent;
+    top: 15px;
+    right: 15px;
+    background: none;
     border: none;
-    font-size: 24px;
-    line-height: 1;
-    color: #999;
+    font-size: 28px;
     cursor: pointer;
-    padding: 5px 10px;
-    transition: color 0.2s, transform 0.2s;
+    color: #888;
+    line-height: 1;
   }
   
-  .close-btn:hover {
-    color: #333;
-    transform: scale(1.1);
-  }
-  
-  /* Ensure title doesn't overlap the X if it's long */
-  .modal-title {
-    margin-top: 0;
-    padding-right: 30px; 
-    font-size: 1.25rem;
+  /* Smooth Entrance Animation */
+  @keyframes modalPop {
+    from {
+      opacity: 0;
+      transform: scale(0.9); /* Starts slightly smaller */
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);   /* Grows to full size */
+    }
   }
