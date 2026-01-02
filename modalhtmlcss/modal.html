@@ -1,15 +1,16 @@
-<div class="modal-backdrop" *ngIf="isModalVisible">
-    <div class="modal-content">
-      <button class="close-btn" (click)="isModalVisible = false">&times;</button>
+<div class="modal-overlay" *ngIf="showHideModal">
+    <div class="modal-content-wrapper">
+      <span class="close-icon" (click)="showHideModal = false">&times;</span>
       
-      <h3 class="modal-title">Confirm Action</h3>
-      <hr>
+      <h2 class="modal-header">Amount Validation</h2>
+      <hr class="modal-divider">
+      
       <div class="modal-body">
-        <p>Are you sure you want to save these changes?</p>
+        <p><strong>{{ validationMessage }}</strong></p>
       </div>
-      <div class="modal-actions">
-        <button class="btn-secondary" (click)="isModalVisible = false">Cancel</button>
-        <button class="btn-primary" (click)="saveData()">Confirm</button>
+  
+      <div class="modal-footer">
+        <button class="btn-close-modal" (click)="showHideModal = false">Close</button>
       </div>
     </div>
   </div>
