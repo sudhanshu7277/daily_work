@@ -11,6 +11,8 @@ export class AuthRedirectGuard implements CanActivate {
   canActivate(): boolean {
     const user = this.authService.getCurrentUser();
 
+    console.log('AuthRedirectGuard triggered - current user:', user);
+
     if (!user) {
       this.router.navigate(['/login']);
       return false;
@@ -19,7 +21,7 @@ export class AuthRedirectGuard implements CanActivate {
     let targetPath: string;
     switch (user.role) {
       case 'Maker':
-        targetPath = 'input';       // Maker uses the input tab
+        targetPath = 'input';
         break;
       case 'Checker1':
         targetPath = 'checker1';
@@ -36,6 +38,6 @@ export class AuthRedirectGuard implements CanActivate {
     }
 
     this.router.navigate(['/ppa-entry', targetPath]);
-    return false; // Prevent access to empty path
+    return false; // Block the empty child route
   }
 }
