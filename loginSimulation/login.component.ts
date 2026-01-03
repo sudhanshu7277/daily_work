@@ -1,12 +1,15 @@
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
 
 import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
@@ -20,11 +23,11 @@ export class LoginComponent {
 
   hidePassword = true;
   loading = false;
+  errorMessage: string | null = null;
 
   constructor(
     private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar
+    private router: Router
   ) {}
 
   onSubmit(): void {
@@ -33,21 +36,16 @@ export class LoginComponent {
     }
 
     this.loading = true;
+    this.errorMessage = null;
     const { role, password } = this.loginForm.value;
 
     this.authService.login(role!, password!).subscribe({
       next: () => {
-        // Navigate to the main PPA entry point
-        // AuthRedirectGuard will handle role-based tab redirection
         this.router.navigate(['/ppa-entry']);
       },
       error: (err) => {
         this.loading = false;
-        this.snackBar.open(
-          err.message || 'Invalid role or password',
-          'Close',
-          { duration: 5000, panelClass: ['error-snackbar'] }
-        );
+        this.errorMessage = err.message || 'Invalid role or password';
       },
       complete: () => {
         this.loading = false;

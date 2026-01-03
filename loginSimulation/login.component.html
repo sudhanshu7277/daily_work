@@ -1,44 +1,50 @@
 <div class="login-container">
-    <mat-card class="login-card">
-      <mat-card-header>
-        <mat-card-title>Payment Approval System</mat-card-title>
-        <mat-card-subtitle>Select your role and login</mat-card-subtitle>
-      </mat-card-header>
+    <div class="login-card">
+      <h2>Payment Approval System</h2>
+      <p>Select your role and login</p>
   
-      <mat-card-content>
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-          <mat-form-field appearance="fill" class="full-width">
-            <mat-label>Role</mat-label>
-            <mat-select formControlName="role">
-              <mat-option *ngFor="let r of roles" [value]="r">{{ r }}</mat-option>
-            </mat-select>
-            <mat-error>Role is required</mat-error>
-          </mat-form-field>
-  
-          <mat-form-field appearance="fill" class="full-width">
-            <mat-label>Password</mat-label>
-            <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password">
-            <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword" tabindex="-1">
-              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-error>Password is required</mat-error>
-          </mat-form-field>
-  
-          <button mat-raised-button color="primary" type="submit" class="full-width" [disabled]="loginForm.invalid || loading">
-            <span *ngIf="!loading">Login</span>
-            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-          </button>
-        </form>
-  
-        <div class="credentials-hint">
-          <small>
-            <strong>Demo Credentials:</strong><br>
-            Maker → Maker123<br>
-            Checker1 → Checker123<br>
-            Checker2 → Checker234<br>
-            Checker3 → Checker345
-          </small>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-field">
+          <label for="role">Role</label>
+          <select id="role" formControlName="role">
+            <option value="" disabled selected>Select role</option>
+            <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+          </select>
+          <div class="error" *ngIf="loginForm.get('role')?.hasError('required') && loginForm.get('role')?.touched">
+            Role is required
+          </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+  
+        <div class="form-field">
+          <label for="password">Password</label>
+          <div class="password-wrapper">
+            <input id="password" [type]="hidePassword ? 'password' : 'text'" formControlName="password">
+            <button type="button" (click)="hidePassword = !hidePassword">
+              {{ hidePassword ? 'Show' : 'Hide' }}
+            </button>
+          </div>
+          <div class="error" *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched">
+            Password is required
+          </div>
+        </div>
+  
+        <button type="submit" class="submit-btn" [disabled]="loginForm.invalid || loading">
+          <span *ngIf="!loading">Login</span>
+          <div class="spinner" *ngIf="loading"></div>
+          <span *ngIf="loading">Logging in...</span>
+        </button>
+      </form>
+  
+      <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  
+      <div class="credentials-hint">
+        <small>
+          <strong>Demo Credentials:</strong><br>
+          Maker → Maker123<br>
+          Checker1 → Checker123<br>
+          Checker2 → Checker234<br>
+          Checker3 → Checker345
+        </small>
+      </div>
+    </div>
   </div>
