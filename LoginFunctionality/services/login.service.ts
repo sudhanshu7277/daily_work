@@ -13,6 +13,13 @@ const CREDENTIALS: Credential[] = [
   { role: 'Checker3', password: 'Checker345' }
 ];
 
+const roleRouteMapping = {
+    Maker: 'input',
+    Checker1: 'checker1',
+    Checker2: 'checker2',
+    Checker3: 'checker3'
+  };
+
 @Injectable({
   providedIn: 'root',
 })
@@ -30,7 +37,12 @@ export class LoginService {
     if (user) {
       this.currentUserRole = user.role;
       localStorage.setItem('userRole', user.role);
-      this.router.navigate(['/ppa-entry', user.role.toLowerCase()]);
+    //   this.router.navigate(['/ppa-entry', this.currentUserRole.toLowerCase()]);
+
+      const route = roleRouteMapping[this.currentUserRole] || 'input';
+      this.router.navigate(['/ppa-entry', route]);
+
+
       return true;
     }
     return false;
