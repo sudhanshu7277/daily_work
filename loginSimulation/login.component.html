@@ -1,8 +1,8 @@
 <div class="login-container">
     <mat-card class="login-card">
       <mat-card-header>
-        <mat-card-title>Bank Approval System</mat-card-title>
-        <mat-card-subtitle>Please login with your role</mat-card-subtitle>
+        <mat-card-title>Payment Approval System</mat-card-title>
+        <mat-card-subtitle>Select your role and login</mat-card-subtitle>
       </mat-card-header>
   
       <mat-card-content>
@@ -10,32 +10,29 @@
           <mat-form-field appearance="fill" class="full-width">
             <mat-label>Role</mat-label>
             <mat-select formControlName="role">
-              <mat-option *ngFor="let role of roles" [value]="role">{{ role }}</mat-option>
+              <mat-option *ngFor="let r of roles" [value]="r">{{ r }}</mat-option>
             </mat-select>
-            <mat-error *ngIf="loginForm.get('role')?.hasError('required')">
-              Role is required
-            </mat-error>
+            <mat-error>Role is required</mat-error>
           </mat-form-field>
   
           <mat-form-field appearance="fill" class="full-width">
             <mat-label>Password</mat-label>
             <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password">
-            <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
+            <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword" tabindex="-1">
               <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
-            <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
-              Password is required
-            </mat-error>
+            <mat-error>Password is required</mat-error>
           </mat-form-field>
   
-          <button mat-raised-button color="primary" type="submit" class="full-width" [disabled]="loginForm.invalid">
-            Login
+          <button mat-raised-button color="primary" type="submit" class="full-width" [disabled]="loginForm.invalid || loading">
+            <span *ngIf="!loading">Login</span>
+            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
           </button>
         </form>
   
         <div class="credentials-hint">
           <small>
-            <strong>Hint:</strong><br>
+            <strong>Demo Credentials:</strong><br>
             Maker → Maker123<br>
             Checker1 → Checker123<br>
             Checker2 → Checker234<br>
