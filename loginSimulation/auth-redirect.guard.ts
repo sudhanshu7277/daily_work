@@ -1,12 +1,16 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { CanActivate, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthRedirectGuard implements CanActivate {
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
   canActivate(): boolean {
     const user = this.authService.getCurrentUser();
@@ -37,7 +41,8 @@ export class AuthRedirectGuard implements CanActivate {
         return false;
     }
 
-    this.router.navigate(['/ppa-entry', targetPath]);
-    return false; // Block the empty child route
+    // Relative navigation — prevents re-triggering parent guards
+    this.router.navigate([targetPath], { relativeTo: this.route });
+    return false;
   }
 }

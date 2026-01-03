@@ -3,7 +3,6 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { LoginComponent } from './shared/components/login/login.component';
 import { RoleGuard } from './auth/role.guard';
-import { AuthRedirectGuard } from './auth/auth-redirect.guard'; // Add this import
 
 const routes: Routes = [
   {
@@ -13,7 +12,7 @@ const routes: Routes = [
   {
     path: 'ppa-entry',
     loadChildren: () => import('./features/ppa-entry/ppa-entry.module').then(m => m.PpaEntryModule),
-    canActivate: [RoleGuard, AuthRedirectGuard], // RoleGuard first (auth check), then AuthRedirectGuard (role redirect)
+    canActivate: [RoleGuard], // Only checks authentication + allowed roles
     data: { 
       roles: ['Maker', 'Checker1', 'Checker2', 'Checker3'] 
     }

@@ -8,13 +8,18 @@ import { Checker2Component } from './components/checker2/checker2.component';
 import { Checker3Component } from './components/checker3/checker3.component';
 
 import { RoleGuard } from '../auth/role.guard';
+import { AuthRedirectGuard } from '../auth/auth-redirect.guard';
 
 const routes: Routes = [
   {
     path: '',
     component: PpaEntryComponent,
-    canActivateChild: [RoleGuard], // Protects the tabs below
+    canActivateChild: [RoleGuard],
     children: [
+      {
+        path: '',
+        canActivate: [AuthRedirectGuard] // This runs once on /ppa-entry
+      },
       {
         path: 'input',
         component: InputComponent,
@@ -36,9 +41,8 @@ const routes: Routes = [
         data: { roles: ['Checker3'] }
       },
       {
-        path: '',
-        redirectTo: 'input', // Fallback only if someone lands directly without redirect
-        pathMatch: 'full'
+        path: '**',
+        redirectTo: 'input' // Fallback
       }
     ]
   }
