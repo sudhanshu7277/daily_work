@@ -1,31 +1,24 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-import { PpaEntryComponent } from '../ppa-entry.component'; // Adjust path if needed
-import { InputComponent } from '../input/input.component';
-import { Checker1Component } from '../checker1/checker1.component';
-import { Checker2Component } from '../checker2/checker2.component';
-import { Checker3Component } from '../checker3/checker3.component'; // Add this import
+import { PpaEntryComponent } from './ppa-entry.component';
+import { InputComponent } from './components/input/input.component';
+import { Checker1Component } from './components/checker1/checker1.component';
+import { Checker2Component } from './components/checker2/checker2.component';
+import { Checker3Component } from './components/checker3/checker3.component';
 
-import { RoleGuard } from '../../auth/role.guard';
-import { AuthRedirectGuard } from '../../auth/auth-redirect.guard';
+import { RoleGuard } from '../auth/role.guard';
 
 const routes: Routes = [
   {
     path: '',
-    component: PpaEntryComponent, // Parent with tabs
-    canActivateChild: [RoleGuard], // Optional: extra protection on children
+    component: PpaEntryComponent,
+    canActivateChild: [RoleGuard], // Protects the tabs below
     children: [
-      {
-        path: '',
-        canActivate: [AuthRedirectGuard], // Redirects to role-specific tab
-        redirectTo: 'input',
-        pathMatch: 'full'
-      },
       {
         path: 'input',
         component: InputComponent,
-        data: { roles: ['Maker'] } // Only Maker can access input tab
+        data: { roles: ['Maker'] }
       },
       {
         path: 'checker1',
@@ -41,8 +34,12 @@ const routes: Routes = [
         path: 'checker3',
         component: Checker3Component,
         data: { roles: ['Checker3'] }
+      },
+      {
+        path: '',
+        redirectTo: 'input', // Fallback only if someone lands directly without redirect
+        pathMatch: 'full'
       }
-      // Add more tab routes as needed
     ]
   }
 ];
