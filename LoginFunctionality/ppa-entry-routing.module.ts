@@ -9,21 +9,43 @@ import { Checker3Component } from './components/checker3/checker3.component'; //
 import { AuthGuard } from '../../guards/auth.guard';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: PpaEntryComponent,
-    children: [
-      { path: '', redirectTo: 'input', pathMatch: 'full' },
-
-      // Maker role route (mapped to 'input' path)
-      { path: 'input', component: InputComponent, canActivate: [AuthGuard], data: { role: 'Maker' } },
-
-      { path: 'checker1', component: Checker1Component, canActivate: [AuthGuard], data: { role: 'Checker1' } },
-      { path: 'checker2', component: Checker2Component, canActivate: [AuthGuard], data: { role: 'Checker2' } },
-      { path: 'checker3', component: Checker3Component, canActivate: [AuthGuard], data: { role: 'Checker3' } },
-    ]
-  }
-];
+    {
+      path: '',
+      component: PpaEntryComponent,
+      children: [
+        { path: '', redirectTo: 'input', pathMatch: 'full' },
+  
+        { 
+          path: 'input', 
+          component: InputComponent,
+          canActivate: [AuthGuard],
+          data: { role: 'Maker' }
+        },
+  
+        { 
+          path: 'checker1', 
+          component: Checker1Component,
+          canActivate: [AuthGuard],
+          data: { role: 'Checker1' }
+        },
+  
+        { 
+          path: 'checker2', 
+          component: Checker2Component,
+          canActivate: [AuthGuard],
+          data: { role: 'Checker2' }
+        },
+  
+        // Uncomment if you create checker3 component
+        // { 
+        //   path: 'checker3', 
+        //   component: Checker3Component,
+        //   canActivate: [AuthGuard],
+        //   data: { role: 'Checker3' }
+        // },
+      ]
+    }
+  ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
