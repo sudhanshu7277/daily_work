@@ -1,1 +1,0 @@
-credentials [{role: ‘Maker’, password: ‘Maker123}, {role: ‘Checker1’, password: ‘Checker123’}, {role: ‘Checker2’, password: ‘Checker234’}, {role: ‘Checker3’, password: ‘Checker345’}].
