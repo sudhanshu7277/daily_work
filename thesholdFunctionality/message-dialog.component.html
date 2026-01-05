@@ -1,0 +1,33 @@
+<div class="container">
+    <h2>Approve Transaction Amount</h2>
+    
+    <form [formGroup]="amountForm">
+      <mat-form-field appearance="fill" class="full-width">
+        <mat-label>Amount (USD)</mat-label>
+        <input
+          matInput
+          type="number"
+          formControlName="amount"
+          placeholder="Enter amount in dollars">
+      </mat-form-field>
+    </form>
+  </div>
+
+  <!-- MODAL HTML BELOW -->
+
+  <div class="modal-overlay" *ngIf="showHideModal">
+    <div class="modal-content-wrapper">
+      <span class="close-icon" (click)="showHideModal = false">&times;</span>
+      
+      <h2 class="modal-header">Amount Validation</h2>
+      <hr class="modal-divider">
+      
+      <div class="modal-body">
+        <p><strong>{{ validationMessage }}</strong></p>
+      </div>
+  
+      <div class="modal-footer">
+        <button class="btn-close-modal" (click)="showHideModal = false">Close</button>
+      </div>
+    </div>
+  </div>

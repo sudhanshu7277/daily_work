@@ -1,0 +1,87 @@
+/* The Translucent Grey Backdrop */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Translucent grey */
+    z-index: 9999; /* Ensure it is above everything else */
+    
+    /* Flexbox Centering */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* The Centered Modal Box */
+  .modal-content-wrapper {
+    position: relative;
+    background-color: #ffffff;
+    padding: 24px;
+    width: 90%;
+    max-width: 450px;
+    border-radius: 12px; /* Rounded borders */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    animation: modalAppear 0.3s ease-out;
+  }
+  
+  /* Close Icon (Top Right) */
+  .close-icon {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+  }
+  
+  .close-icon:hover {
+    color: #333;
+  }
+  
+  /* Typography & Layout */
+  .modal-header {
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+    color: #333;
+  }
+  
+  .modal-divider {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin-bottom: 20px;
+  }
+  
+  .modal-body {
+    margin-bottom: 25px;
+    color: #d9534f; /* Reddish color for validation errors */
+  }
+  
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .btn-close-modal {
+    padding: 8px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  /* Animation for smooth pop-up */
+  @keyframes modalAppear {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
