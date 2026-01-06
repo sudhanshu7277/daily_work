@@ -1,0 +1,128 @@
+/* Toolbar */
+.toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    gap: 15px;
+    background-color: #f5f7fa;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .authorize-btn {
+    background-color: #0055cc;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  
+  .authorize-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  
+  .clear-filters-btn {
+    background-color: #666;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  
+  /* Modal Overlay */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(64,64,64,0.7);
+    z-index: 999;
+  }
+  
+  /* Modal */
+  .modal {
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 30px;
+    width: 650px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    border-radius: 6px;
+    z-index:1000;
+    overflow-y: auto;
+    max-height: 80%;
+  }
+  
+  .modal h3 {
+    margin-top: 0;
+    font-weight: 600;
+    color: #222;
+    margin-bottom: 14px;
+  }
+  
+  .modal label {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #444;
+  }
+  
+  .modal input, 
+  .modal select {
+    margin-top: 4px;
+    padding: 6px 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+  }
+  
+  .modal-btn {
+    padding: 8px 16px;
+    margin-right: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 3px;
+    border: none;
+  }
+  
+  .save-btn {
+    background-color: #0a7a07;
+    color: white;
+  }
+  
+  .cancel-btn {
+    background-color: #b22222;
+    color: white;
+  }
+  
+  /* Status circles */
+  .status-circle {
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  /* Edit icon styling */
+  .edit-icon {
+    cursor: pointer;
+    font-size: 18px;
+    color: #007acc;
+    user-select: none;
+  }
+  
+  /* Responsive grid height */
+  @media (max-width: 768px) {
+    .modal {
+      width: 90%;
+    }
+  }
