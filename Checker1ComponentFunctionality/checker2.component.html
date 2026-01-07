@@ -1,0 +1,117 @@
+<div class="toolbar">
+  <button
+    class="authorize-btn"
+    [disabled]="!isAuthorizeEnabled"
+    (click)="authorizeSelected()"
+  >
+    Authorize
+  </button>
+
+  <label>
+    Payment Date:
+    <input
+      type="date"
+      [(ngModel)]="filterPaymentDate"
+      (change)="applyFilters()"
+    />
+  </label>
+
+  <label>
+    Event Value Date:
+    <input
+      type="date"
+      [(ngModel)]="filterEventValueDate"
+      (change)="applyFilters()"
+    />
+  </label>
+
+  <label>
+    Currency:
+    <select [(ngModel)]="filterCurrency" (change)="applyFilters()">
+      <option value="All">All</option>
+      <option value="USD">USD</option>
+      <option value="EUR">EUR</option>
+    </select>
+  </label>
+
+  <button class="clear-filters-btn" (click)="clearFilters()">Clear All</button>
+</div>
+
+<ag-grid-angular
+  class="ag-theme-alpine custom-grid"
+  style="width: 100%; height: 400px"
+  [columnDefs]="columnDefs"
+  [rowData]="rowData"
+  rowSelection="single"
+  (gridReady)="onGridReady($event)"
+  (rowSelected)="onRowSelected($event)"
+  [pagination]="true"
+  [paginationPageSize]="10"
+>
+</ag-grid-angular>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" *ngIf="modalOpen" (click)="closeModal()"></div>
+
+<!-- Modal Dialog -->
+<div class="modal" *ngIf="modalOpen" (click)="$event.stopPropagation()">
+  <h3>Input Screen</h3>
+  <form [formGroup]="form">
+    <label>
+      DDA A/C
+      <input formControlName="ddaAccount" />
+    </label>
+
+    <label>
+      Account Number
+      <input formControlName="accountNumber" />
+    </label>
+
+    <label>
+      Event Value Date
+      <input type="date" formControlName="eventValueDate" />
+    </label>
+
+    <label>
+      Payment Date
+      <input type="date" formControlName="paymentDate" />
+    </label>
+
+    <label>
+      Currency
+      <select formControlName="paymentAmountCurrency">
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+    </label>
+
+    <label>
+      Payment Amount
+      <input type="number" formControlName="paymentAmount" />
+    </label>
+
+    <label>
+      Choice 1
+      <select formControlName="statusChoice1">
+        <option [ngValue]="true">Yes</option>
+        <option [ngValue]="false">No</option>
+      </select>
+    </label>
+
+    <label>
+      Choice 2
+      <select formControlName="statusChoice2">
+        <option [ngValue]="true">Yes</option>
+        <option [ngValue]="false">No</option>
+      </select>
+    </label>
+
+    <label>
+      Issue Name
+      <input formControlName="issueName" />
+    </label>
+  </form>
+
+  <button class="modal-btn save-btn" (click)="saveModal()">Save</button>
+  <button class="modal-btn cancel-btn" (click)="closeModal()">Cancel</button>
+</div>
