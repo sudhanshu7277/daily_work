@@ -39,7 +39,7 @@
 
 <ag-grid-angular
   class="ag-theme-alpine custom-grid"
-  style="width: 100%; height: 400px"
+  style="width: 100%; height: 400px;"
   [columnDefs]="columnDefs"
   [rowData]="rowData"
   rowSelection="single"
@@ -50,129 +50,26 @@
 >
 </ag-grid-angular>
 
-<!-- Modal Background Overlay -->
-<div class="modal-overlay" *ngIf="modalOpen" (click)="closeModal()"></div>
+<!-- Modal Overlay and Popup -->
+<div *ngIf="modalOpen" class="modal-overlay" (click)="closeModal()"></div>
 
-<!-- Modal -->
-<div class="modal" *ngIf="modalOpen" (click)="$event.stopPropagation()">
-  <h3>Input Screen</h3>
+<div
+  *ngIf="modalOpen"
+  class="modal"
+  (click)="$event.stopPropagation()"
+>
+  <!-- Modal with reactive form inputs here -->
   <form [formGroup]="form" class="modal-form">
-
-    <div class="modal-row">
-      <label>
-        Message Identifier
-        <input formControlName="messageIdentifier" />
-      </label>
-
-      <label>
-        Debit A/C
-        <input formControlName="debitAccount" />
-      </label>
-
-      <label>
-        Debtor
-        <input formControlName="debtor" />
-      </label>
-
-      <label>
-        Currency
-        <select formControlName="paymentAmountCurrency">
-          <option *ngFor="let c of currencyOptions" [value]="c">{{ c }}</option>
-        </select>
-      </label>
-
-      <label>
-        Amount
-        <input type="number" formControlName="paymentAmount" />
-      </label>
-    </div>
-
-    <div class="modal-row">
-      <label>
-        Intermediary Agent Bank Swift Code
-        <input formControlName="creditorAgentBankSwiftCode" />
-      </label>
-
-      <label>
-        Bank Branch Name LFI
-        <input formControlName="branchNameLFI" />
-      </label>
-
-      <label>
-        Bank Branch Name LFO
-        <input formControlName="branchNameLFO" />
-      </label>
-
-      <label>
-        Charge Drawer
-        <select formControlName="chargeDrawer">
-          <option *ngFor="let c of chargeDrawerOptions" [value]="c">{{ c }}</option>
-        </select>
-      </label>
-
-      <label>
-        Product
-        <select formControlName="product">
-          <option *ngFor="let c of productOptions" [value]="c">{{ c }}</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="modal-row">
-      <label>
-        Creditors Name
-        <input formControlName="creditorName" />
-      </label>
-
-      <label>
-        Creditors Account
-        <input formControlName="creditorAccount" />
-      </label>
-
-      <label>
-        BC Code
-        <input formControlName="bcCode" />
-      </label>
-
-      <label>
-        Value Date
-        <input type="date" formControlName="valueDate" />
-      </label>
-
-      <label>
-        Creditor Word Collect Req
-        <input formControlName="creditorWordCollectReq" />
-      </label>
-
-      <label>
-        Creditor Word Text
-        <input formControlName="creditorWordText" />
-      </label>
-    </div>
-
-    <div class="modal-row status-choice-row">
-      <label>
-        Choice 1
-        <select formControlName="statusChoice1">
-          <option *ngFor="let o of statusOptions" [value]="o">{{ o }}</option>
-        </select>
-      </label>
-
-      <label>
-        Choice 2
-        <select formControlName="statusChoice2">
-          <option *ngFor="let o of statusOptions" [value]="o">{{ o }}</option>
-        </select>
-      </label>
-    </div>
+    <!-- Add form groups inputs as needed -->
+    <label>
+      DDA A/C
+      <input formControlName="ddaAccount" />
+    </label>
+    <!-- Add other inputs similarly -->
 
     <div class="modal-actions">
-      <button class="modal-btn save-btn" (click)="saveModal()" type="button">
-        Save
-      </button>
-      <button class="modal-btn cancel-btn" (click)="closeModal()" type="button">
-        Cancel
-      </button>
+      <button type="button" class="modal-btn save-btn" (click)="saveModal()">Save</button>
+      <button type="button" class="modal-btn cancel-btn" (click)="closeModal()">Cancel</button>
     </div>
   </form>
 </div>

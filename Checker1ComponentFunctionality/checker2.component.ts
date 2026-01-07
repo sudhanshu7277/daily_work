@@ -10,6 +10,13 @@ import { Checker2Service, PaymentRecord } from './checker2.service';
 
 @Component({
   selector: 'app-checker2',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    AgGridModule.withComponents([])  // import ag-grid-angular standalone module here
+  ],
   templateUrl: './checker2.component.html',
   styleUrls: ['./checker2.component.scss'],
 })
