@@ -1,184 +1,83 @@
 import { Component, OnInit } from '@angular/core';
-import {
-  ColDef,
-  GridApi,
-  GridReadyEvent,
-  RowSelectedEvent,
-} from 'ag-grid-community';
-import { FormBuilder, FormGroup } from '@angular/forms';
 import { Checker1Service, PaymentRecord } from './checker1.service';
+import { ColDef, GridApi, GridReadyEvent, RowSelectedEvent } from 'ag-grid-community';
 
 @Component({
   selector: 'app-checker1',
   templateUrl: './checker1.component.html',
-  styleUrls: ['./checker1.component.css'],
+  styleUrls: ['./checker1.component.css']
 })
 export class Checker1Component implements OnInit {
+
   columnDefs: ColDef[] = [];
   rowData: PaymentRecord[] = [];
-  allRowData: PaymentRecord[] = [];
+  allRowData: PaymentRecord[] = []; // preserve all rows for filtering
   gridApi!: GridApi;
 
-  // Filters
-  filterPaymentDate = '';
-  filterEventValueDate = '';
-  filterCurrency = 'All';
+  filterPaymentDate: string = '';
+  filterEventValueDate: string = '';
+  filterCurrency: string = 'All';
 
-  // Selection
   selectedRecord: PaymentRecord | null = null;
   isAuthorizeEnabled = false;
 
-  // Modal Reactive Form
   modalOpen = false;
-  form!: FormGroup;
+  modalRecord!: PaymentRecord;
 
-  constructor(private service: Checker1Service, private fb: FormBuilder) {}
+  constructor(private service: Checker1Service) {}
 
   ngOnInit(): void {
     this.setupColumnDefs();
-    this.buildForm();
     this.loadData();
   }
 
   setupColumnDefs() {
     this.columnDefs = [
-      {
-        headerName: '',
-        checkboxSelection: true,
-        headerCheckboxSelection: true,
-        width: 40,
-        suppressMenu: true,
-      },
-      { field: 'ddaAccount', headerName: 'DDA A/C', sortable: true, filter: true, resizable: true },
-      { field: 'accountNumber', headerName: 'Account Number', sortable: true, filter: true, resizable: true },
-      {
-        field: 'eventValueDate',
-        headerName: 'Event Value Date',
-        sortable: true,
-        filter: 'agDateColumnFilter',
-        resizable: true,
-        valueFormatter: this.dateFormatter,
-      },
-      {
-        field: 'paymentDate',
-        headerName: 'Payment Date',
-        sortable: true,
-        filter: 'agDateColumnFilter',
-        resizable: true,
-        valueFormatter: this.dateFormatter,
-      },
-      {
-        field: 'paymentAmountCurrency',
-        headerName: 'Currency',
-        sortable: true,
-        filter: true,
-        width: 100,
-        resizable: true,
-      },
-      {
-        field: 'paymentAmount',
-        headerName: 'Payment Amount',
-        sortable: true,
-        filter: 'agNumberColumnFilter',
-        resizable: true,
-        valueFormatter: this.currencyFormatter,
-      },
-      {
-        headerName: 'Choice 1',
-        field: 'statusChoice1',
-        width: 80,
-        cellRenderer: this.statusCellRenderer,
-        filter: false,
-      },
-      {
-        headerName: 'Choice 2',
-        field: 'statusChoice2',
-        width: 80,
-        cellRenderer: this.statusCellRenderer,
-        filter: false,
-      },
-      { field: 'dolNo', headerName: 'DOL No', sortable: true, filter: true, resizable: true },
-      {
-        field: 'eventBalance',
-        headerName: 'Event Balance',
-        sortable: true,
-        filter: 'agNumberColumnFilter',
-        resizable: true,
-        valueFormatter: this.currencyFormatter,
-      },
-      {
-        field: 'netPaymentAmount',
-        headerName: 'Net Payment Amount',
-        sortable: true,
-        filter: 'agNumberColumnFilter',
-        resizable: true,
-        valueFormatter: this.currencyFormatter,
-      },
-      {
-        field: 'realTimeBalance',
-        headerName: 'Real-Time Balance',
-        sortable: true,
-        filter: 'agNumberColumnFilter',
-        resizable: true,
-        valueFormatter: this.currencyFormatter,
-      },
-      {
-        field: 'usdAmount',
-        headerName: 'USD Amount',
-        sortable: true,
-        filter: 'agNumberColumnFilter',
-        resizable: true,
-        valueFormatter: this.currencyFormatter,
-      },
-      { field: 'issueName', headerName: 'Issue Name', sortable: true, filter: true, resizable: true },
+      { headerName: '', checkboxSelection: true, width: 40, headerCheckboxSelection: true, suppressMenu: true },
+      { field: 'ddaAccount', headerName: 'DDA A/C', sortable: true, filter: 'agTextColumnFilter', resizable: true },
+      { field: 'accountNumber', headerName: 'Account Number', sortable: true, filter: 'agTextColumnFilter', resizable: true },
+      { field: 'eventValueDate', headerName: 'Event Value Date', sortable: true, filter: 'agDateColumnFilter', resizable: true, 
+        valueFormatter: this.dateFormatter },
+      { field: 'paymentDate', headerName: 'Payment Date', sortable: true, filter: 'agDateColumnFilter', resizable: true,
+        valueFormatter: this.dateFormatter },
+      { field: 'paymentAmountCurrency', headerName: 'Currency', sortable: true, filter: 'agTextColumnFilter', width: 100, resizable: true },
+      { field: 'paymentAmount', headerName: 'Payment Amount', sortable: true, filter: 'agNumberColumnFilter', resizable: true,
+        valueFormatter: this.currencyFormatter },
+      { headerName: 'Choice 1', field: 'statusChoice1', width: 80, cellRenderer: this.statusCellRenderer, filter: false },
+      { headerName: 'Choice 2', field: 'statusChoice2', width: 80, cellRenderer: this.statusCellRenderer, filter: false },
+      { field: 'dolNo', headerName: 'DOL No', sortable: true, filter: 'agTextColumnFilter', resizable: true },
+      { field: 'eventBalance', headerName: 'Event Balance', sortable: true, filter: 'agNumberColumnFilter', resizable: true,
+        valueFormatter: this.currencyFormatter },
+      { field: 'netPaymentAmount', headerName: 'Net Payment Amount', sortable: true, filter: 'agNumberColumnFilter', resizable: true,
+        valueFormatter: this.currencyFormatter },
+      { field: 'realTimeBalance', headerName: 'Real-Time Balance', sortable: true, filter: 'agNumberColumnFilter', resizable: true,
+        valueFormatter: this.currencyFormatter },
+      { field: 'usdAmount', headerName: 'USD Amount', sortable: true, filter: 'agNumberColumnFilter', resizable: true,
+        valueFormatter: this.currencyFormatter },
+      { field: 'issueName', headerName: 'Issue Name', sortable: true, filter: 'agTextColumnFilter', resizable: true },
       {
         headerName: 'Actions',
         width: 100,
-        sortable: false,
-        filter: false,
-        resizable: false,
         cellRenderer: (params: any) => {
           const icon = document.createElement('span');
           icon.classList.add('edit-icon');
           icon.title = 'Edit Record';
-          icon.innerHTML = '&#9998;';
+          icon.innerHTML = '&#9998;';  // Pencil icon
           icon.style.cursor = 'pointer';
           icon.addEventListener('click', () => this.openEditModal(params.data));
           return icon;
         },
-      },
+        filter: false,
+        sortable: false,
+        resizable: false
+      }
     ];
   }
 
-  buildForm() {
-    // Initialize the reactive form with controls and empty default values
-    this.form = this.fb.group({
-      ddaAccount: [''],
-      accountNumber: [''],
-      eventValueDate: [''],
-      paymentDate: [''],
-      paymentAmountCurrency: ['USD'],
-      paymentAmount: [0],
-      statusChoice1: [false],
-      statusChoice2: [false],
-      dolNo: [''],
-      eventBalance: [{ value: 0, disabled: true }],
-      netPaymentAmount: [{ value: 0, disabled: true }],
-      realTimeBalance: [{ value: 0, disabled: true }],
-      usdAmount: [{ value: 0, disabled: true }],
-      issueName: [''],
-      // Add other fields here if needed mirroring your screenshots (e.g branchName etc)
-      messageIdentifier: [''], // example for custom modal fields beyond grid columns
-      chargeDrawer: [''],
-      product: [''],
-      // Add more from your modal form as necessary
-    });
-  }
-
   loadData() {
-    this.service.getPayments().subscribe((data) => {
+    this.service.getPayments().subscribe(data => {
       this.allRowData = data;
-      this.rowData = [...this.allRowData]; // initial load all data
+      this.rowData = [...this.allRowData];
     });
   }
 
@@ -194,15 +93,9 @@ export class Checker1Component implements OnInit {
   }
 
   openEditModal(data: PaymentRecord) {
+    this.modalRecord = JSON.parse(JSON.stringify(data)); // Deep copy to avoid direct mutation
     this.modalOpen = true;
-    document.body.style.overflow = 'hidden';
-
-    // Patch form with data, convert dates to yyyy-MM-dd string for <input type=date>
-    this.form.patchValue({
-      ...data,
-      eventValueDate: this.formatForDateInput(data.eventValueDate),
-      paymentDate: this.formatForDateInput(data.paymentDate),
-    });
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
   }
 
   closeModal() {
@@ -211,24 +104,35 @@ export class Checker1Component implements OnInit {
   }
 
   saveModal() {
-    if (!this.form.valid) return;
+    if (!this.modalRecord) return;
 
-    // clone form value
-    const formValue = this.form.getRawValue();
-
-    // convert date strings back to Date objects
-    formValue.eventValueDate = new Date(formValue.eventValueDate);
-    formValue.paymentDate = new Date(formValue.paymentDate);
-
-    // Find the index of the edited record and update allRowData
-    const idx = this.allRowData.findIndex((r) => r.id === this.selectedRecord?.id);
+    // Find index of record in allRowData and update
+    const idx = this.allRowData.findIndex(r => r.id === this.modalRecord.id);
     if (idx !== -1) {
-      this.allRowData[idx] = { ...this.allRowData[idx], ...formValue };
+      this.allRowData[idx] = { ...this.modalRecord };
     }
 
+    // Refresh grid with updated data (consider filters)
     this.applyFilters();
-
     this.closeModal();
+  }
+
+  // Status cell renderer for green/red circles
+  statusCellRenderer(params: any) {
+    const el = document.createElement('span');
+    el.classList.add('status-circle');
+    el.style.backgroundColor = params.value ? 'green' : 'red';
+    return el;
+  }
+
+  dateFormatter(params: any) {
+    if (!params.value) return '';
+    return new Date(params.value).toLocaleDateString();
+  }
+
+  currencyFormatter(params: any) {
+    if (params.value == null) return '';
+    return params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   applyFilters() {
@@ -237,27 +141,23 @@ export class Checker1Component implements OnInit {
     let filteredData = [...this.allRowData];
 
     if (this.filterPaymentDate) {
-      filteredData = filteredData.filter(
-        (r) =>
-          new Date(r.paymentDate).toDateString() ===
-          new Date(this.filterPaymentDate).toDateString()
+      filteredData = filteredData.filter(r =>
+        new Date(r.paymentDate).toDateString() === new Date(this.filterPaymentDate).toDateString()
       );
     }
     if (this.filterEventValueDate) {
-      filteredData = filteredData.filter(
-        (r) =>
-          new Date(r.eventValueDate).toDateString() ===
-          new Date(this.filterEventValueDate).toDateString()
+      filteredData = filteredData.filter(r =>
+        new Date(r.eventValueDate).toDateString() === new Date(this.filterEventValueDate).toDateString()
       );
     }
     if (this.filterCurrency && this.filterCurrency !== 'All') {
-      filteredData = filteredData.filter(
-        (r) => r.paymentAmountCurrency === this.filterCurrency
-      );
+      filteredData = filteredData.filter(r => r.paymentAmountCurrency === this.filterCurrency);
     }
 
+    // Update grid data
     this.gridApi.setRowData(filteredData);
 
+    // Clear any selection and disable Authorize button
     this.gridApi.deselectAll();
     this.isAuthorizeEnabled = false;
     this.selectedRecord = null;
@@ -267,12 +167,10 @@ export class Checker1Component implements OnInit {
     this.filterPaymentDate = '';
     this.filterEventValueDate = '';
     this.filterCurrency = 'All';
-
     if (this.gridApi) {
       this.gridApi.setRowData(this.allRowData);
       this.gridApi.deselectAll();
     }
-
     this.isAuthorizeEnabled = false;
     this.selectedRecord = null;
   }
@@ -280,41 +178,14 @@ export class Checker1Component implements OnInit {
   authorizeSelected() {
     if (!this.selectedRecord) return;
 
-    const idx = this.allRowData.findIndex((r) => r.id === this.selectedRecord!.id);
+    // For demo: mark record as authorized and show alert
+    const idx = this.allRowData.findIndex(r => r.id === this.selectedRecord!.id);
     if (idx !== -1) {
       this.allRowData[idx].authorized = true;
     }
 
     alert(`Record with DDA A/C ${this.selectedRecord.ddaAccount} has been authorized.`);
-    this.applyFilters();
-  }
 
-  statusCellRenderer(params: any) {
-    const circle = document.createElement('span');
-    circle.classList.add('status-circle');
-    circle.style.backgroundColor = params.value ? 'green' : 'red';
-    return circle;
-  }
-
-  dateFormatter(params: any) {
-    if (!params.value) return '';
-    const d = new Date(params.value);
-    return d.toLocaleDateString();
-  }
-
-  currencyFormatter(params: any) {
-    if (params.value == null) return '';
-    return params.value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }
-
-  private formatForDateInput(date: Date | string): string {
-    if (!date) return '';
-    const d = new Date(date);
-    const month = ('0' + (d.getMonth() + 1)).slice(-2);
-    const day = ('0' + d.getDate()).slice(-2);
-    return `${d.getFullYear()}-${month}-${day}`;
+    this.applyFilters(); // Refresh to update grid
   }
 }
