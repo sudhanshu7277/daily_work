@@ -9,12 +9,20 @@
 
   <label>
     Payment Date:
-    <input type="date" [(ngModel)]="filterPaymentDate" (change)="applyFilters()" />
+    <input
+      type="date"
+      [(ngModel)]="filterPaymentDate"
+      (change)="applyFilters()"
+    />
   </label>
 
   <label>
     Event Value Date:
-    <input type="date" [(ngModel)]="filterEventValueDate" (change)="applyFilters()" />
+    <input
+      type="date"
+      [(ngModel)]="filterEventValueDate"
+      (change)="applyFilters()"
+    />
   </label>
 
   <label>
@@ -31,7 +39,7 @@
 
 <ag-grid-angular
   class="ag-theme-alpine custom-grid"
-  style="width: 100%; height: 400px;"
+  style="width: 100%; height: 400px"
   [columnDefs]="columnDefs"
   [rowData]="rowData"
   rowSelection="single"
@@ -42,76 +50,129 @@
 >
 </ag-grid-angular>
 
-<!-- Modal Overlay -->
+<!-- Modal Background Overlay -->
 <div class="modal-overlay" *ngIf="modalOpen" (click)="closeModal()"></div>
 
-<!-- Modal Dialog -->
+<!-- Modal -->
 <div class="modal" *ngIf="modalOpen" (click)="$event.stopPropagation()">
   <h3>Input Screen</h3>
-  <form>
-    <label>
-      DDA A/C
-      <input [(ngModel)]="modalRecord.ddaAccount" name="ddaAccount" />
-    </label>
+  <form [formGroup]="form" class="modal-form">
 
-    <label>
-      Account Number
-      <input [(ngModel)]="modalRecord.accountNumber" name="accountNumber" />
-    </label>
+    <div class="modal-row">
+      <label>
+        Message Identifier
+        <input formControlName="messageIdentifier" />
+      </label>
 
-    <label>
-      Event Value Date
-      <input
-        type="date"
-        [(ngModel)]="modalRecord.eventValueDate"
-        name="eventValueDate"
-      />
-    </label>
+      <label>
+        Debit A/C
+        <input formControlName="debitAccount" />
+      </label>
 
-    <label>
-      Payment Date
-      <input
-        type="date"
-        [(ngModel)]="modalRecord.paymentDate"
-        name="paymentDate"
-      />
-    </label>
+      <label>
+        Debtor
+        <input formControlName="debtor" />
+      </label>
 
-    <label>
-      Currency
-      <select [(ngModel)]="modalRecord.paymentAmountCurrency" name="paymentAmountCurrency">
-        <option value="USD">USD</option>
-        <option value="EUR">EUR</option>
-      </select>
-    </label>
+      <label>
+        Currency
+        <select formControlName="paymentAmountCurrency">
+          <option *ngFor="let c of currencyOptions" [value]="c">{{ c }}</option>
+        </select>
+      </label>
 
-    <label>
-      Payment Amount
-      <input type="number" [(ngModel)]="modalRecord.paymentAmount" name="paymentAmount" />
-    </label>
+      <label>
+        Amount
+        <input type="number" formControlName="paymentAmount" />
+      </label>
+    </div>
 
-    <label>
-      Choice 1
-      <select [(ngModel)]="modalRecord.statusChoice1" name="statusChoice1">
-        <option [ngValue]="true">Yes</option>
-        <option [ngValue]="false">No</option>
-      </select>
-    </label>
+    <div class="modal-row">
+      <label>
+        Intermediary Agent Bank Swift Code
+        <input formControlName="creditorAgentBankSwiftCode" />
+      </label>
 
-    <label>
-      Choice 2
-      <select [(ngModel)]="modalRecord.statusChoice2" name="statusChoice2">
-        <option [ngValue]="true">Yes</option>
-        <option [ngValue]="false">No</option>
-      </select>
-    </label>
+      <label>
+        Bank Branch Name LFI
+        <input formControlName="branchNameLFI" />
+      </label>
 
-    <label>
-      Issue Name
-      <input [(ngModel)]="modalRecord.issueName" name="issueName" />
-    </label>
+      <label>
+        Bank Branch Name LFO
+        <input formControlName="branchNameLFO" />
+      </label>
+
+      <label>
+        Charge Drawer
+        <select formControlName="chargeDrawer">
+          <option *ngFor="let c of chargeDrawerOptions" [value]="c">{{ c }}</option>
+        </select>
+      </label>
+
+      <label>
+        Product
+        <select formControlName="product">
+          <option *ngFor="let c of productOptions" [value]="c">{{ c }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="modal-row">
+      <label>
+        Creditors Name
+        <input formControlName="creditorName" />
+      </label>
+
+      <label>
+        Creditors Account
+        <input formControlName="creditorAccount" />
+      </label>
+
+      <label>
+        BC Code
+        <input formControlName="bcCode" />
+      </label>
+
+      <label>
+        Value Date
+        <input type="date" formControlName="valueDate" />
+      </label>
+
+      <label>
+        Creditor Word Collect Req
+        <input formControlName="creditorWordCollectReq" />
+      </label>
+
+      <label>
+        Creditor Word Text
+        <input formControlName="creditorWordText" />
+      </label>
+    </div>
+
+    <div class="modal-row status-choice-row">
+      <label>
+        Choice 1
+        <select formControlName="statusChoice1">
+          <option *ngFor="let o of statusOptions" [value]="o">{{ o }}</option>
+        </select>
+      </label>
+
+      <label>
+        Choice 2
+        <select formControlName="statusChoice2">
+          <option *ngFor="let o of statusOptions" [value]="o">{{ o }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn save-btn" (click)="saveModal()" type="button">
+        Save
+      </button>
+      <button class="modal-btn cancel-btn" (click)="closeModal()" type="button">
+        Cancel
+      </button>
+    </div>
   </form>
-
-  <button class="modal-btn save-btn" (click)="saveModal()">Save</button>
-  <button class="modal-btn cancel-btn" (click)="closeModal()">Cancel</button>
 </div>
