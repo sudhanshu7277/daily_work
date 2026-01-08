@@ -1,4 +1,95 @@
-<div class="checker-container">
+<div class="checker-wrapper">
+  
+  <div class="header-container" [formGroup]="filterForm">
+    <div class="left-actions">
+      <button class="btn-auth" [disabled]="!selectedRow" (click)="onAuthorize()">
+        Authorize Selected
+      </button>
+      <span class="row-info" *ngIf="gridApi">
+        Showing <strong>{{ visibleRowCount }}</strong> of {{ rowData.length }} records
+      </span>
+    </div>
+
+    <div class="filter-controls">
+      <div class="control-group">
+        <label>Value Date</label>
+        <input type="date" formControlName="dateFilter">
+      </div>
+
+      <div class="control-group">
+        <label>Currency</label>
+        <select formControlName="currencyFilter">
+          <option value="ALL">-- All Currencies --</option>
+          <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+
+      <button class="btn-clear" (click)="filterForm.reset({currencyFilter: 'ALL'})">Reset</button>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <ag-grid-angular
+      class="ag-theme-alpine"
+      style="height: 500px; width: 100%;"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [rowData]="rowData"
+      [rowSelection]="'single'"
+      [isExternalFilterPresent]="isExternalFilterPresent"
+      [doesExternalFilterPass]="doesExternalFilterPass"
+      (gridReady)="onGridReady($event)"
+      (selectionChanged)="onSelectionChanged()">
+    </ag-grid-angular>
+  </div>
+
+  <div class="modal-overlay" *ngIf="isModalVisible">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Edit Transaction</h3>
+        <button class="close-x" (click)="isModalVisible = false">&times;</button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>DDA Account</label>
+              <input type="text" formControlName="ddaAccount">
+            </div>
+            <div class="field">
+              <label>Account Number</label>
+              <input type="text" formControlName="accountNumber">
+            </div>
+            <div class="field">
+              <label>Amount</label>
+              <input type="number" formControlName="paymentAmount">
+            </div>
+            <div class="field">
+              <label>Issue Name</label>
+              <input type="text" formControlName="issueName">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="isModalVisible = false">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="editForm.invalid">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<!-- <div class="checker-container">
   <div class="top-action-bar">
     <div class="left-actions">
       <button 
@@ -78,4 +169,4 @@
       </form>
     </div>
   </div>
-</div>
+</div> -->
