@@ -1,71 +1,84 @@
-<div class="checker-container">
-  <div class="top-bar" [formGroup]="filterForm">
-    <div class="btn-group">
-      <button class="primary-btn" [disabled]="!selectedRow">Authorize</button>
-      <button class="reset-btn" (click)="resetFilters()">Reset</button>
-      <div class="search-box">
-        <input type="text" formControlName="search" placeholder="Search accounts or issues...">
+<div class="checker-wrapper">
+  
+  <div class="header-container" [formGroup]="filterForm">
+    <div class="left-actions">
+      <div class="btn-row">
+        <button class="btn-auth" [disabled]="!selectedRow" (click)="onAuthorize()">
+          Authorize Selected
+        </button>
+        <button class="btn-clear" (click)="filterForm.reset({currencyFilter: 'ALL', search: ''})">Reset Filters</button>
       </div>
-      <span class="record-badge" *ngIf="totalRecords > 0">
-        {{ totalRecords }} records found
-      </span>
+      
+      <div class="search-group">
+        <input type="text" formControlName="search" placeholder="Search Issue Name or Account...">
+        <span class="row-info" *ngIf="gridApi">
+          <strong>{{ totalRecords }}</strong> records found
+        </span>
+      </div>
     </div>
 
-    <div class="filter-group">
-      <div class="field">
-        <label>Date</label>
+    <div class="filter-controls">
+      <div class="control-group">
+        <label>Value Date</label>
         <input type="date" formControlName="dateFilter">
       </div>
-      <div class="field">
-        <label>CCY</label>
+
+      <div class="control-group">
+        <label>Currency</label>
         <select formControlName="currencyFilter">
-          <option value="ALL">All Currencies</option>
-          <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
+          <option value="ALL">-- All Currencies --</option>
+          <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
         </select>
       </div>
     </div>
   </div>
 
-  <div class="grid-wrapper">
+  <div class="grid-container">
     <ag-grid-angular
       class="ag-theme-alpine"
-      style="height: 550px; width: 100%;"
+      style="height: 600px; width: 100%;"
       [columnDefs]="columnDefs"
       [rowModelType]="rowModelType"
       [pagination]="true"
-      [paginationPageSize]="100"
-      [cacheBlockSize]="100"
+      [paginationPageSize]="paginationPageSize"
+      [cacheBlockSize]="cacheBlockSize"
       (gridReady)="onGridReady($event)"
       (selectionChanged)="onSelectionChanged()">
     </ag-grid-angular>
   </div>
 
   <div class="modal-overlay" *ngIf="isModalVisible">
-    <div class="modal-card">
+    <div class="modal-box">
       <div class="modal-header">
         <h3>Edit Transaction</h3>
         <button class="close-x" (click)="isModalVisible = false">&times;</button>
       </div>
-      <form [formGroup]="editForm" (ngSubmit)="isModalVisible = false">
+
+      <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
         <div class="modal-body">
           <div class="form-grid">
-            <div class="input-item">
-              <label>Issue Name</label>
-              <input formControlName="issueName">
-            </div>
-            <div class="input-item">
+            <div class="field">
               <label>DDA Account</label>
-              <input formControlName="ddaAccount">
+              <input type="text" formControlName="ddaAccount">
             </div>
-            <div class="input-item">
+            <div class="field">
+              <label>Account Number</label>
+              <input type="text" formControlName="accountNumber">
+            </div>
+            <div class="field">
               <label>Amount</label>
               <input type="number" formControlName="paymentAmount">
             </div>
+            <div class="field">
+              <label>Issue Name</label>
+              <input type="text" formControlName="issueName">
+            </div>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button type="button" (click)="isModalVisible = false">Cancel</button>
-          <button type="submit" class="save-btn" [disabled]="editForm.invalid">Save Changes</button>
+          <button type="button" class="btn-secondary" (click)="isModalVisible = false">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="editForm.invalid">Save Changes</button>
         </div>
       </form>
     </div>

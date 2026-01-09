@@ -2,9 +2,11 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
-import { ColDef, GridApi, GridReadyEvent, IDatasource, IGetRowsParams } from 'ag-grid-community';
+import { 
+  ColDef, GridApi, GridReadyEvent, IDatasource, IGetRowsParams, ICellRendererParams 
+} from 'ag-grid-community';
 import { DataService, GridRowData } from './data.service';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-checker2',
@@ -18,49 +20,58 @@ export class Checker2Component implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
   public rowModelType: 'infinite' = 'infinite';
+  public paginationPageSize = 100;
+  public cacheBlockSize = 100;
+  
   public currencies: string[] = [];
-  public isModalVisible = false;
   public selectedRow: GridRowData | null = null;
+  public isModalVisible = false;
   public totalRecords = 0;
 
   public filterForm!: FormGroup;
   public editForm!: FormGroup;
 
   public columnDefs: ColDef[] = [
-    { field: 'id', width: 70, checkboxSelection: true, pinned: 'left' },
-    { field: 'issueName', headerName: 'Issue Name', minWidth: 180, sortable: true },
-    { field: 'ddaAccount', headerName: 'DDA Account', sortable: true },
-    { field: 'accountNumber', headerName: 'Account No', sortable: true },
-    { field: 'paymentAmountCurrency', headerName: 'CCY', width: 80, sortable: true },
-    { field: 'paymentAmount', headerName: 'Amount', sortable: true, valueFormatter: p => p.value?.toLocaleString() },
+    { field: 'id', width: 80, checkboxSelection: true, headerCheckboxSelection: false, pinned: 'left' },
+    { field: 'issueName', headerName: 'Issue Name', minWidth: 200 },
+    { field: 'ddaAccount', headerName: 'DDA Account' },
+    { field: 'accountNumber', headerName: 'Account No' },
+    { field: 'eventValueDate', headerName: 'Value Date', valueFormatter: p => p.value ? new Date(p.value).toLocaleDateString() : '' },
+    { field: 'paymentAmountCurrency', headerName: 'CCY', width: 90 },
+    { field: 'paymentAmount', headerName: 'Amount', valueFormatter: p => p.value ? p.value.toLocaleString() : '' },
     { 
-      headerName: 'Status', width: 90, 
-      cellRenderer: (p: any) => `<div class="status-dot ${p.data?.statusChoice1 ? 'green' : 'red'}"></div>` 
+      field: 'statusChoice1', headerName: 'S1', width: 80,
+      cellRenderer: (p: ICellRendererParams) => this.circleRenderer(p.value) 
+    },
+    { 
+      field: 'statusChoice2', headerName: 'S2', width: 80,
+      cellRenderer: (p: ICellRendererParams) => this.circleRenderer(p.value) 
     },
     {
       headerName: 'Actions', width: 100, pinned: 'right',
-      cellRenderer: () => `<button class="edit-action-btn">Edit</button>`,
-      onCellClicked: (p) => this.openEditModal(p.data)
+      cellRenderer: () => `<button style="background:#007bff; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">Edit</button>`,
+      onCellClicked: (params) => this.openEditModal(params.data)
     }
   ];
 
   constructor(private dataService: DataService, private fb: FormBuilder) {
-    this.filterForm = this.fb.group({ 
-      dateFilter: [null], 
+    this.filterForm = this.fb.group({
+      dateFilter: [null],
       currencyFilter: ['ALL'],
-      search: [''] 
+      search: ['']
     });
-    
+
     this.editForm = this.fb.group({
-      id: [null], issueName: ['', Validators.required], ddaAccount: ['', Validators.required],
-      accountNumber: ['', Validators.required], paymentAmount: [0]
+      id: [null], ddaAccount: ['', Validators.required],
+      accountNumber: ['', Validators.required], paymentAmount: [0, Validators.required],
+      issueName: ['', Validators.required]
     });
   }
 
   ngOnInit() {
-    this.dataService.getCurrencies().subscribe(res => this.currencies = res);
-    
-    // SwitchMap ensures that only the latest filter request is handled
+    this.dataService.getCurrencies().subscribe(list => this.currencies = list);
+
+    // Advanced search logic: debounce + distinct + switchMap
     this.filterForm.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -84,26 +95,34 @@ export class Checker2Component implements OnInit, OnDestroy {
   createDatasource(): IDatasource {
     return {
       getRows: (params: IGetRowsParams) => {
-        this.gridApi?.showLoadingOverlay();
-        
-        this.dataService.getRows(params.startRow, params.endRow, this.filterForm.value, params.sortModel)
+        this.gridApi.showLoadingOverlay();
+        // Passing startRow, endRow, and the entire filter form values
+        this.dataService.getRowsServerSide(params.startRow, params.endRow, this.filterForm.value)
           .subscribe({
             next: (res) => {
               this.totalRecords = res.total;
               params.successCallback(res.rows, res.total);
-              this.gridApi?.hideOverlay();
+              this.gridApi.hideOverlay();
+              if (res.total === 0) this.gridApi.showNoRowsOverlay();
             },
-            error: () => {
-              params.failCallback();
-              this.gridApi?.hideOverlay();
-            }
+            error: () => params.failCallback()
           });
       }
     };
   }
 
-  resetFilters() {
-    this.filterForm.reset({ dateFilter: null, currencyFilter: 'ALL', search: '' });
+  circleRenderer(value: boolean) {
+    const color = value ? '#28a745' : '#dc3545';
+    return `<span style="height: 12px; width: 12px; background-color: ${color}; border-radius: 50%; display: inline-block; margin-top:14px;"></span>`;
+  }
+
+  onSelectionChanged() {
+    const selected = this.gridApi.getSelectedRows();
+    this.selectedRow = selected.length === 1 ? selected[0] : null;
+  }
+
+  onAuthorize() {
+    if (this.selectedRow) alert(`Authorized: ${this.selectedRow.issueName}`);
   }
 
   openEditModal(data: GridRowData) {
@@ -111,9 +130,12 @@ export class Checker2Component implements OnInit, OnDestroy {
     this.isModalVisible = true;
   }
 
-  onSelectionChanged() {
-    const selectedRows = this.gridApi.getSelectedRows();
-    this.selectedRow = selectedRows.length === 1 ? selectedRows[0] : null;
+  saveEdit() {
+    if (this.editForm.valid) {
+      alert('Changes saved (Simulated Server Update)');
+      this.isModalVisible = false;
+      this.refreshGrid();
+    }
   }
 
   ngOnDestroy() {
@@ -121,9 +143,6 @@ export class Checker2Component implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 }
-
-
-
 
 
 // import { Component, OnInit } from '@angular/core';
