@@ -24,12 +24,12 @@ export class Checker2Component implements OnInit, OnDestroy {
   public gridApi!: GridApi;
   private destroy$ = new Subject<void>();
   
-  // Infinite Scroll & Pagination Configuration
+  // Infinite Row Model Configuration
   public rowModelType: 'infinite' = 'infinite';
   public paginationPageSize = 100;
   public cacheBlockSize = 100;
   
-  // State Management
+  // State variables
   public currencies: string[] = [];
   public selectedRow: GridRowData | null = null;
   public isModalVisible = false;
@@ -89,14 +89,14 @@ export class Checker2Component implements OnInit, OnDestroy {
   };
 
   constructor(private dataService: DataService, private fb: FormBuilder) {
-    // Search + Filters combined into one Reactive Form
+    // Initialize Search + Filters
     this.filterForm = this.fb.group({
       dateFilter: [null],
       currencyFilter: ['ALL'],
       search: ['']
     });
 
-    // Edit form now includes the boolean switches for S1 and S2
+    // Initialize Edit Form with status checkboxes
     this.editForm = this.fb.group({
       id: [null],
       ddaAccount: ['', Validators.required],
@@ -109,10 +109,10 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Load static lookups
     this.dataService.getCurrencies().subscribe(list => this.currencies = list);
 
-    // Advanced switchMap-like behavior using grid refresh on form change
-    // debounceTime(300) ensures we don't spam the "server" while typing
+    // switchMap concept: Watch form changes with debounce to prevent API spam
     this.filterForm.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -128,7 +128,7 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   /**
-   * Resets the infinite cache and forces a fresh data fetch from row 0
+   * Forces the infinite row model to dump its cache and re-fetch from row 0
    */
   refreshGrid() {
     if (this.gridApi) {
@@ -137,14 +137,14 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   /**
-   * Defines the AG Grid Datasource for Infinite Scrolling
+   * Generates the Datasource configuration for AG Grid
    */
   createDatasource(): IDatasource {
     return {
       getRows: (params: IGetRowsParams) => {
         this.gridApi.showLoadingOverlay();
         
-        // Pass pagination bounds and filter values to the service
+        // Fetch data based on current scroll position and filter state
         this.dataService.getRowsServerSide(
           params.startRow, 
           params.endRow, 
@@ -169,7 +169,7 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   /**
-   * Preserving your original working green/red circle logic
+   * Your original red/green dot renderer
    */
   circleRenderer(value: boolean) {
     const color = value ? '#28a745' : '#dc3545';
@@ -183,8 +183,8 @@ export class Checker2Component implements OnInit, OnDestroy {
 
   onAuthorize() {
     if (this.selectedRow) {
-      alert(`Record ${this.selectedRow.id} (${this.selectedRow.issueName}) has been Authorized.`);
-      // In production, trigger a service call here then this.refreshGrid();
+      alert(`Authorization triggered for: ${this.selectedRow.issueName}`);
+      // Typically: this.service.authorize(id).subscribe(() => this.refreshGrid());
     }
   }
 
@@ -194,20 +194,31 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   /**
-   * Saves transaction edits AND the flipped S1/S2 status
+   * Saves transaction data AND flipped checkbox statuses
    */
   saveEdit() {
     if (this.editForm.valid) {
-      const updatedRecord = this.editForm.value;
-      console.log('Pushing updates to server:', updatedRecord);
+      const updatedData = this.editForm.value;
+      console.log('Sending updates to server...', updatedData);
       
-      // Simulated successful update
-      alert('Record updated and status flipped successfully!');
+      // Close modal and refresh the grid to show new values/dots
       this.isModalVisible = false;
-      
-      // Reload the grid to show new data from "server"
       this.refreshGrid();
+      
+      alert('Record updated. The grid has been refreshed to show status changes.');
     }
+  }
+
+  /**
+   * Explicitly clears all filters and search input
+   */
+  resetFilters() {
+    this.filterForm.reset({
+      dateFilter: null,
+      currencyFilter: 'ALL',
+      search: ''
+    });
+    // refreshGrid() is called automatically via the valueChanges subscription
   }
 
   ngOnDestroy() {

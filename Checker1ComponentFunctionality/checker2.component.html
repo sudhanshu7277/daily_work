@@ -6,13 +6,13 @@
         <button class="btn-auth" [disabled]="!selectedRow" (click)="onAuthorize()">
           Authorize Selected
         </button>
-        <button class="btn-clear" (click)="filterForm.reset({currencyFilter: 'ALL', search: ''})">Reset Filters</button>
+        <button class="btn-clear" (click)="resetFilters()">Reset</button>
       </div>
       
       <div class="search-group">
         <input type="text" formControlName="search" placeholder="Search Issue Name or Account...">
         <span class="row-info" *ngIf="gridApi">
-          <strong>{{ totalRecords }}</strong> records found
+          Total Records: <strong>{{ totalRecords }}</strong>
         </span>
       </div>
     </div>
@@ -38,10 +38,12 @@
       class="ag-theme-alpine"
       style="height: 600px; width: 100%;"
       [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
       [rowModelType]="rowModelType"
       [pagination]="true"
       [paginationPageSize]="paginationPageSize"
       [cacheBlockSize]="cacheBlockSize"
+      [rowSelection]="'single'"
       (gridReady)="onGridReady($event)"
       (selectionChanged)="onSelectionChanged()">
     </ag-grid-angular>
@@ -50,7 +52,7 @@
   <div class="modal-overlay" *ngIf="isModalVisible">
     <div class="modal-box">
       <div class="modal-header">
-        <h3>Edit Transaction</h3>
+        <h3>Edit Transaction & Status</h3>
         <button class="close-x" (click)="isModalVisible = false">&times;</button>
       </div>
 
@@ -72,6 +74,20 @@
             <div class="field">
               <label>Issue Name</label>
               <input type="text" formControlName="issueName">
+            </div>
+          </div>
+
+          <div class="status-flip-container">
+            <label class="section-label">Update Indicators (S1 & S2)</label>
+            <div class="checkbox-row">
+              <label class="check-item">
+                <input type="checkbox" formControlName="statusChoice1">
+                <span>S1 Status (Green if checked)</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" formControlName="statusChoice2">
+                <span>S2 Status (Green if checked)</span>
+              </label>
             </div>
           </div>
         </div>
