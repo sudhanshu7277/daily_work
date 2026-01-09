@@ -1,4 +1,86 @@
-<div class="checker-wrapper">
+<div class="checker-container">
+  <header class="grid-header" [formGroup]="filterForm">
+    <button class="btn-authorize" type="button">Authorize</button>
+    <div class="filters">
+      <input type="date" formControlName="dateFilter">
+      <select formControlName="currencyFilter">
+        <option value="ALL">All CCY</option>
+        <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
+      </select>
+    </div>
+  </header>
+
+  <ag-grid-angular
+    class="ag-theme-alpine"
+    style="height: 600px; width: 100%;"
+    [columnDefs]="columnDefs"
+    [rowModelType]="rowModelType"
+    [pagination]="true"
+    [paginationPageSize]="100"
+    (gridReady)="onGridReady($event)">
+  </ag-grid-angular>
+
+  <div class="modal-overlay" *ngIf="isModalVisible">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Edit Financial Record</h3>
+        <button (click)="isModalVisible = false">&times;</button>
+      </div>
+      <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="modal-body scrollable">
+          <div class="form-grid">
+            <div class="field full">
+              <label>Issue Name</label>
+              <input formControlName="issueName">
+            </div>
+            <div class="field">
+              <label>DDA Account</label>
+              <input formControlName="ddaAccount">
+            </div>
+            <div class="field">
+              <label>Account Number</label>
+              <input formControlName="accountNumber">
+            </div>
+            <div class="field">
+              <label>DOL No</label>
+              <input formControlName="dolNo">
+            </div>
+            <div class="field">
+              <label>Currency</label>
+              <input formControlName="paymentAmountCurrency" readonly>
+            </div>
+            <div class="field">
+              <label>Payment Amount</label>
+              <input type="number" formControlName="paymentAmount">
+            </div>
+            <div class="field">
+              <label>Event Balance</label>
+              <input type="number" formControlName="eventBalance">
+            </div>
+            <div class="field">
+              <label>RT Balance</label>
+              <input type="number" formControlName="realTimeBalance">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="isModalVisible = false">Cancel</button>
+          <button type="submit" class="btn-save" [disabled]="editForm.invalid">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<!-- <div class="checker-wrapper">
   
   <div class="header-container" [formGroup]="filterForm">
     <div class="left-actions">
@@ -75,96 +157,6 @@
         <div class="modal-footer">
           <button type="button" class="btn-secondary" (click)="isModalVisible = false">Cancel</button>
           <button type="submit" class="btn-primary" [disabled]="editForm.invalid">Save Changes</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-<!-- <div class="checker-container">
-  <div class="top-action-bar">
-    <div class="left-actions">
-      <button 
-        class="btn-authorize" 
-        [disabled]="!selectedRow" 
-        (click)="onAuthorize()">
-        Authorize
-      </button>
-    </div>
-    <div class="right-actions">
-      <input 
-        type="text" 
-        class="quick-filter" 
-        placeholder="Search records..." 
-        (input)="onFilterTextBoxChanged($event)">
-    </div>
-  </div>
-
-  <div class="grid-wrapper">
-    <ag-grid-angular
-      class="ag-theme-alpine custom-grid"
-      style="height: 500px; width: 100%;"
-      [columnDefs]="columnDefs"
-      [defaultColDef]="defaultColDef"
-      [rowData]="rowData"
-      [rowSelection]="'single'"
-      (gridReady)="onGridReady($event)"
-      (selectionChanged)="onSelectionChanged($event)">
-    </ag-grid-angular>
-  </div>
-
-  <div class="modal-backdrop" *ngIf="isModalVisible">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>Edit Transaction Detail</h3>
-        <span class="close-x" (click)="isModalVisible = false">&times;</span>
-      </div>
-      
-      <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
-        <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label>DDA Account</label>
-              <input formControlName="ddaAccount" type="text">
-            </div>
-            <div class="form-group">
-              <label>Account Number</label>
-              <input formControlName="accountNumber" type="text">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Issue Name</label>
-              <input formControlName="issueName" type="text">
-            </div>
-            <div class="form-group">
-              <label>Payment Amount</label>
-              <input formControlName="paymentAmount" type="number">
-            </div>
-          </div>
-
-          <div class="form-row checkbox-row">
-            <label>
-              <input type="checkbox" formControlName="statusChoice1"> Status Choice 1
-            </label>
-            <label>
-              <input type="checkbox" formControlName="statusChoice2"> Status Choice 2
-            </label>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn-cancel" (click)="isModalVisible = false">Cancel</button>
-          <button type="submit" class="btn-save" [disabled]="editForm.invalid">Save Changes</button>
         </div>
       </form>
     </div>
