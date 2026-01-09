@@ -29,40 +29,46 @@ export class DataService {
     accountNumber: `4455-00${i}`,
     eventValueDate: new Date(2026, 0, (i % 28) + 1),
     paymentDate: new Date(),
-    paymentAmountCurrency: ['USD', 'CAD', 'EUR', 'GBP'][i % 4],
-    paymentAmount: 5000 + (i * 100),
+    paymentAmountCurrency: ['USD', 'EUR', 'GBP', 'CAD'][i % 4],
+    paymentAmount: 5000 + (i * 12),
     statusChoice1: i % 2 === 0,
-    statusChoice2: i % 5 !== 0,
-    dolNo: `DOL-XN-${1000 + i}`,
-    eventBalance: 250000,
-    netPaymentAmount: 4800 + i,
-    realTimeBalance: 300000,
-    usdAmount: 5000 + i,
-    issueName: `Corporate Action ${i}`,
+    statusChoice2: i % 3 === 0,
+    dolNo: `DOL-${1000 + i}`,
+    eventBalance: 25000,
+    netPaymentAmount: 4800,
+    realTimeBalance: 30000,
+    usdAmount: 5100,
+    issueName: `Transaction Ref ${i}`,
     authorized: false
   }));
 
   getRows(startRow: number, endRow: number, filters: any, sortModel: any): Observable<{rows: GridRowData[], total: number}> {
     let data = [...this.masterData];
 
-    // Server-side Filtering
+    if (filters.search) {
+      const s = filters.search.toLowerCase();
+      data = data.filter(r => 
+        r.issueName.toLowerCase().includes(s) || 
+        r.accountNumber.toLowerCase().includes(s) ||
+        r.ddaAccount.toLowerCase().includes(s)
+      );
+    }
+
     if (filters.currency && filters.currency !== 'ALL') {
       data = data.filter(r => r.paymentAmountCurrency === filters.currency);
     }
+
     if (filters.date) {
       const targetDate = new Date(filters.date).toDateString();
       data = data.filter(r => new Date(r.eventValueDate).toDateString() === targetDate);
     }
 
-    // Server-side Sorting
-    if (sortModel.length > 0) {
+    if (sortModel && sortModel.length > 0) {
       const { colId, sort } = sortModel[0];
       data.sort((a: any, b: any) => {
         const valA = a[colId];
         const valB = b[colId];
-        if (valA === valB) return 0;
-        const result = valA > valB ? 1 : -1;
-        return sort === 'asc' ? result : -result;
+        return sort === 'asc' ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
       });
     }
 
@@ -70,10 +76,9 @@ export class DataService {
   }
 
   getCurrencies(): Observable<string[]> {
-    return of(['USD', 'CAD', 'EUR', 'GBP', 'JPY']);
+    return of(['USD', 'EUR', 'GBP', 'CAD', 'JPY']);
   }
 }
-
 
 
 

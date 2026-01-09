@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { AgGridModule } from 'ag-grid-angular';
 import { ColDef, GridApi, GridReadyEvent, IDatasource, IGetRowsParams } from 'ag-grid-community';
 import { DataService, GridRowData } from './data.service';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-checker2',
@@ -14,79 +14,96 @@ import { Subject, takeUntil } from 'rxjs';
   styleUrls: ['./checker2.component.scss']
 })
 export class Checker2Component implements OnInit, OnDestroy {
-  private gridApi!: GridApi;
+  public gridApi!: GridApi;
   private destroy$ = new Subject<void>();
   
   public rowModelType: 'infinite' = 'infinite';
   public currencies: string[] = [];
   public isModalVisible = false;
+  public selectedRow: GridRowData | null = null;
+  public totalRecords = 0;
+
   public filterForm!: FormGroup;
   public editForm!: FormGroup;
 
   public columnDefs: ColDef[] = [
     { field: 'id', width: 70, checkboxSelection: true, pinned: 'left' },
-    { field: 'issueName', headerName: 'Issue Name', minWidth: 200 },
-    { field: 'ddaAccount', headerName: 'DDA Account' },
-    { field: 'accountNumber', headerName: 'Account No' },
-    { field: 'dolNo', headerName: 'DOL No' },
-    { field: 'paymentAmountCurrency', headerName: 'CCY', width: 80 },
-    { field: 'paymentAmount', headerName: 'Amount', valueFormatter: p => p.value.toLocaleString() },
-    { field: 'netPaymentAmount', headerName: 'Net Amount' },
-    { field: 'eventBalance', headerName: 'Evt Balance' },
-    { field: 'realTimeBalance', headerName: 'RT Balance' },
+    { field: 'issueName', headerName: 'Issue Name', minWidth: 180, sortable: true },
+    { field: 'ddaAccount', headerName: 'DDA Account', sortable: true },
+    { field: 'accountNumber', headerName: 'Account No', sortable: true },
+    { field: 'paymentAmountCurrency', headerName: 'CCY', width: 80, sortable: true },
+    { field: 'paymentAmount', headerName: 'Amount', sortable: true, valueFormatter: p => p.value?.toLocaleString() },
     { 
-      headerName: 'S1', width: 60, 
-      cellRenderer: (p: any) => `<span class="circle ${p.value ? 'green' : 'red'}"></span>` 
+      headerName: 'Status', width: 90, 
+      cellRenderer: (p: any) => `<div class="status-dot ${p.data?.statusChoice1 ? 'green' : 'red'}"></div>` 
     },
     {
       headerName: 'Actions', width: 100, pinned: 'right',
-      cellRenderer: () => `<button class="btn-grid-edit">Edit</button>`,
+      cellRenderer: () => `<button class="edit-action-btn">Edit</button>`,
       onCellClicked: (p) => this.openEditModal(p.data)
     }
   ];
 
   constructor(private dataService: DataService, private fb: FormBuilder) {
-    this.filterForm = this.fb.group({ dateFilter: [null], currencyFilter: ['ALL'] });
-    this.initEditForm();
-  }
-
-  private initEditForm() {
+    this.filterForm = this.fb.group({ 
+      dateFilter: [null], 
+      currencyFilter: ['ALL'],
+      search: [''] 
+    });
+    
     this.editForm = this.fb.group({
-      id: [null],
-      issueName: ['', Validators.required],
-      ddaAccount: ['', Validators.required],
-      accountNumber: ['', Validators.required],
-      dolNo: [''],
-      paymentAmount: [0, Validators.required],
-      eventBalance: [0],
-      realTimeBalance: [0],
-      paymentAmountCurrency: ['']
+      id: [null], issueName: ['', Validators.required], ddaAccount: ['', Validators.required],
+      accountNumber: ['', Validators.required], paymentAmount: [0]
     });
   }
 
   ngOnInit() {
     this.dataService.getCurrencies().subscribe(res => this.currencies = res);
-    this.filterForm.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.gridApi?.setGridOption('datasource', this.createDatasource());
+    
+    // SwitchMap ensures that only the latest filter request is handled
+    this.filterForm.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.refreshGrid();
     });
   }
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
-    this.gridApi.setGridOption('datasource', this.createDatasource());
+    this.refreshGrid();
+  }
+
+  refreshGrid() {
+    if (this.gridApi) {
+      this.gridApi.setGridOption('datasource', this.createDatasource());
+    }
   }
 
   createDatasource(): IDatasource {
     return {
       getRows: (params: IGetRowsParams) => {
-        this.gridApi.showLoadingOverlay();
+        this.gridApi?.showLoadingOverlay();
+        
         this.dataService.getRows(params.startRow, params.endRow, this.filterForm.value, params.sortModel)
-          .subscribe(res => {
-            params.successCallback(res.rows, res.total);
-            this.gridApi.hideOverlay();
+          .subscribe({
+            next: (res) => {
+              this.totalRecords = res.total;
+              params.successCallback(res.rows, res.total);
+              this.gridApi?.hideOverlay();
+            },
+            error: () => {
+              params.failCallback();
+              this.gridApi?.hideOverlay();
+            }
           });
       }
     };
+  }
+
+  resetFilters() {
+    this.filterForm.reset({ dateFilter: null, currencyFilter: 'ALL', search: '' });
   }
 
   openEditModal(data: GridRowData) {
@@ -94,21 +111,16 @@ export class Checker2Component implements OnInit, OnDestroy {
     this.isModalVisible = true;
   }
 
-  saveEdit() {
-    if (this.editForm.valid) {
-      alert('Record Updated in Database');
-      this.isModalVisible = false;
-      this.gridApi.setGridOption('datasource', this.createDatasource());
-    }
+  onSelectionChanged() {
+    const selectedRows = this.gridApi.getSelectedRows();
+    this.selectedRow = selectedRows.length === 1 ? selectedRows[0] : null;
   }
 
-  ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }
-
-
-
-
-
 
 
 
