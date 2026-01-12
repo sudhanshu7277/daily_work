@@ -1,10 +1,16 @@
 <div class="checker-wrapper">
-  
+  <div [className]="'toast-notification ' + toastType" [class.show]="isNotificationVisible">
+    <div class="toast-content">
+      <span class="message">{{ notificationMessage }}</span>
+      <button class="toast-close" (click)="isNotificationVisible = false">&times;</button>
+    </div>
+  </div>
+
   <div class="header-container" [formGroup]="filterForm">
     <div class="left-actions">
       <div class="btn-row">
-        <button class="btn-auth" [disabled]="!selectedRow" (click)="onAuthorize()">
-          Authorize Selected
+        <button class="btn-auth" [disabled]="!selectedRow || isSaving" (click)="onAuthorize()">
+          {{ isSaving ? 'Processing...' : 'Authorize Selected' }}
         </button>
         <button class="btn-clear" (click)="resetFilters()">Reset</button>
       </div>
@@ -19,14 +25,18 @@
 
     <div class="filter-controls">
       <div class="control-group">
-        <label>Value Date</label>
-        <input type="date" formControlName="dateFilter">
+        <label>Rows per Page</label>
+        <select (change)="onPageSizeChanged($event)" class="page-size-select">
+          <option value="10">10 Rows</option>
+          <option value="20" selected>20 Rows</option>
+          <option value="50">50 Rows</option>
+          <option value="100">100 Rows</option>
+        </select>
       </div>
-
       <div class="control-group">
         <label>Currency</label>
         <select formControlName="currencyFilter">
-          <option value="ALL">-- All Currencies --</option>
+          <option value="ALL">All CCY</option>
           <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
         </select>
       </div>
@@ -39,10 +49,8 @@
       style="height: 600px; width: 100%;"
       [columnDefs]="columnDefs"
       [defaultColDef]="defaultColDef"
-      [rowModelType]="rowModelType"
       [pagination]="true"
       [paginationPageSize]="paginationPageSize"
-      [cacheBlockSize]="cacheBlockSize"
       [rowSelection]="'single'"
       (gridReady)="onGridReady($event)"
       (selectionChanged)="onSelectionChanged()">
@@ -52,49 +60,39 @@
   <div class="modal-overlay" *ngIf="isModalVisible">
     <div class="modal-box">
       <div class="modal-header">
-        <h3>Edit Transaction & Status</h3>
+        <h3>Edit Transaction</h3>
         <button class="close-x" (click)="isModalVisible = false">&times;</button>
       </div>
 
       <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
         <div class="modal-body">
           <div class="form-grid">
-            <div class="field">
-              <label>DDA Account</label>
-              <input type="text" formControlName="ddaAccount">
-            </div>
-            <div class="field">
-              <label>Account Number</label>
-              <input type="text" formControlName="accountNumber">
-            </div>
-            <div class="field">
-              <label>Amount</label>
-              <input type="number" formControlName="paymentAmount">
-            </div>
-            <div class="field">
-              <label>Issue Name</label>
-              <input type="text" formControlName="issueName">
-            </div>
+            <div class="field"><label>DDA Account</label><input type="text" formControlName="ddaAccount"></div>
+            <div class="field"><label>Account No</label><input type="text" formControlName="accountNumber"></div>
+            <div class="field"><label>Amount</label><input type="number" formControlName="paymentAmount"></div>
+            <div class="field"><label>Issue Name</label><input type="text" formControlName="issueName"></div>
           </div>
 
           <div class="status-flip-container">
             <label class="section-label">Update Indicators (S1 & S2)</label>
             <div class="checkbox-row">
               <label class="check-item">
-                <input type="checkbox" formControlName="statusChoice1">
-                <span>S1 Status (Green if checked)</span>
+                <input type="checkbox" formControlName="statusChoice1"> S1 Status
+                <span class="preview-dot" [style.background-color]="editForm.value.statusChoice1 ? '#28a745' : '#dc3545'"></span>
               </label>
               <label class="check-item">
-                <input type="checkbox" formControlName="statusChoice2">
-                <span>S2 Status (Green if checked)</span>
+                <input type="checkbox" formControlName="statusChoice2"> S2 Status
+                <span class="preview-dot" [style.background-color]="editForm.value.statusChoice2 ? '#28a745' : '#dc3545'"></span>
               </label>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" (click)="isModalVisible = false">Cancel</button>
-          <button type="submit" class="btn-primary" [disabled]="editForm.invalid">Save Changes</button>
+          <button type="button" class="btn-secondary" (click)="isModalVisible = false" [disabled]="isSaving">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="editForm.invalid || isSaving">
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
         </div>
       </form>
     </div>
