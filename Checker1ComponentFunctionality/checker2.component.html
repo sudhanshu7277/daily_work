@@ -25,18 +25,14 @@
 
     <div class="filter-controls">
       <div class="control-group">
-        <label>Rows per Page</label>
-        <select (change)="onPageSizeChanged($event)" class="page-size-select">
-          <option value="10">10 Rows</option>
-          <option value="20" selected>20 Rows</option>
-          <option value="50">50 Rows</option>
-          <option value="100">100 Rows</option>
-        </select>
+        <label>Value Date</label>
+        <input type="date" formControlName="dateFilter">
       </div>
+
       <div class="control-group">
         <label>Currency</label>
         <select formControlName="currencyFilter">
-          <option value="ALL">All CCY</option>
+          <option value="ALL">-- All Currencies --</option>
           <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
         </select>
       </div>
@@ -60,7 +56,7 @@
   <div class="modal-overlay" *ngIf="isModalVisible">
     <div class="modal-box">
       <div class="modal-header">
-        <h3>Edit Transaction</h3>
+        <h3>Edit Transaction & Status</h3>
         <button class="close-x" (click)="isModalVisible = false">&times;</button>
       </div>
 
@@ -77,11 +73,13 @@
             <label class="section-label">Update Indicators (S1 & S2)</label>
             <div class="checkbox-row">
               <label class="check-item">
-                <input type="checkbox" formControlName="statusChoice1"> S1 Status
+                <input type="checkbox" formControlName="statusChoice1">
+                <span>S1 Status</span>
                 <span class="preview-dot" [style.background-color]="editForm.value.statusChoice1 ? '#28a745' : '#dc3545'"></span>
               </label>
               <label class="check-item">
-                <input type="checkbox" formControlName="statusChoice2"> S2 Status
+                <input type="checkbox" formControlName="statusChoice2">
+                <span>S2 Status</span>
                 <span class="preview-dot" [style.background-color]="editForm.value.statusChoice2 ? '#28a745' : '#dc3545'"></span>
               </label>
             </div>

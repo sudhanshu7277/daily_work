@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
-import { ColDef, GridApi, GridReadyEvent, ICellRendererParams } from 'ag-grid-community';
+import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { DataService, GridRowData } from './data.service';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 
@@ -18,14 +18,16 @@ type ToastType = 'success' | 'warning' | 'error';
 export class Checker2Component implements OnInit, OnDestroy {
   public gridApi!: GridApi;
   private destroy$ = new Subject<void>();
+  
+  // Notification & Loading State
   public isNotificationVisible = false;
   public notificationMessage = '';
   public toastType: ToastType = 'success';
   public isSaving = false;
   public isModalVisible = false;
 
-  // Grid & Pagination
-  public paginationPageSize = 20;
+  // Grid Config
+  public paginationPageSize = 20; 
   public totalRecords = 0;
   public currencies: string[] = [];
   public selectedRow: GridRowData | null = null;
@@ -38,6 +40,12 @@ export class Checker2Component implements OnInit, OnDestroy {
     { field: 'issueName', headerName: 'Issue Name', minWidth: 200 },
     { field: 'ddaAccount', headerName: 'DDA Account' },
     { field: 'accountNumber', headerName: 'Account No' },
+    { 
+      field: 'eventValueDate', 
+      headerName: 'Value Date', 
+      valueFormatter: p => p.value ? new Date(p.value).toLocaleDateString() : '' 
+    },
+    { field: 'paymentAmountCurrency', headerName: 'CCY', width: 90 }, // Restored CCY Column
     { field: 'paymentAmount', headerName: 'Amount', valueFormatter: p => p.value?.toLocaleString() },
     { field: 'statusChoice1', headerName: 'S1', width: 80, cellRenderer: (p: any) => this.circleRenderer(p.value) },
     { field: 'statusChoice2', headerName: 'S2', width: 80, cellRenderer: (p: any) => this.circleRenderer(p.value) },
@@ -51,7 +59,12 @@ export class Checker2Component implements OnInit, OnDestroy {
   public defaultColDef: ColDef = { flex: 1, resizable: true, sortable: true, filter: true };
 
   constructor(private dataService: DataService, private fb: FormBuilder) {
-    this.filterForm = this.fb.group({ search: [''], dateFilter: [null], currencyFilter: ['ALL'] });
+    this.filterForm = this.fb.group({ 
+      search: [''], 
+      dateFilter: [null], 
+      currencyFilter: ['ALL'] 
+    });
+
     this.editForm = this.fb.group({
       id: [null], ddaAccount: ['', Validators.required], accountNumber: ['', Validators.required],
       paymentAmount: [0, Validators.required], issueName: ['', Validators.required],
@@ -61,8 +74,12 @@ export class Checker2Component implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.dataService.getCurrencies().subscribe(list => this.currencies = list);
-    this.filterForm.get('search')?.valueChanges.pipe(debounceTime(300), takeUntil(this.destroy$))
-      .subscribe(val => this.gridApi.setGridOption('quickFilterText', val));
+
+    // Watch all filters (Search, Date, Currency)
+    this.filterForm.valueChanges.pipe(
+      debounceTime(300),
+      takeUntil(this.destroy$)
+    ).subscribe(values => this.applyFilters(values));
   }
 
   onGridReady(params: GridReadyEvent) {
@@ -71,21 +88,36 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   loadData() {
-    this.gridApi.showLoadingOverlay();
+    this.gridApi?.showLoadingOverlay();
     this.dataService.getData().subscribe(data => {
-      this.gridApi.setGridOption('rowData', data);
+      this.gridApi?.setGridOption('rowData', data);
       this.totalRecords = data.length;
-      this.gridApi.hideOverlay();
+      this.gridApi?.hideOverlay();
     });
   }
 
-  onPageSizeChanged(event: any) {
-    const newValue = Number(event.target.value);
-    this.paginationPageSize = newValue;
-    
-    if (this.gridApi) {
-      this.gridApi.setGridOption('paginationPageSize', newValue);
+  applyFilters(values: any) {
+    if (!this.gridApi) return;
+
+    // 1. Quick Filter (Search)
+    this.gridApi.setGridOption('quickFilterText', values.search);
+
+    // 2. Column-specific filters
+    const filterModel: any = {};
+
+    if (values.currencyFilter !== 'ALL') {
+      filterModel.paymentAmountCurrency = {
+        filterType: 'text', type: 'equals', filter: values.currencyFilter
+      };
     }
+
+    if (values.dateFilter) {
+      filterModel.eventValueDate = {
+        filterType: 'date', type: 'equals', dateFrom: values.dateFilter
+      };
+    }
+
+    this.gridApi.setFilterModel(filterModel);
   }
 
   onAuthorize() {
@@ -146,8 +178,7 @@ export class Checker2Component implements OnInit, OnDestroy {
   }
 
   resetFilters() {
-    this.filterForm.reset({ currencyFilter: 'ALL', search: '' });
-    this.gridApi.setGridOption('quickFilterText', '');
+    this.filterForm.reset({ currencyFilter: 'ALL', search: '', dateFilter: null });
   }
 
   ngOnDestroy() {
