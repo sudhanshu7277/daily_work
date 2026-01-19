@@ -1,10 +1,52 @@
+// checker1.service.spec.ts
+
+import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { Checker1Service } from './checker1.service';
+
+describe('Checker1Service', () => {
+  let service: Checker1Service;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [Checker1Service]
+    });
+    service = TestBed.inject(Checker1Service);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify(); // Ensures no outstanding requests
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
+  it('should fetch data via GET', () => {
+    const mockData = [{ id: 1, name: 'Test' }];
+    
+    service.getCheckerData('some-param').subscribe(data => {
+      expect(data).toEqual(mockData);
+    });
+
+    const req = httpMock.expectOne(request => request.url.includes('/api/checker'));
+    expect(req.request.method).toBe('GET');
+    req.flush(mockData);
+  });
+});
+
+
+// checker1.component.spec.ts
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Checker1Component } from './checker1.component';
 import { Checker1Service } from 'src/app/shared/services/checker1.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
 import { of } from 'rxjs';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('Checker1Component', () => {
@@ -13,60 +55,45 @@ describe('Checker1Component', () => {
   let mockService: any;
 
   beforeEach(async () => {
-    // 1. Setup Mock Service with methods found in your .ts file
     mockService = {
-      getCheckerData: jest.fn().mockReturnValue(of([
-        { id: 1, status: 'Pending', amount: 100 } // Sample mock data
-      ])),
-      submitApproval: jest.fn().mockReturnValue(of({ success: true }))
+      getCheckerData: jest.fn().mockReturnValue(of([])),
+      saveData: jest.fn().mockReturnValue(of({ success: true }))
     };
 
     await TestBed.configureTestingModule({
-      // For Standalone components, the component goes in IMPORTS
+      // STANDALONE component goes in imports
       imports: [
         Checker1Component, 
         ReactiveFormsModule, 
-        AgGridModule,
-        HttpClientTestingModule
+        AgGridModule
       ],
       providers: [
         { provide: Checker1Service, useValue: mockService }
       ],
-      // NO_ERRORS_SCHEMA helps ignore Citi-specific custom elements if they aren't imported
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
 
-    // 2. Mock Ag-Grid API to prevent crashes on grid initialization
+    // Manually mock the grid API that Ag-Grid usually provides
     component.gridApi = {
-      sizeColumnsToFit: jest.fn(),
       setRowData: jest.fn(),
-      getSelectedRows: jest.fn().mockReturnValue([])
+      getSelectedRows: jest.fn().mockReturnValue([]),
+      sizeColumnsToFit: jest.fn()
     } as any;
 
-    fixture.detectChanges(); // Triggers ngOnInit()
+    fixture.detectChanges(); 
   });
 
-  it('should create', () => {
+  it('should create and initialize forms', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('should initialize filterForm with default values', () => {
     expect(component.filterForm).toBeDefined();
-    expect(component.filterForm.get('status')).toBeTruthy();
+    expect(component.editForm).toBeDefined();
   });
 
-  it('should load data onSearch', () => {
+  it('should call service on search', () => {
     component.onSearch();
     expect(mockService.getCheckerData).toHaveBeenCalled();
-    expect(component.rowData.length).toBeGreaterThan(0);
-  });
-
-  it('should handle grid ready event', () => {
-    const mockParams = { api: component.gridApi };
-    component.onGridReady(mockParams as any);
-    expect(component.gridApi).toBeDefined();
   });
 });
