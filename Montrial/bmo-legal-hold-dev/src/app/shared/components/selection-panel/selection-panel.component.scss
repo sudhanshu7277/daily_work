@@ -1,0 +1,166 @@
+.selection-panel-wrapper {
+  padding: 20px;
+  
+  .placeholder-text {
+    font-style: italic;
+    color: #888;
+    font-size: 15px;
+  }
+
+  .profile-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+    .name { font-weight: 700; font-size: 14px; }
+    .id { font-size: 12px; color: #666; }
+  }
+}
+
+.panel-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: auto;
+  padding: 20px 0;
+
+  .btn-pill {
+    flex: 1;
+    border-radius: 50px; // Makes them pill-shaped
+    padding: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+
+    &.release {
+      background-color: #f2f2f2;
+      color: #999;
+    }
+
+    &.apply {
+      background-color: #a6b8d4; // The muted blue from your screenshot
+      color: white;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+// $bmo-blue: #00338D;
+// $bmo-blue-light: #8ba2cc; // For the blue Apply button style
+// $gray-bg: #f2f2f2;
+// $text-gray: #999;
+
+// .selection-panel-wrapper {
+//   display: flex;
+//   flex-direction: column;
+//   height: 100%;
+//   background-color: #fff;
+//   padding: 24px;
+//   box-sizing: border-box;
+// }
+
+// .panel-header {
+//   margin-bottom: 24px;
+//   .placeholder-text {
+//     color: $text-gray;
+//     font-style: italic;
+//     font-size: 16px;
+//     margin: 0;
+//   }
+//   .count-text {
+//     font-weight: 700;
+//     font-size: 16px;
+//     color: #333;
+//   }
+// }
+
+// .profiles-list {
+//   flex: 1;
+//   overflow-y: auto;
+//   margin-bottom: 24px;
+
+//   .profile-card {
+//     display: flex;
+//     justify-content: space-between;
+//     align-items: center;
+//     padding: 12px;
+//     border: 1px solid #ddd;
+//     border-radius: 4px;
+//     margin-bottom: 12px;
+
+//     .profile-details {
+//       display: flex;
+//       flex-direction: column;
+//       .profile-name {
+//         font-weight: 700;
+//         font-size: 14px;
+//       }
+//       .profile-id {
+//         font-size: 12px;
+//         color: #666;
+//       }
+//     }
+
+//     .remove-icon {
+//       background: none;
+//       border: none;
+//       font-size: 22px;
+//       cursor: pointer;
+//       color: #333;
+//       padding: 0 4px;
+//     }
+//   }
+// }
+
+// .panel-footer {
+//   display: flex;
+//   gap: 16px;
+//   padding-top: 16px;
+//   border-top: 1px solid #eee;
+
+//   button {
+//     flex: 1;
+//     padding: 14px;
+//     border-radius: 30px; // Pill shape from image
+//     font-weight: 700;
+//     font-size: 14px;
+//     cursor: pointer;
+//     border: none;
+//     transition: opacity 0.2s;
+
+//     &:disabled {
+//       cursor: not-allowed;
+//       opacity: 0.6;
+//     }
+//   }
+
+//   .btn-release {
+//     background-color: #eee;
+//     color: $text-gray;
+//   }
+
+//   .btn-apply {
+//     background-color: $bmo-blue-light;
+//     color: #fff;
+//   }
+// }

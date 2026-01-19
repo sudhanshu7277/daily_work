@@ -1,0 +1,13 @@
+.form-group {
+  margin-bottom: 20px;
+  label { font-weight: 700; font-size: 14px; margin-bottom: 6px; display: block; }
+  input, select {
+    width: 100%; padding: 10px; border: 1px solid #000; border-radius: 4px; background: #F4F4F4;
+    &.ng-touched.ng-invalid { border: 1.5px solid #D93025; }
+  }
+  .error-text { color: #D93025; font-size: 12px; font-weight: 700; margin-top: 4px; }
+}
+.btn-search {
+  background: #00338D; color: #fff; border: none; padding: 10px 32px; border-radius: 30px; font-weight: 700; cursor: pointer;
+  &:disabled { background: #BDC3C7; cursor: not-allowed; }
+}
