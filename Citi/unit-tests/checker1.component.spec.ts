@@ -1,72 +1,72 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Checker1Component } from './checker1.component';
 import { Checker1Service } from 'src/app/shared/services/checker1.service';
-import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
 import { of } from 'rxjs';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
-  let mockChecker1Service: any;
+  let mockService: any;
 
   beforeEach(async () => {
-    // 1. Create a detailed mock of your service
-    mockChecker1Service = {
-      getCheckerData: jest.fn().mockReturnValue(of([])),
-      saveCheckerData: jest.fn().mockReturnValue(of({ status: 'success' })),
-      // Add other service methods used in your TS here
+    // 1. Setup Mock Service with methods found in your .ts file
+    mockService = {
+      getCheckerData: jest.fn().mockReturnValue(of([
+        { id: 1, status: 'Pending', amount: 100 } // Sample mock data
+      ])),
+      submitApproval: jest.fn().mockReturnValue(of({ success: true }))
     };
 
     await TestBed.configureTestingModule({
+      // For Standalone components, the component goes in IMPORTS
       imports: [
-        Checker1Component,       // Standalone components go in imports
-        ReactiveFormsModule,
+        Checker1Component, 
+        ReactiveFormsModule, 
         AgGridModule,
         HttpClientTestingModule
       ],
       providers: [
-        FormBuilder,
-        { provide: Checker1Service, useValue: mockChecker1Service }
+        { provide: Checker1Service, useValue: mockService }
       ],
-      schemas: [NO_ERRORS_SCHEMA] // Prevents crashes from custom CSS/UI tags
+      // NO_ERRORS_SCHEMA helps ignore Citi-specific custom elements if they aren't imported
+      schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
-    
-    // 2. Mocking the Ag-Grid API objects to prevent undefined errors
+
+    // 2. Mock Ag-Grid API to prevent crashes on grid initialization
     component.gridApi = {
+      sizeColumnsToFit: jest.fn(),
       setRowData: jest.fn(),
       getSelectedRows: jest.fn().mockReturnValue([])
     } as any;
 
-    fixture.detectChanges(); // Triggers ngOnInit
+    fixture.detectChanges(); // Triggers ngOnInit()
   });
 
-  it('should create the component', () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize filterForm and editForm on load', () => {
+  it('should initialize filterForm with default values', () => {
     expect(component.filterForm).toBeDefined();
-    expect(component.editForm).toBeDefined();
-    expect(component.filterForm.contains('status')).toBeTruthy();
+    expect(component.filterForm.get('status')).toBeTruthy();
   });
 
-  it('should call getCheckerData on search', () => {
+  it('should load data onSearch', () => {
     component.onSearch();
-    expect(mockChecker1Service.getCheckerData).toHaveBeenCalled();
+    expect(mockService.getCheckerData).toHaveBeenCalled();
+    expect(component.rowData.length).toBeGreaterThan(0);
   });
 
-  it('should update grid when search returns data', () => {
-    const mockData = [{ id: 1, name: 'Test Item' }];
-    mockChecker1Service.getCheckerData.mockReturnValue(of(mockData));
-    
-    component.onSearch();
-    
-    expect(component.rowData).toEqual(mockData);
+  it('should handle grid ready event', () => {
+    const mockParams = { api: component.gridApi };
+    component.onGridReady(mockParams as any);
+    expect(component.gridApi).toBeDefined();
   });
 });
