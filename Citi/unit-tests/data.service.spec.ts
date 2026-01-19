@@ -1,41 +1,30 @@
 import { TestBed } from '@angular/core/testing';
-import { DataService, GridRowData } from './data.service';
+import { DataService } from './data.service';
+import { firstValueFrom } from 'rxjs';
 
 describe('DataService', () => {
   let service: DataService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [DataService]
+    });
     service = TestBed.inject(DataService);
   });
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
+    expect(service).toBeDefined();
   });
 
-  it('should return mock data', (done) => {
-    service.getData().subscribe(data => {
-      expect(data.length).toBeGreaterThan(0);
-      done();
-    });
+  it('should return mock data as an observable', async () => {
+    const data = await firstValueFrom(service.getData());
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty('id');
   });
 
-  it('should update a row successfully', (done) => {
-    const updatedRecord: GridRowData = {
-      id: 1,
-      ddaAccount: 'NEW-DDA',
-      accountNumber: '123',
-      eventValueDate: new Date(),
-      paymentAmountCurrency: 'USD',
-      paymentAmount: 500,
-      statusChoice1: true,
-      statusChoice2: true,
-      issueName: 'Updated'
-    };
-
-    service.updateRow(updatedRecord).subscribe(result => {
-      expect(result.ddaAccount).toBe('NEW-DDA');
-      done();
-    });
+  it('should update a row and return updated record', async () => {
+    const mockUpdate = { id: 1, issueName: 'Updated' } as any;
+    const result = await firstValueFrom(service.updateRow(mockUpdate));
+    expect(result.issueName).toBe('Updated');
   });
 });

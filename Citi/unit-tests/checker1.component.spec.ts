@@ -1,61 +1,82 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { checker1Component } from './checker1.component';
+import { Checker1Component } from './Checker1.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
 import { DataService } from './data.service';
 import { of } from 'rxjs';
 
-describe('checker1Component', () => {
-  let component: checker1Component;
-  let fixture: ComponentFixture<checker1Component>;
-  let dataServiceSpy: jasmine.SpyObj<DataService>;
+describe('Checker1Component', () => {
+  let component: Checker1Component;
+  let fixture: ComponentFixture<Checker1Component>;
+  let dataService: DataService;
+
+  // Mock Grid API
+  const mockGridApi = {
+    setGridOption: jest.fn(),
+    setFilterModel: jest.fn(),
+    showLoadingOverlay: jest.fn(),
+    hideOverlay: jest.fn(),
+    getSelectedRows: jest.fn().mockReturnValue([])
+  };
 
   beforeEach(async () => {
-    const spy = jasmine.createSpyObj('DataService', ['getData', 'getCurrencies', 'updateRow']);
-    spy.getData.and.returnValue(of([]));
-    spy.getCurrencies.and.returnValue(of(['USD', 'EUR']));
+    const dataServiceMock = {
+      getData: jest.fn().mockReturnValue(of([])),
+      getCurrencies: jest.fn().mockReturnValue(of(['USD', 'EUR'])),
+      updateRow: jest.fn().mockReturnValue(of({}))
+    };
 
     await TestBed.configureTestingModule({
-      imports: [checker1Component, ReactiveFormsModule, AgGridModule],
-      providers: [{ provide: DataService, useValue: spy }]
+      imports: [Checker1Component, ReactiveFormsModule, AgGridModule],
+      providers: [
+        { provide: DataService, useValue: dataServiceMock }
+      ]
     }).compileComponents();
 
-    dataServiceSpy = TestBed.inject(DataService) as jasmine.SpyObj<DataService>;
-    fixture = TestBed.createComponent(checker1Component);
+    fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
+    dataService = TestBed.inject(DataService);
+    
+    // Manually assign mock gridApi
+    component.gridApi = mockGridApi as any;
+    
     fixture.detectChanges();
   });
 
-  it('should create and load initial data', () => {
+  it('should create and load currencies on init', () => {
     expect(component).toBeTruthy();
-    expect(dataServiceSpy.getData).toHaveBeenCalled();
+    expect(dataService.getCurrencies).toHaveBeenCalled();
   });
 
-  it('should filter grid when search value changes', fakeAsync(() => {
-    // Setup grid API mock if not already present
-    component.gridApi = jasmine.createSpyObj('GridApi', ['setGridOption', 'setFilterModel', 'showLoadingOverlay', 'hideOverlay']);
-    
-    component.filterForm.patchValue({ search: 'test' });
-    tick(300); // Wait for debounceTime
-    
-    expect(component.gridApi.setGridOption).toHaveBeenCalledWith('quickFilterText', 'test');
+  it('should trigger grid filter on search input change', fakeAsync(() => {
+    component.filterForm.patchValue({ search: 'DDA-123' });
+    tick(300); // match debounceTime
+    expect(mockGridApi.setGridOption).toHaveBeenCalledWith('quickFilterText', 'DDA-123');
   }));
 
-  it('should open edit modal and patch form values', () => {
-    const mockRow = { id: 1, issueName: 'Test Issue' } as any;
-    component.openEditModal(mockRow);
+  it('should handle "Authorize" logic successfully', () => {
+    component.selectedRow = { id: 1, issueName: 'Ref-101' } as any;
+    component.onAuthorize();
     
-    expect(component.isModalVisible).toBeTrue();
-    expect(component.editForm.value.issueName).toBe('Test Issue');
+    expect(component.isSaving).toBe(true);
+    expect(dataService.updateRow).toHaveBeenCalledWith(
+      expect.objectContaining({ authorized: true })
+    );
   });
 
-  it('should call updateRow when saveEdit is triggered', () => {
-    dataServiceSpy.updateRow.and.returnValue(of({} as any));
-    component.editForm.patchValue({ id: 1, ddaAccount: 'abc', accountNumber: '123', paymentAmount: 100, issueName: 'test' });
+  it('should open the edit modal with row data', () => {
+    const rowData = { id: 99, issueName: 'Ref-99' } as any;
+    component.openEditModal(rowData);
     
+    expect(component.isModalVisible).toBe(true);
+    expect(component.editForm.get('issueName')?.value).toBe('Ref-99');
+  });
+
+  it('should close modal and refresh grid on saveEdit success', () => {
+    component.editForm.patchValue({ id: 1, ddaAccount: 'A', accountNumber: 'B', paymentAmount: 1, issueName: 'C' });
     component.saveEdit();
     
-    expect(dataServiceSpy.updateRow).toHaveBeenCalled();
-    expect(component.isSaving).toBeFalse();
+    expect(dataService.updateRow).toHaveBeenCalled();
+    expect(component.isModalVisible).toBe(false);
   });
 });
