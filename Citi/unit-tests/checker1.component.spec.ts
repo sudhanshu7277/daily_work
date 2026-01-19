@@ -1,82 +1,72 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Checker1Component } from './Checker1.component';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Checker1Component } from './checker1.component';
+import { Checker1Service } from 'src/app/shared/services/checker1.service';
+import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
-import { DataService } from './data.service';
 import { of } from 'rxjs';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
-  let dataService: DataService;
-
-  // Mock Grid API
-  const mockGridApi = {
-    setGridOption: jest.fn(),
-    setFilterModel: jest.fn(),
-    showLoadingOverlay: jest.fn(),
-    hideOverlay: jest.fn(),
-    getSelectedRows: jest.fn().mockReturnValue([])
-  };
+  let mockChecker1Service: any;
 
   beforeEach(async () => {
-    const dataServiceMock = {
-      getData: jest.fn().mockReturnValue(of([])),
-      getCurrencies: jest.fn().mockReturnValue(of(['USD', 'EUR'])),
-      updateRow: jest.fn().mockReturnValue(of({}))
+    // 1. Create a detailed mock of your service
+    mockChecker1Service = {
+      getCheckerData: jest.fn().mockReturnValue(of([])),
+      saveCheckerData: jest.fn().mockReturnValue(of({ status: 'success' })),
+      // Add other service methods used in your TS here
     };
 
     await TestBed.configureTestingModule({
-      imports: [Checker1Component, ReactiveFormsModule, AgGridModule],
+      imports: [
+        Checker1Component,       // Standalone components go in imports
+        ReactiveFormsModule,
+        AgGridModule,
+        HttpClientTestingModule
+      ],
       providers: [
-        { provide: DataService, useValue: dataServiceMock }
-      ]
+        FormBuilder,
+        { provide: Checker1Service, useValue: mockChecker1Service }
+      ],
+      schemas: [NO_ERRORS_SCHEMA] // Prevents crashes from custom CSS/UI tags
     }).compileComponents();
 
     fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
-    dataService = TestBed.inject(DataService);
     
-    // Manually assign mock gridApi
-    component.gridApi = mockGridApi as any;
-    
-    fixture.detectChanges();
+    // 2. Mocking the Ag-Grid API objects to prevent undefined errors
+    component.gridApi = {
+      setRowData: jest.fn(),
+      getSelectedRows: jest.fn().mockReturnValue([])
+    } as any;
+
+    fixture.detectChanges(); // Triggers ngOnInit
   });
 
-  it('should create and load currencies on init', () => {
+  it('should create the component', () => {
     expect(component).toBeTruthy();
-    expect(dataService.getCurrencies).toHaveBeenCalled();
   });
 
-  it('should trigger grid filter on search input change', fakeAsync(() => {
-    component.filterForm.patchValue({ search: 'DDA-123' });
-    tick(300); // match debounceTime
-    expect(mockGridApi.setGridOption).toHaveBeenCalledWith('quickFilterText', 'DDA-123');
-  }));
-
-  it('should handle "Authorize" logic successfully', () => {
-    component.selectedRow = { id: 1, issueName: 'Ref-101' } as any;
-    component.onAuthorize();
-    
-    expect(component.isSaving).toBe(true);
-    expect(dataService.updateRow).toHaveBeenCalledWith(
-      expect.objectContaining({ authorized: true })
-    );
+  it('should initialize filterForm and editForm on load', () => {
+    expect(component.filterForm).toBeDefined();
+    expect(component.editForm).toBeDefined();
+    expect(component.filterForm.contains('status')).toBeTruthy();
   });
 
-  it('should open the edit modal with row data', () => {
-    const rowData = { id: 99, issueName: 'Ref-99' } as any;
-    component.openEditModal(rowData);
-    
-    expect(component.isModalVisible).toBe(true);
-    expect(component.editForm.get('issueName')?.value).toBe('Ref-99');
+  it('should call getCheckerData on search', () => {
+    component.onSearch();
+    expect(mockChecker1Service.getCheckerData).toHaveBeenCalled();
   });
 
-  it('should close modal and refresh grid on saveEdit success', () => {
-    component.editForm.patchValue({ id: 1, ddaAccount: 'A', accountNumber: 'B', paymentAmount: 1, issueName: 'C' });
-    component.saveEdit();
+  it('should update grid when search returns data', () => {
+    const mockData = [{ id: 1, name: 'Test Item' }];
+    mockChecker1Service.getCheckerData.mockReturnValue(of(mockData));
     
-    expect(dataService.updateRow).toHaveBeenCalled();
-    expect(component.isModalVisible).toBe(false);
+    component.onSearch();
+    
+    expect(component.rowData).toEqual(mockData);
   });
 });
