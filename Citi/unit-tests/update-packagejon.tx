@@ -1,14 +1,35 @@
 "jest": {
   "preset": "jest-preset-angular",
-  "setupFilesAfterEnv": [
-    "<rootDir>/setup-jest.ts"
-  ],
-  "roots": ["<rootDir>"],
-  "testMatch": [
-    "**/src/**/*.spec.ts",
-    "**/*.spec.ts"
-  ],
+  "setupFilesAfterEnv": ["<rootDir>/setup-jest.ts"],
+  "testMatch": ["**/+(*.)+(spec|test).+(ts|js)?(x)"], 
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/src/$1"
-  }
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!.*\\.mjs$|ag-grid-angular|ag-grid-community)"
+  ],
+  "collectCoverage": true,
+  "coverageReporters": ["lcov", "text", "cobertura"]
+}
+
+
+//tsconfig.spec.json
+
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "types": [
+      "jest",
+      "node"
+    ]
+  },
+  "files": [
+    "src/polyfills.ts"
+  ],
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/*.d.ts",
+    "src/**/*.ts" 
+  ]
 }
