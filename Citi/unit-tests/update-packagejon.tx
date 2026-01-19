@@ -3,20 +3,12 @@
   "setupFilesAfterEnv": [
     "<rootDir>/setup-jest.ts"
   ],
+  "roots": ["<rootDir>"],
   "testMatch": [
-    "**/src/**/*.spec.ts" 
+    "**/src/**/*.spec.ts",
+    "**/*.spec.ts"
   ],
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/src/$1"
-  },
-  "transform": {
-    "^.+\\.(ts|js|mjs|html)$": [
-      "jest-preset-angular",
-      {
-        "tsconfig": "<rootDir>/tsconfig.spec.json",
-        "stringifyContentPathRegex": "\\.(html|svg)$"
-      }
-    ]
-  },
-  "collectCoverage": true
+  }
 }
