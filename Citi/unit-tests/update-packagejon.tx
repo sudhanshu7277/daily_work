@@ -3,31 +3,20 @@
   "setupFilesAfterEnv": [
     "<rootDir>/setup-jest.ts"
   ],
-  "roots": [
-    "<rootDir>/src"
-  ],
   "testMatch": [
-    "**/+(*.)+(spec|test).+(ts|js)?(x)"
+    "**/src/**/*.spec.ts" 
   ],
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/src/$1"
   },
-  "collectCoverage": true,
-  "coverageDirectory": "coverage",
-  "coverageReporters": [
-    "lcov",
-    "text",
-    "cobertura"
-  ],
-  "collectCoverageFrom": [
-    "src/**/*.ts",
-    "!src/**/*.spec.ts",
-    "!src/**/*.module.ts",
-    "!src/main.ts",
-    "!src/polyfills.ts",
-    "!src/environments/**"
-  ],
-  "transformIgnorePatterns": [
-    "node_modules/(?!.*\\.mjs$|ag-grid-angular|ag-grid-community)"
-  ]
+  "transform": {
+    "^.+\\.(ts|js|mjs|html)$": [
+      "jest-preset-angular",
+      {
+        "tsconfig": "<rootDir>/tsconfig.spec.json",
+        "stringifyContentPathRegex": "\\.(html|svg)$"
+      }
+    ]
+  },
+  "collectCoverage": true
 }
