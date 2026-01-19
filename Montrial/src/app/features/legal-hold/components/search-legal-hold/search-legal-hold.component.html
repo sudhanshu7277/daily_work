@@ -1,0 +1,32 @@
+<form [formGroup]="searchForm" class="search-form-container">
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Legal Hold Name</mat-label>
+      <input matInput formControlName="holdName" placeholder="Enter Hold Name">
+      <mat-hint>*Required</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Legal Hold ID</mat-label>
+      <input matInput formControlName="holdId" placeholder="Enter Hold ID">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option *ngFor="let status of statusOptions" [value]="status">
+          {{ status }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="clear-text-btn" (click)="onClear()">
+      CLEAR SEARCH
+    </button>
+    <button type="submit" class="search-pill-btn" (click)="onSearch()" [disabled]="searchForm.invalid">
+      SEARCH
+    </button>
+  </div>
+</form>

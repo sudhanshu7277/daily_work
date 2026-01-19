@@ -1,0 +1,56 @@
+$bmo-blue: #00338D;
+
+.app-layout {
+  display: flex;
+  width: 100%;
+  padding: 24px;
+  gap: 24px;
+  background-color: #f8f9fa;
+  box-sizing: border-box;
+
+  .content-column {
+    flex: 0 0 70%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar-column {
+    flex: 0 0 30%;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    height: fit-content;
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.tab-header {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+
+  button {
+    padding: 16px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    border-bottom: 4px solid transparent;
+
+    &.active {
+      font-weight: 700;
+      color: #000;
+      border-bottom-color: $bmo-blue;
+    }
+  }
+}
+
+.search-section {
+  background: #fff;
+  padding: 24px;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+}

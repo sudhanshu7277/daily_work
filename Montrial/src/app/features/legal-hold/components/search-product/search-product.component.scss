@@ -1,0 +1,49 @@
+.search-form-container {
+  padding: 10px 0;
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); // 3-column layout like the Customer tab
+    gap: 16px;
+    margin-top: 10px;
+
+    mat-form-field {
+      width: 100%;
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 30px;
+
+    .clear-text-btn {
+      background: none;
+      border: none;
+      font-weight: 700;
+      color: #333;
+      margin-right: 30px;
+      cursor: pointer;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .search-pill-btn {
+      background-color: #00338d;
+      color: white;
+      border-radius: 25px;
+      padding: 10px 45px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+
+      &:disabled {
+        background-color: #e0e0e0;
+        color: #a0a0a0;
+        cursor: not-allowed;
+      }
+    }
+  }
+}

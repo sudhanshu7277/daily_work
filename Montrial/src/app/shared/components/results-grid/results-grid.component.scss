@@ -1,0 +1,62 @@
+$bmo-blue: #00338D;
+$text-main: #333;
+
+.results-wrapper { padding-top: 20px; }
+
+.results-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+  .results-title { margin: 0; font-size: 24px; font-weight: 700; }
+}
+
+.filter-dropdown-container {
+  width: 280px;
+  .filter-label { font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px; }
+  .bmo-select-field {
+    width: 100%;
+    ::ng-deep .mat-mdc-form-field-flex {
+      border: 2px solid $bmo-blue !important;
+      border-radius: 4px;
+      height: 42px;
+      background-color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 12px !important;
+    }
+    ::ng-deep .mdc-notched-outline { display: none; }
+  }
+}
+
+.chips-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  .showing-label { font-weight: 700; font-size: 14px; }
+  .chips-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bmo-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 12px;
+    border: 1px solid #000;
+    border-radius: 25px;
+    font-size: 13px;
+    background: #fff;
+    .remove-icon { font-size: 18px; width: 18px; height: 18px; cursor: pointer; color: #333; }
+  }
+  .reset-btn { color: $bmo-blue; font-weight: 700; font-size: 12px; text-decoration: underline; padding: 0; min-width: unset; }
+}
+
+.grid-card-container { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+
+::ng-deep .status-pill-badge {
+  background: #001a4d;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}

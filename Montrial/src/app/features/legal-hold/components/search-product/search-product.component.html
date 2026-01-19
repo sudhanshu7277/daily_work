@@ -1,0 +1,32 @@
+<form [formGroup]="searchForm" class="search-form-container">
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Account Number</mat-label>
+      <input matInput formControlName="accountNumber" placeholder="Enter Account #">
+      <mat-hint>*Required (Numbers only)</mat-hint>
+      <mat-error *ngIf="searchForm.get('accountNumber')?.hasError('pattern')">
+        Please enter a valid account number
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Product Name</mat-label>
+      <input matInput formControlName="productName" placeholder="Enter Product Name">
+      <mat-hint>*Required</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Branch Code</mat-label>
+      <input matInput formControlName="branchCode" placeholder="Enter Branch Code">
+    </mat-form-field>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="clear-text-btn" (click)="onClear()">
+      CLEAR SEARCH
+    </button>
+    <button type="submit" class="search-pill-btn" (click)="onSearch()" [disabled]="searchForm.invalid">
+      SEARCH
+    </button>
+  </div>
+</form>

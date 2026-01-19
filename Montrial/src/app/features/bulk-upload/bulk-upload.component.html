@@ -1,0 +1,53 @@
+<div class="bulk-upload-wrapper">
+    <div class="page-header">
+      <h2 class="page-title">Bulk Upload</h2>
+      <p class="page-subtitle">Upload multiple profiles to apply or release legal holds using a CSV or Excel template.</p>
+    </div>
+  
+    <div class="upload-container">
+      <div 
+        class="drop-zone" 
+        [class.active]="isDragging"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)">
+        
+        <mat-icon class="upload-icon">cloud_upload</mat-icon>
+        
+        @if (!selectedFile) {
+          <p class="drop-text">Drag and drop your file here or 
+            <label class="browse-link">
+              browse
+              <input type="file" (change)="onFileSelected($event)" hidden accept=".csv, .xlsx">
+            </label>
+          </p>
+          <p class="file-hint">Supported formats: .CSV, .XLSX (Max 10MB)</p>
+        } @else {
+          <div class="selected-file-box">
+            <mat-icon>description</mat-icon>
+            <span class="file-name">{{ selectedFile.name }}</span>
+            <mat-icon class="close-btn" (click)="removeFile()">cancel</mat-icon>
+          </div>
+        }
+      </div>
+  
+      @if (uploadStatus === 'success') {
+        <div class="success-banner">
+          <mat-icon>check_circle</mat-icon>
+          <span>File uploaded successfully. 45 profiles processed.</span>
+        </div>
+      }
+  
+      <div class="upload-actions">
+        <button mat-button class="btn-cancel" (click)="removeFile()">CANCEL</button>
+        <button 
+          mat-flat-button 
+          color="primary" 
+          class="btn-upload" 
+          [disabled]="!selectedFile"
+          (click)="uploadFile()">
+          UPLOAD FILE
+        </button>
+      </div>
+    </div>
+  </div>
