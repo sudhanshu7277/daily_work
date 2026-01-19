@@ -1,71 +1,61 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Checker1Component } from './checker1.component';
-import { Checker1Service } from 'src/app/shared/services/checker1.service';
-import { of, throwError } from 'rxjs';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { checker1Component } from './checker1.component';
+import { ReactiveFormsModule } from '@angular/forms';
 import { AgGridModule } from 'ag-grid-angular';
+import { DataService } from './data.service';
+import { of } from 'rxjs';
 
-describe('Checker1Component', () => {
-  let component: Checker1Component;
-  let fixture: ComponentFixture<Checker1Component>;
-  let mockCheckerService: any;
+describe('checker1Component', () => {
+  let component: checker1Component;
+  let fixture: ComponentFixture<checker1Component>;
+  let dataServiceSpy: jasmine.SpyObj<DataService>;
 
   beforeEach(async () => {
-    // Jest mock object replaces jasmine.createSpyObj
-    mockCheckerService = {
-      getData: jest.fn().mockReturnValue(of([{ id: 1, name: 'Test Record' }])),
-      updateRow: jest.fn().mockReturnValue(of({ success: true })),
-      getCurrencies: jest.fn().mockReturnValue(of(['USD', 'EUR']))
-    };
+    const spy = jasmine.createSpyObj('DataService', ['getData', 'getCurrencies', 'updateRow']);
+    spy.getData.and.returnValue(of([]));
+    spy.getCurrencies.and.returnValue(of(['USD', 'EUR']));
 
     await TestBed.configureTestingModule({
-      imports: [
-        Checker1Component, // Standalone component goes in imports
-        AgGridModule
-      ],
-      providers: [
-        { provide: Checker1Service, useValue: mockCheckerService },
-        provideHttpClient(),        // Functional provider for standalone
-        provideHttpClientTesting()  // Functional provider for testing
-      ]
+      imports: [checker1Component, ReactiveFormsModule, AgGridModule],
+      providers: [{ provide: DataService, useValue: spy }]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Checker1Component);
+    dataServiceSpy = TestBed.inject(DataService) as jasmine.SpyObj<DataService>;
+    fixture = TestBed.createComponent(checker1Component);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
   it('should create and load initial data', () => {
     expect(component).toBeTruthy();
-    expect(mockCheckerService.getData).toHaveBeenCalled();
+    expect(dataServiceSpy.getData).toHaveBeenCalled();
   });
 
-  it('should cover onGridReady and set row data', () => {
-    const mockGridApi = { setRowData: jest.fn() };
-    const mockParams = { api: mockGridApi };
+  it('should filter grid when search value changes', fakeAsync(() => {
+    // Setup grid API mock if not already present
+    component.gridApi = jasmine.createSpyObj('GridApi', ['setGridOption', 'setFilterModel', 'showLoadingOverlay', 'hideOverlay']);
     
-    component.onGridReady(mockParams as any);
+    component.filterForm.patchValue({ search: 'test' });
+    tick(300); // Wait for debounceTime
     
-    expect(mockCheckerService.getData).toHaveBeenCalled();
-    // Ensures the data from service is passed to the grid
-    expect(mockGridApi.setRowData).toHaveBeenCalled();
+    expect(component.gridApi.setGridOption).toHaveBeenCalledWith('quickFilterText', 'test');
+  }));
+
+  it('should open edit modal and patch form values', () => {
+    const mockRow = { id: 1, issueName: 'Test Issue' } as any;
+    component.openEditModal(mockRow);
+    
+    expect(component.isModalVisible).toBeTrue();
+    expect(component.editForm.value.issueName).toBe('Test Issue');
   });
 
-  it('should handle error when getData fails', () => {
-    // This covers the error branch in your component logic
-    mockCheckerService.getData.mockReturnValue(throwError(() => new Error('API Error')));
+  it('should call updateRow when saveEdit is triggered', () => {
+    dataServiceSpy.updateRow.and.returnValue(of({} as any));
+    component.editForm.patchValue({ id: 1, ddaAccount: 'abc', accountNumber: '123', paymentAmount: 100, issueName: 'test' });
     
-    component.ngOnInit();
+    component.saveEdit();
     
-    expect(component.rowData).toEqual([]); // Assuming you reset on error
-  });
-
-  it('should call updateRow when a cell value changes', () => {
-    const mockEvent = { data: { id: 1 }, newValue: 'New Val' };
-    
-    component.onCellValueChanged(mockEvent as any);
-    
-    expect(mockCheckerService.updateRow).toHaveBeenCalledWith(mockEvent.data);
+    expect(dataServiceSpy.updateRow).toHaveBeenCalled();
+    expect(component.isSaving).toBeFalse();
   });
 });
