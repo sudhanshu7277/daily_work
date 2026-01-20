@@ -25,27 +25,52 @@ describe('ResultsGridComponent', () => {
     expect(component.selectedFilterIds.length).toBe(component.filterOptions.length);
   });
 
-  it('should filter rowData correctly when searching by OCIF ID', fakeAsync(() => {
-    // Setup: Mock data with two different items
-    (component as any).allMockData = [
-      { legalName: 'Jane Doe', ocifId: '123' },
-      { legalName: 'John Smith', ocifId: '999' }
-    ];
-  
-    component.performSearch({ ocifId: '999' });
+  it('should return empty rowData if mandatory firstName/lastName do not match', fakeAsync(() => {
+    component.allMockData = [{
+      firstName: 'Jane',
+      lastName: 'Doe',
+      dob: '1990-01-01',
+      legalName: 'Jane Doe',
+      ocifId: '123',
+      status: 'Active',
+      holdName: 'Hold 1',
+      lifecycle: 'Lifecycle 1',
+      role: 'Role 1',
+      address: '123 Main St',
+      type: 'Type 1',
+      email: 'jane.doe@example.com'
+    }];
+    
+    // Searching for a different name
+    component.performSearch({ firstName: 'John', lastName: 'Smith' });
     tick(600);
     fixture.detectChanges();
-    expect(component.rowData.length).toBe(1);
-    expect(component.rowData[0].legalName).toBe('John Smith');
+  
+    expect(component.rowData.length).toBe(0);
   }));
   
-  it('should show the no-rows overlay when no matches are found', fakeAsync(() => {
-    component.performSearch({ legalName: 'Non-Existent User' });
+  it('should return results when mandatory fields match partially', fakeAsync(() => {
+    component.allMockData = [{
+      firstName: 'Jane',
+      lastName: 'Doe',
+      dob: '1990-01-01',
+      legalName: 'Jane Doe',
+      ocifId: '123',
+      status: 'Active',
+      holdName: 'Hold 1',
+      lifecycle: 'Lifecycle 1',
+      role: 'Role 1',
+      address: '123 Main St',
+      type: 'Type 1',
+      email: 'jane.doe@example.com'
+    }];
+    
+    // Partial search "Ja" for "Jane"
+    component.performSearch({ firstName: 'Ja', lastName: 'Doe' });
     tick(600);
     fixture.detectChanges();
-    expect(component.rowData.length).toBe(0);
-    const gridApiSpy = (component as any).gridApi;
-    expect(gridApiSpy.showNoRowsOverlay).toHaveBeenCalled;
+  
+    expect(component.rowData.length).toBe(1);
   }));
 
   it('should show summary and chips immediately after performSearch succeeds', fakeAsync(() => {
