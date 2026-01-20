@@ -1,4 +1,4 @@
-$bmo-blue: #00338D;
+$bmo-blue: #0079C1;
 $text-main: #333;
 
 .results-wrapper { padding-top: 20px; }
@@ -59,4 +59,75 @@ $text-main: #333;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
+}
+
+$bmo-blue-brand: #0079C1;
+$bmo-dark-blue: #00338D;
+
+.filter-dropdown-wrapper {
+  // Reduced width as requested
+  width: 220px; 
+  margin-bottom: 10px;
+
+  .bmo-select {
+    width: 100%;
+
+    // 1. Override the Form Field Height and Border
+    ::ng-deep .mat-mdc-form-field-flex {
+      height: 40px !important;
+      border: 1.5px solid $bmo-dark-blue !important;
+      border-radius: 4px;
+      background-color: #fff;
+      padding: 0 10px !important;
+      align-items: center;
+    }
+
+    // 2. Hide the default Material notched outline
+    ::ng-deep .mdc-notched-outline {
+      display: none;
+    }
+
+    // 3. Style the "Select" trigger text
+    ::ng-deep .mat-mdc-select-trigger {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+}
+
+// 4. Override Checkbox and Option Panel (Global Overlay)
+::ng-deep {
+  .mat-mdc-select-panel {
+    padding: 0 !important;
+    min-width: 220px !important; // Match the wrapper width
+  }
+
+  .mat-mdc-option {
+    min-height: 35px !important; // Compact height
+    padding: 0 12px !important;
+
+    .mdc-label {
+      font-size: 13px !important;
+    }
+  }
+
+  // CUSTOM CHECKBOX COLOR (#0079C1)
+  .bmo-checkbox {
+    // Background when checked
+    &.mat-mdc-checkbox-checked .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background {
+      background-color: $bmo-blue-brand !important;
+      border-color: $bmo-blue-brand !important;
+    }
+    
+    // Checkmark color
+    &.mat-mdc-checkbox-checked .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background .mdc-checkbox__checkmark {
+      color: #ffffff !important;
+    }
+
+    // Ripple/Focus color
+    .mat-mdc-checkbox-ripple .mat-ripple-element {
+      background-color: rgba($bmo-blue-brand, 0.1) !important;
+    }
+  }
 }
