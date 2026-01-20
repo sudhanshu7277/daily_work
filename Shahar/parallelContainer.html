@@ -1,0 +1,25 @@
+<div class="parallel-container">
+    <img src="assets/your-image.png" alt="Description" class="side-image">
+    <div class="text-content">
+      <h3>Title Here</h3>
+      <p>This text runs parallel to the image on the left.</p>
+    </div>
+  </div>
+
+  .parallel-container {
+    display: flex;          /* This makes children sit side-by-side */
+    align-items: center;    /* Vertically centers the text relative to the image */
+    gap: 20px;              /* Adds space between the image and text */
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .side-image {
+    width: 150px;           /* Set a fixed width for the image */
+    height: auto;           /* Maintain aspect ratio */
+    border-radius: 8px;
+  }
+  
+  .text-content {
+    flex: 1;                /* Makes the text container take up the remaining space */
+  }
