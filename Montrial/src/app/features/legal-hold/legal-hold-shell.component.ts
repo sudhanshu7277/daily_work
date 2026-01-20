@@ -47,6 +47,7 @@ export class LegalHoldShellComponent {
   }
 
   onSearch(criteria: any): void {
+    console.log('Search criteria received in shell:', criteria);
     if (this.resultsGrid) {
       this.resultsGrid.performSearch(criteria);
     }

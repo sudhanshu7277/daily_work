@@ -59,10 +59,6 @@ export class SearchCustomerComponent implements OnInit{
     });
   }
 
-  /**
-   * Validation: Search is only enabled if First and Last name are provided
-   * as per the *Required indicators in the image.
-   */
   isFormValid(): boolean {
     return this.criteria.firstName.trim().length > 0 && 
            this.criteria.lastName.trim().length > 0;

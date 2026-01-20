@@ -58,6 +58,7 @@ export class ResultsGridComponent {
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '3223-545454',
       status: 'LEGAL HOLD',
@@ -65,11 +66,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '9000-798797',
       status: 'LEGAL HOLD',
@@ -77,11 +80,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '1000-12341',
       status: 'LEGAL HOLD',
@@ -89,11 +94,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '7000-0898989',
       status: 'LEGAL HOLD',
@@ -101,11 +108,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '6000-434343',
       status: 'LEGAL HOLD',
@@ -113,11 +122,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '5000-98083',
       status: 'LEGAL HOLD',
@@ -125,11 +136,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '4000-34343',
       status: 'LEGAL HOLD',
@@ -137,11 +150,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '3000-798798',
       status: 'LEGAL HOLD',
@@ -149,11 +164,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Asha',
       lastName: 'Dhola',
+      dob: '1990-01-15',
       legalName: 'Asha Dhola',
       ocifId: '2000-12341',
       status: 'LEGAL HOLD',
@@ -161,11 +178,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'asha.dhola@example.com'
     },
     {
       firstName: 'Sid',
       lastName: 'Jain',
+      dob: '1989-10-29',
       legalName: 'Sid Jain',
       ocifId: '1000-03232',
       status: 'LEGAL HOLD',
@@ -173,11 +192,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'sudhanshu.jain@example.com'
     },
     {
       firstName: 'Sid',
       lastName: 'Jain',
+      dob: '1989-10-29',
       legalName: 'Sid Jain',
       ocifId: '1000-12342',
       status: 'LEGAL HOLD',
@@ -185,11 +206,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'sudhanshu.jain@example.com'
     },
     {
       firstName: 'Sid',
       lastName: 'Jain',
+      dob: '1989-10-29',
       legalName: 'Sid Jain',
       ocifId: '1000-323232',
       status: 'LEGAL HOLD',
@@ -197,11 +220,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'sudhanshu.jain@example.com'
     },
     {
       firstName: 'Sid',
       lastName: 'Jain',
+      dob: '1989-10-29',
       legalName: 'Sid Jain',
       ocifId: '1000-98080',
       status: 'LEGAL HOLD',
@@ -209,11 +234,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'sudhanshu.jain@example.com'
     },
     {
       firstName: 'Sid',
       lastName: 'Jain',
+      dob: '1989-10-29',
       legalName: 'Sid Jain',
       ocifId: '1000-9889798',
       status: 'LEGAL HOLD',
@@ -221,11 +248,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'sudhanshu.jain@example.com'
     },
     {
       firstName: 'Sid',
       lastName: 'Jain',
+      dob: '1989-10-29',
       legalName: 'Sid Jain',
       ocifId: '1000-32222',
       status: 'LEGAL HOLD',
@@ -233,11 +262,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'sudhanshu.jain@example.com'
     },
     {
       firstName: 'Harsha',
       lastName: 'Vardhana',
+      dob: '1990-12-20',
       legalName: 'Harsha Vardhana',
       ocifId: '1000-87877',
       status: 'LEGAL HOLD',
@@ -245,11 +276,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'harsha.vardhana@example.com'
     },
     {
       firstName: 'Harsha',
       lastName: 'Vardhana',
+      dob: '1990-12-20',
       legalName: 'Harsha Vardhana',
       ocifId: '1000-323232',
       status: 'LEGAL HOLD',
@@ -257,11 +290,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'harsha.vardhana@example.com'
     },
     {
       firstName: 'Harsha',
       lastName: 'Vardhana',
+      dob: '1990-12-20',
       legalName: 'Harsha Vardhana',
       ocifId: '1000-767676',
       status: 'LEGAL HOLD',
@@ -269,11 +304,13 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'harsha.vardhana@example.com'
     },
     {
       firstName: 'Harsha',
       lastName: 'Vardhana',
+      dob: '1990-12-20',
       legalName: 'Harsha Vardhana',
       ocifId: '1000-66565',
       status: 'LEGAL HOLD',
@@ -281,7 +318,8 @@ export class ResultsGridComponent {
       lifecycle: 'Active',
       role: 'Owner',
       address: '33 Dundas St W, Toronto',
-      type: 'individual'
+      type: 'individual',
+      email: 'harsha.vardhana@example.com'
     }
   ];
 
@@ -290,11 +328,53 @@ export class ResultsGridComponent {
   }
 
   public performSearch(criteria: any): void {
-    this.gridApi?.showLoadingOverlay();
-    this.rowData = [...this.allMockData];
-    this.gridApi?.setGridOption('rowData', this.rowData);
-    this.syncColumns(); 
+    if (!this.gridApi) return;
+  
+    this.gridApi.showLoadingOverlay();
+  
+    // 1. Simulate network delay
+    setTimeout(() => {
+      // 2. Filter logic
+      this.rowData = this.allMockData.filter(item => {
+        // Mandatory: First Name & Last Name (Case-insensitive partial match)
+        const matchesFirstName = criteria.firstName && 
+          item.firstName.toLowerCase().includes(criteria.firstName.toLowerCase());
+        const matchesLastName = criteria.lastName && 
+          item.lastName.toLowerCase().includes(criteria.lastName.toLowerCase());
+  
+        // Optional: OCIF/Proxy ID (if your criteria object includes it, or use item props)
+        const matchesOcif = !criteria.ocifId || item.ocifId === criteria.ocifId;
+  
+        // Optional: Email
+        const matchesEmail = !criteria.email || 
+          item.email?.toLowerCase() === criteria.email.toLowerCase();
+  
+        // Optional: Date of Birth
+        const matchesDob = !criteria.dob || item.dob === criteria.dob;
+  
+        // Mandatory fields must match, PLUS any provided optional fields
+        return matchesFirstName && matchesLastName && matchesOcif && matchesEmail && matchesDob;
+      });
+  
+      // 3. Update Grid State
+      this.gridApi?.setGridOption('rowData', this.rowData);
+  
+      // 4. UI Handling
+      if (this.rowData.length === 0) {
+        this.gridApi?.showNoRowsOverlay();
+      } else {
+        this.gridApi?.hideOverlay();
+        this.syncColumns(); // Forces chips and column visibility to refresh
+      }
+    }, 600);
   }
+
+  // public performSearch(criteria: any): void {
+  //   this.gridApi?.showLoadingOverlay();
+  //   this.rowData = [...this.allMockData];
+  //   this.gridApi?.setGridOption('rowData', this.rowData);
+  //   this.syncColumns(); 
+  // }
 
   onFilterChange() {
     this.syncColumns();

@@ -25,6 +25,29 @@ describe('ResultsGridComponent', () => {
     expect(component.selectedFilterIds.length).toBe(component.filterOptions.length);
   });
 
+  it('should filter rowData correctly when searching by OCIF ID', fakeAsync(() => {
+    // Setup: Mock data with two different items
+    (component as any).allMockData = [
+      { legalName: 'Jane Doe', ocifId: '123' },
+      { legalName: 'John Smith', ocifId: '999' }
+    ];
+  
+    component.performSearch({ ocifId: '999' });
+    tick(600);
+    fixture.detectChanges();
+    expect(component.rowData.length).toBe(1);
+    expect(component.rowData[0].legalName).toBe('John Smith');
+  }));
+  
+  it('should show the no-rows overlay when no matches are found', fakeAsync(() => {
+    component.performSearch({ legalName: 'Non-Existent User' });
+    tick(600);
+    fixture.detectChanges();
+    expect(component.rowData.length).toBe(0);
+    const gridApiSpy = (component as any).gridApi;
+    expect(gridApiSpy.showNoRowsOverlay).toHaveBeenCalled;
+  }));
+
   it('should show summary and chips immediately after performSearch succeeds', fakeAsync(() => {
     let header = fixture.debugElement.query(By.css('.header-section'));
     let chips = fixture.debugElement.query(By.css('.chips-row'));
