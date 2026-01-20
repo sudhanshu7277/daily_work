@@ -1,0 +1,4 @@
+"moduleNameMapper": {
+  "^src/(.*)$": "<rootDir>/src/$1",
+  "@shared/(.*)$": "<rootDir>/src/app/shared/$1" 
+},
