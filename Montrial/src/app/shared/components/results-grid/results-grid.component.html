@@ -26,23 +26,27 @@
       </mat-form-field>
     </div> -->
 
-    <div class="filter-dropdown-wrapper">
-      <mat-form-field appearance="outline" class="bmo-select">
-        <mat-label>Search result filter</mat-label>
-        <mat-select multiple>
+    <div class="filter-dropdown-container">
+      <label class="filter-label">Search result filter</label>
+      <mat-form-field appearance="outline" class="bmo-select-field">
+        <mat-select 
+          multiple 
+          [(ngModel)]="selectedFilterIds" 
+          (selectionChange)="onFilterChange()"
+          placeholder="Select"
+          panelClass="bmo-select-panel">
           <mat-select-trigger>Select</mat-select-trigger>
+          
           @for (opt of filterOptions; track opt.id) {
-            <mat-option [value]="opt.id" (click)="toggleOption(opt); $event.stopPropagation()">
-              <mat-checkbox [checked]="opt.selected" class="bmo-checkbox">
-                {{ opt.label }}
-              </mat-checkbox>
+            <mat-option [value]="opt.id">
+              {{ opt.label }}
             </mat-option>
           }
         </mat-select>
       </mat-form-field>
     </div>
 
-    
+
   </div>
 
   @if (rowData.length > 0) {
