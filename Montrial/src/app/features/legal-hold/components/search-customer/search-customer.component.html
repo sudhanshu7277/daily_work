@@ -1,4 +1,158 @@
+<!-- <form [formGroup]="searchForm" class="search-form-container">
+  
+  <mat-radio-group formControlName="type" class="radio-group">
+    <mat-radio-button value="individual">Individual</mat-radio-button>
+    <mat-radio-button value="entity">Entity</mat-radio-button>
+  </mat-radio-group>
+
+  <div class="form-grid">
+    @if (searchForm.get('type')?.value === 'individual') {
+      <mat-form-field appearance="outline">
+        <mat-label>Last Name</mat-label>
+        <input matInput formControlName="lastName" placeholder="Last Name">
+        <mat-hint>*Required</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Middle Name</mat-label>
+        <input matInput formControlName="middleName" placeholder="Middle Name">
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>First Name</mat-label>
+        <input matInput formControlName="firstName" placeholder="First Name">
+        <mat-hint>*Required</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Date of Birth</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="dob" placeholder="MM/DD/YYYY">
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    } @else {
+      <mat-form-field appearance="outline">
+        <mat-label>Entity / Trade Name</mat-label>
+        <input matInput formControlName="entityName" placeholder="Entity Name">
+        <mat-hint>*Required</mat-hint>
+      </mat-form-field>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Phone Number</mat-label>
+      <input matInput formControlName="phone" placeholder="###-###-####">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Email Address</mat-label>
+      <input matInput formControlName="email" placeholder="example@123mail.com">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Responsible Lawyer Email ID</mat-label>
+      <input matInput formControlName="lawyerEmail" placeholder="example@bmo.com">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>eDiscovery Project Manager</mat-label>
+      <input matInput formControlName="manager" placeholder="Name">
+    </mat-form-field>
+  </div>
+
+  <div class="advanced-options">
+    <span>ADVANCED SEARCH OPTIONS</span>
+    <mat-icon>expand_more</mat-icon>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="clear-text-btn" (click)="onClear()">CLEAR SEARCH</button>
+    <button type="submit" class="search-pill-btn" (click)="onSearch()" [disabled]="searchForm.invalid">
+      SEARCH
+    </button>
+  </div>
+</form> -->
+
+
+
+
+
 <form [formGroup]="searchForm" class="search-form-container">
+  <mat-radio-group formControlName="type" class="radio-group">
+    <mat-radio-button value="individual">Individual</mat-radio-button>
+    <mat-radio-button value="entity">Entity</mat-radio-button>
+  </mat-radio-group>
+
+  <div class="form-grid">
+    @if (searchForm.get('type')?.value === 'individual') {
+    <mat-form-field appearance="outline">
+      <mat-label>Last Name</mat-label>
+      <input matInput formControlName="lastName" placeholder="Last Name">
+      <mat-hint>*Required</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Middle Name</mat-label>
+      <input matInput formControlName="middleName" placeholder="Middle Name">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>First Name</mat-label>
+      <input matInput formControlName="firstName" placeholder="First Name">
+      <mat-hint>*Required</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Date of Birth</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="dob" placeholder="MM/DD/YYYY">
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  } @else {
+    <mat-form-field appearance="outline">
+      <mat-label>Entity / Trade Name</mat-label>
+      <input matInput formControlName="entityName" placeholder="Entity Name">
+      <mat-hint>*Required</mat-hint>
+    </mat-form-field>
+  }
+    <mat-form-field appearance="outline">
+      <mat-label>Phone Number</mat-label>
+      <input matInput formControlName="phone" placeholder="###-###-####">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Email Address</mat-label>
+      <input matInput formControlName="email" placeholder="example@123mail.com">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Responsible Lawyer Email ID</mat-label>
+      <input matInput formControlName="lawyerEmail" placeholder="example@bmo.com">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>eDiscovery Project Manager</mat-label>
+      <input matInput formControlName="manager" placeholder="Name">
+    </mat-form-field>
+  </div>
+
+  <div class="advanced-options">
+    <span>ADVANCED SEARCH OPTIONS</span>
+    <mat-icon>expand_more</mat-icon>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="clear-text-btn" (click)="onClear()">CLEAR SEARCH</button>
+    <button type="submit" class="search-pill-btn" (click)="onSearch()" [disabled]="searchForm.invalid">
+      SEARCH
+    </button>
+  </div>
+</form>
+
+
+
+
+
+
+
+
+<!-- <form [formGroup]="searchForm" class="search-form-container">
   
   <mat-radio-group formControlName="type" class="radio-group">
     <mat-radio-button value="individual">Individual</mat-radio-button>
@@ -62,4 +216,4 @@
       SEARCH
     </button>
   </div>
-</form>
+</form> -->
