@@ -144,28 +144,3 @@
     </button>
   </div>
 </form>
-
-<!--BELOW TRASNLATION EN/ FR CODE-->
-<div class="search-container">
-  <mat-radio-group formControlName="searchType">
-    <mat-radio-button value="individual">{{ 'SEARCH.TYPE.INDIVIDUAL' | translate }}</mat-radio-button>
-    <mat-radio-button value="entity">{{ 'SEARCH.TYPE.ENTITY' | translate }}</mat-radio-button>
-  </mat-radio-group>
-
-  <div class="form-grid">
-    <mat-form-field appearance="outline">
-      <mat-label>{{ 'SEARCH.LABELS.FIRST_NAME' | translate }}</mat-label>
-      <input matInput formControlName="firstName">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>{{ 'SEARCH.LABELS.LAST_NAME' | translate }}</mat-label>
-      <input matInput formControlName="lastName">
-    </mat-form-field>
-  </div>
-
-  <div class="actions">
-    <button mat-button (click)="onClear()">{{ 'SEARCH.ACTIONS.CLEAR' | translate }}</button>
-    <button mat-raised-button color="primary" (click)="onSearch()">{{ 'SEARCH.ACTIONS.SEARCH' | translate }}</button>
-  </div>
-</div>

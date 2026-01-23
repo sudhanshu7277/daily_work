@@ -3,6 +3,69 @@
   @if (rowData.length > 0) {
     <div class="header-section">
       <p class="showing-context">
+        {{ 'RESULTS.SHOWING' | translate }} <strong>{{ rowData.length }}</strong> {{ 'RESULTS.RESULTS_FOR' | translate }}: <strong>"Legal Hold Search"</strong>
+      </p>
+    </div>
+  }
+
+  <div class="results-header-row">
+    <h2 class="results-title">{{ 'RESULTS.TITLE' | translate }}</h2>
+    <div class="filter-dropdown-container">
+      <label class="filter-label">{{ 'RESULTS.FILTER_LABEL' | translate }}</label>
+      <mat-form-field appearance="outline" class="bmo-select-field">
+        <mat-select multiple [(ngModel)]="selectedFilterIds" (selectionChange)="onFilterChange()">
+          <mat-select-trigger>Select</mat-select-trigger>
+          
+          @for (opt of filterOptions; track opt.id) {
+            <mat-option [value]="opt.id">
+              {{ opt.label }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  @if (rowData.length > 0) {
+    <div class="chips-row">
+      <span class="showing-label">{{ 'RESULTS.SHOWING' | translate }}:</span>
+      <div class="chips-list">
+        @for (opt of activeFilters; track opt.id) {
+          <div class="bmo-pill">
+            {{ opt.label }}
+            <mat-icon class="remove-icon" (click)="removeFilter(opt.id)">cancel</mat-icon>
+          </div>
+        }
+        <button mat-button class="reset-btn" (click)="resetFilters()">{{ 'RESULTS.RESET' | translate }}</button>
+      </div>
+    </div>
+  }
+
+  <div class="grid-card-container">
+    <ag-grid-angular
+      style="width: 100%; height: 500px;"
+      class="ag-theme-alpine bmo-grid"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [rowSelection]="'multiple'"
+      [pagination]="true"
+      [paginationPageSize]="10"
+      [suppressRowClickSelection]="true"
+      (gridReady)="onGridReady($event)"
+      (selectionChanged)="onSelectionChanged()">
+    </ag-grid-angular>
+  </div>
+</div>
+
+
+
+
+
+<!-- <div class="results-wrapper">
+  
+  @if (rowData.length > 0) {
+    <div class="header-section">
+      <p class="showing-context">
         Showing <strong>{{ rowData.length }}</strong> results for: <strong>"Legal Hold Search"</strong>
       </p>
     </div>
@@ -58,4 +121,4 @@
       (selectionChanged)="onSelectionChanged()">
     </ag-grid-angular>
   </div>
-</div>
+</div> -->
