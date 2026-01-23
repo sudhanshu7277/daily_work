@@ -2,56 +2,25 @@
   <div class="header-container">
     <div class="brand-section">
       <div class="bmo-logo-box">BMO</div>
-      <!-- <h1 class="app-title">Legal Hold Management</h1> -->
     <nav class="main-nav">
       <a routerLink="/legal-hold" routerLinkActive="active" class="nav-item">
-        LEGAL HOLD
+        {{ 'HEADER.NAV_LEGAL_HOLD' | translate }}
       </a>
       <a routerLink="/bulk-upload" routerLinkActive="active" class="nav-item">
-        BULK UPLOAD
+        {{ 'HEADER.NAV_BULK_UPLOAD' | translate }}
       </a>
     </nav>
   </div>
-    <div class="user-profile-section">
-      <div class="user-details">
-        <span class="user-name">Jane Doe</span>
-        <span class="user-role">Administrator</span>
-      </div>
-      <div class="avatar-circle">JD</div>
+  <div class="user-profile-section">
+    <button class="lang-switch-btn" (click)='switchLanguage()'>
+      {{ currentLang === 'en' ? 'FR' : 'EN' }}
+    </button>
+    
+    <div class="user-details">
+      <span class="user-name">Jane Doe</span>
+      <span class="user-role">{{ 'HEADER.USER_ROLE' | translate }}</span>
     </div>
+    <div class="avatar-circle">JD</div>
+  </div>
   </div>
 </header>
-
-
-
-
-
-
-
-
-<!-- <header class="bmo-header">
-  <div class="header-container">
-    <div class="brand-section">
-      <span class="bmo-logo">BMO</span>
-      <h1 class="app-title">Legal Hold Management</h1>
-    </div>
-    <nav class="nav-links">
-      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
-        Dashboard
-      </a>
-      <a routerLink="/manage" routerLinkActive="active" class="nav-item">
-        Manage Legal Hold
-      </a>
-      <a routerLink="/reports" routerLinkActive="active" class="nav-item">
-        Reports
-      </a>
-    </nav>
-    <div class="user-section">
-      <div class="user-info">
-        <span class="user-name">Jane Doe</span>
-        <span class="user-role">Administrator</span>
-      </div>
-      <div class="user-avatar">JD</div>
-    </div>
-  </div>
-</header> -->

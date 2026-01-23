@@ -1,4 +1,4 @@
-$bmo-blue: #00338D;
+$bmo-blue: #0079C1;
 
 .app-layout {
   display: flex;
@@ -23,6 +23,15 @@ $bmo-blue: #00338D;
     height: fit-content;
     position: sticky;
     top: 24px;
+  }
+}
+
+.tab-heading {
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
   }
 }
 

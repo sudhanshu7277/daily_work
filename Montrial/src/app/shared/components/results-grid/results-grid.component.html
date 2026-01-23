@@ -10,7 +10,7 @@
 
   <div class="results-header-row">
     <h2 class="results-title">Results</h2>
-    <!-- <div class="filter-dropdown-container">
+    <div class="filter-dropdown-container">
       <label class="filter-label">Search result filter</label>
       <mat-form-field appearance="outline" class="bmo-select-field">
         <mat-select multiple [(ngModel)]="selectedFilterIds" (selectionChange)="onFilterChange()">
@@ -24,29 +24,7 @@
 
         </mat-select>
       </mat-form-field>
-    </div> -->
-
-    <div class="filter-dropdown-container">
-      <label class="filter-label">Search result filter</label>
-      <mat-form-field appearance="outline" class="bmo-select-field">
-        <mat-select 
-          multiple 
-          [(ngModel)]="selectedFilterIds" 
-          (selectionChange)="onFilterChange()"
-          placeholder="Select"
-          panelClass="bmo-select-panel">
-          <mat-select-trigger>Select</mat-select-trigger>
-          
-          @for (opt of filterOptions; track opt.id) {
-            <mat-option [value]="opt.id">
-              {{ opt.label }}
-            </mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
     </div>
-
-
   </div>
 
   @if (rowData.length > 0) {

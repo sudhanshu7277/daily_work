@@ -1,0 +1,43 @@
+{
+    "HEADER": {
+      "NAV_LEGAL_HOLD": "RÉTENTION JURIDIQUE",
+      "NAV_BULK_UPLOAD": "TÉLÉCHARGEMENT MASSIF",
+      "USER_ROLE": "Administrateur"
+    },
+    "SEARCH": {
+      "MANAGE_TITLE": "Gérer la rétention juridique",
+      "TABS": {
+        "CUSTOMER": "Recherche par client",
+        "ACCOUNT": "Recherche par compte",
+        "LEGAL": "Recherche par rétention juridique"
+      },
+      "TYPE": {
+        "INDIVIDUAL": "Individu",
+        "ENTITY": "Entité"
+      },
+      "LABELS": {
+        "FIRST_NAME": "Prénom",
+        "LAST_NAME": "Nom de famille",
+        "MIDDLE_NAME": "Deuxième prénom",
+        "ENTITY_NAME": "Nom de l'entité / Nom commercial",
+        "DOB": "Date de naissance",
+        "PHONE": "Numéro de téléphone",
+        "EMAIL": "Adresse courriel",
+        "LAWYER_EMAIL": "Courriel de l'avocat responsable",
+        "MANAGER": "Gestionnaire de projet eDiscovery",
+        "ADVANCED": "OPTIONS DE RECHERCHE AVANCÉES",
+        "REQUIRED": "*Requis"
+      },
+      "ACTIONS": {
+        "CLEAR": "EFFACER LA RECHERCHE",
+        "SEARCH": "RECHERCHER"
+      }
+    },
+    "RESULTS": {
+      "TITLE": "Résultats",
+      "FILTER_LABEL": "Filtre des résultats de recherche",
+      "SHOWING": "Affichage de",
+      "RESULTS_FOR": "résultats pour",
+      "RESET": "RÉINITIALISER"
+    }
+  }

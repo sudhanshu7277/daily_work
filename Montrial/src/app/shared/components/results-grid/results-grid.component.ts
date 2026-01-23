@@ -54,7 +54,7 @@ export class ResultsGridComponent {
   ];
 
   selectedFilterIds: any[] = this.filterOptions.map(opt => opt.id);
-  private allMockData = [
+  public allMockData = [
     {
       firstName: 'Asha',
       lastName: 'Dhola',

@@ -1,4 +1,4 @@
-$bmo-blue: #00338D;
+$bmo-blue: #0079C1;
 $text-main: #333;
 
 .results-wrapper { padding-top: 20px; }
@@ -59,75 +59,4 @@ $text-main: #333;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
-}
-
-$bmo-blue-brand: #0079C1;
-$dropdown-width: 260px; // Adjusted to match the visual width of the Select box
-
-.filter-dropdown-container {
-  width: $dropdown-width;
-  margin-top: 10px;
-
-  .filter-label { 
-    font-weight: 700; 
-    font-size: 13px; 
-    color: #333;
-    margin-bottom: 6px;
-    display: block;
-  }
-
-  .bmo-select-field {
-    width: 100%;
-
-    // Main box background and border
-    ::ng-deep .mat-mdc-form-field-flex {
-      background-color: white !important;
-      border: 1.5px solid $bmo-blue-brand !important; // Deep blue border from image.png
-      border-radius: 4px;
-      height: 42px;
-      display: flex;
-      align-items: center;
-      padding: 0 12px !important;
-    }
-
-    ::ng-deep .mdc-notched-outline { display: none; }
-    ::ng-deep .mat-mdc-select-arrow {
-      color: $bmo-blue-brand !important;
-      width: 12px;
-      height: 8px;
-      svg { fill: $bmo-blue-brand !important; }
-    }
-    
-    ::ng-deep .mat-mdc-select-value-text {
-      color: #333;
-      font-size: 15px;
-    }
-  }
-}
-
-::ng-deep .bmo-select-panel {
-  width: $dropdown-width !important;
-  min-width: $dropdown-width !important;
-  background-color: white !important;
-  border: 1px solid #ccc;
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  margin-top: -2px;
-
-  .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background,
-  .mdc-checkbox__native-control:enabled:indeterminate ~ .mdc-checkbox__background {
-    background-color: $bmo-blue-brand !important;
-    border-color: $bmo-blue-brand !important;
-  }
-
-  .mat-mdc-option {
-    min-height: 40px;
-    font-size: 14px;
-    
-    &:hover { background-color: #f5f5f5; }
-    
-    &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-      background-color: rgba($bmo-blue-brand, 0.05) !important;
-    }
-  }
 }

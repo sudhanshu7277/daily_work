@@ -1,9 +1,9 @@
-$bmo-blue: #00338D;
+$bmo-blue: #0079C1;
 $header-height: 70px;
 
 .bmo-header {
   height: $header-height;
-  background: #00338D !important;
+  background: #0079C1 !important;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
   align-items: center;
@@ -102,136 +102,15 @@ $header-height: 70px;
   }
 }
 
+.lang-switch-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  margin-right: 20px;
+  font-size: 14px;
+  text-decoration: underline;
 
-
-
-
-
-
-
-
-
-
-// /* BMO Brand Colors */
-// $bmo-blue: #00338D;
-// $header-bg: #FFFFFF;
-// $text-main: #333333;
-// $text-muted: #666666;
-// $border-color: #E0E0E0;
-
-// .bmo-header {
-//   background-color: $header-bg;
-//   border-bottom: 1px solid $border-color;
-//   height: 72px;
-//   display: flex;
-//   align-items: center;
-//   position: sticky;
-//   top: 0;
-//   z-index: 1000;
-// }
-
-// .header-container {
-//   width: 100%;
-//   max-width: 1600px;
-//   margin: 0 auto;
-//   padding: 0 24px;
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-// }
-
-// .brand-section {
-//   display: flex;
-//   align-items: center;
-//   gap: 16px;
-
-//   .bmo-logo {
-//     background-color: $bmo-blue;
-//     color: white;
-//     font-weight: 900;
-//     padding: 4px 8px;
-//     border-radius: 4px;
-//     font-size: 18px;
-//   }
-
-//   .app-title {
-//     font-size: 18px;
-//     font-weight: 600;
-//     color: $text-main;
-//     margin: 0;
-//   }
-// }
-
-// .nav-links {
-//   display: flex;
-//   height: 72px; // Match header height for perfect underline alignment
-//   gap: 32px;
-
-//   .nav-item {
-//     text-decoration: none;
-//     color: $text-muted;
-//     font-size: 15px;
-//     font-weight: 500;
-//     display: flex;
-//     align-items: center;
-//     position: relative;
-//     transition: color 0.2s ease;
-
-//     &:hover {
-//       color: $bmo-blue;
-//     }
-
-//     &.active {
-//       color: $bmo-blue;
-//       font-weight: 700;
-
-//       &::after {
-//         content: '';
-//         position: absolute;
-//         bottom: 0;
-//         left: 0;
-//         width: 100%;
-//         height: 4px;
-//         background-color: $bmo-blue;
-//         border-radius: 4px 4px 0 0;
-//       }
-//     }
-//   }
-// }
-
-// .user-section {
-//   display: flex;
-//   align-items: center;
-//   gap: 12px;
-
-//   .user-info {
-//     display: flex;
-//     flex-direction: column;
-//     text-align: right;
-
-//     .user-name {
-//       font-size: 14px;
-//       font-weight: 600;
-//       color: $text-main;
-//     }
-
-//     .user-role {
-//       font-size: 11px;
-//       color: $text-muted;
-//     }
-//   }
-
-//   .user-avatar {
-//     width: 36px;
-//     height: 36px;
-//     background-color: #F2F2F2;
-//     border: 1px solid $border-color;
-//     border-radius: 50%;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//     font-size: 12px;
-//     font-weight: 700;
-//     color: $bmo-blue;
-//   }
-// }
+  &:hover { color: #ffffff; }
+}

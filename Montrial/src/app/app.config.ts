@@ -1,34 +1,53 @@
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
-
-// Material Date functionality requires these providers
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { MatNativeDateModule } from '@angular/material/core';
-
+import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { routes } from './app.routes';
+import { Observable } from 'rxjs';
+
+
+export class WebTranslateLoader implements TranslateLoader {
+  constructor(private http: HttpClient) {}
+
+  public getTranslation(lang: string): Observable<any> {
+    return this.http.get(`./assets/i18n/${lang}.json`);
+  }
+}
+
+export function HttpLoaderFactory(http: HttpClient) {
+  return new WebTranslateLoader(http);
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    // Required for Material animations (ripples, transitions)
-    provideAnimations(), 
-    // Required for the MatDatepicker to parse and format dates
-    importProvidersFrom(MatNativeDateModule)
+    provideAnimations(),
+    provideHttpClient(),
+    importProvidersFrom(
+      MatNativeDateModule,
+      TranslateModule.forRoot({
+        loader: {
+          provide: TranslateLoader,
+          useFactory: HttpLoaderFactory,
+          deps: [HttpClient]
+        },
+        defaultLanguage: 'en'
+      })
+    )
   ]
 };
-
-
-
-
-// import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+// import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 // import { provideRouter } from '@angular/router';
 // import { provideAnimations } from '@angular/platform-browser/animations';
+// import { MatNativeDateModule } from '@angular/material/core';
 // import { routes } from './app.routes';
 
 // export const appConfig: ApplicationConfig = {
 //   providers: [
-//     provideZoneChangeDetection({ eventCoalescing: true }), 
 //     provideRouter(routes),
-//     provideAnimations()
+//     provideAnimations(), 
+//     importProvidersFrom(MatNativeDateModule)
 //   ]
 // };

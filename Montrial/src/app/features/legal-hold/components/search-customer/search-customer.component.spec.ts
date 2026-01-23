@@ -40,7 +40,6 @@ describe('SearchCustomerComponent', () => {
   it('should reset form and emit clearTriggered on onClear', () => {
     spyOn(component.clearTriggered, 'emit');
     component.searchForm.patchValue({ firstName: 'Jane' });
-    
     component.onClear();
     expect(component.searchForm.get('firstName')?.value).toBeNull();
     expect(component.clearTriggered.emit).toHaveBeenCalled();

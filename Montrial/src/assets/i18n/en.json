@@ -1,0 +1,43 @@
+{
+    "HEADER": {
+      "NAV_LEGAL_HOLD": "LEGAL HOLD",
+      "NAV_BULK_UPLOAD": "BULK UPLOAD",
+      "USER_ROLE": "Administrator"
+    },
+    "SEARCH": {
+      "MANAGE_TITLE": "Manage Legal Hold",
+      "TABS": {
+        "CUSTOMER": "Search by Customer",
+        "ACCOUNT": "Search by Account",
+        "LEGAL": "Search by Legal Hold"
+      },
+      "TYPE": {
+        "INDIVIDUAL": "Individual",
+        "ENTITY": "Entity"
+      },
+      "LABELS": {
+        "FIRST_NAME": "First Name",
+        "LAST_NAME": "Last Name",
+        "MIDDLE_NAME": "Middle Name",
+        "ENTITY_NAME": "Entity / Trade Name",
+        "DOB": "Date of Birth",
+        "PHONE": "Phone Number",
+        "EMAIL": "Email Address",
+        "LAWYER_EMAIL": "Responsible Lawyer Email ID",
+        "MANAGER": "eDiscovery Project Manager",
+        "ADVANCED": "ADVANCED SEARCH OPTIONS",
+        "REQUIRED": "*Required"
+      },
+      "ACTIONS": {
+        "CLEAR": "CLEAR SEARCH",
+        "SEARCH": "SEARCH"
+      }
+    },
+    "RESULTS": {
+      "TITLE": "Results",
+      "FILTER_LABEL": "Search result filter",
+      "SHOWING": "Showing",
+      "RESULTS_FOR": "results for",
+      "RESET": "RESET"
+    }
+  }
