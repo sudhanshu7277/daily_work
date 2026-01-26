@@ -1,0 +1,12 @@
+package json, jest object:
+
+"jest": {
+  "preset": "jest-preset-angular",
+  "setupFilesAfterEnv": ["<rootDir>/setup-jest.ts"],
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/src/$1"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!.*\\.mjs$|ag-grid-angular)"
+  ]
+}
