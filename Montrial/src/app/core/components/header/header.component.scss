@@ -22,14 +22,26 @@ $header-height: 70px;
   align-items: center;
   gap: 16px;
 
-  .bmo-logo-box {
-    background: $bmo-blue;
-    color: white;
-    font-weight: 900;
-    padding: 4px 8px;
-    font-size: 18px;
-    letter-spacing: 1px;
-    margin-right: 100px;
+ .bmo-logo-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  
+    .bmo-name .normal {
+      margin: 0; 
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+  
+    .bmo-image {
+      height: 34px;
+      width: auto;
+      display: block;
+    }
   }
 
   .app-title {
