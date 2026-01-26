@@ -12,6 +12,12 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 })
 export class HeaderComponent { 
   currentLang: string = 'en';
+  headerTabs: any[] = [
+    { id: 0, tabName: 'HEADER.NAV_LEGAL_HOLD', routerLink: '/legal-hold' },
+    { id: 1, tabName: 'HEADER.NAV_BULK_UPLOAD', routerLink: '/bulk-upload' }
+  ];
+  activeTab: string = 'customer';
+  bmoLogo: string = 'https://bmo.sharepoint.com/Sites/IntranetAssets/SiteAssets/images/favicon.png';
   constructor(private translate: TranslateService) {
     this.translate.addLangs(['en', 'fr']);
     const browserLang = this.translate.getBrowserLang();
@@ -21,6 +27,7 @@ export class HeaderComponent {
   }
 
   switchLanguage(): void {
+    
     const targetLang = this.currentLang === 'en' ? 'fr' : 'en';
     this.translate.use(targetLang).subscribe({
       next: () => {
