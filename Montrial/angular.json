@@ -88,11 +88,14 @@
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
+  "src/favicon.ico",
+  "src/assets",
+  {
+    "glob": "**/*",
+    "input": "src/assets/i18n",
+    "output": "/assets/i18n"
+  }
+],
             "styles": [
               "src/styles.scss"
             ],
