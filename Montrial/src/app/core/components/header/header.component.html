@@ -2,14 +2,21 @@
   <div class="header-container">
     <div class="brand-section">
       <div class="bmo-logo-box">BMO</div>
-    <nav class="main-nav">
+      <nav class="main-nav">
+        @for (tab of headerTabs; track tab.id) {
+          <a [routerLink]="tab.routerLink" routerLinkActive="active" class="nav-item">
+            {{ tab.tabName | translate }}
+          </a>
+        }
+      </nav>
+    <!-- <nav class="main-nav">
       <a routerLink="/legal-hold" routerLinkActive="active" class="nav-item">
         {{ 'HEADER.NAV_LEGAL_HOLD' | translate }}
       </a>
       <a routerLink="/bulk-upload" routerLinkActive="active" class="nav-item">
         {{ 'HEADER.NAV_BULK_UPLOAD' | translate }}
       </a>
-    </nav>
+    </nav> -->
   </div>
   <div class="user-profile-section">
     <button class="lang-switch-btn" (click)='switchLanguage()'>
