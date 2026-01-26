@@ -46,7 +46,6 @@ export class ResultsGridComponent {
       cellRenderer: (params: any) => {
         const data = params.data;
         const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
-        
         const carrotHtml = data.isParent ? 
           `<span class="bmo-thin-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
         return `
