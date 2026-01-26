@@ -1,7 +1,13 @@
 <header class="bmo-header">
   <div class="header-container">
     <div class="brand-section">
-      <div class="bmo-logo-box">BMO</div>
+      <div class="bmo-logo-box">
+        <div class="bmo-name">
+          <p class="normal">{{bmo}}</p>
+        </div>
+        <img [src]="bmoLogo" alt="BMO Logo" class="bmo-image">
+      </div>
+      
       <nav class="main-nav">
         @for (tab of headerTabs; track tab.id) {
           <a [routerLink]="tab.routerLink" routerLinkActive="active" class="nav-item">
@@ -9,14 +15,38 @@
           </a>
         }
       </nav>
-    <!-- <nav class="main-nav">
-      <a routerLink="/legal-hold" routerLinkActive="active" class="nav-item">
-        {{ 'HEADER.NAV_LEGAL_HOLD' | translate }}
-      </a>
-      <a routerLink="/bulk-upload" routerLinkActive="active" class="nav-item">
-        {{ 'HEADER.NAV_BULK_UPLOAD' | translate }}
-      </a>
-    </nav> -->
+    </div>
+
+    <div class="user-profile-section">
+      <button class="lang-switch-btn" (click)="switchLanguage()">
+        {{ currentLang === 'en' ? 'FR' : 'EN' }}
+      </button>
+
+      <div class="user-details">
+        <span class="user-name">Jane Doe</span>
+        <span class="user-role">{{ 'HEADER.USER_ROLE' | translate }}</span>
+      </div>
+      <div class="avatar-circle">JD</div>
+    </div>
+  </div>
+</header>
+
+
+<!-- <header class="bmo-header">
+  <div class="header-container">
+    <div class="brand-section">
+      <div class="bmo-logo-box">
+        <div class="bmo-name">
+          <p class="normal">{{bmo}}</p>
+        </div>
+        <img [src]="bmoLogo" alt="BMO Logo" class="bmo-image">
+      <nav class="main-nav">
+        @for (tab of headerTabs; track tab.id) {
+          <a [routerLink]="tab.routerLink" routerLinkActive="active" class="nav-item">
+            {{ tab.tabName | translate }}
+          </a>
+        }
+      </nav>
   </div>
   <div class="user-profile-section">
     <button class="lang-switch-btn" (click)='switchLanguage()'>
@@ -30,4 +60,4 @@
     <div class="avatar-circle">JD</div>
   </div>
   </div>
-</header>
+</header> -->

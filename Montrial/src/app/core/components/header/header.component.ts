@@ -11,6 +11,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
   styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent { 
+  bmo: string = 'BMO';
   currentLang: string = 'en';
   headerTabs: any[] = [
     { id: 0, tabName: 'HEADER.NAV_LEGAL_HOLD', routerLink: '/legal-hold' },
