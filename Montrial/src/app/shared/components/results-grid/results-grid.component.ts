@@ -45,13 +45,10 @@ export class ResultsGridComponent {
       sortable: true,
       cellRenderer: (params: any) => {
         const data = params.data;
-        // Use specific classes for parent vs child styling
         const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
         
-        // Carrot only appears for parents
         const carrotHtml = data.isParent ? 
           `<span class="bmo-thin-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
-        
         return `
           <div class="name-cell-wrapper">
             <span class="${textClass}">${params.value}</span>
