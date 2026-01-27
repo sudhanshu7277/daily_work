@@ -178,28 +178,30 @@ $bmo-blue: #0079C1;
 }
 
 // UPDATED SCSS CODE BELOW
-
 ::ng-deep {
-  // Styles the parent row specifically when it is expanded
-  .ag-row {
-    &.ag-row-selected {
-       background-color: #f0f7fb !important; // Subtle blue highlight for selection
-    }
-  }
-
-  // The blue separator line for expanded records
-  .ag-row:has(.bmo-thin-carrot.up) {
-    border-bottom: 2px solid #0079C1 !important;
-    
-    // Ensure the line appears above the children
-    & + .ag-row {
-      border-top: none;
-    }
-  }
-
-  // Alternative if your browser doesn't support :has() - add a rowClass in TS
+  // 1. The Blue Separator Line for Expanded Parents
   .expanded-parent-row {
     border-bottom: 2px solid #0079C1 !important;
-    box-shadow: inset 0 -2px 0 #0079C1; // Ensures the line is visible over AG-Grid's default borders
+    position: relative;
+    z-index: 2; // Keeps the line above the child rows
+    
+    // Ensure the AG-Grid default border doesn't override us
+    box-shadow: inset 0 -2px 0 #0079C1; 
+  }
+
+  // 2. Child Row Styling
+  .grid-child-row {
+    background-color: #ffffff; // Keep children clean white
+    
+    .grid-child-text {
+      margin-left: 45px; // Deep indent from design
+      color: #0079C1;
+      font-weight: 500;
+    }
+  }
+
+  // 3. Selection Highlight (Subtle Blue)
+  .ag-row-selected {
+    background-color: #F0F7FB !important;
   }
 }

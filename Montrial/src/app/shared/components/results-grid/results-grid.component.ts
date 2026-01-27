@@ -268,6 +268,7 @@ export class ResultsGridComponent {
   // Inside your component class
 public rowClassRules = {
   'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
+  'grid-child-row': (params: any) => params.data.isChild
 };
 
 
@@ -276,10 +277,12 @@ onSelectionChanged() {
   
   selectedNodes.forEach(node => {
     if (node.data.isParent && node.data.children) {
-      // Find all currently rendered rows that are children of this parent
+      // Fix: Use !! to ensure a strict boolean is passed to setSelected
+      const isParentSelected = !!node.isSelected(); 
+
       this.gridApi.forEachNode(childNode => {
-        if (childNode.data.isChild && node.data.children.includes(childNode.data)) {
-          childNode.setSelected(node.isSelected(), false, true); // (selected, clearSelection, suppressEvent)
+        if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+          childNode.setSelected(isParentSelected, false, true);
         }
       });
     }
@@ -291,7 +294,10 @@ onSelectionChanged() {
 // Update toggleRowExpansion to ensure selection persists if parent is selected
 toggleRowExpansion(parent: any) {
   parent.isExpanded = !parent.isExpanded;
-  const isParentSelected = this.gridApi.getRowNode(parent.ocifId)?.isSelected();
+  
+  // Check if parent is selected BEFORE re-rendering
+  const parentNode = this.gridApi.getRowNode(parent.ocifId);
+  const shouldSelectChildren = parentNode ? !!parentNode.isSelected() : false;
 
   if (parent.isExpanded) {
     const index = this.rowData.indexOf(parent);
@@ -302,10 +308,10 @@ toggleRowExpansion(parent: any) {
   
   this.gridApi.setGridOption('rowData', [...this.rowData]);
 
-  // If the parent was selected, ensure new children are also selected upon expansion
-  if (parent.isExpanded && isParentSelected) {
+  // If parent was selected, select the newly added children
+  if (parent.isExpanded && shouldSelectChildren) {
     this.gridApi.forEachNode(node => {
-      if (parent.children.includes(node.data)) {
+      if (parent.children.some((c: any) => c.ocifId === node.data.ocifId)) {
         node.setSelected(true);
       }
     });
