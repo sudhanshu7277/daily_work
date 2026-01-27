@@ -266,7 +266,9 @@ export class ResultsGridComponent {
   // results-grid.component.ts
 
   // Inside your component class
+// Ensure the blue separator line is triggered in the grid options
 public rowClassRules = {
+  // Matches the blue line below expanded records in your design image
   'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
   'grid-child-row': (params: any) => params.data.isChild
 };
@@ -277,12 +279,13 @@ onSelectionChanged() {
   
   selectedNodes.forEach(node => {
     if (node.data.isParent && node.data.children) {
-      // Fix: Use !! to ensure a strict boolean is passed to setSelected
       const isParentSelected = !!node.isSelected(); 
 
       this.gridApi.forEachNode(childNode => {
+        // Check if the child belongs to this specific parent
         if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-          childNode.setSelected(isParentSelected, false, true);
+          // FIX: Use named parameters or omit the third arg to match AG Grid's type definition
+          childNode.setSelected(isParentSelected, false); 
         }
       });
     }
