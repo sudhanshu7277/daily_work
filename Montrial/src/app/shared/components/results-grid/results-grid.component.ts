@@ -266,11 +266,20 @@ export class ResultsGridComponent {
   // results-grid.component.ts
 
   // Inside your component class
-// Ensure the blue separator line is triggered in the grid options
 public rowClassRules = {
-  // Matches the blue line below expanded records in your design image
+  // Highlights the parent row during expansion
   'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
-  'grid-child-row': (params: any) => params.data.isChild
+  
+  // Logic to find the last child of a group to place the blue separator below it
+  'last-child-row': (params: any) => {
+    if (!params.data.isChild) return false;
+    const parent = this.allMockData.find(p => p.children?.some((c: any) => c.ocifId === params.data.ocifId));
+    if (parent && parent.isExpanded) {
+      const lastChild = parent.children[parent.children.length - 1];
+      return params.data.ocifId === lastChild.ocifId;
+    }
+    return false;
+  }
 };
 
 
@@ -282,9 +291,9 @@ onSelectionChanged() {
       const isParentSelected = !!node.isSelected(); 
 
       this.gridApi.forEachNode(childNode => {
-        // Check if the child belongs to this specific parent
+        // Ensure child belongs to the parent being processed
         if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-          // FIX: Use named parameters or omit the third arg to match AG Grid's type definition
+          // Fix: Remove 'true' and use standard boolean selection
           childNode.setSelected(isParentSelected, false); 
         }
       });

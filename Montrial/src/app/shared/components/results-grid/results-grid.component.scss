@@ -179,39 +179,40 @@ $bmo-blue: #0079C1;
 
 // UPDATED SCSS CODE BELOW
 // results-grid.component.scss
-
 ::ng-deep {
-  // 1. Blue separator line exactly per design
+  // Header of the group
   .expanded-parent-row {
-    border-bottom: 2px solid #0079C1 !important; // Blue colored line below expanded record
-    position: relative;
-    z-index: 5;
-    // Box shadow ensures the line is vibrant and covers the standard grid border
-    box-shadow: inset 0 -2px 0 #0079C1; 
+    background-color: #f8fbff !important;
+    border-top: 2px solid #0079C1 !important; // Top border of the group
   }
 
-  // 2. Name Column Indentation & Carrot
+  // The grouping line at the BOTTOM of the children per design image
+  .last-child-row {
+    border-bottom: 2px solid #0079C1 !important;
+    box-shadow: inset 0 -1px 0 #0079C1;
+  }
+
+  // Name Column Styling
   .name-cell-wrapper {
     display: flex;
     align-items: center;
-    justify-content: space-between; // Carrot on the right side
+    justify-content: space-between;
     width: 100%;
-    padding-right: 15px;
+    padding-right: 12px;
 
     .grid-child-text {
-      margin-left: 45px; // Deep indentation per image
-      color: #0079C1;    // Blue color for children
+      margin-left: 45px; // Exact indent from design image
+      color: #0079C1;
       font-weight: 500;
     }
   }
 
-  // 3. Status Badge (Correct Navy Blue)
-  .status-pill-badge {
-    background-color: #001a4d !important;
-    color: white !important;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
+  // Carrot Refinement
+  .bmo-thin-carrot {
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid #0079C1;
+    border-bottom: 1.5px solid #0079C1;
+    // ... transition logic ...
   }
 }
