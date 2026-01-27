@@ -282,6 +282,21 @@ public rowClassRules = {
   }
 };
 
+// FINAL rowClassRules
+
+public rowClassRules = {
+    // Top border and background for expanded parent
+    'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
+    // Blue line at the very bottom of the entire group
+    'last-child-row': (params: any) => {
+      if (!params.data.isChild) return false;
+      const parent = this.allMockData.find(p => 
+        p.children?.some((c: any) => c.ocifId === params.data.ocifId)
+      );
+      return !!(parent && parent.isExpanded && 
+             parent.children[parent.children.length - 1].ocifId === params.data.ocifId);
+    }
+  };
 
 onSelectionChanged() {
   const selectedNodes = this.gridApi.getSelectedNodes();
@@ -302,6 +317,26 @@ onSelectionChanged() {
 
   this.selectionChanged.emit(this.gridApi.getSelectedRows());
 }
+
+// final onSelectedChanged function
+onSelectionChanged() {
+    const selectedNodes = this.gridApi.getSelectedNodes();
+    
+    selectedNodes.forEach(node => {
+      if (node.data.isParent && node.data.children) {
+        const isParentSelected = !!node.isSelected(); 
+
+        this.gridApi.forEachNode(childNode => {
+          if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+            // FIX: Removed the third 'true' argument to satisfy AG Grid types
+            childNode.setSelected(isParentSelected, false); 
+          }
+        });
+      }
+    });
+    this.selectionChanged.emit(this.gridApi.getSelectedRows());
+  }
+
 
 // Update toggleRowExpansion to ensure selection persists if parent is selected
 toggleRowExpansion(parent: any) {
