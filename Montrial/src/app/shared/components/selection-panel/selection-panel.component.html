@@ -36,23 +36,23 @@
         <mat-icon>close</mat-icon>
       </button>
     </div>
-
+  
     <div class="modal-body">
-      <div class="search-section">
-        <div class="input-group">
+      <div class="search-section-grid">
+        <div class="input-field">
           <label>Unique Legal Hold Name/identifier <span class="req">*</span></label>
           <input type="text" [(ngModel)]="holdName" (input)="filterModalData()" placeholder="Enter name">
         </div>
-        <div class="input-group">
+        <div class="input-field">
           <label>eDiscovery Project Manager Name <span class="req">*</span></label>
           <input type="text" [(ngModel)]="managerName" placeholder="Enter manager name">
         </div>
-        <div class="input-group">
+        <div class="input-field">
           <label>Responsible Lawyer Email ID <span class="req">*</span></label>
           <input type="text" [(ngModel)]="lawyerEmail" placeholder="Enter email">
         </div>
       </div>
-
+  
       <div class="modal-table-container">
         <table class="bmo-modal-table">
           <thead>
@@ -71,16 +71,12 @@
                 <td>{{ profile.address }}</td>
                 <td>{{ profile.phone || '647-123-4567' }}</td>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="4" class="no-data">No results found</td>
-              </tr>
             }
           </tbody>
         </table>
       </div>
     </div>
-
+  
     <div class="modal-footer">
       <button mat-button class="btn-cancel" (click)="closeModal()">CANCEL</button>
       <button mat-flat-button class="btn-apply" 
