@@ -5,16 +5,23 @@ import { Directive, HostListener } from '@angular/core';
 })
 export class NumbersOnlyDirective {
 
+  private readonly MAX_LENGTH = 10;
+
   @HostListener('input', ['$event'])
   onInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    const value = input.value;
 
-    // Allow ONLY digits
-    const digitsOnly = value.replace(/\D/g, '');
+    // Remove all non-digit characters
+    let digits = input.value.replace(/\D/g, '');
 
-    if (value !== digitsOnly) {
-      input.value = digitsOnly;
+    // Enforce max length
+    if (digits.length > this.MAX_LENGTH) {
+      digits = digits.substring(0, this.MAX_LENGTH);
+    }
+
+    // Update value only if changed
+    if (input.value !== digits) {
+      input.value = digits;
       input.dispatchEvent(new Event('input'));
     }
   }
