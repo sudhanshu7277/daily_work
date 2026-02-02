@@ -232,116 +232,90 @@ $bmo-blue: #0079C1;
 $bmo-blue: #0079C1;
 $bmo-dark-navy: #001a4d;
 // selection-panel.component.scss
-// selection-panel.component.scss
 
-::ng-deep .bmo-custom-modal {
-  // Force the Material Dialog container to honor our fixed width
-  .mat-mdc-dialog-container { 
-    width: 1000px !important; 
-    max-width: 1000px !important;
-    border-radius: 4px !important; 
-  }
+::ng-deep .bmo-apply-hold-dialog {
+  .mat-mdc-dialog-container { border-radius: 4px; padding: 0; }
 
-  .bmo-modal-wrapper.fixed-layout {
-    width: 1000px;
-    padding: 32px 40px;
-    box-sizing: border-box;
+  .bmo-modal-container {
+    padding: 30px 40px;
     background: #fff;
 
-    // 1. Reduce space between inputs
-    .compact-search-grid {
+    .input-grid {
       display: flex;
-      gap: 12px; // Reduced from 20px to prevent overflow
-      margin-bottom: 24px;
+      gap: 15px; // Reduced gap to ensure inputs fit on one line
+      margin: 25px 0;
 
-      .field-item {
+      .input-group {
         flex: 1;
         display: flex;
         flex-direction: column;
-
-        label {
-          font-size: 12px;
-          font-weight: 600;
-          margin-bottom: 6px;
-          color: #333;
-          white-space: nowrap; // Prevents labels from wrapping
-          .req { color: #d32f2f; }
-        }
-
+        
+        label { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
         input {
-          height: 36px;
-          padding: 0 10px;
-          border: 1px solid #757575;
+          height: 38px;
+          border: 1px solid #707070;
           border-radius: 4px;
-          background: #fdfdfd;
+          padding: 0 10px;
           font-size: 13px;
         }
       }
     }
 
-    // 2. Fixed Table Layout (No horizontal scroll)
-    .modal-scroll-area {
-      max-height: 400px;
+    .table-scroll-viewport {
+      max-height: 350px;
       overflow-y: auto;
       overflow-x: hidden; // Strictly disable horizontal scroll
-      border-top: 1px solid #eee;
+      border-top: 1px solid #e0e0e0;
 
-      &::-webkit-scrollbar { width: 6px; }
+      &::-webkit-scrollbar { width: 5px; }
       &::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     }
 
-    .bmo-fixed-table {
+    .fixed-bmo-table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed; // Essential for preventing auto-expansion
-
-      th, td {
-        text-align: left;
-        padding: 12px 6px; // Reduced horizontal padding between columns
-        box-sizing: border-box;
-      }
+      table-layout: fixed; // This prevents the columns from expanding
 
       th {
-        font-size: 12px;
-        font-weight: 700;
-        background: #fff;
-        position: sticky;
-        top: 0;
-        border-bottom: 1px solid #ddd;
+        position: sticky; top: 0; background: #fff; z-index: 2;
+        text-align: left; padding: 15px 5px; font-size: 12px; color: #000;
+        border-bottom: 1px solid #e0e0e0;
         mat-icon { font-size: 16px; vertical-align: middle; }
       }
 
       td {
-        font-size: 13px;
-        border-bottom: 1px solid #f5f5f5;
-        color: #333;
+        padding: 15px 5px; font-size: 13px; color: #333;
+        border-bottom: 1px solid #f2f2f2;
       }
 
-      // Column definitions to ensure 100% total width
-      .w-25 { width: 25%; }
-      .w-20 { width: 20%; }
-      .w-35 { width: 35%; }
+      // Percentage-based widths that add up to 100%
+      .col-name { width: 22%; }
+      .col-status { width: 20%; }
+      .col-address { width: 40%; }
+      .col-phone { width: 18%; }
 
       .truncate {
         white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis;
+        text-overflow: ellipsis; // Cuts off text with ... instead of scrolling
       }
     }
 
-    .modal-footer {
+    .modal-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 16px;
-      margin-top: 24px;
+      align-items: center;
+      gap: 20px;
+      margin-top: 30px;
 
-      .btn-cancel { color: #0079C1; font-weight: 700; }
-      .btn-apply {
-        background-color: #001a4d !important;
-        color: white;
-        border-radius: 24px;
-        padding: 0 32px;
+      .cancel-link { color: #0079c1; font-weight: 700; font-size: 13px; }
+      .apply-pill {
+        background-color: #001a41 !important; // Deep BMO navy
+        color: #fff;
+        border-radius: 20px;
+        padding: 0 35px;
         font-weight: 700;
+        height: 40px;
       }
     }
   }

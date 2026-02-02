@@ -48,16 +48,29 @@ export class SelectionPanelComponent {
 
   constructor(private dialog: MatDialog) {}
 
+  // openApplyModal(templateRef: TemplateRef<any>) {
+  //   // Reset inputs and load the latest selected rows
+  //   this.holdName = '';
+  //   this.managerName = '';
+  //   this.lawyerEmail = '';
+  //   this.filteredModalRows = [...this.selectedRows];
+
+  //   this.dialogRef = this.dialog.open(templateRef, {
+  //     width: '950px',
+  //     panelClass: 'bmo-custom-modal',
+  //     autoFocus: false
+  //   });
+  // }
+
   openApplyModal(templateRef: TemplateRef<any>) {
-    // Reset inputs and load the latest selected rows
     this.holdName = '';
     this.managerName = '';
     this.lawyerEmail = '';
     this.filteredModalRows = [...this.selectedRows];
-
-    this.dialogRef = this.dialog.open(templateRef, {
-      width: '950px',
-      panelClass: 'bmo-custom-modal',
+    this.dialog.open(templateRef, {
+      width: '1000px', // Fixed wide design to prevent squishing
+      maxWidth: '95vw',
+      panelClass: 'bmo-apply-hold-dialog', // Use this for specific styling
       autoFocus: false
     });
   }
