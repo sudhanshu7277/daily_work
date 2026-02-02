@@ -1,20 +1,20 @@
 import { Directive, HostListener } from '@angular/core';
 
 @Directive({
-  selector: '[appDigitsOnly]'
+  selector: '[appNumbersOnly]'
 })
-export class DigitsOnlyDirective {
+export class NumbersOnlyDirective {
 
   @HostListener('input', ['$event'])
-  onInputChange(event: Event) {
+  onInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    const initialValue = input.value;
+    const value = input.value;
 
-    // Replace anything that's not a digit
-    input.value = initialValue.replace(/[^0-9]/g, '');
+    // Allow ONLY digits
+    const digitsOnly = value.replace(/\D/g, '');
 
-    // Trigger input event if value changed
-    if (initialValue !== input.value) {
+    if (value !== digitsOnly) {
+      input.value = digitsOnly;
       input.dispatchEvent(new Event('input'));
     }
   }
