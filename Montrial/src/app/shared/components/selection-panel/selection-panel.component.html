@@ -29,7 +29,7 @@
 </div>
 
 <ng-template #applyModal>
-  <div class="bmo-modal-wrapper fixed-width">
+  <div class="bmo-modal-wrapper fixed-layout">
     <div class="modal-header">
       <h2 class="modal-title">Apply Legal Hold for selected profiles</h2>
       <button mat-icon-button (click)="closeModal()" class="close-icon">
@@ -38,38 +38,38 @@
     </div>
   
     <div class="modal-body">
-      <div class="search-row">
-        <div class="input-container">
+      <div class="compact-search-grid">
+        <div class="field-item">
           <label>Unique Legal Hold Name/identifier <span class="req">*</span></label>
-          <input type="text" [(ngModel)]="holdName" placeholder="Enter name">
+          <input type="text" [(ngModel)]="holdName" (input)="filterModalData()" placeholder="Enter name">
         </div>
-        <div class="input-container">
+        <div class="field-item">
           <label>eDiscovery Project Manager Name <span class="req">*</span></label>
           <input type="text" [(ngModel)]="managerName" placeholder="Enter manager name">
         </div>
-        <div class="input-container">
+        <div class="field-item">
           <label>Responsible Lawyer Email ID <span class="req">*</span></label>
           <input type="text" [(ngModel)]="lawyerEmail" placeholder="Enter email">
         </div>
       </div>
   
-      <div class="table-frame">
-        <table class="bmo-modal-table">
+      <div class="modal-scroll-area">
+        <table class="bmo-fixed-table">
           <thead>
             <tr>
-              <th class="col-name">Name <mat-icon>swap_vert</mat-icon></th>
-              <th class="col-status">Customer Lifecycle Status</th>
-              <th class="col-address">Address</th>
-              <th class="col-phone">Phone number</th>
+              <th class="w-25">Name <mat-icon>swap_vert</mat-icon></th>
+              <th class="w-20">Customer Lifecycle Status</th>
+              <th class="w-35">Address</th>
+              <th class="w-20">Phone number</th>
             </tr>
           </thead>
           <tbody>
             @for (profile of filteredModalRows; track profile.ocifId) {
               <tr>
-                <td class="col-name">{{ profile.legalName }}</td>
-                <td class="col-status">{{ profile.lifecycle || 'Active Customer' }}</td>
-                <td class="col-address">{{ profile.address }}</td>
-                <td class="col-phone">{{ profile.phone || '647-123-4567' }}</td>
+                <td class="w-25 truncate">{{ profile.legalName }}</td>
+                <td class="w-20">{{ profile.lifecycle || 'Active Customer' }}</td>
+                <td class="w-35 truncate">{{ profile.address }}</td>
+                <td class="w-20">{{ profile.phone || '647-123-4567' }}</td>
               </tr>
             }
           </tbody>
@@ -79,7 +79,11 @@
   
     <div class="modal-footer">
       <button mat-button class="btn-cancel" (click)="closeModal()">CANCEL</button>
-      <button mat-flat-button class="btn-apply" (click)="confirmApply()">APPLY</button>
+      <button mat-flat-button class="btn-apply" 
+              [disabled]="!holdName || !managerName || !lawyerEmail"
+              (click)="confirmApply()">
+        APPLY
+      </button>
     </div>
   </div>
 </ng-template>
