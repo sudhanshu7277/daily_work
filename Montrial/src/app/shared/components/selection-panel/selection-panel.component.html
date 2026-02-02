@@ -1,4 +1,4 @@
-<div class="selection-panel-wrapper">
+<!-- <div class="selection-panel-wrapper">
   <div class="panel-header">
     <p class="placeholder-text" *ngIf="selectedProfiles.length === 0">
       No profiles selected.
@@ -31,5 +31,29 @@
       [disabled]="selectedProfiles.length === 0">
       APPLY
     </button>
+  </div>
+</div> -->
+
+<div class="selected-profiles-container">
+  <h3>{{ selectedRows.length }} profile(s) selected</h3>
+  
+  <div class="profile-list">
+    @for (row of selectedRows; track row.ocifId) {
+      <div class="selection-card">
+        <div class="card-content">
+          <span class="profile-name">{{ row.legalName }}</span>
+          <span class="profile-id">OCIF / Proxy ID: {{ row.ocifId }}</span>
+        </div>
+        
+        <button mat-icon-button color="primary" (click)="onRemove(row)" aria-label="Remove profile">
+          <mat-icon>delete_outline</mat-icon> 
+          </button>
+      </div>
+    }
+  </div>
+
+  <div class="action-footer">
+    <button mat-stroked-button color="primary" (click)="onRelease()">RELEASE</button>
+    <button mat-flat-button color="primary" (click)="onApply()">APPLY</button>
   </div>
 </div>
