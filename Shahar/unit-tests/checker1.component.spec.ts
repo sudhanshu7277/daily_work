@@ -1,11 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Checker1Component } from './checker1.component';
 import { ReactiveFormsModule } from '@angular/forms';
-import { AgGridModule } from 'ag-grid-angular';
+import { AgGridModule } from '@ag-grid-community/angular';
 import { of } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-// Ensure paths match your local structure
+// AG Grid Module Imports
+import { ModuleRegistry } from '@ag-grid-community/core';
+import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
+
+// Service and Directive Imports (Update paths based on your structure)
 import { Checker1Service } from '../../shared/services/checker1.service';
 import { NumbersOnlyDirective } from '../../shared/directives/numbers-only.directive';
 
@@ -14,10 +18,17 @@ describe('Checker1Component', () => {
   let fixture: ComponentFixture<Checker1Component>;
   let mockService: any;
 
+  beforeAll(() => {
+    // 1. Mandatory Module Registration for tests
+    ModuleRegistry.registerModules([ClientSideRowModelModule]);
+  });
+
   beforeEach(async () => {
     mockService = {
       getCurrencies: jest.fn().mockReturnValue(of(['USD', 'EUR'])),
-      getCheckerData: jest.fn().mockReturnValue(of([])),
+      getCheckerData: jest.fn().mockReturnValue(of([
+        { id: 101, issueName: 'Test Issue', status: 'Pending' }
+      ]))
     };
 
     await TestBed.configureTestingModule({
@@ -36,117 +47,45 @@ describe('Checker1Component', () => {
     fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
 
-    // Grid API Mock
+    // 2. Comprehensive Grid API Mock for v32.3
     component.gridApi = {
-      setRowData: jest.fn(),
-      getSelectedRows: jest.fn().mockReturnValue([{ id: 101 }])
+      setGridOption: jest.fn(),
+      getSelectedRows: jest.fn().mockReturnValue([{ id: 101 }]),
+      deselectAll: jest.fn(),
+      refreshCells: jest.fn()
     } as any;
 
     fixture.detectChanges();
   });
 
-  it('should be initialized with singleRow selection mode', () => {
-    // Asserting the object exists and mode is correct
-    expect(component.rowSelection).toBeDefined();
-    expect((component.rowSelection as any).mode).toBe('singleRow');
+  it('should create the component', () => {
+    expect(component).toBeTruthy();
   });
 
-  it('should have checkboxes enabled in selection options', () => {
-    expect((component.rowSelection as any).checkboxes).toBe(true);
+  it('should be configured for singleRow selection mode', () => {
+    // Asserting the selection object exists and is typed correctly
+    expect(typeof component.rowSelection).toBe('object');
+    const selection = component.rowSelection as any;
+    expect(selection.mode).toBe('singleRow');
+    expect(selection.checkboxes).toBe(true);
+    // headerCheckbox should not exist for singleRow
+    expect(selection.headerCheckbox).toBeUndefined();
   });
 
-  it('should not allow header selection in singleRow mode', () => {
-    // In ag-grid 31+, headerCheckbox must be undefined/absent for singleRow
-    expect((component.rowSelection as any).headerCheckbox).toBeUndefined();
+  it('should load data on initialization', () => {
+    component.onSearch();
+    expect(mockService.getCheckerData).toHaveBeenCalled();
+    expect(component.rowData.length).toBeGreaterThan(0);
+  });
+
+  it('should have pagination enabled', () => {
+    // This checks your TS property used in HTML [pagination]="true"
+    expect(component.paginationPageSize).toBe(20);
+  });
+
+  it('should utilize the Quartz theme class in the template', () => {
+    const compiled = fixture.nativeElement;
+    const gridElement = compiled.querySelector('ag-grid-angular');
+    expect(gridElement.classList).toContain('ag-theme-quartz');
   });
 });
-
-
-
-
-
-// import { ComponentFixture, TestBed } from '@angular/core/testing';
-// import { Checker1Component } from './checker1.component';
-// import { ReactiveFormsModule } from '@angular/forms';
-// import { AgGridModule } from 'ag-grid-angular';
-// import { of } from 'rxjs';
-// import { NO_ERRORS_SCHEMA } from '@angular/core';
-
-// // Ensure these relative paths are correct for your directory structure
-// import { Checker1Service } from '../../shared/services/checker1.service';
-// import { NumbersOnlyDirective } from '../../shared/directives/numbers-only.directive';
-
-// describe('Checker1Component', () => {
-//   let component: Checker1Component;
-//   let fixture: ComponentFixture<Checker1Component>;
-//   let mockService: any;
-
-//   beforeEach(async () => {
-//     // FIX: The mock must define these as functions returning Observables
-//     // to prevent the "Cannot read properties of undefined (reading 'subscribe')" error.
-//     mockService = {
-//       getCurrencies: jest.fn().mockReturnValue(of(['USD', 'EUR', 'GBP'])),
-//       getCheckerData: jest.fn().mockReturnValue(of([])),
-//       // Add any other service methods called in ngOnInit here
-//     };
-
-//     await TestBed.configureTestingModule({
-//       imports: [
-//         Checker1Component,    
-//         NumbersOnlyDirective, 
-//         ReactiveFormsModule,
-//         AgGridModule
-//       ],
-//       providers: [
-//         { provide: Checker1Service, useValue: mockService }
-//       ],
-//       schemas: [NO_ERRORS_SCHEMA]
-//     }).compileComponents();
-
-//     fixture = TestBed.createComponent(Checker1Component);
-//     component = fixture.componentInstance;
-
-//     // FIX: Mock the Ag-Grid API so component methods like onSearch() don't crash
-//     component.gridApi = {
-//       setRowData: jest.fn(),
-//       sizeColumnsToFit: jest.fn(),
-//       getSelectedRows: jest.fn().mockReturnValue([]),
-//     } as any;
-
-//     // Trigger ngOnInit and the subscriptions
-//     fixture.detectChanges(); 
-//   });
-
-//   it('should create', () => {
-//     expect(component).toBeTruthy();
-//   });
-
-//   it('should have invalid form initially', () => {
-//     // This passes because you added Validators.required to the .ts
-//     expect(component.filterForm.invalid).toBeTruthy();
-//   });
-
-//   it('should call getCurrencies and populate dropdown on init', () => {
-//     expect(mockService.getCurrencies).toHaveBeenCalled();
-//     expect(component.currencies).toEqual(['USD', 'EUR', 'GBP']);
-//   });
-
-//   it('should enable search button when form is valid', () => {
-//     component.filterForm.patchValue({
-//       search: 'SECURITY123',
-//       dateFilter: '2026-01-26'
-//     });
-//     fixture.detectChanges();
-//     expect(component.filterForm.valid).toBeTruthy();
-//   });
-// });
-
-
-<ag-grid-angular
-  style="width: 100%; height: 500px;"
-  class="ag-theme-alpine"
-  [columnDefs]="columnDefs"
-  [rowData]="rowData"
-  [rowSelection]="rowSelection" 
-  (gridReady)="onGridReady($event)">
-</ag-grid-angular>
