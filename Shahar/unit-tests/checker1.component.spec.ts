@@ -5,34 +5,33 @@ import { ModuleRegistry } from '@ag-grid-community/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { RowSelectionModule } from '@ag-grid-community/selection';
 import { PaginationModule } from '@ag-grid-community/pagination';
-// Replace with your actual service path
-import { DataService } from './path-to-your-service'; 
+import { Checker1Service } from './checker1.service'; // Adjust path if needed
 
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
 
-  // Registering modules for the test environment
   beforeAll(() => {
+    // Registering modules to avoid "Grid not initialized" errors during tests
     ModuleRegistry.registerModules([
       ClientSideRowModelModule,
       RowSelectionModule,
       PaginationModule
     ]);
   });
+  
 
   beforeEach(async () => {
-    // Jest-style mock object
+    // Correct Jest Mocking Syntax
     const mockDataService = {
-      // Use jest.fn() to simulate the API calls that are causing your Network Error
-      fetchThresholdData: jest.fn().and.returnValue(of([])),
-      getIssueRecords: jest.fn().and.returnValue(of([]))
+      fetchThresholdData: jest.fn().mockReturnValue(of([])),
+      getIssueRecords: jest.fn().mockReturnValue(of([]))
     };
 
     await TestBed.configureTestingModule({
       imports: [Checker1Component], // Standalone component
       providers: [
-        { provide: DataService, useValue: mockDataService }
+        { provide: Checker1Service, useValue: mockDataService }
       ]
     }).compileComponents();
 
@@ -41,8 +40,7 @@ describe('Checker1Component', () => {
   });
 
   it('should create', () => {
-    // detectChanges triggers ngOnInit; because we mocked the service,
-    // it will use our empty 'of([])' instead of trying to reach the internet.
+    // This triggers ngOnInit and calls the mocked services
     fixture.detectChanges(); 
     expect(component).toBeTruthy();
   });
