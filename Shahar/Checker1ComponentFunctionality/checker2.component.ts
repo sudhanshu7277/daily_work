@@ -35,6 +35,17 @@ export class Checker2Component implements OnInit, OnDestroy {
   public filterForm!: FormGroup;
   public editForm!: FormGroup;
 
+  // Line 52 is gone!
+public rowSelection: RowSelectionOptions = {
+    mode: 'singleRow',
+    checkboxes: true,
+    enableClickSelection: true
+};
+// checker1 component change
+
+
+
+
   public columnDefs: ColDef[] = [
     { field: 'id', width: 80, checkboxSelection: true, pinned: 'left' },
     { field: 'issueName', headerName: 'Issue Name', minWidth: 200 },
