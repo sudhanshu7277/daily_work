@@ -5,15 +5,15 @@ import { ModuleRegistry } from '@ag-grid-community/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { RowSelectionModule } from '@ag-grid-community/selection';
 import { PaginationModule } from '@ag-grid-community/pagination';
-// Replace this with your actual service path
-import { YourDataService } from './path-to-your-service'; 
+// Replace with your actual service path
+import { DataService } from './path-to-your-service'; 
 
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
 
+  // Registering modules for the test environment
   beforeAll(() => {
-    // Register all modules to ensure the grid can initialize in tests
     ModuleRegistry.registerModules([
       ClientSideRowModelModule,
       RowSelectionModule,
@@ -22,16 +22,17 @@ describe('Checker1Component', () => {
   });
 
   beforeEach(async () => {
-    // This mock prevents the "Network error" during build
-    const serviceMock = {
-      fetchThresholdData: jasmine.createSpy('fetchThresholdData').and.returnValue(of([])),
-      // Add any other methods your component calls on init
+    // Jest-style mock object
+    const mockDataService = {
+      // Use jest.fn() to simulate the API calls that are causing your Network Error
+      fetchThresholdData: jest.fn().and.returnValue(of([])),
+      getIssueRecords: jest.fn().and.returnValue(of([]))
     };
 
     await TestBed.configureTestingModule({
-      imports: [Checker1Component],
+      imports: [Checker1Component], // Standalone component
       providers: [
-        { provide: YourDataService, useValue: serviceMock }
+        { provide: DataService, useValue: mockDataService }
       ]
     }).compileComponents();
 
@@ -40,6 +41,8 @@ describe('Checker1Component', () => {
   });
 
   it('should create', () => {
+    // detectChanges triggers ngOnInit; because we mocked the service,
+    // it will use our empty 'of([])' instead of trying to reach the internet.
     fixture.detectChanges(); 
     expect(component).toBeTruthy();
   });
