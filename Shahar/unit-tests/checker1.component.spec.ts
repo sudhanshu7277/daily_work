@@ -1,42 +1,37 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Checker1Component } from './checker1.component';
-import { AgGridModule } from '@ag-grid-community/angular';
+import { of } from 'rxjs';
 import { ModuleRegistry } from '@ag-grid-community/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { RowSelectionModule } from '@ag-grid-community/selection';
-import { of } from 'rxjs';
-// Import your actual service here
-import { YourDataService } from '../../services/your-data.service'; 
+import { PaginationModule } from '@ag-grid-community/pagination';
+// Replace this with your actual service path
+import { YourDataService } from './path-to-your-service'; 
 
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
-  let mockService: any;
 
   beforeAll(() => {
-    // Register AG Grid modules once for the entire test suite
+    // Register all modules to ensure the grid can initialize in tests
     ModuleRegistry.registerModules([
       ClientSideRowModelModule,
-      RowSelectionModule
+      RowSelectionModule,
+      PaginationModule
     ]);
   });
 
   beforeEach(async () => {
-    // Create a mock to prevent "Network error"
-    mockService = {
-      // Replace 'getData' with the actual method name your component calls
-      getData: jasmine.createSpy('getData').and.returnValue(of([])),
-      // Add any other methods called on init
-      fetchThresholdData: jasmine.createSpy('fetchThresholdData').and.returnValue(of([]))
+    // This mock prevents the "Network error" during build
+    const serviceMock = {
+      fetchThresholdData: jasmine.createSpy('fetchThresholdData').and.returnValue(of([])),
+      // Add any other methods your component calls on init
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        Checker1Component, // Standalone component
-        AgGridModule
-      ],
+      imports: [Checker1Component],
       providers: [
-        { provide: YourDataService, useValue: mockService }
+        { provide: YourDataService, useValue: serviceMock }
       ]
     }).compileComponents();
 
@@ -45,7 +40,6 @@ describe('Checker1Component', () => {
   });
 
   it('should create', () => {
-    // This will now pass without a Network Error because of the mock
     fixture.detectChanges(); 
     expect(component).toBeTruthy();
   });
