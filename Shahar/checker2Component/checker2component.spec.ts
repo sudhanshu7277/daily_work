@@ -9,24 +9,22 @@ describe('Checker2Component', () => {
   let component: Checker2Component;
   let fixture: ComponentFixture<Checker2Component>;
 
+  const mockDataService = {
+  // Use .mockReturnValue instead of .and.returnValue
+  fetchThresholdData: jest.fn().mockReturnValue(of([])),
+  getIssueRecords: jest.fn().mockReturnValue(of([]))
+};
+
   beforeEach(async () => {
-    const mockService = {
-      getIssueRecords: jest.fn().mockReturnValue(of([])),
-      updateRecord: jest.fn().mockReturnValue(of(true))
-    };
-
-    await TestBed.configureTestingModule({
-      imports: [Checker2Component, NoopAnimationsModule],
-      providers: [
-        { provide: Checker2Service, useValue: mockService },
-        MessageService
-      ]
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(Checker2Component);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  await TestBed.configureTestingModule({
+    imports: [Checker1Component, NoopAnimationsModule],
+    providers: [
+      { provide: Checker1Service, useValue: mockService },
+      MessageService,
+      providePrimeNG({ theme: { preset: Aura } }) // Matches your app.config
+    ]
+  }).compileComponents();
+});
 
   it('should create and load data', () => {
     expect(component).toBeTruthy();

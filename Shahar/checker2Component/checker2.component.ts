@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
-import { DropdownModule } from 'primeng/dropdown';
+import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select'; // Use SelectModule for v18+ instead of Dropdown
 import { MessageService } from 'primeng/api';
 import { Checker1Service, IssueRecord } from './checker1.service';
 
@@ -16,7 +16,7 @@ import { Checker1Service, IssueRecord } from './checker1.service';
   standalone: true,
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule, 
-    DialogModule, ToastModule, TagModule, DropdownModule, InputTextModule
+    ToastModule, TagModule, DialogModule, InputTextModule, SelectModule
   ],
   providers: [MessageService],
   templateUrl: './checker1.component.html',
@@ -39,48 +39,29 @@ export class Checker1Component implements OnInit {
   constructor(private service: Checker1Service, private messageService: MessageService) {}
 
   ngOnInit(): void {
-    this.loadData();
-  }
-
-  loadData() {
-    this.loading = true;
     this.service.getIssueRecords().subscribe(data => {
+      // Ensure data mapping for Dates happens in service or here
       this.gridData = data;
       this.loading = false;
     });
   }
 
-  // Action Panel
-  public onApprove() {
-    if (!this.selectedRecord) return;
-    this.selectedRecord.status = 'Approved';
-    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Record Approved' });
-  }
-
-  // Modal Logic
-  public openEditModal() {
-    if (this.selectedRecord) {
-      this.clonedRecord = { ...this.selectedRecord }; // Deep clone to avoid mutating grid before save
-      this.editDialog = true;
-    }
-  }
-
-  public saveEdit() {
-    this.service.updateRecord(this.clonedRecord).subscribe(() => {
-      const index = this.gridData.findIndex(r => r.id === this.clonedRecord.id);
-      this.gridData[index] = { ...this.clonedRecord };
-      this.selectedRecord = this.gridData[index]; // Update selection
-      this.editDialog = false;
-      this.messageService.add({ severity: 'info', summary: 'Updated', detail: 'Record saved successfully' });
-    });
-  }
-
-  public getSeverity(status: string): any {
+  public getSeverity(status: string) {
     switch (status) {
       case 'Approved': return 'success';
       case 'Pending': return 'warning';
       case 'Rejected': return 'danger';
-      default: return 'info';
+      default: return 'secondary';
     }
+  }
+
+  public openEdit() {
+    this.clonedRecord = { ...this.selectedRecord! };
+    this.editDialog = true;
+  }
+
+  public saveEdit() {
+    this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Record Saved' });
+    this.editDialog = false;
   }
 }
