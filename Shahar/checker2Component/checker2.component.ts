@@ -1,13 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+// PrimeNG Imports
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
-import { DialogModule } from 'primeng/dialog';
+import { SelectModule } from 'primeng/select'; // v18+ Select replaces Dropdown
 import { InputTextModule } from 'primeng/inputtext';
-import { SelectModule } from 'primeng/select'; // Use SelectModule for v18+ instead of Dropdown
+import { DatePickerModule } from 'primeng/datepicker'; // v18+ replaces Calendar
 import { MessageService } from 'primeng/api';
 import { Checker1Service, IssueRecord } from './checker1.service';
 
@@ -16,7 +18,8 @@ import { Checker1Service, IssueRecord } from './checker1.service';
   standalone: true,
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule, 
-    ToastModule, TagModule, DialogModule, InputTextModule, SelectModule
+    DialogModule, ToastModule, TagModule, SelectModule, 
+    InputTextModule, DatePickerModule
   ],
   providers: [MessageService],
   templateUrl: './checker1.component.html',
@@ -24,44 +27,50 @@ import { Checker1Service, IssueRecord } from './checker1.service';
 })
 export class Checker1Component implements OnInit {
   public gridData: IssueRecord[] = [];
-  public selectedRecord: IssueRecord | null = null;
+  public selectedRecords: IssueRecord[] = []; // Checkboxes require an array
   public editDialog: boolean = false;
-  public clonedRecord: IssueRecord = {} as IssueRecord;
+  public clonedRecord: any = {};
   public loading: boolean = true;
   
   public currencies = [
-    { label: 'USD', value: 'USD' },
-    { label: 'CAD', value: 'CAD' },
-    { label: 'JPY', value: 'JPY' },
-    { label: 'GBP', value: 'GBP' }
+    { label: 'USD', value: 'USD' }, { label: 'CAD', value: 'CAD' },
+    { label: 'EUR', value: 'EUR' }, { label: 'GBP', value: 'GBP' }
   ];
 
   constructor(private service: Checker1Service, private messageService: MessageService) {}
 
-  ngOnInit(): void {
+  ngOnInit() {
     this.service.getIssueRecords().subscribe(data => {
-      // Ensure data mapping for Dates happens in service or here
       this.gridData = data;
       this.loading = false;
     });
   }
 
-  public getSeverity(status: string) {
-    switch (status) {
-      case 'Approved': return 'success';
-      case 'Pending': return 'warning';
-      case 'Rejected': return 'danger';
-      default: return 'secondary';
+  // Authorize selected rows
+  onAuthorizeSelected() {
+    if (this.selectedRecords.length > 0) {
+      this.selectedRecords.forEach(record => record.status = 'Approved');
+      this.messageService.add({ 
+        severity: 'success', 
+        summary: 'Authorized', 
+        detail: `${this.selectedRecords.length} records processed` 
+      });
+      this.selectedRecords = []; // Clear checkboxes
     }
   }
 
-  public openEdit() {
-    this.clonedRecord = { ...this.selectedRecord! };
+  // Row-level Edit
+  onEditRow(record: IssueRecord) {
+    this.clonedRecord = { ...record }; // Deep copy
     this.editDialog = true;
   }
 
-  public saveEdit() {
-    this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Record Saved' });
+  saveEdit() {
+    const index = this.gridData.findIndex(r => r.id === this.clonedRecord.id);
+    if (index !== -1) {
+      this.gridData[index] = { ...this.clonedRecord };
+      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Update successful' });
+    }
     this.editDialog = false;
   }
 }

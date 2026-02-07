@@ -1,63 +1,70 @@
 <p-toast></p-toast>
 
-<div class="checker-container">
-  <div class="action-bar">
-    <button pButton label="Approve" icon="pi pi-check" class="p-button-success" 
-            [disabled]="!selectedRecord"></button>
-    <button pButton label="Edit" icon="pi pi-pencil" class="p-button-warning" 
-            [disabled]="!selectedRecord" (click)="openEdit()"></button>
+<div class="card main-container">
+  <div class="toolbar-header">
+    <button pButton label="Authorize Selected" icon="pi pi-check" 
+            class="p-button-secondary" [disabled]="!selectedRecords.length"
+            (click)="onAuthorizeSelected()"></button>
+    
+    <span class="p-input-icon-left">
+      <i class="pi pi-search"></i>
+      <input pInputText type="text" placeholder="Search Issue Name or Account..." 
+             (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+    </span>
+
+    <div class="filter-group">
+      <p-datepicker placeholder="Value Date" [(ngModel)]="filterDate"></p-datepicker>
+      <p-select [options]="currencies" placeholder="-- All Currencies --"></p-select>
+      <button pButton label="Reset Filters" class="p-button-outlined p-button-danger"></button>
+    </div>
   </div>
 
-  <p-table [value]="gridData" [(selection)]="selectedRecord" selectionMode="single" dataKey="id" 
-           [paginator]="true" [rows]="10" [loading]="loading" class="p-datatable-sm">
+  <p-table #dt [value]="gridData" [(selection)]="selectedRecords" 
+           dataKey="id" [paginator]="true" [rows]="10" 
+           styleClass="p-datatable-sm p-datatable-gridlines"
+           [globalFilterFields]="['issueName', 'account']">
+    
     <ng-template pTemplate="header">
       <tr>
-        <th style="width: 3rem"></th>
-        <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
-        <th pSortableColumn="issueName">Issue <p-sortIcon field="issueName"></p-sortIcon></th>
-        <th pSortableColumn="currency">Currency</th>
+        <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+        <th pSortableColumn="id">IDs <p-sortIcon field="id"></p-sortIcon></th>
+        <th pSortableColumn="issueName">Issue Name <p-sortIcon field="issueName"></p-sortIcon></th>
+        <th pSortableColumn="valueDate">Value Date</th>
+        <th pSortableColumn="currency">CCY</th>
         <th pSortableColumn="amount">Amount</th>
-        <th>Status</th>
-      </tr>
-      <tr>
-        <th></th>
-        <th><p-columnFilter type="text" field="id"></p-columnFilter></th>
-        <th><p-columnFilter type="text" field="issueName"></p-columnFilter></th>
-        <th>
-          <p-columnFilter field="currency" matchMode="equals" [showMenu]="false">
-            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-              <p-select [ngModel]="value" [options]="currencies" (onChange)="filter($event.value)" 
-                        placeholder="Any" [showClear]="true"></p-select>
-            </ng-template>
-          </p-columnFilter>
-        </th>
-        <th><p-columnFilter type="numeric" field="amount" display="menu" currency="USD"></p-columnFilter></th>
-        <th></th>
+        <th>Actions</th>
       </tr>
     </ng-template>
+
     <ng-template pTemplate="body" let-record>
-      <tr [pSelectableRow]="record">
-        <td><p-tableRadioButton [value]="record"></p-tableRadioButton></td>
+      <tr>
+        <td><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
         <td>{{record.id}}</td>
         <td>{{record.issueName}}</td>
+        <td>{{record.createdDate | date: 'M/d/yyyy'}}</td>
         <td>{{record.currency}}</td>
-        <td>{{record.amount | currency: record.currency}}</td>
+        <td>{{record.amount | number: '1.0-0'}}</td>
         <td>
-          <p-tag [value]="record.status" [severity]="getSeverity(record.status)" [rounded]="true"></p-tag>
+          <button pButton label="Edit" class="p-button-sm p-button-info" 
+                  (click)="onEditRow(record)"></button>
         </td>
       </tr>
     </ng-template>
   </p-table>
 
-  <p-dialog [(visible)]="editDialog" header="Edit Record" [modal]="true">
-    <div class="p-fluid">
+  <p-dialog [(visible)]="editDialog" header="Edit Record" [modal]="true" class="p-fluid">
+    <ng-template pTemplate="content">
       <div class="field">
         <label>Issue Name</label>
         <input pInputText [(ngModel)]="clonedRecord.issueName" />
       </div>
-    </div>
+      <div class="field">
+        <label>Amount</label>
+        <input pInputText type="number" [(ngModel)]="clonedRecord.amount" />
+      </div>
+    </ng-template>
     <ng-template pTemplate="footer">
-      <button pButton label="Save" (click)="saveEdit()"></button>
+      <button pButton label="Save" icon="pi pi-check" (click)="saveEdit()"></button>
     </ng-template>
   </p-dialog>
 </div>

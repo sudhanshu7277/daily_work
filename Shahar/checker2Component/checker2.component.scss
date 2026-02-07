@@ -1,31 +1,62 @@
-.checker-container {
-  padding: 1.5rem;
+.main-container {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
 }
 
-.header-actions {
+.toolbar-header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
-}
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
 
-.field {
-  margin-bottom: 1.5rem;
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    // Set widths to match your original UI
+    p-datepicker, p-select {
+      width: 180px;
+    }
   }
 }
 
+.p-input-icon-left {
+  position: relative;
+  i {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    transform: translateY(-50%);
+    color: #6c757d;
+  }
+  input {
+    padding-left: 2.5rem;
+    width: 300px;
+  }
+}
+
+/* Make the status tags look like small circles/badges */
 :host ::ng-deep {
-  .p-tag-rounded {
-    padding: 0.25rem 0.8rem;
-    font-weight: 500;
+  .p-tag {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
   }
   
-  .p-datatable-sm {
-    font-size: 0.9rem;
+  .p-datatable-sm .p-datatable-tbody > tr > td {
+    padding: 0.4rem 0.5rem; // Tight spacing like AG Grid
+  }
+
+  .p-datatable.p-datatable-gridlines .p-datatable-thead > tr > th {
+    background: #f1f3f5;
+    color: #495057;
+    font-weight: 600;
   }
 }
