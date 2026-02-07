@@ -1,7 +1,7 @@
 <p-toast></p-toast>
 
-<div class="checker-wrapper">
-  <div class="toolbar-section">
+<div class="checker-container">
+  <div class="header-toolbar">
     <div class="left-btns">
       <button pButton label="Authorize Selected" icon="pi pi-check" 
               class="p-button-secondary p-button-sm" 
@@ -10,7 +10,7 @@
     </div>
 
     <div class="right-controls">
-      <mat-form-field appearance="outline" class="density-compact">
+      <mat-form-field appearance="outline" class="mat-filter">
         <mat-label>Value Date</mat-label>
         <input matInput [matDatepicker]="picker" [(ngModel)]="filterDate" 
                (dateChange)="dt.filter($event.value, 'createdDate', 'dateIs')">
@@ -31,7 +31,7 @@
       </span>
 
       <button pButton icon="pi pi-refresh" class="p-button-outlined p-button-danger p-button-sm" 
-              (click)="resetFilters()" title="Reset Filters"></button>
+              (click)="resetFilters()"></button>
     </div>
   </div>
 
@@ -45,10 +45,9 @@
         <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
         <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
         <th pSortableColumn="issueName">Issue Name <p-sortIcon field="issueName"></p-sortIcon></th>
-        <th pSortableColumn="createdDate">Value Date <p-sortIcon field="createdDate"></p-sortIcon></th>
-        <th pSortableColumn="currency">CCY <p-sortIcon field="currency"></p-sortIcon></th>
-        <th pSortableColumn="amount">Amount <p-sortIcon field="amount"></p-sortIcon></th>
-        <th>Status</th>
+        <th pSortableColumn="createdDate">Value Date</th>
+        <th pSortableColumn="currency">CCY</th>
+        <th pSortableColumn="amount">Amount</th>
         <th style="width: 5rem">Edit</th>
       </tr>
     </ng-template>
@@ -61,11 +60,8 @@
         <td>{{record.createdDate | date: 'MM/dd/yyyy'}}</td>
         <td>{{record.currency}}</td>
         <td>{{record.amount | number: '1.2-2'}}</td>
-        <td>
-          <p-tag [value]="record.status" [severity]="getSeverity(record.status)" [rounded]="true"></p-tag>
-        </td>
         <td class="text-center">
-          <button pButton icon="pi pi-pencil" class="p-button-text p-button-info p-0" 
+          <button pButton icon="pi pi-pencil" class="p-button-text p-button-info" 
                   (click)="onEditRow(record)"></button>
         </td>
       </tr>
@@ -76,17 +72,17 @@
             [style]="{width: '400px'}" styleClass="p-fluid">
     <ng-template pTemplate="content">
       <div class="field mb-3">
-        <label class="block font-bold mb-1">Issue Name</label>
+        <label class="block font-bold">Issue Name</label>
         <input pInputText [(ngModel)]="clonedRecord.issueName" />
       </div>
       <div class="field mb-3">
-        <label class="block font-bold mb-1">Amount</label>
+        <label class="block font-bold">Amount</label>
         <input pInputText type="number" [(ngModel)]="clonedRecord.amount" />
       </div>
     </ng-template>
     <ng-template pTemplate="footer">
       <button pButton label="Cancel" class="p-button-text" (click)="editDialog = false"></button>
-      <button pButton label="Save Changes" icon="pi pi-check" (click)="saveEdit()"></button>
+      <button pButton label="Save Changes" (click)="saveEdit()"></button>
     </ng-template>
   </p-dialog>
 </div>

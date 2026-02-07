@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-// PrimeNG Modules
+// PrimeNG
 import { Table, TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -12,7 +12,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
 
-// Angular Material Modules
+// Angular Material
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -41,15 +41,11 @@ export class Checker1Component implements OnInit {
   public clonedRecord: any = {};
   public loading: boolean = true;
   
-  // Filter bindings
   public filterDate: Date | null = null;
   public selectedCurrency: string | null = null;
-
   public currencies = [
-    { label: 'USD', value: 'USD' }, 
-    { label: 'CAD', value: 'CAD' },
-    { label: 'EUR', value: 'EUR' }, 
-    { label: 'GBP', value: 'GBP' }
+    { label: 'USD', value: 'USD' }, { label: 'CAD', value: 'CAD' },
+    { label: 'EUR', value: 'EUR' }, { label: 'GBP', value: 'GBP' }
   ];
 
   constructor(private service: Checker1Service, private messageService: MessageService) {}
@@ -63,16 +59,12 @@ export class Checker1Component implements OnInit {
 
   onAuthorizeSelected() {
     this.selectedRecords.forEach(r => r.status = 'Approved');
-    this.messageService.add({ 
-      severity: 'success', 
-      summary: 'Authorized', 
-      detail: `${this.selectedRecords.length} Records processed successfully` 
-    });
+    this.messageService.add({ severity: 'success', summary: 'Authorized', detail: 'Records Updated' });
     this.selectedRecords = [];
   }
 
   onEditRow(record: IssueRecord) {
-    this.clonedRecord = { ...record }; // Deep clone
+    this.clonedRecord = { ...record };
     this.editDialog = true;
   }
 
@@ -83,15 +75,6 @@ export class Checker1Component implements OnInit {
       this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Record updated' });
     }
     this.editDialog = false;
-  }
-
-  getSeverity(status: string) {
-    switch (status) {
-      case 'Approved': return 'success';
-      case 'Pending': return 'warning';
-      case 'Rejected': return 'danger';
-      default: return 'info';
-    }
   }
 
   resetFilters() {

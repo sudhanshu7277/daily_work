@@ -41,3 +41,12 @@ import { Checker1Component } from './checker1/checker1.component';
   bootstrap: [AppComponent]
 })
 export class AppModule { }
+
+"compilerOptions": {
+  "moduleResolution": "node",
+  "paths": {
+    "@angular/material/*": ["node_modules/@angular/material/*"],
+    "@angular/cdk/*": ["node_modules/@angular/cdk/*"],
+    "primeng/*": ["node_modules/primeng/*"]
+  }
+}
