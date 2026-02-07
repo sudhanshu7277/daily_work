@@ -1,0 +1,8 @@
+pnpm add primeng primeicons
+
+"styles": [
+  "node_modules/primeicons/primeicons.css",
+  "node_modules/primeng/resources/themes/lara-light-blue/theme.css",
+  "node_modules/primeng/resources/primeng.min.css",
+  "src/styles.scss"
+]
