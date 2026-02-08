@@ -1,33 +1,30 @@
 <p-toast></p-toast>
 
-<div class="checker-container">
-  <div class="header-toolbar">
-    <div class="left-btns">
+<div class="card p-3">
+  <div class="flex justify-content-between align-items-center mb-3 toolbar-bg p-2 border-1 border-300 border-round">
+    <div class="flex gap-2">
       <button pButton label="Authorize Selected" icon="pi pi-check" 
               class="p-button-secondary p-button-sm" 
               [disabled]="!selectedRecords.length"
               (click)="onAuthorizeSelected()"></button>
     </div>
 
-    <div class="right-controls">
-      <mat-form-field appearance="outline" class="mat-filter">
-        <mat-label>Value Date</mat-label>
-        <input matInput [matDatepicker]="picker" [(ngModel)]="filterDate" 
-               (dateChange)="dt.filter($event.value, 'createdDate', 'dateIs')">
-        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
+    <div class="flex align-items-center gap-3">
+      <p-calendar [(ngModel)]="filterDate" placeholder="Value Date" 
+                  [showIcon]="true" dateFormat="mm/dd/yy"
+                  (onSelect)="dt.filter($event, 'createdDate', 'dateIs')"
+                  styleClass="w-12rem"></p-calendar>
 
       <p-dropdown [options]="currencies" [(ngModel)]="selectedCurrency" 
-                  placeholder="-- All Currencies --" 
+                  placeholder="-- All Currencies --" [showClear]="true"
                   (onChange)="dt.filter($event.value, 'currency', 'equals')"
-                  [showClear]="true" styleClass="toolbar-dropdown">
-      </p-dropdown>
+                  styleClass="w-12rem"></p-dropdown>
 
-      <span class="p-input-icon-left search-box">
+      <span class="p-input-icon-left">
         <i class="pi pi-search"></i>
         <input pInputText type="text" placeholder="Search..." 
-               (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+               (input)="dt.filterGlobal($any($event.target).value, 'contains')" 
+               class="p-inputtext-sm w-15rem" />
       </span>
 
       <button pButton icon="pi pi-refresh" class="p-button-outlined p-button-danger p-button-sm" 
@@ -45,9 +42,10 @@
         <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
         <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
         <th pSortableColumn="issueName">Issue Name <p-sortIcon field="issueName"></p-sortIcon></th>
-        <th pSortableColumn="createdDate">Value Date</th>
-        <th pSortableColumn="currency">CCY</th>
-        <th pSortableColumn="amount">Amount</th>
+        <th pSortableColumn="createdDate">Value Date <p-sortIcon field="createdDate"></p-sortIcon></th>
+        <th pSortableColumn="currency">CCY <p-sortIcon field="currency"></p-sortIcon></th>
+        <th pSortableColumn="amount">Amount <p-sortIcon field="amount"></p-sortIcon></th>
+        <th>Status</th>
         <th style="width: 5rem">Edit</th>
       </tr>
     </ng-template>
@@ -60,8 +58,11 @@
         <td>{{record.createdDate | date: 'MM/dd/yyyy'}}</td>
         <td>{{record.currency}}</td>
         <td>{{record.amount | number: '1.2-2'}}</td>
+        <td>
+          <p-tag [value]="record.status" [severity]="getSeverity(record.status)" [rounded]="true"></p-tag>
+        </td>
         <td class="text-center">
-          <button pButton icon="pi pi-pencil" class="p-button-text p-button-info" 
+          <button pButton icon="pi pi-pencil" class="p-button-text p-button-info p-0" 
                   (click)="onEditRow(record)"></button>
         </td>
       </tr>
@@ -69,20 +70,20 @@
   </p-table>
 
   <p-dialog [(visible)]="editDialog" header="Modify Record" [modal]="true" 
-            [style]="{width: '400px'}" styleClass="p-fluid">
+            [style]="{width: '450px'}" styleClass="p-fluid">
     <ng-template pTemplate="content">
-      <div class="field mb-3">
-        <label class="block font-bold">Issue Name</label>
+      <div class="field mb-4">
+        <label class="font-bold block mb-2">Issue Name</label>
         <input pInputText [(ngModel)]="clonedRecord.issueName" />
       </div>
-      <div class="field mb-3">
-        <label class="block font-bold">Amount</label>
+      <div class="field mb-4">
+        <label class="font-bold block mb-2">Amount</label>
         <input pInputText type="number" [(ngModel)]="clonedRecord.amount" />
       </div>
     </ng-template>
     <ng-template pTemplate="footer">
       <button pButton label="Cancel" class="p-button-text" (click)="editDialog = false"></button>
-      <button pButton label="Save Changes" (click)="saveEdit()"></button>
+      <button pButton label="Save Changes" icon="pi pi-check" (click)="saveEdit()"></button>
     </ng-template>
   </p-dialog>
 </div>
