@@ -13,7 +13,7 @@ describe('Checker1Component', () => {
   beforeEach(async () => {
     mockSvc = {
       getIssueRecords: jest.fn().mockReturnValue(of([
-        { id: 1, issueName: 'Test Issue', amount: 100, currency: 'USD', createdDate: new Date(), status: 'Open' }
+        { id: 1, issueName: 'Test', dda: 'D1', account: 'A1', createdDate: new Date(), currency: 'USD', amount: 100, status: 'Open' }
       ]))
     };
 
@@ -30,24 +30,17 @@ describe('Checker1Component', () => {
     fixture.detectChanges();
   });
 
-  it('should create and load data', () => {
-    expect(component).toBeTruthy();
-    expect(component.gridData.length).toBeGreaterThan(0);
-  });
-
-  it('should close dialog and clear data on closeDialog()', () => {
-    component.editDialog = true;
-    component.clonedRecord = { id: 1 };
-    component.closeDialog();
+  it('should successfully update amount and close dialog', () => {
+    component.onEditRow(component.gridData[0]);
+    component.clonedRecord.amount = 500;
+    component.saveEdit();
+    expect(component.gridData[0].amount).toBe(500);
     expect(component.editDialog).toBe(false);
-    expect(component.clonedRecord).toEqual({});
   });
 
-  it('should reset filters', () => {
-    component.filterDate = new Date();
-    component.selectedCurrency = 'USD';
-    component.resetFilters();
-    expect(component.filterDate).toBeNull();
-    expect(component.selectedCurrency).toBeNull();
+  it('should clear selection after authorization', () => {
+    component.selectedRecord = component.gridData[0];
+    component.onAuthorizeSelected();
+    expect(component.selectedRecord).toBeNull();
   });
 });

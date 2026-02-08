@@ -9,7 +9,6 @@ import { DropdownModule } from 'primeng/dropdown';
 import { CalendarModule } from 'primeng/calendar';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
-
 import { Checker1Service, IssueRecord } from './checker1.service';
 
 @Component({
@@ -27,7 +26,7 @@ export class Checker1Component implements OnInit {
   @ViewChild('dt') table: Table | undefined;
 
   public gridData: IssueRecord[] = [];
-  public selectedRecords: IssueRecord[] = [];
+  public selectedRecord: IssueRecord | null = null; // Single selection
   public editDialog: boolean = false;
   public clonedRecord: any = {};
   
@@ -45,9 +44,11 @@ export class Checker1Component implements OnInit {
   }
 
   onAuthorizeSelected() {
-    this.selectedRecords.forEach(r => r.status = 'Approved');
-    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Records Authorized' });
-    this.selectedRecords = [];
+    if (this.selectedRecord) {
+      this.selectedRecord.status = 'Approved';
+      this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Record Authorized' });
+      this.selectedRecord = null;
+    }
   }
 
   onEditRow(record: IssueRecord) {
@@ -59,14 +60,9 @@ export class Checker1Component implements OnInit {
     const index = this.gridData.findIndex(r => r.id === this.clonedRecord.id);
     if (index !== -1) {
       this.gridData[index] = { ...this.clonedRecord };
-      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Record Updated' });
+      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Update Applied' });
     }
-    this.closeDialog();
-  }
-
-  closeDialog() {
     this.editDialog = false;
-    this.clonedRecord = {};
   }
 
   resetFilters() {
