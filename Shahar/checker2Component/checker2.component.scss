@@ -1,16 +1,75 @@
-.toolbar-bg {
-  background-color: #f8f9fa;
+.grid-wrapper {
+  padding: 10px;
+  background-color: #f4f4f4;
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    background: #e0e0e0;
+    padding: 8px 15px;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    align-items: center;
+
+    .left-group, .right-group {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .search-container input {
+      width: 300px;
+      height: 32px;
+      font-size: 13px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      label {
+        font-size: 10px;
+        font-weight: bold;
+        color: #666;
+        margin-bottom: 2px;
+      }
+    }
+  }
 }
 
+/* Match PrimeNG components to AG Grid size */
 :host ::ng-deep {
-  .p-datatable-sm .p-datatable-tbody > tr > td {
-    padding: 0.5rem;
+  .p-calendar, .p-dropdown {
+    width: 160px; /* Force width for CCY and Date */
+    .p-inputtext {
+      height: 32px;
+      font-size: 12px;
+      padding: 5px;
+    }
   }
-  
-  /* Ensure calendar and dropdown have uniform height */
-  .p-calendar .p-inputtext, 
-  .p-dropdown {
-    height: 38px;
-    align-items: center;
+
+  .auth-btn {
+    background-color: #7a869a !important;
+    border: none;
+    height: 32px;
+  }
+
+  .edit-btn {
+    background-color: #2b579a !important;
+    font-size: 11px;
+    padding: 2px 10px;
+  }
+
+  /* Dense Grid Styling */
+  .custom-grid {
+    .p-datatable-thead > tr > th {
+      background: #f8f9fa;
+      color: #333;
+      font-size: 12px;
+      padding: 8px;
+    }
+    .p-datatable-tbody > tr > td {
+      font-size: 12px;
+      padding: 6px 8px;
+    }
   }
 }
