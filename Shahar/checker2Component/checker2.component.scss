@@ -1,58 +1,51 @@
 :host ::ng-deep {
-  /* 1. SELECTION STYLING */
-  .p-radiobutton .p-radiobutton-box {
-    border: 2px solid #999;
-    width: 20px;
-    height: 20px;
-    &:hover { border-color: #007bff; }
+  /* Fix: Dropdown width and Z-index */
+  .fixed-ccy-drop {
+    width: 200px !important;
+    min-width: 200px !important;
   }
 
-  /* 2. Z-INDEX & VISIBILITY FOR DROPDOWNS */
-  .p-datepicker, .p-dropdown-panel {
-    z-index: 40000 !important; /* Higher than any possible grid element */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  /* Force overlay to sit on top of the grid */
+  .p-dropdown-panel, .p-datepicker {
+    z-index: 99999 !important;
   }
 
-  /* 3. WIDTH CONSTRAINTS */
-  .p-dropdown.ccy-dropdown-fixed {
-    width: 200px !important; /* Prevents collapsing */
-  }
-  .p-calendar {
-    width: 180px !important;
+  /* Row highlight when selected */
+  .row-selected {
+    background-color: #e3f2fd !important;
   }
 
-  /* 4. DENSE GRID UI */
-  .dense-enterprise-grid {
-    .p-datatable-thead > tr > th {
-      background: #f1f1f1;
-      font-size: 12px;
-      padding: 10px 8px;
-    }
-    .p-datatable-tbody > tr > td {
-      font-size: 12px;
-      padding: 8px;
-    }
-    tr.p-highlight {
-      background-color: #e3f2fd !important;
-      color: #000 !important;
+  .auth-btn {
+    background-color: #4b5563 !important;
+    border: none;
+    height: 35px;
+  }
+}
+
+.checker-layout {
+  padding: 1rem;
+  .top-toolbar {
+    display: flex;
+    justify-content: space-between;
+    background: #f3f4f6;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-bottom: none;
+    align-items: flex-end;
+
+    .group-left, .group-right { display: flex; gap: 1rem; align-items: flex-end; }
+    
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      label { font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #374151; }
     }
   }
 }
 
-.checker-container {
-  padding: 20px;
-  .header-bar {
-    display: flex;
-    justify-content: space-between;
-    background: #e8e8e8;
-    padding: 15px;
-    border: 1px solid #ccc;
-    border-bottom: none;
-    align-items: flex-end;
-    
-    .left-nav, .right-filters { display: flex; gap: 15px; align-items: flex-end; }
-    .filter-box { display: flex; flex-direction: column; 
-      label { font-size: 10px; font-weight: bold; margin-bottom: 2px; }
-    }
-  }
+.grid-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  .form-row { display: flex; gap: 1rem; }
 }
