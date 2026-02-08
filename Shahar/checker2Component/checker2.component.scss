@@ -1,79 +1,58 @@
-.main-viewport {
-  padding: 15px;
-  background-color: #f4f4f4;
+:host ::ng-deep {
+  /* 1. SELECTION STYLING */
+  .p-radiobutton .p-radiobutton-box {
+    border: 2px solid #999;
+    width: 20px;
+    height: 20px;
+    &:hover { border-color: #007bff; }
+  }
 
-  .toolbar-wrapper {
-    display: flex;
-    justify-content: space-between;
-    background: #dfdfdf;
-    padding: 10px 15px;
-    border: 1px solid #ccc;
-    border-bottom: none;
-    align-items: flex-end;
+  /* 2. Z-INDEX & VISIBILITY FOR DROPDOWNS */
+  .p-datepicker, .p-dropdown-panel {
+    z-index: 40000 !important; /* Higher than any possible grid element */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
 
-    .toolbar-left, .toolbar-right {
-      display: flex;
-      gap: 15px;
-      align-items: flex-end;
+  /* 3. WIDTH CONSTRAINTS */
+  .p-dropdown.ccy-dropdown-fixed {
+    width: 200px !important; /* Prevents collapsing */
+  }
+  .p-calendar {
+    width: 180px !important;
+  }
+
+  /* 4. DENSE GRID UI */
+  .dense-enterprise-grid {
+    .p-datatable-thead > tr > th {
+      background: #f1f1f1;
+      font-size: 12px;
+      padding: 10px 8px;
     }
-
-    .global-search input {
-      width: 320px;
-      height: 34px;
+    .p-datatable-tbody > tr > td {
+      font-size: 12px;
+      padding: 8px;
     }
-
-    .filter-unit {
-      display: flex;
-      flex-direction: column;
-      label {
-        font-size: 10px;
-        font-weight: 800;
-        margin-bottom: 2px;
-        color: #444;
-      }
+    tr.p-highlight {
+      background-color: #e3f2fd !important;
+      color: #000 !important;
     }
   }
 }
 
-:host ::ng-deep {
-  /* FIX: Dropdowns and Calendar width & visibility */
-  .p-dropdown, .p-calendar {
-    width: 200px !important; /* Force width */
-    height: 34px;
-    .p-inputtext { font-size: 13px; padding: 5px; }
-  }
-
-  /* CRITICAL: Force overlays to the front layer */
-  .p-datepicker, .p-dropdown-panel {
-    z-index: 10000 !important;
-  }
-
-  .auth-btn {
-    background-color: #5a6268 !important;
-    border: none;
-    height: 34px;
-  }
-
-  .edit-action-btn {
-    background-color: #2c599d !important;
-    font-size: 11px;
-    height: 28px;
-    padding: 2px 10px;
-  }
-
-  .dense-grid {
-    .p-datatable-thead > tr > th {
-      background: #f8f9fa;
-      padding: 8px;
-      font-size: 12px;
-    }
-    .p-datatable-tbody > tr > td {
-      padding: 6px 8px;
-      font-size: 12px;
-    }
-    .p-highlight {
-      background: #e7f1ff !important;
-      color: #000 !important;
+.checker-container {
+  padding: 20px;
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    background: #e8e8e8;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    align-items: flex-end;
+    
+    .left-nav, .right-filters { display: flex; gap: 15px; align-items: flex-end; }
+    .filter-box { display: flex; flex-direction: column; 
+      label { font-size: 10px; font-weight: bold; margin-bottom: 2px; }
     }
   }
 }
