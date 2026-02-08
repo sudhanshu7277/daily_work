@@ -1,76 +1,82 @@
-.main-layout {
+.checker-view {
   padding: 15px;
-  background-color: #f4f4f4;
+  background-color: #f5f5f5;
 
-  .toolbar-container {
+  .action-header {
     display: flex;
     justify-content: space-between;
-    background: #dfdfdf;
-    padding: 12px;
-    border: 1px solid #ccc;
+    background: #dbdbdb;
+    padding: 10px 15px;
+    border: 1px solid #bcbcbc;
     border-bottom: none;
-    align-items: center;
+    align-items: flex-end;
 
-    .left-actions, .right-filters {
+    .left-nav, .right-filters {
       display: flex;
       gap: 12px;
       align-items: flex-end;
     }
 
-    .global-search input {
-      width: 320px;
-      height: 34px;
+    .search-field input {
+      width: 300px;
+      height: 32px;
+      font-size: 13px;
     }
 
-    .filter-box {
+    .filter-unit {
       display: flex;
       flex-direction: column;
       label {
         font-size: 10px;
         font-weight: 700;
         margin-bottom: 2px;
-        color: #444;
+        color: #333;
       }
     }
   }
 }
 
 :host ::ng-deep {
-  /* Fix broken Dropdown and Calendar widths */
+  /* Fix: Dropdown & Calendar visibility */
   .p-dropdown, .p-calendar {
-    width: 200px !important;
-    height: 34px;
-    .p-inputtext { font-size: 13px; padding: 4px 8px; }
+    width: 180px !important;
+    height: 32px;
+    .p-inputtext { font-size: 12px; padding: 4px; }
   }
 
-  /* Force dropdown panel to match the field width */
-  .p-dropdown-panel {
-    min-width: 200px !important;
+  /* CRITICAL: Force Z-Index for body-appended elements */
+  .p-datepicker, .p-dropdown-panel {
+    z-index: 99999 !important; /* Forces it above the grid */
   }
 
-  .auth-btn {
-    background-color: #5a6268 !important;
+  .auth-button {
+    background-color: #5d6771 !important;
+    height: 32px;
     border: none;
-    height: 34px;
+    font-size: 13px;
   }
 
-  .edit-action-btn {
-    background-color: #2c599d !important;
+  .edit-btn {
+    background-color: #1e4d92 !important;
     font-size: 11px;
     padding: 2px 10px;
-    height: 28px;
+    height: 26px;
   }
 
-  /* Dense Grid Polish */
-  .custom-dense-grid {
+  .ag-grid-mimic {
     .p-datatable-thead > tr > th {
-      background: #f8f9fa;
+      background: #eeeeee;
       padding: 8px;
       font-size: 12px;
     }
     .p-datatable-tbody > tr > td {
       padding: 6px 8px;
       font-size: 12px;
+    }
+    /* Highlight selected row */
+    .p-highlight {
+      background: #e3f2fd !important;
+      color: #000 !important;
     }
   }
 }

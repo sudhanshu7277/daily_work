@@ -9,19 +9,20 @@ import { DropdownModule } from 'primeng/dropdown';
 import { CalendarModule } from 'primeng/calendar';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
+import { Checker1Service, IssueRecord } from './checker1.service';
 
 @Component({
-  selector: 'app-checker2',
+  selector: 'app-checker1',
   standalone: true,
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule, DialogModule, 
     ToastModule, DropdownModule, CalendarModule, InputTextModule
   ],
   providers: [MessageService],
-  templateUrl: './checker2.component.html',
-  styleUrls: ['./checker2.component.scss']
+  templateUrl: './checker1.component.html',
+  styleUrls: ['./checker1.component.scss']
 })
-export class Checker2Component implements OnInit {
+export class Checker1Component implements OnInit {
   @ViewChild('dt') table: Table | undefined;
 
   public gridData: IssueRecord[] = [];
@@ -39,21 +40,29 @@ export class Checker2Component implements OnInit {
   constructor(private service: Checker1Service, private messageService: MessageService) {}
 
   ngOnInit() {
+    this.loadData();
+  }
+
+  loadData() {
     this.service.getIssueRecords().subscribe(data => {
-      this.gridData = data;
+      this.gridData = [...data]; // Spread to ensure reference change
     });
   }
 
   onAuthorizeSelected() {
     if (this.selectedRecord) {
-      this.selectedRecord.status = 'Approved';
-      this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Authorized successfully' });
+      // Find the item in the local array to update status
+      const item = this.gridData.find(r => r.id === this.selectedRecord?.id);
+      if (item) {
+        item.status = 'Approved';
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Authorized' });
+      }
       this.selectedRecord = null;
     }
   }
 
   onEditRow(record: IssueRecord) {
-    this.clonedRecord = { ...record };
+    this.clonedRecord = JSON.parse(JSON.stringify(record)); // Deep clone
     this.editDialog = true;
   }
 
@@ -61,16 +70,9 @@ export class Checker2Component implements OnInit {
     const index = this.gridData.findIndex(r => r.id === this.clonedRecord.id);
     if (index !== -1) {
       this.gridData[index] = { ...this.clonedRecord };
-      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Record updated' });
+      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Record Updated' });
     }
-    this.closeAndCleanup();
-  }
-
-  closeAndCleanup() {
     this.editDialog = false;
-    // Force remove the PrimeNG block layer if it gets stuck
-    document.querySelectorAll('.p-component-overlay').forEach(el => el.remove());
-    document.body.classList.remove('p-overflow-hidden');
   }
 
   resetFilters() {
