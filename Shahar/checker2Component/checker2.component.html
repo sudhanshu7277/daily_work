@@ -1,35 +1,35 @@
 <p-toast></p-toast>
 
-<div class="main-container">
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <button pButton label="Authorize Selected" class="p-button-sm btn-auth" 
+<div class="main-layout">
+  <div class="toolbar-container">
+    <div class="left-actions">
+      <button pButton label="Authorize Selected" class="auth-btn p-button-sm" 
               [disabled]="!selectedRecord" (click)="onAuthorizeSelected()"></button>
       
-      <span class="p-input-icon-left search-box">
+      <span class="p-input-icon-left global-search">
         <i class="pi pi-search"></i>
         <input pInputText type="text" placeholder="Search Issue Name or Account..." 
                (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
       </span>
     </div>
 
-    <div class="toolbar-right">
-      <div class="filter-field">
+    <div class="right-filters">
+      <div class="filter-box">
         <label>VALUE DATE</label>
         <p-calendar [(ngModel)]="filterDate" placeholder="mm/dd/yyyy" 
-                    [showIcon]="true" appendTo="body" styleClass="w-full"
+                    [showIcon]="true" appendTo="body"
                     (onSelect)="dt.filter($event, 'createdDate', 'dateIs')"></p-calendar>
       </div>
 
-      <div class="filter-field">
+      <div class="filter-box">
         <label>CURRENCY</label>
         <p-dropdown [options]="currencies" [(ngModel)]="selectedCurrency" 
                     placeholder="-- All Currencies --" [showClear]="true"
-                    appendTo="body" styleClass="w-full"
+                    appendTo="body"
                     (onChange)="dt.filter($event.value, 'currency', 'equals')"></p-dropdown>
       </div>
 
-      <button pButton label="Reset Filters" class="p-button-outlined p-button-danger p-button-sm btn-reset" 
+      <button pButton label="Reset Filters" class="reset-btn p-button-outlined p-button-danger p-button-sm" 
               (click)="resetFilters()"></button>
     </div>
   </div>
@@ -37,12 +37,11 @@
   <p-table #dt [value]="gridData" [(selection)]="selectedRecord" 
            selectionMode="single" dataKey="id"
            [paginator]="true" [rows]="10" 
-           styleClass="p-datatable-sm p-datatable-gridlines ag-style-grid"
-           [globalFilterFields]="['issueName', 'account']">
+           styleClass="p-datatable-sm p-datatable-gridlines custom-dense-grid">
     
     <ng-template pTemplate="header">
       <tr>
-        <th style="width: 3rem"></th>
+        <th style="width: 4rem">Selection</th>
         <th pSortableColumn="id">IDs <p-sortIcon field="id"></p-sortIcon></th>
         <th pSortableColumn="issueName">Issue Name <p-sortIcon field="issueName"></p-sortIcon></th>
         <th>DDA Account</th>
@@ -50,13 +49,15 @@
         <th>Value Date</th>
         <th>CCY</th>
         <th>Amount</th>
-        <th style="width: 6rem">Actions</th>
+        <th>Actions</th>
       </tr>
     </ng-template>
 
     <ng-template pTemplate="body" let-record>
       <tr [pSelectableRow]="record">
-        <td><p-tableRadioButton [value]="record"></p-tableRadioButton></td>
+        <td class="text-center">
+          <p-tableRadioButton [value]="record"></p-tableRadioButton>
+        </td>
         <td>{{record.id}}</td>
         <td>{{record.issueName}}</td>
         <td>{{record.dda}}</td>
@@ -65,28 +66,27 @@
         <td>{{record.currency}}</td>
         <td>{{record.amount | number: '1.2-2'}}</td>
         <td class="text-center">
-          <button pButton label="Edit" class="p-button-sm btn-edit" 
-                  (click)="onEditRow(record)"></button>
+          <button pButton label="Edit" class="edit-action-btn" (click)="onEditRow(record)"></button>
         </td>
       </tr>
     </ng-template>
   </p-table>
 
-  <p-dialog [(visible)]="editDialog" header="Modify Amount" [modal]="true" 
-            appendTo="body" [style]="{width: '400px'}" [closable]="true">
+  <p-dialog [(visible)]="editDialog" header="Edit Record" [modal]="true" 
+            appendTo="body" [style]="{width: '450px'}" (onHide)="closeAndCleanup()">
     <div class="p-fluid">
       <div class="field mb-3">
-        <label class="block mb-1 font-bold">Issue Name</label>
-        <input pInputText [(ngModel)]="clonedRecord.issueName" disabled />
+        <label class="font-bold">Issue Name</label>
+        <input pInputText [(ngModel)]="clonedRecord.issueName" />
       </div>
-      <div class="field">
-        <label class="block mb-1 font-bold">Amount</label>
+      <div class="field mb-3">
+        <label class="font-bold">Amount</label>
         <input pInputText type="number" [(ngModel)]="clonedRecord.amount" />
       </div>
     </div>
     <ng-template pTemplate="footer">
-      <button pButton label="Cancel" class="p-button-text" (click)="editDialog = false"></button>
-      <button pButton label="Save Changes" (click)="saveEdit()"></button>
+      <button pButton label="Cancel" class="p-button-text" (click)="closeAndCleanup()"></button>
+      <button pButton label="Save Changes" icon="pi pi-check" (click)="saveEdit()"></button>
     </ng-template>
   </p-dialog>
 </div>
