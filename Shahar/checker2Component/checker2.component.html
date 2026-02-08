@@ -1,27 +1,27 @@
 <p-toast></p-toast>
 
-<div class="checker-container">
-  <div class="toolbar-flex">
-    <div class="left-nav">
+<div class="main-viewport">
+  <div class="toolbar-wrapper">
+    <div class="toolbar-left">
       <button pButton label="Authorize Selected" class="p-button-sm auth-btn" 
               [disabled]="!selectedRecord" (click)="onAuthorizeSelected()"></button>
       
-      <span class="p-input-icon-left search-wrapper">
+      <span class="p-input-icon-left global-search">
         <i class="pi pi-search"></i>
         <input pInputText type="text" placeholder="Search Issue Name or Account..." 
                (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
       </span>
     </div>
 
-    <div class="right-filters">
-      <div class="filter-group">
+    <div class="toolbar-right">
+      <div class="filter-unit">
         <label>VALUE DATE</label>
         <p-calendar [(ngModel)]="filterDate" placeholder="mm/dd/yyyy" 
                     [showIcon]="true" appendTo="body"
                     (onSelect)="dt.filter($event, 'createdDate', 'dateIs')"></p-calendar>
       </div>
 
-      <div class="filter-group">
+      <div class="filter-unit">
         <label>CURRENCY</label>
         <p-dropdown [options]="currencies" [(ngModel)]="selectedCurrency" 
                     placeholder="-- All Currencies --" [showClear]="true"
@@ -29,19 +29,19 @@
                     (onChange)="dt.filter($event.value, 'currency', 'equals')"></p-dropdown>
       </div>
 
-      <button pButton label="Reset Filters" class="p-button-outlined p-button-danger p-button-sm reset-btn" 
+      <button pButton label="Reset Filters" class="p-button-outlined p-button-danger p-button-sm" 
               (click)="resetFilters()"></button>
     </div>
   </div>
 
   <p-table #dt [value]="gridData" [(selection)]="selectedRecord" 
-           selectionMode="single" dataKey="id"
-           [paginator]="true" [rows]="10" 
-           styleClass="p-datatable-sm p-datatable-gridlines custom-grid">
+           dataKey="id" [paginator]="true" [rows]="10" 
+           selectionMode="single"
+           styleClass="p-datatable-sm p-datatable-gridlines dense-grid">
     
     <ng-template pTemplate="header">
       <tr>
-        <th style="width: 4rem">Select</th>
+        <th style="width: 3rem">Select</th>
         <th pSortableColumn="id">IDs <p-sortIcon field="id"></p-sortIcon></th>
         <th pSortableColumn="issueName">Issue Name <p-sortIcon field="issueName"></p-sortIcon></th>
         <th>DDA Account</th>
@@ -65,22 +65,22 @@
         <td>{{record.createdDate | date: 'MM/dd/yyyy'}}</td>
         <td>{{record.currency}}</td>
         <td>{{record.amount | number: '1.2-2'}}</td>
-        <td>
-          <button pButton label="Edit" class="edit-btn" (click)="onEditRow(record)"></button>
+        <td class="text-center">
+          <button pButton label="Edit" class="edit-action-btn" (click)="onEditRow(record)"></button>
         </td>
       </tr>
     </ng-template>
   </p-table>
 
-  <p-dialog [(visible)]="editDialog" header="Modify Record" [modal]="true" 
-            appendTo="body" [style]="{width: '400px'}" [closable]="true" (onHide)="closeDialog()">
+  <p-dialog [(visible)]="editDialog" header="Edit Amount" [modal]="true" 
+            appendTo="body" [style]="{width: '450px'}" (onHide)="closeDialog()">
     <div class="p-fluid">
       <div class="field mb-3">
-        <label class="font-bold">Issue Name</label>
-        <input pInputText [(ngModel)]="clonedRecord.issueName" />
+        <label class="font-bold mb-1 block">Issue Name</label>
+        <input pInputText [(ngModel)]="clonedRecord.issueName" disabled />
       </div>
       <div class="field">
-        <label class="font-bold">Amount</label>
+        <label class="font-bold mb-1 block">Amount</label>
         <input pInputText type="number" [(ngModel)]="clonedRecord.amount" />
       </div>
     </div>

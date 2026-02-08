@@ -27,9 +27,10 @@ describe('Checker1Component', () => {
     fixture.detectChanges();
   });
 
-  it('should select a record via the radio logic', () => {
-    const record = component.gridData[0];
-    component.selectedRecord = record;
+  it('should enable authorize button only when a record is selected', () => {
+    expect(component.selectedRecord).toBeNull();
+    component.selectedRecord = component.gridData[0];
+    fixture.detectChanges();
     expect(component.selectedRecord.id).toBe(1);
   });
 });

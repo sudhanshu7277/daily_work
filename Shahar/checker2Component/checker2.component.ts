@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
@@ -8,7 +8,7 @@ import { ToastModule } from 'primeng/toast';
 import { DropdownModule } from 'primeng/dropdown';
 import { CalendarModule } from 'primeng/calendar';
 import { InputTextModule } from 'primeng/inputtext';
-import { MessageService } from 'primeng/api';
+import { MessageService, PrimeNGConfig } from 'primeng/api';
 import { Checker1Service, IssueRecord } from './checker1.service';
 
 @Component({
@@ -22,11 +22,11 @@ import { Checker1Service, IssueRecord } from './checker1.service';
   templateUrl: './checker1.component.html',
   styleUrls: ['./checker1.component.scss']
 })
-export class Checker1Component implements OnInit, OnDestroy {
+export class Checker1Component implements OnInit {
   @ViewChild('dt') table: Table | undefined;
 
   public gridData: IssueRecord[] = [];
-  public selectedRecord: IssueRecord | null = null; // Explicit single selection
+  public selectedRecord: IssueRecord | null = null; 
   public editDialog: boolean = false;
   public clonedRecord: any = {};
   
@@ -37,28 +37,39 @@ export class Checker1Component implements OnInit, OnDestroy {
     { label: 'EUR', value: 'EUR' }, { label: 'GBP', value: 'GBP' }
   ];
 
-  constructor(private service: Checker1Service, private messageService: MessageService) {}
+  constructor(
+    private service: Checker1Service, 
+    private messageService: MessageService,
+    private primengConfig: PrimeNGConfig
+  ) {}
 
   ngOnInit() {
+    // Force PrimeNG overlays to sit at the highest layer
+    this.primengConfig.zIndex = {
+        modal: 1100,
+        overlay: 9999,
+        menu: 1000,
+        tooltip: 1100
+    };
+
     this.service.getIssueRecords().subscribe(data => {
       this.gridData = [...data];
     });
   }
 
-  // Authorize only the single selected record
   onAuthorizeSelected() {
     if (this.selectedRecord) {
       const record = this.gridData.find(r => r.id === this.selectedRecord?.id);
       if (record) {
         record.status = 'Approved';
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Record Authorized' });
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Authorized' });
       }
-      this.selectedRecord = null; // Reset selection after action
+      this.selectedRecord = null;
     }
   }
 
   onEditRow(record: IssueRecord) {
-    this.clonedRecord = { ...record }; // Deep copy for editing
+    this.clonedRecord = JSON.parse(JSON.stringify(record));
     this.editDialog = true;
   }
 
@@ -66,27 +77,23 @@ export class Checker1Component implements OnInit, OnDestroy {
     const index = this.gridData.findIndex(r => r.id === this.clonedRecord.id);
     if (index !== -1) {
       this.gridData[index] = { ...this.clonedRecord };
-      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Update Applied' });
+      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Record Updated' });
     }
     this.closeDialog();
   }
 
   closeDialog() {
     this.editDialog = false;
-    // Manual force-clear of PrimeNG background blockers
+    // Cleanup stuck overlays
     setTimeout(() => {
       document.querySelectorAll('.p-component-overlay').forEach(el => el.remove());
       document.body.classList.remove('p-overflow-hidden');
-    }, 100);
+    }, 50);
   }
 
   resetFilters() {
     this.filterDate = null;
     this.selectedCurrency = null;
     this.table?.reset();
-  }
-
-  ngOnDestroy() {
-    this.closeDialog(); // Ensure cleanup on navigation
   }
 }
