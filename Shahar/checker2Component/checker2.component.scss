@@ -1,81 +1,61 @@
-.checker-view {
-  padding: 15px;
-  background-color: #f5f5f5;
+.checker-container {
+  padding: 20px;
+  background-color: #f8f9fa;
 
-  .action-header {
+  .toolbar-flex {
     display: flex;
     justify-content: space-between;
-    background: #dbdbdb;
-    padding: 10px 15px;
-    border: 1px solid #bcbcbc;
+    background: #e9ecef;
+    padding: 12px 18px;
+    border: 1px solid #ced4da;
     border-bottom: none;
     align-items: flex-end;
 
     .left-nav, .right-filters {
       display: flex;
-      gap: 12px;
+      gap: 15px;
       align-items: flex-end;
     }
+  }
 
-    .search-field input {
-      width: 300px;
-      height: 32px;
-      font-size: 13px;
-    }
-
-    .filter-unit {
-      display: flex;
-      flex-direction: column;
-      label {
-        font-size: 10px;
-        font-weight: 700;
-        margin-bottom: 2px;
-        color: #333;
-      }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    label {
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #495057;
     }
   }
 }
 
 :host ::ng-deep {
-  /* Fix: Dropdown & Calendar visibility */
-  .p-dropdown, .p-calendar {
-    width: 180px !important;
-    height: 32px;
-    .p-inputtext { font-size: 12px; padding: 4px; }
-  }
-
-  /* CRITICAL: Force Z-Index for body-appended elements */
+  /* Fix: Force Z-Index so dropdowns/datepickers are never behind the grid */
   .p-datepicker, .p-dropdown-panel {
-    z-index: 99999 !important; /* Forces it above the grid */
+    z-index: 99999 !important;
   }
 
-  .auth-button {
-    background-color: #5d6771 !important;
-    height: 32px;
-    border: none;
-    font-size: 13px;
+  .p-dropdown, .p-calendar {
+    width: 190px !important;
+    height: 34px;
+    .p-inputtext { font-size: 13px; padding: 5px; }
   }
 
-  .edit-btn {
-    background-color: #1e4d92 !important;
-    font-size: 11px;
-    padding: 2px 10px;
-    height: 26px;
-  }
+  .auth-btn { background-color: #6c757d !important; border: none; height: 34px; }
+  .edit-btn { background-color: #004a99 !important; font-size: 12px; height: 28px; }
 
-  .ag-grid-mimic {
+  .custom-grid {
     .p-datatable-thead > tr > th {
-      background: #eeeeee;
-      padding: 8px;
+      background-color: #f1f3f5;
       font-size: 12px;
     }
     .p-datatable-tbody > tr > td {
-      padding: 6px 8px;
       font-size: 12px;
     }
-    /* Highlight selected row */
-    .p-highlight {
-      background: #e3f2fd !important;
+    /* Highlight the single selected row */
+    tr.p-highlight {
+      background-color: #e7f1ff !important;
       color: #000 !important;
     }
   }

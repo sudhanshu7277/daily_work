@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
@@ -22,11 +22,11 @@ import { Checker1Service, IssueRecord } from './checker1.service';
   templateUrl: './checker1.component.html',
   styleUrls: ['./checker1.component.scss']
 })
-export class Checker1Component implements OnInit {
+export class Checker1Component implements OnInit, OnDestroy {
   @ViewChild('dt') table: Table | undefined;
 
   public gridData: IssueRecord[] = [];
-  public selectedRecord: IssueRecord | null = null; 
+  public selectedRecord: IssueRecord | null = null; // Explicit single selection
   public editDialog: boolean = false;
   public clonedRecord: any = {};
   
@@ -40,29 +40,25 @@ export class Checker1Component implements OnInit {
   constructor(private service: Checker1Service, private messageService: MessageService) {}
 
   ngOnInit() {
-    this.loadData();
-  }
-
-  loadData() {
     this.service.getIssueRecords().subscribe(data => {
-      this.gridData = [...data]; // Spread to ensure reference change
+      this.gridData = [...data];
     });
   }
 
+  // Authorize only the single selected record
   onAuthorizeSelected() {
     if (this.selectedRecord) {
-      // Find the item in the local array to update status
-      const item = this.gridData.find(r => r.id === this.selectedRecord?.id);
-      if (item) {
-        item.status = 'Approved';
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Authorized' });
+      const record = this.gridData.find(r => r.id === this.selectedRecord?.id);
+      if (record) {
+        record.status = 'Approved';
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Record Authorized' });
       }
-      this.selectedRecord = null;
+      this.selectedRecord = null; // Reset selection after action
     }
   }
 
   onEditRow(record: IssueRecord) {
-    this.clonedRecord = JSON.parse(JSON.stringify(record)); // Deep clone
+    this.clonedRecord = { ...record }; // Deep copy for editing
     this.editDialog = true;
   }
 
@@ -70,14 +66,27 @@ export class Checker1Component implements OnInit {
     const index = this.gridData.findIndex(r => r.id === this.clonedRecord.id);
     if (index !== -1) {
       this.gridData[index] = { ...this.clonedRecord };
-      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Record Updated' });
+      this.messageService.add({ severity: 'info', summary: 'Saved', detail: 'Update Applied' });
     }
+    this.closeDialog();
+  }
+
+  closeDialog() {
     this.editDialog = false;
+    // Manual force-clear of PrimeNG background blockers
+    setTimeout(() => {
+      document.querySelectorAll('.p-component-overlay').forEach(el => el.remove());
+      document.body.classList.remove('p-overflow-hidden');
+    }, 100);
   }
 
   resetFilters() {
     this.filterDate = null;
     this.selectedCurrency = null;
     this.table?.reset();
+  }
+
+  ngOnDestroy() {
+    this.closeDialog(); // Ensure cleanup on navigation
   }
 }
