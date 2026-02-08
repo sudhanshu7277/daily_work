@@ -51,3 +51,41 @@ export class AppModule { }
   "@angular/material/*": ["node_modules/@angular/material/*"]
 }
 }
+
+
+tsconfig
+=========
+
+"paths": {
+  "primeng/*": ["node_modules/primeng/*"],
+  "@angular/material/*": ["node_modules/@angular/material/*"],
+  "@angular/cdk": ["node_modules/@angular/cdk"],
+  "@angular/cdk/*": ["node_modules/@angular/cdk/*"],
+  "@angular/core": ["node_modules/@angular/core"],
+  "@angular/common": ["node_modules/@angular/common"]
+}
+
+ppa-entry.module.ts
+====================
+
+@NgModule({
+  declarations: [
+    // REMOVE Checker2Component from here
+  ],
+  imports: [
+    CommonModule,
+    Checker2Component, // ADD it here
+    // ... rest of your imports
+  ]
+})
+
+checker2.component.ts
+=========================
+imports: [
+  // ...
+  MatDatepickerModule,
+  MatInputModule,
+  MatFormFieldModule,
+  MatNativeDateModule // Required for Datepicker providers
+]
+
