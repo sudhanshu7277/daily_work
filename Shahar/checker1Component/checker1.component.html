@@ -1,0 +1,36 @@
+<div class="checker-view-container">
+  
+  <div class="toolbar">
+    <div class="left-group">
+      <button 
+        class="authorize-btn" 
+        [disabled]="!selectedRecord" 
+        (click)="onAuthorizeSelected()">
+        Authorize Selected
+      </button>
+    </div>
+
+    <div class="right-group">
+      <input 
+        type="text" 
+        placeholder="Search grid..." 
+        (input)="gridApi.setQuickFilter($any($event.target).value)" 
+        class="grid-search">
+    </div>
+  </div>
+
+  <div class="grid-wrapper">
+    <ag-grid-angular
+      style="width: 100%; height: 100%;"
+      class="ag-theme-alpine"
+      [modules]="modules"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [rowSelection]="'single'"
+      (gridReady)="onGridReady($event)"
+      (selectionChanged)="onSelectionChanged($event)">
+    </ag-grid-angular>
+  </div>
+
+</div>
