@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-// 1. Correct Scoped Imports (Matches your package.json)
+// Scoped ag-Grid Imports (v29.2.0 compatible)
 import { AgGridModule } from '@ag-grid-community/angular';
 import { 
   GridApi, 
@@ -17,70 +17,72 @@ import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-mod
   standalone: true,
   imports: [CommonModule, AgGridModule],
   templateUrl: './checker1.component.html',
-  styleUrls: ['./checker1.component.scss'] // FIXED: Plural and Array
+  styleUrls: ['./checker1.component.scss']
 })
 export class Checker1Component implements OnInit {
-  // 2. Required for @ag-grid-community/core approach
+  // Required for @ag-grid-community scoped packages
   public modules: Module[] = [ClientSideRowModelModule];
   
   public gridApi!: GridApi;
-  public rowData: any[] = [];
   public selectedRecord: any = null;
+  public rowData: any[] = [];
 
-  // 3. Column Definitions
+  // Default Column Behavior
+  public defaultColDef: ColDef = {
+    sortable: true,
+    filter: true,
+    resizable: true,
+  };
+
   public columnDefs: ColDef[] = [
     { 
       headerName: '', 
       checkboxSelection: true, 
       width: 50, 
-      pinned: 'left' 
+      pinned: 'left',
+      headerCheckboxSelection: false 
     },
     { field: 'id', headerName: 'ID', width: 90 },
-    { field: 'issueName', headerName: 'Issue Name', flex: 1, filter: 'agTextColumnFilter' },
-    { field: 'ddaAccount', headerName: 'DDA Account', filter: 'agTextColumnFilter' },
-    { field: 'account', headerName: 'Account' },
-    { field: 'valueDate', headerName: 'Value Date', filter: 'agDateColumnFilter' },
-    { field: 'ccy', headerName: 'CCY', width: 80 },
+    { field: 'issueName', headerName: 'Issue Name', flex: 1 },
+    { field: 'ddaAccount', headerName: 'DDA Account', width: 150 },
     { 
       field: 'amount', 
       headerName: 'Amount', 
-      valueFormatter: params => params.value?.toLocaleString() 
+      width: 150,
+      valueFormatter: p => p.value ? p.value.toLocaleString() : '0' 
     }
   ];
 
-  public defaultColDef: ColDef = {
-    sortable: true,
-    resizable: true,
-    filter: true,
-  };
-
-  constructor() {}
-
-  ngOnInit(): void {
-    // Mock data for the dev environment
+  ngOnInit() {
     this.rowData = [
-      { id: 1001, issueName: 'Equity Settlement #99', ddaAccount: 'DDA-77000', account: '4455-001', valueDate: '02/10/2026', ccy: 'USD', amount: 55600 },
-      { id: 1002, issueName: 'Fixed Income #45', ddaAccount: 'DDA-77001', account: '4455-002', valueDate: '02/11/2026', ccy: 'CAD', amount: 1200 }
+      { id: 101, issueName: 'Equity Settlement A', ddaAccount: 'DDA-77000', amount: 550987979 },
+      { id: 102, issueName: 'Fixed Income B', ddaAccount: 'DDA-77001', amount: 1200 },
+      { id: 103, issueName: 'Trade Ref #9928', ddaAccount: 'DDA-77005', amount: 45000 }
     ];
   }
 
-  onGridReady(params: GridReadyEvent): void {
+  onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
+    // Ensures columns fill the available width on load
     this.gridApi.sizeColumnsToFit();
   }
 
-  onSelectionChanged(event: SelectionChangedEvent): void {
+  onSelectionChanged(event: SelectionChangedEvent) {
+    // Captures the first selected row data
     const selectedRows = this.gridApi.getSelectedRows();
-    // 4. Enables the "Authorize" button when a row is checked
     this.selectedRecord = selectedRows.length > 0 ? selectedRows[0] : null;
   }
 
-  onAuthorizeSelected(): void {
+  onAuthorize() {
     if (this.selectedRecord) {
-      console.log('Authorizing record:', this.selectedRecord);
-      // Integration logic goes here
+      // Logic for authorization
+      console.log('Authorizing:', this.selectedRecord);
       this.gridApi.deselectAll();
       this.selectedRecord = null;
     }
+  }
+
+  onQuickFilterChanged(event: any) {
+    this.gridApi.setQuickFilter(event.target.value);
   }
 }

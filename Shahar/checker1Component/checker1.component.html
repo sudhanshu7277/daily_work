@@ -1,21 +1,20 @@
-<div class="checker-view-container">
-  
+<div class="checker-container">
   <div class="toolbar">
-    <div class="left-group">
+    <div class="left-section">
       <button 
-        class="authorize-btn" 
+        class="btn-authorize" 
         [disabled]="!selectedRecord" 
-        (click)="onAuthorizeSelected()">
+        (click)="onAuthorize()">
         Authorize Selected
       </button>
     </div>
 
-    <div class="right-group">
+    <div class="right-section">
       <input 
         type="text" 
-        placeholder="Search grid..." 
-        (input)="gridApi.setQuickFilter($any($event.target).value)" 
-        class="grid-search">
+        class="search-box" 
+        placeholder="Quick Filter..." 
+        (input)="onQuickFilterChanged($event)">
     </div>
   </div>
 
@@ -24,13 +23,13 @@
       style="width: 100%; height: 100%;"
       class="ag-theme-alpine"
       [modules]="modules"
-      [rowData]="rowData"
       [columnDefs]="columnDefs"
       [defaultColDef]="defaultColDef"
+      [rowData]="rowData"
       [rowSelection]="'single'"
+      [animateRows]="true"
       (gridReady)="onGridReady($event)"
       (selectionChanged)="onSelectionChanged($event)">
     </ag-grid-angular>
   </div>
-
 </div>
