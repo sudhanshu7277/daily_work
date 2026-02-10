@@ -1,0 +1,61 @@
+<div class="toast-container">
+  <div *ngFor="let toast of toasts" class="toast" [ngClass]="toast.type">
+    <span class="message">{{ toast.message }}</span>
+    <button class="close-toast" (click)="removeToast(toast.id)">&times;</button>
+  </div>
+</div>
+
+<div class="custom-grid-wrapper">
+  <div class="toolbar">
+    <button class="primary-btn" [disabled]="!selectedRecordId" (click)="onAuthorize()">
+      Authorize Selected
+    </button>
+
+    <div class="filter-controls">
+      <div class="control">
+        <label>DDA SEARCH</label>
+        <input type="text" [(ngModel)]="searchDDA" (input)="applyFilters()" placeholder="DDA-XXXXX">
+      </div>
+      <div class="control">
+        <label>VALUE DATE</label>
+        <input type="date" [(ngModel)]="filterDate" (change)="applyFilters()">
+      </div>
+      <div class="control">
+        <label>CCY</label>
+        <select [(ngModel)]="filterCCY" (change)="applyFilters()">
+          <option value="">All Currencies</option>
+          <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 50px;">Select</th>
+          <th>Record ID</th>
+          <th>DDA Account</th>
+          <th>Value Date</th>
+          <th>Currency</th>
+          <th class="text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of filteredData" 
+            [class.active-row]="selectedRecordId === row.id"
+            (click)="toggleSelection(row.id)">
+          <td class="text-center">
+            <div class="custom-radio" [class.checked]="selectedRecordId === row.id"></div>
+          </td>
+          <td>{{row.id}}</td>
+          <td>{{row.ddaAccount}}</td>
+          <td>{{row.valueDate | date:'MM/dd/yyyy'}}</td>
+          <td>{{row.ccy}}</td>
+          <td class="text-right">{{row.amount | number:'1.2-2'}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
