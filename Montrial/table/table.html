@@ -1,0 +1,26 @@
+<div class="table-container">
+  <table class="bmo-data-table">
+    <thead>
+      <tr>
+        <th>Name <mat-icon>swap_vert</mat-icon></th>
+        <th>Customer Lifecycle Status</th>
+        <th>Address</th>
+        <th>Phone number</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of allMockData; track row.ocifId) {
+        <tr>
+          <td class="bold-text">{{ row.legalName }}</td>
+          <td>{{ row.lifecycle }}</td>
+          <td>{{ row.address }}</td>
+          <td>647-123-4567</td> 
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="4" class="no-data">No profiles selected.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

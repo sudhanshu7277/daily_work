@@ -1,0 +1,52 @@
+.table-container {
+  width: 100%;
+  overflow-x: hidden; // Prevents horizontal scroll
+  border-top: 1px solid #e0e0e0;
+  margin-top: 20px;
+
+  .bmo-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; // Ensures columns stay proportional
+
+    th {
+      text-align: left;
+      padding: 16px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000;
+      border-bottom: 1px solid #e0e0e0;
+
+      mat-icon {
+        font-size: 16px;
+        vertical-align: middle;
+        margin-left: 4px;
+        color: #666;
+      }
+    }
+
+    td {
+      padding: 16px 8px;
+      font-size: 14px;
+      color: #333;
+      border-bottom: 1px solid #f2f2f2;
+      vertical-align: middle;
+      
+      // Handle long addresses with ellipsis if necessary
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bold-text {
+      font-weight: 600;
+      color: #000;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+  }
+}
