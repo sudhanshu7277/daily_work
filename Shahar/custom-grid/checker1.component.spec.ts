@@ -1,76 +1,133 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Checker1Component } from './checker1.component';
+import { Checker1Service } from './checker1.service';
+import { of, throwError } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
+  let mockService: any;
+
+  // Mock data to simulate the "Huge" dataset (200 records to test pagination)
+  const mockData = Array.from({ length: 200 }, (_, i) => ({
+    id: `TXN-${i}`,
+    ddaAccount: `DDA-${i}`,
+    valueDate: '2026-02-10',
+    ccy: 'USD',
+    amount: 1000
+  }));
 
   beforeEach(async () => {
+    mockService = {
+      getLargeDataset: jest.fn().mockReturnValue(of(mockData))
+    };
+
     await TestBed.configureTestingModule({
-      imports: [Checker1Component, CommonModule, FormsModule]
+      imports: [Checker1Component, CommonModule, FormsModule],
+      providers: [{ provide: Checker1Service, useValue: mockService }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create the component', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with master data', () => {
-    expect(component.filteredData.length).toBe(3);
+  describe('Data Loading & Pagination', () => {
+    it('should load data on init and calculate total pages (150 per page)', () => {
+      component.ngOnInit();
+      fixture.detectChanges();
+
+      expect(mockService.getLargeDataset).toHaveBeenCalled();
+      expect(component.filteredRecords.length).toBe(200);
+      // 200 records / 150 size = 2 pages
+      expect(component.totalPages).toBe(2);
+      expect(component.pagedRecords.length).toBe(150);
+    });
+
+    it('should show loader while fetching data', () => {
+      component.isLoading = false;
+      component.fetchData();
+      // Should be true immediately after call
+      expect(component.isLoading).toBe(true);
+    });
+
+    it('should navigate to the next page and update pagedRecords', () => {
+      component.ngOnInit();
+      component.setPage(2);
+      
+      expect(component.currentPage).toBe(2);
+      // Remainder of 200 - 150 = 50 records
+      expect(component.pagedRecords.length).toBe(50);
+    });
   });
 
-  it('should select only one record at a time', () => {
-    // Select first record
-    component.toggleSelection('REC-001');
-    expect(component.selectedRecordId).toBe('REC-001');
+  describe('Filtering Logic', () => {
+    it('should filter records by DDA Account search query', () => {
+      component.ngOnInit();
+      component.searchDDA = 'DDA-10'; // Matches DDA-10, DDA-100...DDA-109
+      component.applyFilters();
 
-    // Select second record - should replace first
-    component.toggleSelection('REC-002');
-    expect(component.selectedRecordId).toBe('REC-002');
+      expect(component.filteredRecords.every(r => r.ddaAccount.includes('DDA-10'))).toBe(true);
+    });
 
-    // Toggle same record - should deselect
-    component.toggleSelection('REC-002');
-    expect(component.selectedRecordId).toBeNull();
+    it('should reset to page 1 when a filter is applied', () => {
+      component.ngOnInit();
+      component.setPage(2);
+      component.searchDDA = 'DDA-5';
+      component.applyFilters();
+
+      expect(component.currentPage).toBe(1);
+    });
   });
 
-  it('should filter data based on DDA search query', () => {
-    component.searchDDA = '77000';
-    component.applyFilters();
-    expect(component.filteredData.length).toBe(1);
-    expect(component.filteredData[0].id).toBe('REC-001');
+  describe('Selection & Authorization', () => {
+    it('should select only one record at a time (exclusive selection)', () => {
+      component.toggleSelection('TXN-1');
+      expect(component.selectedRecordId).toBe('TXN-1');
+
+      component.toggleSelection('TXN-2');
+      expect(component.selectedRecordId).toBe('TXN-2'); // Should overwrite
+    });
+
+    it('should deselect the record if the same checkbox is clicked twice', () => {
+      component.toggleSelection('TXN-1');
+      component.toggleSelection('TXN-1');
+      expect(component.selectedRecordId).toBeNull();
+    });
+
+    it('should simulate authorization and remove the record from list', fakeAsync(() => {
+      component.ngOnInit();
+      component.toggleSelection('TXN-0');
+      
+      component.onAuthorize();
+      expect(component.isAuthorizing).toBe(true);
+      
+      tick(1200); // Wait for the setTimeout in component
+      
+      expect(component.isAuthorizing).toBe(false);
+      expect(component.selectedRecordId).toBeNull();
+      // Verify record is gone
+      const found = component.filteredRecords.find(r => r.id === 'TXN-0');
+      expect(found).toBeUndefined();
+      
+      // Verify toast message was added
+      expect(component.toasts.length).toBe(1);
+      expect(component.toasts[0].type).toBe('success');
+    }));
   });
 
-  it('should filter data based on Currency', () => {
-    component.filterCCY = 'EUR';
-    component.applyFilters();
-    expect(component.filteredData.every(item => item.ccy === 'EUR')).toBeTrue();
-  });
-
-  it('should show a toast message and auto-remove it', fakeAsync(() => {
-    component.showToast('Test Success', 'success');
-    expect(component.toasts.length).toBe(1);
-    expect(component.toasts[0].message).toBe('Test Success');
-
-    // Move time forward by 4 seconds (matching our setTimeout)
-    tick(4000);
-    expect(component.toasts.length).toBe(0);
-  }));
-
-  it('should authorize and remove record from list', () => {
-    component.toggleSelection('REC-001');
-    component.onAuthorize();
-    
-    // Check if toast was created
-    expect(component.toasts.some(t => t.type === 'success')).toBeTrue();
-    // Check if record was removed from master data
-    expect(component.masterData.find(r => r.id === 'REC-001')).toBeUndefined();
-    // Check if selection was reset
-    expect(component.selectedRecordId).toBeNull();
+  describe('Notifications', () => {
+    it('should add a toast and remove it after 3 seconds', fakeAsync(() => {
+      component.showNotification('Test Alert', 'error');
+      expect(component.toasts.length).toBe(1);
+      
+      tick(3000);
+      expect(component.toasts.length).toBe(0);
+    }));
   });
 });
