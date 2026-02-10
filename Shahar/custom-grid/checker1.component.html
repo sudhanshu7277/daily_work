@@ -1,61 +1,104 @@
-<div class="toast-container">
-  <div *ngFor="let toast of toasts" class="toast" [ngClass]="toast.type">
-    <span class="message">{{ toast.message }}</span>
-    <button class="close-toast" (click)="removeToast(toast.id)">&times;</button>
+<div class="toast-stack">
+  <div *ngFor="let t of toasts" class="toast" [ngClass]="t.type">
+    {{ t.message }}
   </div>
 </div>
 
-<div class="custom-grid-wrapper">
-  <div class="toolbar">
-    <button class="primary-btn" [disabled]="!selectedRecordId" (click)="onAuthorize()">
-      Authorize Selected
+<div class="grid-container">
+  <div class="header-actions">
+    <button class="btn-auth" 
+            [disabled]="!selectedRecordId || isAuthorizing" 
+            (click)="onAuthorize()">
+      <span *ngIf="!isAuthorizing">Authorize Selected</span>
+      <div *ngIf="isAuthorizing" class="spinner-small"></div>
     </button>
 
-    <div class="filter-controls">
-      <div class="control">
-        <label>DDA SEARCH</label>
-        <input type="text" [(ngModel)]="searchDDA" (input)="applyFilters()" placeholder="DDA-XXXXX">
-      </div>
-      <div class="control">
-        <label>VALUE DATE</label>
-        <input type="date" [(ngModel)]="filterDate" (change)="applyFilters()">
-      </div>
-      <div class="control">
-        <label>CCY</label>
-        <select [(ngModel)]="filterCCY" (change)="applyFilters()">
-          <option value="">All Currencies</option>
-          <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
-        </select>
-      </div>
+    <div class="filter-group">
+      <input type="text" 
+             [(ngModel)]="searchDDA" 
+             (input)="applyFilters()" 
+             placeholder="Search DDA Account...">
+             
+      <select [(ngModel)]="filterCCY" (change)="applyFilters()">
+        <option value="">All Currencies</option>
+        <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
+      </select>
     </div>
   </div>
 
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 50px;">Select</th>
-          <th>Record ID</th>
-          <th>DDA Account</th>
-          <th>Value Date</th>
-          <th>Currency</th>
-          <th class="text-right">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of filteredData" 
-            [class.active-row]="selectedRecordId === row.id"
-            (click)="toggleSelection(row.id)">
-          <td class="text-center">
-            <div class="custom-radio" [class.checked]="selectedRecordId === row.id"></div>
-          </td>
-          <td>{{row.id}}</td>
-          <td>{{row.ddaAccount}}</td>
-          <td>{{row.valueDate | date:'MM/dd/yyyy'}}</td>
-          <td>{{row.ccy}}</td>
-          <td class="text-right">{{row.amount | number:'1.2-2'}}</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="grid-card">
+    
+    <div *ngIf="isLoading" class="overlay-loader">
+      <div class="spinner-large"></div>
+      <p>Fetching records from server...</p>
+    </div>
+
+    <div class="scroll-container">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-check">Select</th>
+            <th>Transaction ID</th>
+            <th>DDA Account</th>
+            <th>Value Date</th>
+            <th>CCY</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedRecords" 
+              [class.row-selected]="selectedRecordId === row.id"
+              (click)="toggleSelection(row.id)">
+            
+            <td class="col-check" (click)="$event.stopPropagation()">
+              <input type="checkbox" 
+                     class="custom-checkbox"
+                     [checked]="selectedRecordId === row.id"
+                     (change)="toggleSelection(row.id)">
+            </td>
+            
+            <td>{{row.id}}</td>
+            <td>{{row.ddaAccount}}</td>
+            <td>{{row.valueDate | date:'MM/dd/yyyy'}}</td>
+            <td>{{row.ccy}}</td>
+            <td class="text-right font-mono">
+              {{row.amount | number:'1.2-2'}}
+            </td>
+          </tr>
+
+          <tr *ngIf="pagedRecords.length === 0 && !isLoading">
+            <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+              No matching records found.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-footer">
+      <div class="stats">
+        Showing <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> 
+        to <strong>{{ Math.min(currentPage * pageSize, filteredRecords.length) }}</strong> 
+        of <strong>{{ filteredRecords.length }}</strong> records
+      </div>
+      
+      <div class="pager-controls">
+        <button class="page-btn" 
+                [disabled]="currentPage === 1" 
+                (click)="setPage(currentPage - 1)">
+          Previous
+        </button>
+        
+        <span class="page-info">
+          Page <strong>{{currentPage}}</strong> of <strong>{{totalPages}}</strong>
+        </span>
+        
+        <button class="page-btn" 
+                [disabled]="currentPage === totalPages" 
+                (click)="setPage(currentPage + 1)">
+          Next
+        </button>
+      </div>
+    </div>
   </div>
 </div>
