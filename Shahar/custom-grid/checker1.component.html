@@ -1,28 +1,35 @@
 <div class="toast-stack">
-  <div *ngFor="let t of toasts" class="toast" [ngClass]="t.type">{{ t.message }}</div>
+  <div *ngFor="let t of toasts" class="toast" [ngClass]="t.type">
+    <span class="toast-icon"></span> {{ t.message }}
+  </div>
 </div>
 
 <div class="grid-container">
   <div class="header-actions">
-    <div class="left-controls">
+    <div class="action-left">
       <button class="btn-auth" [disabled]="!selectedRecordId || isAuthorizing" (click)="onAuthorize()">
-        <span *ngIf="!isAuthorizing">Authorize</span>
+        <span *ngIf="!isAuthorizing">Authorize Selected</span>
         <div *ngIf="isAuthorizing" class="spinner-small"></div>
       </button>
     </div>
 
-    <div class="filter-group">
-      <input type="text" [(ngModel)]="searchGlobal" (input)="applyFilters()" placeholder="Global Search...">
+    <div class="filter-bar">
+      <div class="search-input-wrapper">
+        <input type="text" [(ngModel)]="searchGlobal" (input)="applyFilters()" placeholder="Global Search (ID, DDA, CCY)...">
+      </div>
       <select [(ngModel)]="filterCCY" (change)="applyFilters()">
-        <option value="">All CCY</option>
+        <option value="">All Currencies</option>
         <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
       </select>
-      <button class="btn-reset" (click)="resetFilters()">Reset</button>
+      <button class="btn-reset" (click)="resetFilters()">Clear Filters</button>
     </div>
   </div>
 
   <div class="grid-card">
-    <div *ngIf="isLoading" class="overlay-loader"><div class="spinner-large"></div></div>
+    <div *ngIf="isLoading" class="overlay-loader">
+      <div class="spinner-large"></div>
+      <p>Synchronizing Data...</p>
+    </div>
     
     <div class="scroll-container">
       <table>
@@ -31,43 +38,54 @@
             <th class="col-check"></th>
             <th *ngFor="let col of ['id', 'ddaAccount', 'valueDate', 'ccy', 'amount']" 
                 (click)="sortData(col)" class="sortable">
-              {{ col | uppercase }}
-              <span class="sort-icon" [class.active]="sortConfig.column === col">
-                {{ sortConfig.column === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
+              <div class="header-cell">
+                {{ col === 'ddaAccount' ? 'DDA Account' : (col | uppercase) }}
+                <span class="sort-indicator" [class.active]="sortConfig.column === col">
+                  {{ sortConfig.column === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </div>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of pagedRecords" [class.row-selected]="selectedRecordId === row.id" (click)="toggleSelection(row, row.id)">
-            <td class="col-check"><input type="checkbox" [checked]="selectedRecordId === row.id"></td>
+          <tr *ngFor="let row of pagedRecords" 
+              [class.row-selected]="selectedRecordId === row.id" 
+              (click)="toggleSelection(row, row.id)">
+            <td class="col-check">
+              <div class="custom-radio" [class.checked]="selectedRecordId === row.id"></div>
+            </td>
             <td>{{row.id}}</td>
             <td>{{row.ddaAccount}}</td>
-            <td>{{row.valueDate | date}}</td>
-            <td>{{row.ccy}}</td>
+            <td>{{row.valueDate | date:'dd MMM yyyy'}}</td>
+            <td class="ccy-tag">{{row.ccy}}</td>
             <td class="text-right font-mono">{{row.amount | number:'1.2-2'}}</td>
+          </tr>
+          <tr *ngIf="pagedRecords.length === 0 && !isLoading">
+            <td colspan="6" class="no-data">No transactions match your criteria.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="pagination-footer">
-      <div class="pagination-left">
-        <span>Total: <strong>{{filteredRecords.length}}</strong></span>
-        <select [(ngModel)]="pageSize" (change)="applyFilters()">
+      <div class="footer-section">
+        <span class="total-count">Showing <strong>{{pagedRecords.length}}</strong> of {{filteredRecords.length}}</span>
+        <select class="size-select" [(ngModel)]="pageSize" (change)="applyFilters()">
           <option *ngFor="let s of pageSizes" [value]="s">{{s}} / page</option>
         </select>
       </div>
-      <div class="pagination-center">
+      
+      <div class="footer-section center">
         <button [disabled]="currentPage === 1" (click)="setPage(1)">«</button>
         <button [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">‹</button>
-        <span>Page {{currentPage}} of {{totalPages}}</span>
+        <span class="page-indicator">Page {{currentPage}} of {{totalPages}}</span>
         <button [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">›</button>
         <button [disabled]="currentPage === totalPages" (click)="setPage(totalPages)">»</button>
       </div>
-      <div class="pagination-right">
+
+      <div class="footer-section right">
+        <span>Go to:</span>
         <input type="number" [(ngModel)]="jumpToPageValue" (keyup.enter)="setPage(jumpToPageValue)">
-        <button (click)="setPage(jumpToPageValue)">Go</button>
       </div>
     </div>
   </div>
