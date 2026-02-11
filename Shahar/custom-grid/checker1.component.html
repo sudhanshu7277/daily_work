@@ -1,20 +1,11 @@
-<div class="toast-stack">
-  <div *ngFor="let t of toasts" class="toast" [ngClass]="t.type">
-    <span class="toast-icon"></span> {{ t.message }}
-  </div>
-</div>
-
 <div class="grid-container">
-  <div class="header-actions">
-    <div class="action-left">
-      <button class="btn-auth" [disabled]="!selectedRecordId || isAuthorizing" (click)="onAuthorize()">
-        <span *ngIf="!isAuthorizing">Authorize Selected</span>
-        <div *ngIf="isAuthorizing" class="spinner-small"></div>
-      </button>
-    </div>
+  <header class="header-actions">
+    <button class="btn-auth" [disabled]="!selectedRecordId" (click)="onAuthorize()">
+      Authorize Selected
+    </button>
 
-    <div class="filter-bar">
-      <div class="search-input-wrapper">
+    <div class="filter-group">
+      <div class="search-wrapper">
         <input type="text" [(ngModel)]="searchGlobal" (input)="applyFilters()" placeholder="Global Search (ID, DDA, CCY)...">
       </div>
       <select [(ngModel)]="filterCCY" (change)="applyFilters()">
@@ -23,70 +14,75 @@
       </select>
       <button class="btn-reset" (click)="resetFilters()">Clear Filters</button>
     </div>
-  </div>
+  </header>
 
   <div class="grid-card">
-    <div *ngIf="isLoading" class="overlay-loader">
-      <div class="spinner-large"></div>
-      <p>Synchronizing Data...</p>
-    </div>
-    
     <div class="scroll-container">
       <table>
         <thead>
           <tr>
-            <th class="col-check"></th>
-            <th *ngFor="let col of ['id', 'ddaAccount', 'valueDate', 'ccy', 'amount']" 
-                (click)="sortData(col)" class="sortable">
-              <div class="header-cell">
-                {{ col === 'ddaAccount' ? 'DDA Account' : (col | uppercase) }}
-                <span class="sort-indicator" [class.active]="sortConfig.column === col">
-                  {{ sortConfig.column === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕' }}
-                </span>
-              </div>
+            <th class="col-checkbox">
+              <input type="checkbox" disabled>
+            </th>
+            <th (click)="sortData('id')" class="sortable">
+              ID <span class="sort-indicator">↕</span>
+            </th>
+            <th (click)="sortData('ddaAccount')" class="sortable">
+              DDA Account <span class="sort-indicator">↕</span>
+            </th>
+            <th (click)="sortData('valueDate')" class="sortable">
+              VALUE DATE <span class="sort-indicator">↕</span>
+            </th>
+            <th (click)="sortData('ccy')" class="sortable">
+              CCY <span class="sort-indicator">↕</span>
+            </th>
+            <th (click)="sortData('amount')" class="sortable text-right">
+              AMOUNT <span class="sort-indicator">↕</span>
             </th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let row of pagedRecords" 
-              [class.row-selected]="selectedRecordId === row.id" 
+              [class.row-selected]="selectedRecordId === row.id"
               (click)="toggleSelection(row, row.id)">
-            <td class="col-check">
-              <div class="custom-radio" [class.checked]="selectedRecordId === row.id"></div>
+            <td class="col-checkbox">
+              <input type="checkbox" [checked]="selectedRecordId === row.id" (click)="$event.stopPropagation()">
             </td>
             <td>{{row.id}}</td>
             <td>{{row.ddaAccount}}</td>
             <td>{{row.valueDate | date:'dd MMM yyyy'}}</td>
-            <td class="ccy-tag">{{row.ccy}}</td>
+            <td class="font-bold">{{row.ccy}}</td>
             <td class="text-right font-mono">{{row.amount | number:'1.2-2'}}</td>
-          </tr>
-          <tr *ngIf="pagedRecords.length === 0 && !isLoading">
-            <td colspan="6" class="no-data">No transactions match your criteria.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="pagination-footer">
-      <div class="footer-section">
-        <span class="total-count">Showing <strong>{{pagedRecords.length}}</strong> of {{filteredRecords.length}}</span>
-        <select class="size-select" [(ngModel)]="pageSize" (change)="applyFilters()">
-          <option *ngFor="let s of pageSizes" [value]="s">{{s}} / page</option>
+    <footer class="pagination-footer">
+      <div class="footer-section section-left">
+        <span class="showing-text">Showing <strong>{{pagedRecords.length}}</strong> of {{filteredRecords.length}}</span>
+        <select class="page-size-select" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option *ngFor="let size of pageSizes" [value]="size">{{size}} / page</option>
         </select>
       </div>
       
-      <div class="footer-section center">
-        <button [disabled]="currentPage === 1" (click)="setPage(1)">«</button>
-        <button [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">‹</button>
-        <span class="page-indicator">Page {{currentPage}} of {{totalPages}}</span>
-        <button [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">›</button>
-        <button [disabled]="currentPage === totalPages" (click)="setPage(totalPages)">»</button>
+      <div class="footer-section section-center">
+        <div class="pager-controls">
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="setPage(1)">«</button>
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">‹</button>
+          <span class="page-info">Page <strong>{{currentPage}}</strong> of {{totalPages}}</span>
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">›</button>
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="setPage(totalPages)">»</button>
+        </div>
       </div>
 
-      <div class="footer-section right">
-        <span>Go to:</span>
-        <input type="number" [(ngModel)]="jumpToPageValue" (keyup.enter)="setPage(jumpToPageValue)">
+      <div class="footer-section section-right">
+        <div class="jump-to">
+          <span>Go to:</span>
+          <input type="number" [(ngModel)]="jumpToPageValue" (keyup.enter)="onJumpToPage()">
+          <button class="go-btn" (click)="onJumpToPage()">Go</button>
+        </div>
       </div>
-    </div>
+    </footer>
   </div>
 </div>

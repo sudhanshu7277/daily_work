@@ -63,4 +63,16 @@ describe('Checker1Component', () => {
     expect(component.isAuthorizing).toBe(false);
     expect(component.selectedRecordId).toBeNull();
   }));
+
+  it('should handle authorization simulation', fakeAsync(() => {
+  const row = { id: 'TXN-1093' };
+  component.toggleSelection(row, 'TXN-1093');
+  component.onAuthorize();
+  
+  tick(1200); // Wait for API
+  flush();    // This clears the 3000ms toast notification timer
+  
+  expect(component.isAuthorizing).toBe(false);
+  expect(component.selectedRecordId).toBeNull();
+}));
 });
