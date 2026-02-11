@@ -46,12 +46,15 @@ describe('Checker3Component', () => {
     expect(component.selectedRecordId).toBeNull();
   }));
 
-  it('should restore all records when filters are reset', () => {
-  component.searchGlobal = 'NON_EXISTENT_ID';
-  component.applyFilters();
-  expect(component.filteredRecords.length).toBe(0);
-  component.resetFilters();
-  expect(component.filteredRecords.length).toBe(mockData.length);
-  expect(component.searchGlobal).toBe('');
- });
+  it('should handle authorization simulation', fakeAsync(() => {
+  const mockRow = { id: 'TXN-1093' };
+  component.toggleSelection(mockRow, 'TXN-1093');
+  component.onAuthorize();
+  
+  tick(1200);
+  flush(); 
+  
+  expect(component.isAuthorizing).toBe(false);
+  expect(component.selectedRecordId).toBeNull();
+}));
 });

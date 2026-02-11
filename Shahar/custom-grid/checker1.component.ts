@@ -67,19 +67,14 @@ export class Checker1Component implements OnInit {
     this.calculatePagination();
   }
 
- resetFilters(): void {
-  // 1. Clear UI Models
+resetFilters(): void {
   this.searchGlobal = '';
   this.filterCCY = '';
-  
-  // 2. Clear Sort State (Back to original API order)
+  this.selectedRecordId = null; 
   this.sortConfig = { column: '', direction: 'asc' };
-  
-  // 3. Re-run the filter logic (this updates filteredRecords)
-  this.applyFilters();
-  
-  // 4. Ensure pagination is at the start
+  this.filteredRecords = [...this.allRecords];
   this.currentPage = 1;
+  this.jumpToPageValue = 1;
   this.calculatePagination();
 }
 
