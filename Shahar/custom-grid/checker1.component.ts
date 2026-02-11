@@ -21,17 +21,15 @@ export class Checker1Component implements OnInit {
   public selectedRecordId: string | null = null;
   public toasts: any[] = [];
 
-  // Advanced Pagination State
+  // Pagination & Sorting
   public currentPage: number = 1;
   public pageSize: number = 100;
   public totalPages: number = 0;
   public jumpToPageValue: number = 1;
   public pageSizes: number[] = [10, 50, 100, 500];
-  
-  // Sort State
   public sortConfig = { column: '', direction: 'asc' };
 
-  // Filter Models
+  // Filters
   public searchGlobal: string = '';
   public filterCCY: string = '';
   public currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'JPY', 'AUD'];
@@ -51,7 +49,7 @@ export class Checker1Component implements OnInit {
           this.allRecords = data;
           this.applyFilters();
         },
-        error: () => this.showNotification('System error fetching data.', 'error')
+        error: () => this.showNotification('System error: Could not fetch data.', 'error')
       });
   }
 
@@ -96,10 +94,9 @@ export class Checker1Component implements OnInit {
   }
 
   setPage(page: number): void {
-    this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+    const target = Math.max(1, Math.min(page, this.totalPages));
+    this.currentPage = target;
     this.calculatePagination();
-    const el = document.querySelector('.scroll-container');
-    if (el) el.scrollTop = 0;
   }
 
   toggleSelection(row: any, id: string): void {
@@ -110,7 +107,7 @@ export class Checker1Component implements OnInit {
     if (!this.selectedRecordId) return;
     this.isAuthorizing = true;
     setTimeout(() => {
-      this.showNotification(`Authorized Successfully: ${this.selectedRecordId}`, 'success');
+      this.showNotification(`Transaction ${this.selectedRecordId} Authorized`, 'success');
       this.allRecords = this.allRecords.filter(r => r.id !== this.selectedRecordId);
       this.applyFilters();
       this.isAuthorizing = false;

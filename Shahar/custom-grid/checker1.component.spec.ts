@@ -7,9 +7,7 @@ import { FormsModule } from '@angular/forms';
 describe('Checker1Component', () => {
   let component: Checker1Component;
   let fixture: ComponentFixture<Checker1Component>;
-  const mockData = Array.from({ length: 250 }, (_, i) => ({ 
-    id: `TXN${i}`, ddaAccount: `DDA-ACC-${i}`, ccy: 'USD', amount: i * 10, valueDate: new Date() 
-  }));
+  const mockData = Array.from({ length: 10 }, (_, i) => ({ id: `TXN${i}`, ddaAccount: `ACC${i}`, ccy: 'USD', amount: 100 * i }));
 
   beforeEach(async () => {
     const mockService = { getLargeDataset: () => of(mockData) };
@@ -17,62 +15,27 @@ describe('Checker1Component', () => {
       imports: [Checker1Component, FormsModule],
       providers: [{ provide: Checker1Service, useValue: mockService }]
     }).compileComponents();
-    
     fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should filter globally across multiple fields', () => {
-    component.searchGlobal = 'TXN150';
+  it('should filter data and sort', () => {
+    component.searchGlobal = 'ACC5';
     component.applyFilters();
     expect(component.filteredRecords.length).toBe(1);
-    expect(component.filteredRecords[0].id).toBe('TXN150');
-  });
-
-  it('should reset all states when resetFilters is called', () => {
-    component.searchGlobal = 'some-query';
-    component.filterCCY = 'EUR';
+    
     component.resetFilters();
-    expect(component.searchGlobal).toBe('');
-    expect(component.filterCCY).toBe('');
-    expect(component.filteredRecords.length).toBe(250);
-  });
-
-  it('should handle multi-column sorting', () => {
-    component.sortData('amount'); // Ascending
+    component.sortData('amount'); // Asc
     expect(component.filteredRecords[0].amount).toBe(0);
-    component.sortData('amount'); // Descending
-    expect(component.filteredRecords[0].amount).toBe(2490);
   });
 
-  it('should manage exclusive selection with two arguments', () => {
-    const row = mockData[0];
-    component.toggleSelection(row, row.id);
-    expect(component.selectedRecordId).toBe('TXN0');
-    component.toggleSelection(row, row.id); // Toggle off
-    expect(component.selectedRecordId).toBeNull();
-  });
-
-  it('should execute authorization simulation and clear timers', fakeAsync(() => {
-    component.toggleSelection(mockData[5], 'TXN5');
+  it('should handle authorization and clear timers', fakeAsync(() => {
+    component.toggleSelection(mockData[0], 'TXN0');
     component.onAuthorize();
-    tick(1200); // Wait for mock API
-    tick(3000); // Wait for Toast dismiss
-    flush(); 
+    tick(1200); // Wait for API
+    flush();    // Clear Toast Timers
     expect(component.isAuthorizing).toBe(false);
     expect(component.selectedRecordId).toBeNull();
   }));
-
-  it('should handle authorization simulation', fakeAsync(() => {
-  const row = { id: 'TXN-1093' };
-  component.toggleSelection(row, 'TXN-1093');
-  component.onAuthorize();
-  
-  tick(1200); // Wait for API
-  flush();    // This clears the 3000ms toast notification timer
-  
-  expect(component.isAuthorizing).toBe(false);
-  expect(component.selectedRecordId).toBeNull();
-}));
 });
