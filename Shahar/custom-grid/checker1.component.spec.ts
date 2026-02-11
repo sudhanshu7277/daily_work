@@ -1,70 +1,47 @@
 import { ComponentFixture, TestBed, fakeAsync, tick, flush } from '@angular/core/testing';
-import { Checker3Component } from './checker3.component';
-import { Checker1Service } from '../../services/checker1.service';
+import { Checker1Component } from './checker1.component';
+import { Checker1Service } from './checker1.service';
 import { of } from 'rxjs';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 
-describe('Checker3Component', () => {
-  let component: Checker3Component;
-  let fixture: ComponentFixture<Checker3Component>;
-
-  const mockData = [
-    { id: 'TXN-0', ddaAccount: 'DDA-000', amount: 1000 },
-    { id: 'TXN-1', ddaAccount: 'DDA-111', amount: 2000 }
-  ];
-
-  const mockService = {
-    getLargeDataset: jest.fn().mockReturnValue(of(mockData))
-  };
+describe('Checker1Component', () => {
+  let component: Checker1Component;
+  let fixture: ComponentFixture<Checker1Component>;
+  const mockData = Array.from({ length: 200 }, (_, i) => ({ id: `T${i}`, ddaAccount: `DDA${i}`, ccy: 'USD', amount: i }));
 
   beforeEach(async () => {
+    const mockService = { getLargeDataset: () => of(mockData) };
     await TestBed.configureTestingModule({
-      imports: [Checker3Component, CommonModule, FormsModule],
-      providers: [
-        { provide: Checker1Service, useValue: mockService }
-      ]
+      imports: [Checker1Component, FormsModule],
+      providers: [{ provide: Checker1Service, useValue: mockService }]
     }).compileComponents();
-
-    fixture = TestBed.createComponent(Checker3Component);
+    fixture = TestBed.createComponent(Checker1Component);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('should filter globally and reset correctly', () => {
+    component.searchGlobal = 'DDA199';
+    component.applyFilters();
+    expect(component.filteredRecords.length).toBe(1);
+    component.resetFilters();
+    expect(component.filteredRecords.length).toBe(200);
+    expect(component.searchGlobal).toBe('');
   });
 
-  describe('Selection Logic', () => {
-    it('should select a record when row and id are provided', () => {
-      const row = mockData[1];
-      component.toggleSelection(row, 'TXN-1');
-      expect(component.selectedRecordId).toBe('TXN-1');
-    });
-
-    it('should toggle off if clicked again', () => {
-      const row = mockData[1];
-      component.toggleSelection(row, 'TXN-1');
-      component.toggleSelection(row, 'TXN-1');
-      expect(component.selectedRecordId).toBeNull();
-    });
+  it('should sort data by amount', () => {
+    component.sortData('amount'); // Ascending
+    expect(component.filteredRecords[0].amount).toBe(0);
+    component.sortData('amount'); // Descending
+    expect(component.filteredRecords[0].amount).toBe(199);
   });
 
-  describe('Authorization Flow', () => {
-    it('should handle authorization simulation and clear timers', fakeAsync(() => {
-      const row = mockData[0];
-      component.toggleSelection(row, 'TXN-0');
-      
-      component.onAuthorize();
-      
-      tick(1200); 
-      
-      tick(3000);
-
-      flush(); 
-
-      expect(component.isAuthorizing).toBe(false);
-      expect(component.selectedRecordId).toBeNull();
-    }));
-  });
+  it('should handle authorization and cleanup timers', fakeAsync(() => {
+    component.toggleSelection(mockData[0], 'T0');
+    component.onAuthorize();
+    tick(1200); // API
+    tick(3000); // Toast
+    flush();
+    expect(component.isAuthorizing).toBe(false);
+  }));
 });

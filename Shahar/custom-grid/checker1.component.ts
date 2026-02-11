@@ -12,24 +12,25 @@ import { finalize } from 'rxjs/operators';
   styleUrls: ['./checker1.component.scss']
 })
 export class Checker1Component implements OnInit {
-  // Data Containers
-  private allRecords: any[] = [];         // Master copy from API
-  public filteredRecords: any[] = [];    // Copy after filters are applied
-  public pagedRecords: any[] = [];       // Current 150 records visible on screen
+  private allRecords: any[] = [];
+  public filteredRecords: any[] = [];
+  public pagedRecords: any[] = [];
   
-  // UI State
-  public isLoading: boolean = false;      // Get API loader
-  public isAuthorizing: boolean = false;  // Action loader
+  public isLoading: boolean = false;
+  public isAuthorizing: boolean = false;
   public selectedRecordId: string | null = null;
   public toasts: any[] = [];
 
-  // Pagination State
+  // Pagination & Sort State
   public currentPage: number = 1;
-  public pageSize: number = 150;
+  public pageSize: number = 100;
   public totalPages: number = 0;
+  public jumpToPageValue: number = 1;
+  public pageSizes: number[] = [10, 50, 100, 500];
+  public sortConfig = { column: '', direction: 'asc' };
 
   // Filter Models
-  public searchDDA: string = '';
+  public searchGlobal: string = '';
   public filterCCY: string = '';
   public currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'JPY', 'AUD'];
 
@@ -39,9 +40,6 @@ export class Checker1Component implements OnInit {
     this.fetchData();
   }
 
-  /**
-   * Simulates GET API call via the service
-   */
   fetchData(): void {
     this.isLoading = true;
     this.checkerService.getLargeDataset()
@@ -51,94 +49,76 @@ export class Checker1Component implements OnInit {
           this.allRecords = data;
           this.applyFilters();
         },
-        error: (err) => {
-          this.showNotification('Error fetching data from server', 'error');
-          console.error(err);
-        }
+        error: () => this.showNotification('Error fetching data', 'error')
       });
   }
 
-  /**
-   * Filters the master dataset based on user input
-   */
   applyFilters(): void {
+    const query = this.searchGlobal.toLowerCase();
     this.filteredRecords = this.allRecords.filter(item => {
-      const matchDDA = item.ddaAccount.toLowerCase().includes(this.searchDDA.toLowerCase());
       const matchCCY = this.filterCCY ? item.ccy === this.filterCCY : true;
-      return matchDDA && matchCCY;
+      const matchGlobal = Object.values(item).some(val => 
+        String(val).toLowerCase().includes(query)
+      );
+      return matchCCY && matchGlobal;
     });
 
-    this.currentPage = 1; // Reset to page 1 on search
+    this.currentPage = 1;
+    if (this.sortConfig.column) this.sortData(this.sortConfig.column, true);
     this.calculatePagination();
   }
 
-  /**
-   * Calculates total pages and slices the data for the current view
-   */
+  resetFilters(): void {
+    this.searchGlobal = '';
+    this.filterCCY = '';
+    this.sortConfig = { column: '', direction: 'asc' };
+    this.applyFilters();
+  }
+
+  sortData(column: string, isInternal = false): void {
+    if (!isInternal) {
+      this.sortConfig.direction = (this.sortConfig.column === column && this.sortConfig.direction === 'asc') ? 'desc' : 'asc';
+      this.sortConfig.column = column;
+    }
+    const dir = this.sortConfig.direction === 'asc' ? 1 : -1;
+    this.filteredRecords.sort((a, b) => (a[column] < b[column] ? -1 * dir : a[column] > b[column] ? 1 * dir : 0));
+    this.calculatePagination();
+  }
+
   calculatePagination(): void {
     this.totalPages = Math.ceil(this.filteredRecords.length / this.pageSize) || 1;
+    this.currentPage = Math.min(this.currentPage, this.totalPages);
     const start = (this.currentPage - 1) * this.pageSize;
-    const end = start + this.pageSize;
-    this.pagedRecords = this.filteredRecords.slice(start, end);
+    this.pagedRecords = this.filteredRecords.slice(start, start + this.pageSize);
+    this.jumpToPageValue = this.currentPage;
   }
 
-  /**
-   * Navigation for pagination
-   */
   setPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.calculatePagination();
-      // Smooth scroll grid to top on page change
-      const scrollEl = document.querySelector('.scroll-container');
-      if (scrollEl) scrollEl.scrollTop = 0;
-    }
+    this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+    this.calculatePagination();
   }
 
-  /**
-   * Exclusive single-selection checkbox logic
-   */
-  toggleSelection(id: string): void {
+  toggleSelection(row: any, id: string): void {
     this.selectedRecordId = this.selectedRecordId === id ? null : id;
   }
 
-  /**
-   * Simulates the Authorize API call
-   */
   onAuthorize(): void {
     if (!this.selectedRecordId) return;
-
     this.isAuthorizing = true;
-    const recordToAuth = this.selectedRecordId;
-
-    // Simulate API Delay
     setTimeout(() => {
-      this.showNotification(`Record ${recordToAuth} authorized successfully!`, 'success');
-      
-      // Remove authorized record from local state
-      this.allRecords = this.allRecords.filter(r => r.id !== recordToAuth);
+      this.showNotification(`Authorized: ${this.selectedRecordId}`, 'success');
+      this.allRecords = this.allRecords.filter(r => r.id !== this.selectedRecordId);
       this.applyFilters();
-      
       this.isAuthorizing = false;
       this.selectedRecordId = null;
     }, 1200);
   }
 
-  /**
-   * Custom Toast Notification Logic
-   */
   showNotification(message: string, type: 'success' | 'error'): void {
     const id = Date.now();
     this.toasts.push({ id, message, type });
-    
-    // Auto-dismiss after 3 seconds
-    setTimeout(() => {
-      this.toasts = this.toasts.filter(t => t.id !== id);
-    }, 3000);
+    setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 3000);
   }
 
-  // Math helper for template usage
-  get Math() {
-    return Math;
-  }
+  get Math() { return Math; }
 }
