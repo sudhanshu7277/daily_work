@@ -21,15 +21,14 @@ export class Checker1Component implements OnInit {
   public selectedRecordId: string | null = null;
   public toasts: any[] = [];
 
-  // Pagination & Sorting
+  // Pagination & Sorting State
   public currentPage: number = 1;
   public pageSize: number = 100;
-  public totalPages: number = 0;
-  public jumpToPageValue: number = 1;
+  public totalPages: number = 1;
   public pageSizes: number[] = [10, 50, 100, 500];
   public sortConfig = { column: '', direction: 'asc' };
 
-  // Filters
+  // Filter Models
   public searchGlobal: string = '';
   public filterCCY: string = '';
   public currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'JPY', 'AUD'];
@@ -49,7 +48,7 @@ export class Checker1Component implements OnInit {
           this.allRecords = data;
           this.applyFilters();
         },
-        error: () => this.showNotification('System error: Could not fetch data.', 'error')
+        error: () => this.showNotification('Error fetching data', 'error')
       });
   }
 
@@ -81,24 +80,30 @@ export class Checker1Component implements OnInit {
       this.sortConfig.column = column;
     }
     const dir = this.sortConfig.direction === 'asc' ? 1 : -1;
-    this.filteredRecords.sort((a, b) => (a[column] < b[column] ? -1 * dir : a[column] > b[column] ? 1 * dir : 0));
+    this.filteredRecords.sort((a, b) => {
+      const valA = a[column];
+      const valB = b[column];
+      return valA < valB ? -1 * dir : valA > valB ? 1 * dir : 0;
+    });
     this.calculatePagination();
   }
 
   calculatePagination(): void {
     this.totalPages = Math.ceil(this.filteredRecords.length / this.pageSize) || 1;
-    this.currentPage = Math.min(this.currentPage, this.totalPages);
+    if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    
     const start = (this.currentPage - 1) * this.pageSize;
     this.pagedRecords = this.filteredRecords.slice(start, start + this.pageSize);
-    this.jumpToPageValue = this.currentPage;
   }
 
   setPage(page: number): void {
-    const target = Math.max(1, Math.min(page, this.totalPages));
-    this.currentPage = target;
+    this.currentPage = Math.max(1, Math.min(page, this.totalPages));
     this.calculatePagination();
   }
 
+  /**
+   * Selection logic: handles both row click and checkbox
+   */
   toggleSelection(row: any, id: string): void {
     this.selectedRecordId = this.selectedRecordId === id ? null : id;
   }
@@ -106,9 +111,11 @@ export class Checker1Component implements OnInit {
   onAuthorize(): void {
     if (!this.selectedRecordId) return;
     this.isAuthorizing = true;
+    const recordToAuth = this.selectedRecordId;
+
     setTimeout(() => {
-      this.showNotification(`Transaction ${this.selectedRecordId} Authorized`, 'success');
-      this.allRecords = this.allRecords.filter(r => r.id !== this.selectedRecordId);
+      this.showNotification(`Authorized: ${recordToAuth}`, 'success');
+      this.allRecords = this.allRecords.filter(r => r.id !== recordToAuth);
       this.applyFilters();
       this.isAuthorizing = false;
       this.selectedRecordId = null;
@@ -120,4 +127,6 @@ export class Checker1Component implements OnInit {
     this.toasts.push({ id, message, type });
     setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 3000);
   }
+
+  get Math() { return Math; }
 }
