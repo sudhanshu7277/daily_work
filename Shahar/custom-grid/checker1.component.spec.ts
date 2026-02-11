@@ -45,4 +45,13 @@ describe('Checker3Component', () => {
     expect(component.isAuthorizing).toBe(false);
     expect(component.selectedRecordId).toBeNull();
   }));
+
+  it('should restore all records when filters are reset', () => {
+  component.searchGlobal = 'NON_EXISTENT_ID';
+  component.applyFilters();
+  expect(component.filteredRecords.length).toBe(0);
+  component.resetFilters();
+  expect(component.filteredRecords.length).toBe(mockData.length);
+  expect(component.searchGlobal).toBe('');
+ });
 });
