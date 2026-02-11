@@ -1,34 +1,26 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Checker3Component } from './checker3.component';
-import { Checker1Service } from '../../services/checker1.service';
+import { Checker1Service } from '../../services/checker1.service'; // Verify this path
 import { of } from 'rxjs';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
 describe('Checker3Component', () => {
   let component: Checker3Component;
   let fixture: ComponentFixture<Checker3Component>;
-  let mockService: any;
-
-  // Mock data needed to provide the "row" object to the method
-  const mockData = [
-    { id: 'TXN-1', ddaAccount: 'DDA-77000', amount: 55600 },
-    { id: 'TXN-2', ddaAccount: 'DDA-88021', amount: 1200 },
-    { id: 'TXN-0', ddaAccount: 'DDA-99100', amount: 8900 }
-  ];
+  
+  // Define mockService so it's available for the provider
+  const mockService = {
+    getLargeDataset: jest.fn().mockReturnValue(of([
+      { id: 'TXN-0', ddaAccount: 'DDA-000', amount: 1000 },
+      { id: 'TXN-1', ddaAccount: 'DDA-111', amount: 2000 }
+    ]))
+  };
 
   beforeEach(async () => {
-    mockService = {
-      getLargeDataset: jest.fn().mockReturnValue(of(mockData))
-    };
-
     await TestBed.configureTestingModule({
-      imports: [
-        Checker3Component, 
-        CommonModule, 
-        FormsModule, 
-        ReactiveFormsModule
-      ],
+      // Checker3 is likely a standalone component
+      imports: [Checker3Component, CommonModule, FormsModule],
       providers: [
         { provide: Checker1Service, useValue: mockService }
       ]
@@ -45,43 +37,44 @@ describe('Checker3Component', () => {
 
   describe('Selection Logic', () => {
     it('should select a record when row and id are provided', () => {
-      const row = mockData[0]; // TXN-1
+      const mockRow = { id: 'TXN-1', ddaAccount: 'DDA-111' };
       
-      // FIX: Providing both required arguments
-      component.toggleSelection(row, 'TXN-1');
+      // FIX: Pass both the row object AND the id string
+      component.toggleSelection(mockRow, 'TXN-1');
       
       expect(component.selectedRecordId).toBe('TXN-1');
     });
 
-    it('should toggle selection off when the same row is clicked', () => {
-      const row = mockData[0];
+    it('should toggle selection off if the same row is clicked again', () => {
+      const mockRow = { id: 'TXN-1', ddaAccount: 'DDA-111' };
       
-      component.toggleSelection(row, 'TXN-1'); // Select
-      component.toggleSelection(row, 'TXN-1'); // Deselect
+      component.toggleSelection(mockRow, 'TXN-1'); // Select
+      expect(component.selectedRecordId).toBe('TXN-1');
       
+      component.toggleSelection(mockRow, 'TXN-1'); // Deselect
       expect(component.selectedRecordId).toBeNull();
     });
 
-    it('should change selection when a different row is clicked', () => {
-      const row1 = mockData[0];
-      const row2 = mockData[1];
+    it('should switch selection to a different record', () => {
+      const row1 = { id: 'TXN-0', ddaAccount: 'DDA-000' };
+      const row2 = { id: 'TXN-1', ddaAccount: 'DDA-111' };
 
-      component.toggleSelection(row1, 'TXN-1');
-      component.toggleSelection(row2, 'TXN-2');
+      component.toggleSelection(row1, 'TXN-0');
+      component.toggleSelection(row2, 'TXN-1');
       
-      expect(component.selectedRecordId).toBe('TXN-2');
+      expect(component.selectedRecordId).toBe('TXN-1');
     });
   });
 
-  describe('Action Flow', () => {
+  describe('Authorization Flow', () => {
     it('should handle authorization simulation', fakeAsync(() => {
-      const row = mockData[2]; // TXN-0
-      component.toggleSelection(row, 'TXN-0');
+      const mockRow = { id: 'TXN-0', ddaAccount: 'DDA-000' };
+      component.toggleSelection(mockRow, 'TXN-0');
       
       component.onAuthorize();
       expect(component.isAuthorizing).toBe(true);
       
-      tick(1200); // Fast-forward the simulated API delay
+      tick(1200); // Fast-forward simulated API delay
       
       expect(component.isAuthorizing).toBe(false);
       expect(component.selectedRecordId).toBeNull();
