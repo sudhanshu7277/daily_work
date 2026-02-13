@@ -33,5 +33,23 @@ describe('Checker3Component Final Suite', () => {
     component.validateAmountInput(event);
     expect(spy).toHaveBeenCalled();
   });
+
+  it('should debounce search and update pagination', fakeAsync(() => {
+  component.onSearchChange('TXN-10901');
+  tick(300); 
+  fixture.detectChanges();
+
+  expect(component.filteredRecords.length).toBeGreaterThan(0);
+  flush(); 
+}));
+
+it('should handle authorization simulation', fakeAsync(() => {
+  component.selectedRecordId = 'TXN-1001';
+  component.onAuthorize();
+  tick(1200); 
+  fixture.detectChanges();
+  expect(component.selectedRecordId).toBeNull();
+  flush();
+}));
 });
 
