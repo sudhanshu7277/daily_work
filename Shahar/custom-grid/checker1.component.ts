@@ -1,18 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Checker1Service } from './checker1.service';
-import { finalize } from 'rxjs/operators';
+import { finalize, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Subject, Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-checker1',
+  selector: 'app-checker3',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './checker1.component.html',
-  styleUrls: ['./checker1.component.scss']
+  templateUrl: './checker3.component.html',
+  styleUrls: ['./checker3.component.scss']
 })
-export class Checker1Component implements OnInit {
-  private allRecords: any[] = [];
+export class Checker3Component implements OnInit, OnDestroy {
+  public allRecords: any[] = [];
   public filteredRecords: any[] = [];
   public pagedRecords: any[] = [];
   
@@ -21,22 +22,44 @@ export class Checker1Component implements OnInit {
   public selectedRecordId: string | null = null;
   public toasts: any[] = [];
 
-  // Pagination & Sorting State
+  // Edit State
+  public editingRecord: any = null;
+
+  // Pagination & Sort State
   public currentPage: number = 1;
   public pageSize: number = 100;
-  public totalPages: number = 1;
+  public totalPages: number = 0;
+  public jumpToPageValue: number = 1;
   public pageSizes: number[] = [10, 50, 100, 500];
   public sortConfig = { column: '', direction: 'asc' };
 
   // Filter Models
   public searchGlobal: string = '';
   public filterCCY: string = '';
+  public filterDate: string = ''; 
   public currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'JPY', 'AUD'];
+
+  // Debounce Logic
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
 
   constructor(private checkerService: Checker1Service) {}
 
   ngOnInit(): void {
     this.fetchData();
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(() => this.applyFilters());
+  }
+
+  ngOnDestroy(): void {
+    this.searchSubscription?.unsubscribe();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchGlobal = value;
+    this.searchSubject.next(value);
   }
 
   fetchData(): void {
@@ -56,10 +79,12 @@ export class Checker1Component implements OnInit {
     const query = this.searchGlobal.toLowerCase();
     this.filteredRecords = this.allRecords.filter(item => {
       const matchCCY = this.filterCCY ? item.ccy === this.filterCCY : true;
+      const itemDate = new Date(item.valueDate).toISOString().split('T')[0];
+      const matchDate = this.filterDate ? itemDate === this.filterDate : true;
       const matchGlobal = Object.values(item).some(val => 
         String(val).toLowerCase().includes(query)
       );
-      return matchCCY && matchGlobal;
+      return matchCCY && matchDate && matchGlobal;
     });
 
     this.currentPage = 1;
@@ -67,37 +92,60 @@ export class Checker1Component implements OnInit {
     this.calculatePagination();
   }
 
-resetFilters(): void {
-  this.searchGlobal = '';
-  this.filterCCY = '';
-  this.selectedRecordId = null; 
-  this.sortConfig = { column: '', direction: 'asc' };
-  this.filteredRecords = [...this.allRecords];
-  this.currentPage = 1;
-  this.jumpToPageValue = 1;
-  this.calculatePagination();
-}
+  resetFilters(): void {
+    this.searchGlobal = '';
+    this.filterCCY = '';
+    this.filterDate = '';
+    this.sortConfig = { column: '', direction: 'asc' };
+    this.applyFilters();
+  }
 
+  // --- Edit & Numeric Validation ---
+  openEdit(row: any, event: Event): void {
+    event.stopPropagation();
+    this.editingRecord = JSON.parse(JSON.stringify(row));
+  }
+
+  validateAmountInput(event: KeyboardEvent): void {
+    const pattern = /[0-9.]/;
+    if (!pattern.test(event.key) && event.key !== 'Backspace' && event.key !== 'Tab' && event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      event.preventDefault();
+    }
+  }
+
+  saveEdit(): void {
+    const val = Number(this.editingRecord.amount);
+    if (isNaN(val) || val <= 0) {
+      this.showNotification('Please enter a valid positive amount', 'error');
+      return;
+    }
+    const idx = this.allRecords.findIndex(r => r.id === this.editingRecord.id);
+    if (idx !== -1) {
+      this.allRecords[idx] = { ...this.editingRecord, amount: val };
+      this.showNotification('Record updated successfully', 'success');
+      this.applyFilters();
+      this.closeEdit();
+    }
+  }
+
+  closeEdit(): void { this.editingRecord = null; }
+
+  // --- Core Grid Logic ---
   sortData(column: string, isInternal = false): void {
     if (!isInternal) {
       this.sortConfig.direction = (this.sortConfig.column === column && this.sortConfig.direction === 'asc') ? 'desc' : 'asc';
       this.sortConfig.column = column;
     }
     const dir = this.sortConfig.direction === 'asc' ? 1 : -1;
-    this.filteredRecords.sort((a, b) => {
-      const valA = a[column];
-      const valB = b[column];
-      return valA < valB ? -1 * dir : valA > valB ? 1 * dir : 0;
-    });
+    this.filteredRecords.sort((a, b) => (a[column] < b[column] ? -1 * dir : a[column] > b[column] ? 1 * dir : 0));
     this.calculatePagination();
   }
 
   calculatePagination(): void {
     this.totalPages = Math.ceil(this.filteredRecords.length / this.pageSize) || 1;
-    if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
-    
     const start = (this.currentPage - 1) * this.pageSize;
     this.pagedRecords = this.filteredRecords.slice(start, start + this.pageSize);
+    this.jumpToPageValue = this.currentPage;
   }
 
   setPage(page: number): void {
@@ -105,9 +153,6 @@ resetFilters(): void {
     this.calculatePagination();
   }
 
-  /**
-   * Selection logic: handles both row click and checkbox
-   */
   toggleSelection(row: any, id: string): void {
     this.selectedRecordId = this.selectedRecordId === id ? null : id;
   }
@@ -115,14 +160,12 @@ resetFilters(): void {
   onAuthorize(): void {
     if (!this.selectedRecordId) return;
     this.isAuthorizing = true;
-    const recordToAuth = this.selectedRecordId;
-
     setTimeout(() => {
-      this.showNotification(`Authorized: ${recordToAuth}`, 'success');
-      this.allRecords = this.allRecords.filter(r => r.id !== recordToAuth);
+      this.allRecords = this.allRecords.filter(r => r.id !== this.selectedRecordId);
       this.applyFilters();
       this.isAuthorizing = false;
       this.selectedRecordId = null;
+      this.showNotification('Authorized successfully', 'success');
     }, 1200);
   }
 
@@ -131,6 +174,4 @@ resetFilters(): void {
     this.toasts.push({ id, message, type });
     setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 3000);
   }
-
-  get Math() { return Math; }
 }

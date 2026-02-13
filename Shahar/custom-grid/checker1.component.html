@@ -4,85 +4,86 @@
 
 <div class="grid-container">
   <header class="header-actions">
-    <button class="btn-auth" [disabled]="!selectedRecordId || isAuthorizing" (click)="onAuthorize()">
-      <span *ngIf="!isAuthorizing">Authorize Selected</span>
-      <div *ngIf="isAuthorizing" class="spinner-small"></div>
-    </button>
-
+    <button class="btn-auth" [disabled]="!selectedRecordId" (click)="onAuthorize()">Authorize</button>
     <div class="filter-group">
-      <input type="text" [(ngModel)]="searchGlobal" (input)="applyFilters()" placeholder="Search ID, DDA, or Amount...">
-      <select [(ngModel)]="filterCCY" (change)="applyFilters()">
-        <option value="">All CCY</option>
-        <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
-      </select>
+      <div class="filter-item">
+        <label>Date</label>
+        <input type="date" [(ngModel)]="filterDate" (change)="applyFilters()">
+      </div>
+      <div class="filter-item">
+        <label>CCY</label>
+        <select [(ngModel)]="filterCCY" (change)="applyFilters()">
+          <option value="">All</option>
+          <option *ngFor="let c of currencies" [value]="c">{{c}}</option>
+        </select>
+      </div>
+      <input type="text" [ngModel]="searchGlobal" (ngModelChange)="onSearchChange($event)" placeholder="Search all fields...">
       <button class="btn-reset" (click)="resetFilters()">Reset All</button>
     </div>
   </header>
 
   <div class="grid-card">
-    <div *ngIf="isLoading" class="overlay-loader">
-      <div class="loader-content">
-        <div class="spinner-large"></div>
-        <span>Fetching data from server...</span>
-      </div>
-    </div>
-
     <div class="scroll-container">
       <table>
         <thead>
           <tr>
-            <th class="col-checkbox"></th>
-            <th (click)="sortData('id')" class="sortable">
-              ID <span [class.active]="sortConfig.column === 'id'">{{ sortConfig.column === 'id' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕' }}</span>
-            </th>
-            <th (click)="sortData('ddaAccount')" class="sortable">
-              DDA ACCOUNT <span [class.active]="sortConfig.column === 'ddaAccount'">{{ sortConfig.column === 'ddaAccount' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕' }}</span>
-            </th>
-            <th (click)="sortData('valueDate')" class="sortable">VALUE DATE</th>
+            <th class="col-cb"></th>
+            <th (click)="sortData('id')" class="sortable">ID ↕</th>
+            <th (click)="sortData('ddaAccount')" class="sortable">DDA ACCOUNT ↕</th>
+            <th (click)="sortData('valueDate')" class="sortable">DATE ↕</th>
             <th>CCY</th>
-            <th (click)="sortData('amount')" class="sortable text-right">
-              AMOUNT <span [class.active]="sortConfig.column === 'amount'">{{ sortConfig.column === 'amount' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕' }}</span>
-            </th>
+            <th class="text-right">AMOUNT ↕</th>
+            <th class="col-edit">EDIT</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of pagedRecords" 
-              [class.row-selected]="selectedRecordId === row.id" 
-              (click)="toggleSelection(row, row.id)">
-            <td class="col-checkbox">
-              <input type="checkbox" 
-                     [checked]="selectedRecordId === row.id" 
-                     (click)="$event.stopPropagation(); toggleSelection(row, row.id)">
+          <tr *ngFor="let row of pagedRecords" [class.row-selected]="selectedRecordId === row.id" (click)="toggleSelection(row, row.id)">
+            <td class="col-cb">
+              <input type="checkbox" [checked]="selectedRecordId === row.id" (click)="$event.stopPropagation()">
             </td>
             <td>{{row.id}}</td>
             <td>{{row.ddaAccount}}</td>
             <td>{{row.valueDate | date:'dd MMM yyyy'}}</td>
-            <td><span class="ccy-tag">{{row.ccy}}</span></td>
+            <td>{{row.ccy}}</td>
             <td class="text-right font-mono">{{row.amount | number:'1.2-2'}}</td>
-          </tr>
-          <tr *ngIf="!isLoading && pagedRecords.length === 0">
-            <td colspan="6" class="no-data">No records found matching your filters.</td>
+            <td class="col-edit">
+              <button class="btn-edit-link" (click)="openEdit(row, $event)">Edit</button>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <footer class="pagination-footer">
-      <div class="foot-left">
-        Showing <strong>{{pagedRecords.length}}</strong> of {{filteredRecords.length}}
-      </div>
+      <div class="foot-left">Total Records: {{filteredRecords.length}}</div>
       <div class="foot-center">
-        <button [disabled]="currentPage === 1" (click)="setPage(1)">«</button>
-        <button [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">‹</button>
-        <span class="page-info">Page {{currentPage}} of {{totalPages}}</span>
-        <button [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">›</button>
-        <button [disabled]="currentPage === totalPages" (click)="setPage(totalPages)">»</button>
+        <button [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">‹ Prev</button>
+        <span>Page {{currentPage}} of {{totalPages}}</span>
+        <button [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Next ›</button>
       </div>
       <div class="foot-right">
-        <select [(ngModel)]="pageSize" (change)="applyFilters()">
-          <option *ngFor="let s of pageSizes" [value]="s">{{s}} / page</option>
-        </select>
+        Go to: <input type="number" [(ngModel)]="jumpToPageValue" (keyup.enter)="setPage(jumpToPageValue)" style="width: 45px; text-align: center;">
       </div>
     </footer>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="editingRecord">
+  <div class="modal-content">
+    <h3>Edit Transaction: {{editingRecord.id}}</h3>
+    <div class="form-body">
+      <div class="field">
+        <label>DDA Account</label>
+        <input [(ngModel)]="editingRecord.ddaAccount">
+      </div>
+      <div class="field">
+        <label>Payment Amount</label>
+        <input type="text" [(ngModel)]="editingRecord.amount" (keydown)="validateAmountInput($event)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button (click)="closeEdit()">Cancel</button>
+      <button class="btn-save" (click)="saveEdit()">Save Changes</button>
+    </div>
   </div>
 </div>
