@@ -34,3 +34,4 @@ describe('Checker3Component Final Suite', () => {
     expect(spy).toHaveBeenCalled();
   });
 });
+
