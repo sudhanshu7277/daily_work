@@ -129,58 +129,71 @@ private selectionInProgress = false;
   public selectedRowsData: any[] = [];
 
 
- onSelectionChanged() {
-    if (this.selectionInProgress || !this.gridApi) return;
-    this.selectionInProgress = true;
+onSelectionChanged() {
+  if (this.selectionInProgress || !this.gridApi) return;
+  this.selectionInProgress = true;
 
-    const selectedNodes = this.gridApi.getSelectedNodes();
-    const finalSelectionMap = new Map<string, any>();
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  const finalSelectionMap = new Map<string, any>();
 
-    // 1. Map current UI selections
-    selectedNodes.forEach((node: any) => {
-      if (!node.data) return;
-      finalSelectionMap.set(node.data.ocifId, node.data);
+  // 1. Identify what was JUST selected/deselected
+  // We build our map based on the current UI state
+  selectedNodes.forEach((node: any) => {
+    if (!node.data) return;
+    finalSelectionMap.set(node.data.ocifId, node.data);
 
-      // If Parent is selected, add all children (even if hidden/collapsed)
-      if (node.data.isParent && node.data.children) {
-        node.data.children.forEach((c: any) => finalSelectionMap.set(c.ocifId, c));
-      }
-    });
+    // If Parent is selected, we must ensure children are in the payload
+    if (node.data.isParent && node.data.children) {
+      node.data.children.forEach((c: any) => finalSelectionMap.set(c.ocifId, c));
+    }
+  });
 
-    // 2. Cascade Deselections
-    this.gridApi.forEachNode((node: any) => {
-      if (!node.data) return;
+  // 2. BIDIRECTIONAL CASCADING
+  // We iterate through all nodes to sync the UI checkmarks with the logic
+  this.gridApi.forEachNode((node: any) => {
+    if (!node.data) return;
 
-      // CASE A: Child is unchecked -> Parent must be unchecked
-      if (node.data.isChild && !node.isSelected()) {
-        finalSelectionMap.delete(node.data.ocifId);
-        const parentNode = this.findParentNode(node);
-        if (parentNode && parentNode.isSelected()) {
-          parentNode.setSelected(false, false);
-          finalSelectionMap.delete(parentNode.data.ocifId);
+    // CASE A: Parent is Selected -> Force all visible children to be checked
+    if (node.data.isParent && node.isSelected()) {
+      const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
+      this.gridApi.forEachNode((childNode: any) => {
+        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
+          if (!childNode.isSelected()) {
+            childNode.setSelected(true, false); // Select child if parent is selected
+          }
         }
-      }
+      });
+    }
 
-      // CASE B: Parent is unchecked -> All children must be unchecked
-      if (node.data.isParent && !node.isSelected()) {
-        finalSelectionMap.delete(node.data.ocifId);
-        if (node.data.children) {
-          node.data.children.forEach((c: any) => finalSelectionMap.delete(c.ocifId));
-          
-          // Visually uncheck any visible children
-          this.gridApi.forEachNode((childNode: any) => {
-            if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-              if (childNode.isSelected()) childNode.setSelected(false, false);
-            }
-          });
+    // CASE B: Parent is NOT Selected -> Force all visible children to be unchecked
+    // This solves the "Deselect Parent = Deselect Children" requirement
+    if (node.data.isParent && !node.isSelected()) {
+      const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
+      this.gridApi.forEachNode((childNode: any) => {
+        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
+          if (childNode.isSelected()) {
+            childNode.setSelected(false, false);
+            finalSelectionMap.delete(childNode.data.ocifId);
+          }
         }
-      }
-    });
+      });
+    }
 
-    this.selectedRowsData = Array.from(finalSelectionMap.values());
-    this.selectionInProgress = false;
-    this.selectionChanged.emit(this.selectedRowsData);
-  }
+    // CASE C: Individual Child Deselected -> Uncheck Parent visually
+    if (node.data.isChild && !node.isSelected()) {
+      finalSelectionMap.delete(node.data.ocifId);
+      const parentNode = this.findParentNode(node);
+      if (parentNode && parentNode.isSelected()) {
+        parentNode.setSelected(false, false);
+        finalSelectionMap.delete(parentNode.data.ocifId);
+      }
+    }
+  });
+
+  this.selectedRowsData = Array.from(finalSelectionMap.values());
+  this.selectionInProgress = false;
+  this.selectionChanged.emit(this.selectedRowsData);
+}
 
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
