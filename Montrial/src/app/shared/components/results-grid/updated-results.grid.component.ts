@@ -122,77 +122,87 @@ export class ResultsGridComponent {
   //   this.selectionChanged.emit(this.gridApi.getSelectedRows());
   // }
 
-onSelectionChanged() {
-  if (this.selectionInProgress || !this.gridApi) return;
-  this.selectionInProgress = true;
 
-  const selectedNodes = this.gridApi.getSelectedNodes();
-  const finalSelectionMap = new Map<string, any>();
+private selectionInProgress = false;
+  
+  // Local track of selected objects to solve the 'never' and undefined errors
+  public selectedRowsData: any[] = [];
 
-  // Pass 1: Add all explicitly selected UI nodes and their children
-  selectedNodes.forEach((node: any) => {
-    if (!node.data) return;
-    finalSelectionMap.set(node.data.ocifId, node.data);
 
-    if (node.data.isParent && node.data.children) {
-      node.data.children.forEach((child: any) => {
-        finalSelectionMap.set(child.ocifId, child);
-      });
-    }
-  });
+  onSelectionChanged() {
+    if (this.selectionInProgress || !this.gridApi) return;
+    this.selectionInProgress = true;
 
-  // Pass 2: Individual Deselection & Parent Sync
-  this.gridApi.forEachNode((node: any) => {
-    if (node.data?.isChild && !node.isSelected()) {
-      // 1. Remove child from payload
-      finalSelectionMap.delete(node.data.ocifId);
+    const selectedNodes = this.gridApi.getSelectedNodes();
+    const finalSelectionMap = new Map<string, any>();
 
-      // 2. If a child is deselected, the parent cannot stay visually selected
-      const parentNode = this.findParentNode(node);
-      if (parentNode && parentNode.isSelected()) {
-        parentNode.setSelected(false, false);
-        finalSelectionMap.delete(parentNode.data.ocifId);
+    // 1. Process what is currently checked in the UI
+    selectedNodes.forEach((node: any) => {
+      if (!node.data) return;
+      finalSelectionMap.set(node.data.ocifId, node.data);
+
+      // If Parent is selected, automatically include all its children in our data map
+      if (node.data.isParent && node.data.children) {
+        node.data.children.forEach((child: any) => {
+          finalSelectionMap.set(child.ocifId, child);
+        });
       }
-    }
-  });
+    });
 
-  this.selectionInProgress = false;
-  this.selectionChanged.emit(Array.from(finalSelectionMap.values()));
-}
+    // 2. Handle Individual Deselection & Parent Sync
+    this.gridApi.forEachNode((node: any) => {
+      if (node.data?.isChild && !node.isSelected()) {
+        // Remove child from our data map if user unchecked it
+        finalSelectionMap.delete(node.data.ocifId);
 
-private findParentNode(childNode: any): any {
-  let foundParent = null;
-  this.gridApi.forEachNode((node: any) => {
-    if (node.data?.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-      foundParent = node;
-    }
-  });
-  return foundParent;
-}
+        // If a child is unchecked, the parent cannot stay visually checked
+        const parentNode = this.findParentNode(node);
+        if (parentNode && parentNode.isSelected()) {
+          parentNode.setSelected(false, false);
+          finalSelectionMap.delete(parentNode.data.ocifId);
+        }
+      }
+    });
 
+    // Update our local "Source of Truth"
+    this.selectedRowsData = Array.from(finalSelectionMap.values());
+    this.selectionInProgress = false;
 
- toggleRowExpansion(parent: any) {
-  parent.isExpanded = !parent.isExpanded;
-  
-  if (parent.isExpanded) {
-    const index = this.rowData.indexOf(parent);
-    this.rowData.splice(index + 1, 0, ...parent.children);
-  } else {
-    this.rowData = this.rowData.filter(row => !parent.children.includes(row));
+    // Emit to the outside world (Selection Panel)
+    this.selectionChanged.emit(this.selectedRowsData);
   }
-  
-  // Refresh grid rows
-  this.gridApi.setGridOption('rowData', [...this.rowData]);
 
-  // RE-SYNC SELECTION: Use the global store's selected list to re-check boxes
-  // This prevents the "Selection Disappearing" bug on carrot click
-  this.gridApi.forEachNode((node: any) => {
-    const isSelectedInStore = this.currentStoreSelection().some(s => s.ocifId === node.data.ocifId);
-    if (isSelectedInStore) {
-      node.setSelected(true, false);
+  toggleRowExpansion(parent: any) {
+    parent.isExpanded = !parent.isExpanded;
+    
+    if (parent.isExpanded) {
+      const index = this.rowData.indexOf(parent);
+      this.rowData.splice(index + 1, 0, ...parent.children);
+    } else {
+      this.rowData = this.rowData.filter(row => !parent.children.includes(row));
     }
-  });
-}
+    
+    this.gridApi.setGridOption('rowData', [...this.rowData]);
+
+    // FIX: Re-apply selection from our local "Source of Truth" 
+    // This ensures that when the carrot is clicked, previously selected items stay checked
+    this.gridApi.forEachNode((node: any) => {
+      const isStillSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+      if (isStillSelected) {
+        node.setSelected(true, false);
+      }
+    });
+  }
+
+  private findParentNode(childNode: any): any {
+    let foundParent = null;
+    this.gridApi.forEachNode((node: any) => {
+      if (node.data?.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+        foundParent = node;
+      }
+    });
+    return foundParent;
+  }
 
   // ... rest of your search and filter methods ...
 }
