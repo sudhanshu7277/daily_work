@@ -94,19 +94,47 @@ export class ResultsGridComponent {
     this.syncColumns();
   }
 
+  // onSelectionChanged() {
+  //   const selectedNodes = this.gridApi.getSelectedNodes();
+  //   selectedNodes.forEach(node => {
+  //     if (node.data.isParent && node.data.children) {
+  //       const isSelected = !!node.isSelected(); 
+  //       this.gridApi.forEachNode(childNode => {
+  //         if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+  //           // FIXED: Removed 3rd argument to match AG Grid signature
+  //           childNode.setSelected(isSelected, false);
+  //         }
+  //       });
+  //     }
+  //   });
+  //   this.selectionChanged.emit(this.gridApi.getSelectedRows());
+  // }
+
   onSelectionChanged() {
-    const selectedNodes = this.gridApi.getSelectedNodes();
-    selectedNodes.forEach(node => {
+    if (this.selectionInProgress || !this.gridApi) return;
+    this.selectionInProgress = true;
+
+    // Logic: Sync children state to match parent state
+    const allSelectedNodes = this.gridApi.getSelectedNodes();
+    
+    // We iterate through parents to force their children to match
+    this.gridApi.forEachNode(node => {
       if (node.data.isParent && node.data.children) {
-        const isSelected = !!node.isSelected(); 
+        const isParentSelected = node.isSelected();
+        const childrenOcifIds = node.data.children.map((c: any) => c.ocifId);
+
+        // Find children currently rendered in the grid and sync selection
         this.gridApi.forEachNode(childNode => {
-          if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-            // FIXED: Removed 3rd argument to match AG Grid signature
-            childNode.setSelected(isSelected, false);
+          if (childNode.data.isChild && childrenOcifIds.includes(childNode.data.ocifId)) {
+            if (childNode.isSelected() !== isParentSelected) {
+              childNode.setSelected(isParentSelected, false);
+            }
           }
         });
       }
     });
+
+    this.selectionInProgress = false;
     this.selectionChanged.emit(this.gridApi.getSelectedRows());
   }
 
