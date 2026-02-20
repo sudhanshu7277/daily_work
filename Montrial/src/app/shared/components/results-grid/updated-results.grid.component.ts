@@ -126,34 +126,38 @@ onSelectionChanged() {
   if (this.selectionInProgress || !this.gridApi) return;
   this.selectionInProgress = true;
 
+  // Use the specific AG Grid RowNode type
   const selectedNodes = this.gridApi.getSelectedNodes();
   const finalSelectionMap = new Map<string, any>();
 
-  // 1. Initial Pass: Map everything currently selected in the grid
-  selectedNodes.forEach(node => {
-    finalSelectionMap.set(node.data.ocifId, node.data);
+  // 1. Initial Pass: Map explicitly selected nodes
+  selectedNodes.forEach((node: any) => {
+    const data = node.data;
+    if (!data) return;
 
-    // If Parent is selected, add all children (even hidden ones) to the map
-    if (node.data.isParent && node.data.children) {
-      node.data.children.forEach((child: any) => {
+    finalSelectionMap.set(data.ocifId, data);
+
+    // If Parent is selected, add all children (hidden/collapsed) to the map
+    if (data.isParent && data.children) {
+      data.children.forEach((child: any) => {
         finalSelectionMap.set(child.ocifId, child);
       });
     }
   });
 
   // 2. Individual Child Deselection Logic & Parent Visual Sync
-  this.gridApi.forEachNode(node => {
-    // If we find a child that is NOT selected
+  this.gridApi.forEachNode((node: any) => {
+    if (!node.data) return;
+
+    // If a child is visible but NOT selected
     if (node.data.isChild && !node.isSelected()) {
       // Remove it from the final payload map
       finalSelectionMap.delete(node.data.ocifId);
 
-      // CRITICAL: If a child is deselected, its parent CANNOT stay fully selected
-      // We find the parent in the grid and uncheck it visually
+      // If a child is deselected, find its parent and uncheck it visually
       const parentNode = this.findParentNode(node);
       if (parentNode && parentNode.isSelected()) {
         parentNode.setSelected(false, false); 
-        // Remove the parent from our payload map too
         finalSelectionMap.delete(parentNode.data.ocifId);
       }
     }
@@ -162,20 +166,20 @@ onSelectionChanged() {
   const finalSelectionArray = Array.from(finalSelectionMap.values());
   this.selectionInProgress = false;
 
-  // 3. Emit the true state to the Shell/Store
   this.selectionChanged.emit(finalSelectionArray);
 }
 
-/** Helper to find a Parent Node in the AG Grid instance **/
-private findParentNode(childNode: any) {
+private findParentNode(childNode: any): any {
   let foundParent = null;
-  this.gridApi.forEachNode(node => {
-    if (node.data.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+  this.gridApi.forEachNode((node: any) => {
+    if (node.data?.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
       foundParent = node;
     }
   });
   return foundParent;
 }
+
+
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
     if (parent.isExpanded) {
