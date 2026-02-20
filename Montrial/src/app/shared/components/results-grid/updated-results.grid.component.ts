@@ -126,47 +126,38 @@ onSelectionChanged() {
   if (this.selectionInProgress || !this.gridApi) return;
   this.selectionInProgress = true;
 
-  // Use the specific AG Grid RowNode type
   const selectedNodes = this.gridApi.getSelectedNodes();
   const finalSelectionMap = new Map<string, any>();
 
-  // 1. Initial Pass: Map explicitly selected nodes
+  // Pass 1: Add all explicitly selected UI nodes and their children
   selectedNodes.forEach((node: any) => {
-    const data = node.data;
-    if (!data) return;
+    if (!node.data) return;
+    finalSelectionMap.set(node.data.ocifId, node.data);
 
-    finalSelectionMap.set(data.ocifId, data);
-
-    // If Parent is selected, add all children (hidden/collapsed) to the map
-    if (data.isParent && data.children) {
-      data.children.forEach((child: any) => {
+    if (node.data.isParent && node.data.children) {
+      node.data.children.forEach((child: any) => {
         finalSelectionMap.set(child.ocifId, child);
       });
     }
   });
 
-  // 2. Individual Child Deselection Logic & Parent Visual Sync
+  // Pass 2: Individual Deselection & Parent Sync
   this.gridApi.forEachNode((node: any) => {
-    if (!node.data) return;
-
-    // If a child is visible but NOT selected
-    if (node.data.isChild && !node.isSelected()) {
-      // Remove it from the final payload map
+    if (node.data?.isChild && !node.isSelected()) {
+      // 1. Remove child from payload
       finalSelectionMap.delete(node.data.ocifId);
 
-      // If a child is deselected, find its parent and uncheck it visually
+      // 2. If a child is deselected, the parent cannot stay visually selected
       const parentNode = this.findParentNode(node);
       if (parentNode && parentNode.isSelected()) {
-        parentNode.setSelected(false, false); 
+        parentNode.setSelected(false, false);
         finalSelectionMap.delete(parentNode.data.ocifId);
       }
     }
   });
 
-  const finalSelectionArray = Array.from(finalSelectionMap.values());
   this.selectionInProgress = false;
-
-  this.selectionChanged.emit(finalSelectionArray);
+  this.selectionChanged.emit(Array.from(finalSelectionMap.values()));
 }
 
 private findParentNode(childNode: any): any {
@@ -180,16 +171,28 @@ private findParentNode(childNode: any): any {
 }
 
 
-  toggleRowExpansion(parent: any) {
-    parent.isExpanded = !parent.isExpanded;
-    if (parent.isExpanded) {
-      const index = this.rowData.indexOf(parent);
-      this.rowData.splice(index + 1, 0, ...parent.children);
-    } else {
-      this.rowData = this.rowData.filter(row => !parent.children.includes(row));
-    }
-    this.gridApi.setGridOption('rowData', [...this.rowData]);
+ toggleRowExpansion(parent: any) {
+  parent.isExpanded = !parent.isExpanded;
+  
+  if (parent.isExpanded) {
+    const index = this.rowData.indexOf(parent);
+    this.rowData.splice(index + 1, 0, ...parent.children);
+  } else {
+    this.rowData = this.rowData.filter(row => !parent.children.includes(row));
   }
+  
+  // Refresh grid rows
+  this.gridApi.setGridOption('rowData', [...this.rowData]);
+
+  // RE-SYNC SELECTION: Use the global store's selected list to re-check boxes
+  // This prevents the "Selection Disappearing" bug on carrot click
+  this.gridApi.forEachNode((node: any) => {
+    const isSelectedInStore = this.currentStoreSelection().some(s => s.ocifId === node.data.ocifId);
+    if (isSelectedInStore) {
+      node.setSelected(true, false);
+    }
+  });
+}
 
   // ... rest of your search and filter methods ...
 }
