@@ -122,56 +122,60 @@ export class ResultsGridComponent {
   //   this.selectionChanged.emit(this.gridApi.getSelectedRows());
   // }
 
-  onSelectionChanged() {
+onSelectionChanged() {
   if (this.selectionInProgress || !this.gridApi) return;
-  
   this.selectionInProgress = true;
 
-  // 1. Get the rows explicitly selected in the UI
   const selectedNodes = this.gridApi.getSelectedNodes();
-  
-  // 2. Use a Map to handle unique selection and prevent duplicates 
-  // (e.g., if a child is already visible and selected)
   const finalSelectionMap = new Map<string, any>();
 
+  // 1. Initial Pass: Map everything currently selected in the grid
   selectedNodes.forEach(node => {
-    const data = node.data;
-    finalSelectionMap.set(data.ocifId, data);
+    finalSelectionMap.set(node.data.ocifId, node.data);
 
-    // 3. INTERNAL LOGIC: If the record is a parent, grab all children
-    // from the data model, even if they aren't expanded/rendered.
-    if (data.isParent && data.children && data.children.length > 0) {
-      data.children.forEach((child: any) => {
+    // If Parent is selected, add all children (even hidden ones) to the map
+    if (node.data.isParent && node.data.children) {
+      node.data.children.forEach((child: any) => {
         finalSelectionMap.set(child.ocifId, child);
       });
     }
   });
 
-  // 4. SYNC VISIBLE UI: Ensure visible children nodes reflect the parent's state
-  // This handles the visual 'checkmark' for children that are currently expanded.
-  selectedNodes.forEach(node => {
-    if (node.data.isParent && node.data.children) {
-      const isParentSelected = node.isSelected();
-      const childIds = node.data.children.map((c: any) => c.ocifId);
+  // 2. Individual Child Deselection Logic & Parent Visual Sync
+  this.gridApi.forEachNode(node => {
+    // If we find a child that is NOT selected
+    if (node.data.isChild && !node.isSelected()) {
+      // Remove it from the final payload map
+      finalSelectionMap.delete(node.data.ocifId);
 
-      this.gridApi.forEachNode(childNode => {
-        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
-          if (childNode.isSelected() !== isParentSelected) {
-            childNode.setSelected(isParentSelected, false);
-          }
-        }
-      });
+      // CRITICAL: If a child is deselected, its parent CANNOT stay fully selected
+      // We find the parent in the grid and uncheck it visually
+      const parentNode = this.findParentNode(node);
+      if (parentNode && parentNode.isSelected()) {
+        parentNode.setSelected(false, false); 
+        // Remove the parent from our payload map too
+        finalSelectionMap.delete(parentNode.data.ocifId);
+      }
     }
   });
 
   const finalSelectionArray = Array.from(finalSelectionMap.values());
-  
   this.selectionInProgress = false;
 
-  // 5. Emit the full payload to the Shell -> Store -> Selection Panel
+  // 3. Emit the true state to the Shell/Store
   this.selectionChanged.emit(finalSelectionArray);
 }
 
+/** Helper to find a Parent Node in the AG Grid instance **/
+private findParentNode(childNode: any) {
+  let foundParent = null;
+  this.gridApi.forEachNode(node => {
+    if (node.data.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+      foundParent = node;
+    }
+  });
+  return foundParent;
+}
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
     if (parent.isExpanded) {
