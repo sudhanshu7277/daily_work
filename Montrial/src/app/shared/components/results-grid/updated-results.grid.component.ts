@@ -136,50 +136,51 @@ onSelectionChanged() {
   const selectedNodes = this.gridApi.getSelectedNodes();
   const finalSelectionMap = new Map<string, any>();
 
-  // 1. Identify what was JUST selected/deselected
-  // We build our map based on the current UI state
+  // 1. Build initial map based on what is VISUALLY selected in the grid
   selectedNodes.forEach((node: any) => {
     if (!node.data) return;
     finalSelectionMap.set(node.data.ocifId, node.data);
-
-    // If Parent is selected, we must ensure children are in the payload
-    if (node.data.isParent && node.data.children) {
-      node.data.children.forEach((c: any) => finalSelectionMap.set(c.ocifId, c));
-    }
   });
 
   // 2. BIDIRECTIONAL CASCADING
-  // We iterate through all nodes to sync the UI checkmarks with the logic
   this.gridApi.forEachNode((node: any) => {
     if (!node.data) return;
 
-    // CASE A: Parent is Selected -> Force all visible children to be checked
-    if (node.data.isParent && node.isSelected()) {
+    // CASE A: NEW PARENT SELECTION (Select All)
+    // We only trigger "Select All" if the parent was NOT selected in our previous state
+    const wasParentPreviouslySelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+    
+    if (node.data.isParent && node.isSelected() && !wasParentPreviouslySelected) {
       const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
+      // Add all children to payload
+      node.data.children?.forEach((c: any) => finalSelectionMap.set(c.ocifId, c));
+      
+      // Sync visible checkmarks
       this.gridApi.forEachNode((childNode: any) => {
         if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
-          if (!childNode.isSelected()) {
-            childNode.setSelected(true, false); // Select child if parent is selected
-          }
+          childNode.setSelected(true, false);
         }
       });
     }
 
-    // CASE B: Parent is NOT Selected -> Force all visible children to be unchecked
-    // This solves the "Deselect Parent = Deselect Children" requirement
-    if (node.data.isParent && !node.isSelected()) {
+    // CASE B: PARENT DESELECTED (Deselect All)
+    if (node.data.isParent && !node.isSelected() && wasParentPreviouslySelected) {
       const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
+      finalSelectionMap.delete(node.data.ocifId);
+      
+      // Remove children from payload
+      node.data.children?.forEach((c: any) => finalSelectionMap.delete(c.ocifId));
+
+      // Sync visible checkmarks
       this.gridApi.forEachNode((childNode: any) => {
         if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
-          if (childNode.isSelected()) {
-            childNode.setSelected(false, false);
-            finalSelectionMap.delete(childNode.data.ocifId);
-          }
+          childNode.setSelected(false, false);
         }
       });
     }
 
-    // CASE C: Individual Child Deselected -> Uncheck Parent visually
+    // CASE C: INDIVIDUAL CHILD DESELECTED
+    // If a child is unchecked, we remove it from payload and visually uncheck the parent
     if (node.data.isChild && !node.isSelected()) {
       finalSelectionMap.delete(node.data.ocifId);
       const parentNode = this.findParentNode(node);
@@ -190,11 +191,11 @@ onSelectionChanged() {
     }
   });
 
+  // 3. Persist and Emit
   this.selectedRowsData = Array.from(finalSelectionMap.values());
   this.selectionInProgress = false;
   this.selectionChanged.emit(this.selectedRowsData);
 }
-
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
     
