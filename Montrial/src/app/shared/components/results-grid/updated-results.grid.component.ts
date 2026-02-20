@@ -130,54 +130,68 @@ private selectionInProgress = false;
 
 
   onSelectionChanged() {
-    if (this.selectionInProgress || !this.gridApi) return;
-    this.selectionInProgress = true;
+  if (this.selectionInProgress || !this.gridApi) return;
+  this.selectionInProgress = true;
 
-    const selectedNodes = this.gridApi.getSelectedNodes();
-    const finalSelectionMap = new Map<string, any>();
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  const finalSelectionMap = new Map<string, any>();
 
-    // 1. Process explicit UI selections
-    selectedNodes.forEach((node: any) => {
-      if (!node.data) return;
-      
-      // Add the record itself
-      finalSelectionMap.set(node.data.ocifId, node.data);
+  // 1. Process explicit UI selections
+  selectedNodes.forEach((node: any) => {
+    if (!node.data) return;
+    
+    finalSelectionMap.set(node.data.ocifId, node.data);
 
-      // LOGIC: If Parent is selected, force-add all children to the map
-      // (This handles selecting hidden children)
-      if (node.data.isParent && node.data.children) {
-        node.data.children.forEach((child: any) => {
-          finalSelectionMap.set(child.ocifId, child);
+    // If Parent is selected, force-add all children (handles hidden children)
+    if (node.data.isParent && node.data.children) {
+      node.data.children.forEach((child: any) => {
+        finalSelectionMap.set(child.ocifId, child);
+      });
+    }
+  });
+
+  // 2. Handle Deselection Logic (Child-to-Parent and Parent-to-Child)
+  this.gridApi.forEachNode((node: any) => {
+    if (!node.data) return;
+
+    // A. CHILD DESELECTED: If child is unchecked, uncheck the parent
+    if (node.data.isChild && !node.isSelected()) {
+      finalSelectionMap.delete(node.data.ocifId);
+
+      const parentNode = this.findParentNode(node);
+      if (parentNode && parentNode.isSelected()) {
+        parentNode.setSelected(false, false);
+        finalSelectionMap.delete(parentNode.data.ocifId);
+      }
+    }
+
+    // B. PARENT DESELECTED (NEW): If a parent is unchecked, ensure children are unchecked
+    if (node.data.isParent && !node.isSelected()) {
+      // Remove the parent itself from payload
+      finalSelectionMap.delete(node.data.ocifId);
+
+      // Remove all its children from the payload
+      if (node.data.children) {
+        node.data.children.forEach((c: any) => finalSelectionMap.delete(c.ocifId));
+        
+        // Uncheck any visible children in the grid visually
+        this.gridApi.forEachNode((childNode: any) => {
+          if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+            if (childNode.isSelected()) {
+              childNode.setSelected(false, false);
+            }
+          }
         });
       }
-    });
+    }
+  });
 
-    // 2. Handle Individual Deselection & Visual Parent Sync
-    this.gridApi.forEachNode((node: any) => {
-      if (!node.data) return;
+  // 3. Finalize Source of Truth
+  this.selectedRowsData = Array.from(finalSelectionMap.values());
+  this.selectionInProgress = false;
 
-      // If a child is visible but NOT selected in the UI
-      if (node.data.isChild && !node.isSelected()) {
-        // Remove child from payload (overrides the parent "select-all" logic)
-        finalSelectionMap.delete(node.data.ocifId);
-
-        // SYNC: If this child is deselected, its parent MUST be deselected visually
-        const parentNode = this.findParentNode(node);
-        if (parentNode && parentNode.isSelected()) {
-          parentNode.setSelected(false, false);
-          // Also remove parent from payload because it's no longer "fully" selected
-          finalSelectionMap.delete(parentNode.data.ocifId);
-        }
-      }
-    });
-
-    // 3. Finalize Source of Truth
-    this.selectedRowsData = Array.from(finalSelectionMap.values());
-    this.selectionInProgress = false;
-
-    // Emit to Selection Panel
-    this.selectionChanged.emit(this.selectedRowsData);
-  }
+  this.selectionChanged.emit(this.selectedRowsData);
+}
 
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
