@@ -95,48 +95,82 @@ export class ResultsGridComponent {
   }
 
   // onSelectionChanged() {
-  //   const selectedNodes = this.gridApi.getSelectedNodes();
-  //   selectedNodes.forEach(node => {
+  //   if (this.selectionInProgress || !this.gridApi) return;
+  //   this.selectionInProgress = true;
+
+  //   // Logic: Sync children state to match parent state
+  //   const allSelectedNodes = this.gridApi.getSelectedNodes();
+    
+  //   // We iterate through parents to force their children to match
+  //   this.gridApi.forEachNode(node => {
   //     if (node.data.isParent && node.data.children) {
-  //       const isSelected = !!node.isSelected(); 
+  //       const isParentSelected = node.isSelected();
+  //       const childrenOcifIds = node.data.children.map((c: any) => c.ocifId);
+
+  //       // Find children currently rendered in the grid and sync selection
   //       this.gridApi.forEachNode(childNode => {
-  //         if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-  //           // FIXED: Removed 3rd argument to match AG Grid signature
-  //           childNode.setSelected(isSelected, false);
+  //         if (childNode.data.isChild && childrenOcifIds.includes(childNode.data.ocifId)) {
+  //           if (childNode.isSelected() !== isParentSelected) {
+  //             childNode.setSelected(isParentSelected, false);
+  //           }
   //         }
   //       });
   //     }
   //   });
+
+  //   this.selectionInProgress = false;
   //   this.selectionChanged.emit(this.gridApi.getSelectedRows());
   // }
 
   onSelectionChanged() {
-    if (this.selectionInProgress || !this.gridApi) return;
-    this.selectionInProgress = true;
+  if (this.selectionInProgress || !this.gridApi) return;
+  
+  this.selectionInProgress = true;
 
-    // Logic: Sync children state to match parent state
-    const allSelectedNodes = this.gridApi.getSelectedNodes();
-    
-    // We iterate through parents to force their children to match
-    this.gridApi.forEachNode(node => {
-      if (node.data.isParent && node.data.children) {
-        const isParentSelected = node.isSelected();
-        const childrenOcifIds = node.data.children.map((c: any) => c.ocifId);
+  // 1. Get the rows explicitly selected in the UI
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  
+  // 2. Use a Map to handle unique selection and prevent duplicates 
+  // (e.g., if a child is already visible and selected)
+  const finalSelectionMap = new Map<string, any>();
 
-        // Find children currently rendered in the grid and sync selection
-        this.gridApi.forEachNode(childNode => {
-          if (childNode.data.isChild && childrenOcifIds.includes(childNode.data.ocifId)) {
-            if (childNode.isSelected() !== isParentSelected) {
-              childNode.setSelected(isParentSelected, false);
-            }
+  selectedNodes.forEach(node => {
+    const data = node.data;
+    finalSelectionMap.set(data.ocifId, data);
+
+    // 3. INTERNAL LOGIC: If the record is a parent, grab all children
+    // from the data model, even if they aren't expanded/rendered.
+    if (data.isParent && data.children && data.children.length > 0) {
+      data.children.forEach((child: any) => {
+        finalSelectionMap.set(child.ocifId, child);
+      });
+    }
+  });
+
+  // 4. SYNC VISIBLE UI: Ensure visible children nodes reflect the parent's state
+  // This handles the visual 'checkmark' for children that are currently expanded.
+  selectedNodes.forEach(node => {
+    if (node.data.isParent && node.data.children) {
+      const isParentSelected = node.isSelected();
+      const childIds = node.data.children.map((c: any) => c.ocifId);
+
+      this.gridApi.forEachNode(childNode => {
+        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
+          if (childNode.isSelected() !== isParentSelected) {
+            childNode.setSelected(isParentSelected, false);
           }
-        });
-      }
-    });
+        }
+      });
+    }
+  });
 
-    this.selectionInProgress = false;
-    this.selectionChanged.emit(this.gridApi.getSelectedRows());
-  }
+  const finalSelectionArray = Array.from(finalSelectionMap.values());
+  
+  this.selectionInProgress = false;
+
+  // 5. Emit the full payload to the Shell -> Store -> Selection Panel
+  this.selectionChanged.emit(finalSelectionArray);
+}
 
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
