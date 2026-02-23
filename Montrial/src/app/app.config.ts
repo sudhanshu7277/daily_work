@@ -51,13 +51,15 @@ import { legalHoldReducer } from './store/legal-hold/legal-hold.reducer';
 // Effects
 import * as legalHoldEffects from './store/legal-hold/legal-hold.effects';
 import * as bulkUploadEffects from './store/bulk-upload/bulk-upload.effects';
+import { bulkUploadReducer } from './store/bulk-upload/bulk-upload.reducer';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideHttpClient(),
     // Register the 'legalHold' feature slice
     provideStore({
-      legalHold: legalHoldReducer
+      legalHold: legalHoldReducer,
+      bulkUpload: bulkUploadReducer
     }),
     // Register all functional effects
     provideEffects(legalHoldEffects, bulkUploadEffects)
