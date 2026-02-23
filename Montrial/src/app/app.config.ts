@@ -38,16 +38,28 @@ export const appConfig: ApplicationConfig = {
     )
   ]
 };
-// import { ApplicationConfig, importProvidersFrom } from '@angular/core';
-// import { provideRouter } from '@angular/router';
-// import { provideAnimations } from '@angular/platform-browser/animations';
-// import { MatNativeDateModule } from '@angular/material/core';
-// import { routes } from './app.routes';
 
-// export const appConfig: ApplicationConfig = {
-//   providers: [
-//     provideRouter(routes),
-//     provideAnimations(), 
-//     importProvidersFrom(MatNativeDateModule)
-//   ]
-// };
+// NEW CODE BELOW
+
+import { ApplicationConfig } from '@angular/core';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { provideHttpClient } from '@angular/common/http';
+
+// Reducers
+import { legalHoldReducer } from './store/legal-hold/legal-hold.reducer';
+// Effects
+import * as legalHoldEffects from './store/legal-hold/legal-hold.effects';
+import * as bulkUploadEffects from './store/bulk-upload/bulk-upload.effects';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(),
+    // Register the 'legalHold' feature slice
+    provideStore({
+      legalHold: legalHoldReducer
+    }),
+    // Register all functional effects
+    provideEffects(legalHoldEffects, bulkUploadEffects)
+  ]
+};

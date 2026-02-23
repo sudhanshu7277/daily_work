@@ -25,8 +25,19 @@ export class ResultsGridComponent {
   
   rowData: any[] = [];
   selectedFilterIds: any[] = [];
-  public noRowsTemplate = `<span>No results to display. Please perform a search.</span>`;
-  public loadingTemplate = `<span class="ag-overlay-loading-center">Searching profiles...</span>`;
+
+  // Logic to handle design-specific row classes
+  public rowClassRules = {
+    'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
+    'last-child-row': (params: any) => {
+      if (!params.data.isChild) return false;
+      const parent = this.allMockData.find(p => 
+        p.children?.some((c: any) => c.ocifId === params.data.ocifId)
+      );
+      return !!(parent && parent.isExpanded && 
+             parent.children[parent.children.length - 1].ocifId === params.data.ocifId);
+    }
+  };
 
   columnDefs: ColDef[] = [
     { 
@@ -48,6 +59,7 @@ export class ResultsGridComponent {
         const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
         const carrotHtml = data.isParent ? 
           `<span class="bmo-thin-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
+        
         return `
           <div class="name-cell-wrapper">
             <span class="${textClass}">${params.value}</span>
@@ -55,9 +67,7 @@ export class ResultsGridComponent {
           </div>`;
       },
       onCellClicked: (params: any) => {
-        if (params.data.isParent) {
-          this.toggleRowExpansion(params.data);
-        }
+        if (params.data.isParent) this.toggleRowExpansion(params.data);
       }
     },
     { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
@@ -65,14 +75,11 @@ export class ResultsGridComponent {
       field: 'status', 
       headerName: 'Status', 
       cellRenderer: (params: any) => {
-        if (params.value === 'LEGAL HOLD') {
-          return `<div class="status-badge-container">
-                    <span class="status-pill-badge">LEGAL HOLD</span>
-                  </div>`;
-        }
-        return `<span>${params.value || 'N/A'}</span>`;
+        return params.value === 'LEGAL HOLD' ? 
+          `<div class="status-badge-container"><span class="status-pill-badge">LEGAL HOLD</span></div>` : 
+          `<span style="color: #666;">${params.value || 'N/A'}</span>`;
       },
-      width: 140 
+      width: 130 
     },
     { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
     { field: 'lifecycle', headerName: 'Lifecycle', width: 180 },
@@ -80,217 +87,169 @@ export class ResultsGridComponent {
     { field: 'address', headerName: 'Address', flex: 1 }
   ];
 
-  filterOptions = [
-    { id: 'ocifId', label: 'File Net ID' },
-    { id: 'status', label: 'Legal Hold Status' },
-    { id: 'holdName', label: 'Legal Hold Name' },
-    { id: 'lifecycle', label: 'Customer Lifecycle Status' },
-    { id: 'role', label: 'Role Type' },
-    { id: 'address', label: 'Address' }
-  ];
-
-  
-
-  public allMockData = [
-    {
-      firstName: 'Asha',
-      lastName: 'Dhola',
-      legalName: 'Corporation 2',
-      ocifId: '1000-12341',
-      status: 'N/A',
-      holdName: '',
-      lifecycle: 'Active Customer',
-      role: 'Owner',
-      address: '33 Dundas St W, Toronto, ON M5G 2C3',
-      dob: '',
-      email: 'contact@corp2.com',
-      type: 'entity',
-      isParent: true,
-      isExpanded: false,
-      children: [
-        { firstName: 'Role', lastName: 'Player A', legalName: 'Role Player A', ocifId: '1000-12341-A', status: 'N/A', lifecycle: 'Active', role: 'Owner of ABC Ltd', address: '33 Dundas St W, Toronto', isChild: true, type: 'individual', email: 'player.a@corp2.com', dob: '1985-05-20' },
-        { firstName: 'Role', lastName: 'Player B', legalName: 'Role Player B', ocifId: '1000-12341-B', status: 'N/A', lifecycle: 'Active', role: 'Signatory', address: '33 Dundas St W, Toronto', isChild: true, type: 'individual', email: 'player.b@corp2.com', dob: '1978-11-12' }
-      ]
-    },
-    {
-      firstName: 'Asha',
-      lastName: 'Dhola',
-      legalName: 'Tech Solutions Inc',
-      ocifId: '2000-99887',
-      status: 'LEGAL HOLD',
-      holdName: 'Project Omega',
-      lifecycle: 'Active Customer',
-      role: 'Entity',
-      address: '100 King St W, Toronto, ON',
-      dob: '',
-      email: 'info@techsolutions.ca',
-      type: 'entity',
-      isParent: true,
-      isExpanded: false,
-      children: [
-        { firstName: 'John', lastName: 'Executive', legalName: 'John Executive', ocifId: '2000-99887-CEO', status: 'LEGAL HOLD', lifecycle: 'Active', role: 'CEO', address: '100 King St W, Toronto', isChild: true, type: 'individual', email: 'john@techsolutions.ca', dob: '1970-01-01' }
-      ]
-    },
-    {
-      firstName: 'Asha',
-      lastName: 'Dhola',
-      legalName: 'Asha Dhola',
-      ocifId: '9000-798797',
-      status: 'LEGAL HOLD',
-      holdName: 'Project Alpha',
-      lifecycle: 'Active',
-      role: 'Owner',
-      address: '33 Dundas St W, Toronto',
-      dob: '1990-01-15',
-      email: 'asha.dhola@example.com',
-      type: 'individual'
-    },
-    {
-      firstName: 'Sid',
-      lastName: 'Jain',
-      legalName: 'Sid Jain',
-      ocifId: '1000-03232',
-      status: 'LEGAL HOLD',
-      holdName: 'Project Beta',
-      lifecycle: 'Active',
-      role: 'Owner',
-      address: '45 Queen St E, Brampton',
-      dob: '1989-10-29',
-      email: 'sid.jain@example.com',
-      type: 'individual'
-    },
-    {
-      firstName: 'Jane',
-      lastName: 'Smith',
-      legalName: 'Jane Smith',
-      ocifId: '4444-112233',
-      status: 'N/A',
-      holdName: '',
-      lifecycle: 'Prospect',
-      role: 'Primary',
-      address: '123 Bay St, Toronto',
-      dob: '1985-12-12',
-      email: 'jane.smith@test.com',
-      type: 'individual'
-    }
-  ];
-
-  constructor() {
-    this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
-  }
-
-  get activeFilters() {
-    return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
-  }
+  // --- Grid Operations ---
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
     this.syncColumns();
   }
 
+private selectionInProgress = false;
+  public selectedRowsData: any[] = [];
+
+
+onSelectionChanged() {
+  if (this.selectionInProgress || !this.gridApi) return;
+  this.selectionInProgress = true;
+
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  const finalSelectionMap = new Map<string, any>();
+  selectedNodes.forEach((node: any) => {
+    if (!node.data) return;
+    finalSelectionMap.set(node.data.ocifId, node.data);
+  });
+
+  this.gridApi.forEachNode((node: any) => {
+    if (!node.data) return;
+    const wasParentPreviouslySelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+    
+    if (node.data.isParent && node.isSelected() && !wasParentPreviouslySelected) {
+      const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
+      node.data.children?.forEach((c: any) => finalSelectionMap.set(c.ocifId, c));
+      this.gridApi.forEachNode((childNode: any) => {
+        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
+          childNode.setSelected(true, false);
+        }
+      });
+    }
+
+    if (node.data.isParent && !node.isSelected() && wasParentPreviouslySelected) {
+      const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
+      finalSelectionMap.delete(node.data.ocifId);
+      
+      node.data.children?.forEach((c: any) => finalSelectionMap.delete(c.ocifId));
+
+      this.gridApi.forEachNode((childNode: any) => {
+        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
+          childNode.setSelected(false, false);
+        }
+      });
+    }
+
+    if (node.data.isChild && !node.isSelected()) {
+      finalSelectionMap.delete(node.data.ocifId);
+      const parentNode = this.findParentNode(node);
+      if (parentNode && parentNode.isSelected()) {
+        parentNode.setSelected(false, false);
+        finalSelectionMap.delete(parentNode.data.ocifId);
+      }
+    }
+  });
+
+  this.selectedRowsData = Array.from(finalSelectionMap.values());
+  this.selectionInProgress = false;
+  this.selectionChanged.emit(this.selectedRowsData);
+}
   toggleRowExpansion(parent: any) {
     parent.isExpanded = !parent.isExpanded;
+    
     if (parent.isExpanded) {
       const index = this.rowData.indexOf(parent);
       this.rowData.splice(index + 1, 0, ...parent.children);
     } else {
       this.rowData = this.rowData.filter(row => !parent.children.includes(row));
     }
+    
     this.gridApi.setGridOption('rowData', [...this.rowData]);
-  }
-
-  public deselectRow(item: any): void {
-    if (!this.gridApi) return;
-    this.gridApi.forEachNode(node => {
-      if (node.data && node.data.ocifId === item.ocifId) {
-        node.setSelected(false);
+    this.gridApi.forEachNode((node: any) => {
+      const shouldBeSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+      if (shouldBeSelected) {
+        node.setSelected(true, false);
       }
     });
   }
 
-  public performSearch(criteria: any): void {
-    if (!this.gridApi) return;
-    this.gridApi.showLoadingOverlay();
-  
-    setTimeout(() => {
-      this.rowData = this.allMockData.filter(item => {
-        const matchesFirstName = !criteria.firstName || 
-          item.firstName.toLowerCase().includes(criteria.firstName.toLowerCase());
-        const matchesLastName = !criteria.lastName || 
-          item.lastName.toLowerCase().includes(criteria.lastName.toLowerCase());
-        const matchesOcif = !criteria.ocifId || item.ocifId === criteria.ocifId;
-        const matchesEmail = !criteria.email || 
-          item.email?.toLowerCase() === criteria.email.toLowerCase();
-        const matchesDob = !criteria.dob || item.dob === criteria.dob;
-  
-        return matchesFirstName && matchesLastName && matchesOcif && matchesEmail && matchesDob;
-      });
-  
-      this.gridApi?.setGridOption('rowData', this.rowData);
-  
-      if (this.rowData.length === 0) {
-        this.gridApi?.showNoRowsOverlay();
-      } else {
-        this.gridApi?.hideOverlay();
-        this.syncColumns();
+private findParentNode(childNode: any): any {
+    let foundParent = null;
+    this.gridApi.forEachNode((node: any) => {
+      if (node.data?.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+        foundParent = node;
       }
-    }, 600);
+    });
+    return foundParent;
   }
+}
 
-  onFilterChange() { this.syncColumns(); }
+// NEW CODE WITH STORE
 
-  removeFilter(id: string) {
-    this.selectedFilterIds = this.selectedFilterIds.filter(fId => fId !== id);
-    this.syncColumns();
-  }
+import { Component, Output, EventEmitter, Input, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AgGridAngular } from 'ag-grid-angular';
+import { GridApi, GridReadyEvent, ColDef } from 'ag-grid-community';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { TranslateModule } from '@ngx-translate/core';
 
-  resetFilters() {
-    this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
-    this.syncColumns();
-  }
+// Store & Service Imports
+import { Store } from '@ngrx/store';
+import { LegalHoldActions } from '../../store/legal-hold/legal-hold.actions';
+import { LegalHoldService } from '../../core/services/legal-hold.service';
 
-  syncColumns() {
-    if (this.gridApi) {
-      this.filterOptions.forEach(opt => {
-        this.gridApi.setColumnVisible(opt.id, this.selectedFilterIds.includes(opt.id));
-      });
-      this.gridApi.sizeColumnsToFit();
+@Component({
+  selector: 'app-results-grid',
+  standalone: true,
+  imports: [
+    CommonModule, FormsModule, AgGridAngular, MatFormFieldModule, 
+    MatSelectModule, MatIconModule, MatButtonModule, TranslateModule
+  ],
+  templateUrl: './results-grid.component.html',
+  styleUrls: ['./results-grid.component.scss']
+})
+export class ResultsGridComponent {
+  private store = inject(Store);
+  private legalService = inject(LegalHoldService);
+
+  @Output() selectionChanged = new EventEmitter<any[]>();
+
+  // 1. INPUT: Triggered by the parent shell when search criteria is submitted
+  @Input() set searchCriteria(payload: any) {
+    if (payload) {
+      this.fetchData(payload);
     }
   }
 
-  onSelectionChanged() {
-    this.selectionChanged.emit(this.gridApi.getSelectedRows());
-  }
-
-// UPDATED CODE BELOW
-  // results-grid.component.ts
-
-  // Inside your component class
-public rowClassRules = {
-  // Highlights the parent row during expansion
-  'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
+  private gridApi!: GridApi;
+  private selectionInProgress = false;
   
-  // Logic to find the last child of a group to place the blue separator below it
-  'last-child-row': (params: any) => {
-    if (!params.data.isChild) return false;
-    const parent = this.allMockData.find(p => p.children?.some((c: any) => c.ocifId === params.data.ocifId));
-    if (parent && parent.isExpanded) {
-      const lastChild = parent.children[parent.children.length - 1];
-      return params.data.ocifId === lastChild.ocifId;
-    }
-    return false;
+  public rowData: any[] = [];
+  public selectedRowsData: any[] = [];
+
+  // --- API / CRUD Logic ---
+
+  fetchData(payload: any) {
+    this.store.dispatch(LegalHoldActions.loadProfiles({ query: payload }));
+    
+    // Direct API call mapping to DummyJSON
+    this.legalService.getProfiles(payload).subscribe({
+      next: (profiles) => {
+        this.rowData = profiles;
+        this.gridApi?.setGridOption('rowData', this.rowData);
+        this.store.dispatch(LegalHoldActions.loadSuccess({ profiles }));
+      },
+      error: (err) => this.store.dispatch(LegalHoldActions.loadFailure({ error: err.message }))
+    });
   }
-};
 
-// FINAL rowClassRules
+  // --- Grid Visual Logic ---
 
-public rowClassRules = {
-    // Top border and background for expanded parent
+  public rowClassRules = {
     'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
-    // Blue line at the very bottom of the entire group
     'last-child-row': (params: any) => {
       if (!params.data.isChild) return false;
-      const parent = this.allMockData.find(p => 
+      const parent = this.rowData.find(p => 
         p.children?.some((c: any) => c.ocifId === params.data.ocifId)
       );
       return !!(parent && parent.isExpanded && 
@@ -298,70 +257,139 @@ public rowClassRules = {
     }
   };
 
-onSelectionChanged() {
-  const selectedNodes = this.gridApi.getSelectedNodes();
-  
-  selectedNodes.forEach(node => {
-    if (node.data.isParent && node.data.children) {
-      const isParentSelected = !!node.isSelected(); 
+  columnDefs: ColDef[] = [
+    { 
+      headerName: '', 
+      checkboxSelection: true, 
+      headerCheckboxSelection: true, 
+      width: 50, 
+      pinned: 'left',
+      cellRenderer: (params: any) => params.data.isChild ? '' : null 
+    },
+    { 
+      field: 'legalName', 
+      headerName: 'Legal Name', 
+      width: 320, 
+      pinned: 'left', 
+      sortable: true,
+      cellRenderer: (params: any) => {
+        const data = params.data;
+        const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
+        const carrotHtml = data.isParent ? 
+          `<span class="bmo-thin-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
+        
+        return `
+          <div class="name-cell-wrapper">
+            <span class="${textClass}">${params.value}</span>
+            ${carrotHtml}
+          </div>`;
+      },
+      onCellClicked: (params: any) => {
+        if (params.data.isParent) this.toggleRowExpansion(params.data);
+      }
+    },
+    { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
+    { 
+      field: 'status', 
+      headerName: 'Status', 
+      cellRenderer: (params: any) => {
+        return params.value === 'LEGAL HOLD' ? 
+          `<div class="status-badge-container"><span class="status-pill-badge">LEGAL HOLD</span></div>` : 
+          `<span style="color: #666;">${params.value || 'N/A'}</span>`;
+      },
+      width: 130 
+    },
+    { field: 'address', headerName: 'Address', flex: 1 }
+  ];
 
-      this.gridApi.forEachNode(childNode => {
-        // Ensure child belongs to the parent being processed
-        if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-          // Fix: Remove 'true' and use standard boolean selection
-          childNode.setSelected(isParentSelected, false); 
-        }
-      });
-    }
-  });
+  // --- Selection & Expansion Logic ---
 
-  this.selectionChanged.emit(this.gridApi.getSelectedRows());
-}
+  onGridReady(params: GridReadyEvent) {
+    this.gridApi = params.api;
+  }
 
-// final onSelectedChanged function
-onSelectionChanged() {
+  onSelectionChanged() {
+    if (this.selectionInProgress || !this.gridApi) return;
+    this.selectionInProgress = true;
+
     const selectedNodes = this.gridApi.getSelectedNodes();
+    const finalMap = new Map<string, any>();
+
+    selectedNodes.forEach((node: any) => {
+      if (!node.data) return;
+      finalMap.set(node.data.ocifId, node.data);
+    });
+
+    this.gridApi.forEachNode((node: any) => {
+      if (!node.data) return;
+      const wasSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+
+      // CASE A: NEW PARENT SELECTION
+      if (node.data.isParent && node.isSelected() && !wasSelected) {
+        node.data.children?.forEach((c: any) => finalMap.set(c.ocifId, c));
+        this.syncVisibleChildren(node, true);
+      }
+      // CASE B: PARENT DESELECTED
+      else if (node.data.isParent && !node.isSelected() && wasSelected) {
+        node.data.children?.forEach((c: any) => finalMap.delete(c.ocifId));
+        this.syncVisibleChildren(node, false);
+      }
+      // CASE C: INDIVIDUAL CHILD DESELECTED
+      else if (node.data.isChild && !node.isSelected()) {
+        finalMap.delete(node.data.ocifId);
+        const parentNode = this.findParentNode(node);
+        if (parentNode && parentNode.isSelected()) {
+          parentNode.setSelected(false, false);
+          finalMap.delete(parentNode.data.ocifId);
+        }
+      }
+    });
+
+    this.selectedRowsData = Array.from(finalMap.values());
+    this.selectionInProgress = false;
+
+    // Dispatch to Store & Emit to Selection Panel
+    this.store.dispatch(LegalHoldActions.updateSelection({ 
+      selectedProfiles: this.selectedRowsData 
+    }));
+    this.selectionChanged.emit(this.selectedRowsData);
+  }
+
+  toggleRowExpansion(parent: any) {
+    parent.isExpanded = !parent.isExpanded;
     
-    selectedNodes.forEach(node => {
-      if (node.data.isParent && node.data.children) {
-        const isParentSelected = !!node.isSelected(); 
+    if (parent.isExpanded) {
+      const index = this.rowData.indexOf(parent);
+      this.rowData.splice(index + 1, 0, ...parent.children);
+    } else {
+      this.rowData = this.rowData.filter(row => !parent.children.includes(row));
+    }
+    
+    this.gridApi.setGridOption('rowData', [...this.rowData]);
 
-        this.gridApi.forEachNode(childNode => {
-          if (childNode.data.isChild && node.data.children.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-            // FIX: Removed the third 'true' argument to satisfy AG Grid types
-            childNode.setSelected(isParentSelected, false); 
-          }
-        });
-      }
+    // Re-hydrate Selection checkmarks
+    this.gridApi.forEachNode((node: any) => {
+      const active = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+      if (active) node.setSelected(true, false);
     });
-    this.selectionChanged.emit(this.gridApi.getSelectedRows());
   }
 
-
-// Update toggleRowExpansion to ensure selection persists if parent is selected
-toggleRowExpansion(parent: any) {
-  parent.isExpanded = !parent.isExpanded;
-  
-  // Check if parent is selected BEFORE re-rendering
-  const parentNode = this.gridApi.getRowNode(parent.ocifId);
-  const shouldSelectChildren = parentNode ? !!parentNode.isSelected() : false;
-
-  if (parent.isExpanded) {
-    const index = this.rowData.indexOf(parent);
-    this.rowData.splice(index + 1, 0, ...parent.children);
-  } else {
-    this.rowData = this.rowData.filter(row => !parent.children.includes(row));
-  }
-  
-  this.gridApi.setGridOption('rowData', [...this.rowData]);
-
-  // If parent was selected, select the newly added children
-  if (parent.isExpanded && shouldSelectChildren) {
-    this.gridApi.forEachNode(node => {
-      if (parent.children.some((c: any) => c.ocifId === node.data.ocifId)) {
-        node.setSelected(true);
+  private syncVisibleChildren(parentNode: any, state: boolean) {
+    const ids = parentNode.data.children?.map((c: any) => c.ocifId) || [];
+    this.gridApi.forEachNode((n: any) => {
+      if (n.data.isChild && ids.includes(n.data.ocifId)) {
+        n.setSelected(state, false);
       }
     });
   }
-}
+
+  private findParentNode(childNode: any): any {
+    let foundParent = null;
+    this.gridApi.forEachNode((node: any) => {
+      if (node.data?.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
+        foundParent = node;
+      }
+    });
+    return foundParent;
+  }
 }
