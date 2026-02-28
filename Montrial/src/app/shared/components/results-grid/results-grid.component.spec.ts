@@ -12,14 +12,16 @@ describe('ResultsGridComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should verify Profile Name has sortable enabled', () => {
-    const profileCol = component.columnDefs.find(c => c.field === 'legalName');
-    expect(profileCol?.sortable).toBeTrue();
+  it('should deselect rows based on IDs provided from shell', () => {
+    const mockApi = jasmine.createSpyObj('GridApi', ['forEachNode']);
+    (component as any).gridApi = mockApi;
+    component.deselectRows(['OCIF-123']);
+    expect(mockApi.forEachNode).toHaveBeenCalled();
   });
 
-  it('should toggle expanded-parent-row class', () => {
-    const parentRow = { isParent: true, isExpanded: true };
-    const result = component.rowClassRules['expanded-parent-row']({ data: parentRow });
+  it('should apply expanded-parent-row class correctly', () => {
+    const parent = { isParent: true, isExpanded: true };
+    const result = component.rowClassRules['expanded-parent-row']({ data: parent });
     expect(result).toBeTrue();
   });
 });

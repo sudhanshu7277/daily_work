@@ -1,124 +1,128 @@
-import { Component, EventEmitter, Output, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, ChangeDetectorRef, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AgGridAngular } from 'ag-grid-angular';
-import { GridApi, GridReadyEvent, ColDef } from 'ag-grid-community';
+import { GridApi, GridReadyEvent, ColDef, RowClassRules } from 'ag-grid-community';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { TranslateModule } from '@ngx-translate/core';
+import { LegalHoldDataService } from '../../services/legal-hold-data.service';
 
 @Component({
   selector: 'app-results-grid',
   standalone: true,
-  imports: [CommonModule, AgGridAngular],
+  imports: [
+    CommonModule, FormsModule, ReactiveFormsModule, AgGridAngular, 
+    MatFormFieldModule, MatSelectModule, MatIconModule, MatButtonModule, TranslateModule
+  ],
   templateUrl: './results-grid.component.html',
   styleUrls: ['./results-grid.component.scss'],
-  encapsulation: ViewEncapsulation.None // Essential for overriding Ag-Grid internal borders
+  encapsulation: ViewEncapsulation.None
 })
 export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
-
+  
   private gridApi!: GridApi;
   public rowData: any[] = [];
-  public selectedRowsData: any[] = [];
-  
-  public rowClassRules = {
-    'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
-    'last-child-row': (params: any) => {
-      if (!params.data.isChild) return false;
-      const parent = this.rowData.find(p => p.isParent && p.children?.some((c: any) => c.ocifId === params.data.ocifId));
-      return !!(parent?.isExpanded && parent.children[parent.children.length - 1].ocifId === params.data.ocifId);
-    }
-  };
+  public showChipsSection = false;
+  public selectedFilterIds: string[] = [];
 
-  columnDefs: ColDef[] = [
-    { 
-      headerName: '', checkboxSelection: true, width: 50, pinned: 'left',
-      cellRenderer: (params: any) => params.data.isChild ? '' : null 
-    },
-    { 
-      field: 'legalName', 
-      headerName: 'Profile Name', 
-      width: 350, 
-      pinned: 'left',
-      sortable: true,
-      headerClass: 'profile-name-header', // For the vertical line
-      cellClass: 'profile-name-cell',   // For the vertical line
-      cellRenderer: (params: any) => {
-        const data = params.data;
-        const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
-        const carrotHtml = data.isParent ? `<span class="bmo-thin-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
-        return `<div class="name-cell-wrapper"><span class="${textClass}">${params.value}</span>${carrotHtml}</div>`;
-      },
-      onCellClicked: (params: any) => { if (params.data.isParent) this.toggleRowExpansion(params.data); }
-    },
-    { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
-    { 
-      field: 'status', 
-      headerName: 'Legal Hold Status', 
-      width: 180, 
-      sortable: true,
-      cellRenderer: (params: any) => params.value === 'LEGAL HOLD' ? 
-        `<div class="status-badge-container"><span class="status-pill-badge">LEGAL HOLD</span></div>` : 
-        `<span class="na-text">N/A</span>`
-    },
-    { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
-    { field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 220 },
-    { field: 'role', headerName: 'Role Type', width: 150 },
-    { field: 'address', headerName: 'Address', flex: 1 } // Flex ensures it fills the remaining width
+  public filterOptions = [
+    { id: 'ocifId', label: 'OCIF / Proxy ID' },
+    { id: 'status', label: 'Legal Hold Status' },
+    { id: 'holdName', label: 'Legal Hold Name' },
+    { id: 'lifecycle', label: 'Customer Lifecycle Status' },
+    { id: 'role', label: 'Role Type' },
+    { id: 'address', label: 'Address' }
   ];
 
-  ngOnInit() {
-    this.generateMockData();
+  // Restoring Row Class Rules for styling parent/child rows dynamically
+  public rowClassRules: RowClassRules = {
+    'grid-parent-row': (params) => params.data.isParent === true,
+    'grid-child-row': (params) => params.data.isChild === true,
+  };
+
+  constructor(
+    private legalHoldDataService: LegalHoldDataService, 
+    private cdr: ChangeDetectorRef
+  ) {
+    this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
   }
+
+  ngOnInit(): void {}
+
+  get activeFilters() {
+    return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
+  }
+
+  public columnDefs: ColDef[] = [
+    { headerName: '', checkboxSelection: true, width: 50, pinned: 'left', headerCheckboxSelection: true },
+    { 
+      field: 'legalName', headerName: 'Profile Name', width: 350, pinned: 'left',
+      headerClass: 'profile-column-separator', cellClass: 'profile-column-separator',
+      cellRenderer: (params: any) => {
+        const data = params.data;
+        if (!data) return '';
+        const carrot = data.isParent ? `<span class="bmo-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
+        const cls = data.isChild ? 'grid-child-text' : 'grid-parent-text';
+        return `<div class="name-cell-container"><span class="${cls}">${params.value}</span>${carrot}</div>`;
+      },
+      onCellClicked: (params: any) => { if (params.data.isParent) this.toggleExpand(params.data); }
+    },
+    { colId: 'ocifId', field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
+    { colId: 'status', field: 'status', headerName: 'Legal Hold Status', width: 180, 
+      cellRenderer: (p: any) => p.value === 'LEGAL HOLD' ? `<div class="status-pill">LEGAL HOLD</div>` : 'N/A' 
+    },
+    { colId: 'holdName', field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
+    { colId: 'lifecycle', field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 200 },
+    { colId: 'role', field: 'role', headerName: 'Role Type', width: 150 },
+    { colId: 'address', field: 'address', headerName: 'Address', flex: 1 }
+  ];
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
     this.gridApi.sizeColumnsToFit();
-    
-    // Watch for window resize to maintain full width
-    window.addEventListener('resize', () => {
-      setTimeout(() => this.gridApi?.sizeColumnsToFit(), 100);
+  }
+
+  public onFilterChange() {
+    this.filterOptions.forEach(opt => {
+      this.gridApi.setColumnVisible(opt.id, this.selectedFilterIds.includes(opt.id));
+    });
+    setTimeout(() => this.gridApi.sizeColumnsToFit());
+  }
+
+  public removeFilter(id: string) {
+    this.selectedFilterIds = this.selectedFilterIds.filter(fId => fId !== id);
+    this.onFilterChange();
+  }
+
+  public performSearch(criteria: any): void {
+    this.rowData = this.legalHoldDataService.postApiSearchResult(criteria);
+    this.showChipsSection = this.rowData.length > 0;
+    this.cdr.detectChanges();
+  }
+
+  public deselectRow(item: any): void {
+    this.gridApi.forEachNode(node => {
+      if (node.data.ocifId === item.ocifId) node.setSelected(false);
     });
   }
 
-  toggleRowExpansion(parent: any) {
-    parent.isExpanded = !parent.isExpanded;
-    if (parent.isExpanded) {
-      const idx = this.rowData.indexOf(parent);
-      this.rowData.splice(idx + 1, 0, ...parent.children);
+  public onSelectionChanged() {
+    this.selectionChanged.emit(this.gridApi.getSelectedRows());
+  }
+
+  private toggleExpand(row: any) {
+    row.isExpanded = !row.isExpanded;
+    if (row.isExpanded) {
+      const idx = this.rowData.findIndex(r => r.ocifId === row.ocifId);
+      this.rowData.splice(idx + 1, 0, ...row.children);
     } else {
-      this.rowData = this.rowData.filter(r => !parent.children.includes(r));
+      const childIds = row.children.map((c: any) => c.ocifId);
+      this.rowData = this.rowData.filter(r => !childIds.includes(r.ocifId));
     }
-    this.gridApi.setGridOption('rowData', [...this.rowData]);
-  }
-
-  private generateMockData() {
-    this.rowData = [
-      {
-        ocifId: 'OCIF-9921',
-        legalName: 'BMO Global Asset Management',
-        status: 'LEGAL HOLD',
-        holdName: 'Project North Star',
-        lifecycle: 'Active - Retention',
-        role: 'Custodian',
-        address: '100 King St W, Toronto',
-        isParent: true,
-        isExpanded: false,
-        children: [
-          { ocifId: 'CH-9921-A', legalName: 'GAM Alpha Sub-Fund', isChild: true, status: 'N/A' },
-          { ocifId: 'CH-9921-B', legalName: 'GAM Beta Sub-Fund', isChild: true, status: 'LEGAL HOLD' }
-        ]
-      },
-      {
-        ocifId: 'OCIF-4412',
-        legalName: 'Capital One Financial Corp',
-        status: 'N/A',
-        isParent: false,
-        address: 'McLean, Virginia'
-      }
-    ];
-  }
-
-  onSelectionChanged() {
-    const nodes = this.gridApi.getSelectedNodes();
-    this.selectedRowsData = nodes.map(n => n.data);
-    this.selectionChanged.emit(this.selectedRowsData);
+    this.rowData = [...this.rowData];
   }
 }

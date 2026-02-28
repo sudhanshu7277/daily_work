@@ -3,44 +3,23 @@
     <div class="tab-heading">
       <h2>Manage legal hold</h2>
     </div>
+
     <nav class="tab-header">
-      <button 
-        (click)="currentTab='customer'" 
-        [class.active]="currentTab==='customer'">Search by Customer</button>
-      <button 
-        (click)="currentTab='product'" 
-        [class.active]="currentTab==='product'">Search by Product</button>
-      <button 
-        (click)="currentTab='hold'" 
-        [class.active]="currentTab==='hold'">Search by Legal Hold</button>
+      <button [class.active]="currentTab === 'customer'" (click)="currentTab = 'customer'">Search by Customer</button>
+      <button [class.active]="currentTab === 'product'" (click)="currentTab = 'product'">Search by Product</button>
+      <button [class.active]="currentTab === 'hold'" (click)="currentTab = 'hold'">Search by Legal Hold</button>
     </nav>
 
     <div class="search-section">
-      <app-search-customer 
-        *ngIf="currentTab==='customer'" 
-        (searchTriggered)="onSearch($event)">
-      </app-search-customer>
-      
-      <app-search-product 
-        *ngIf="currentTab==='product'" 
-        (searchTriggered)="onSearch($event)">
-      </app-search-product>
-      
-      <app-search-legal-hold 
-        *ngIf="currentTab==='hold'" 
-        (searchTriggered)="onSearch($event)">
-      </app-search-legal-hold>
-    </div>
+      <app-search-customer *ngIf="currentTab === 'customer'" (searchTriggered)="onSearch($event)"></app-search-customer>
+      </div>
 
-    <app-results-grid 
-      #resultsGrid 
-      (selectionChanged)="handleSelectionChange($event)">
-    </app-results-grid>
+    <app-results-grid (selectionChanged)="handleSelectionChange($event)"></app-results-grid>
   </div>
 
   <div class="sidebar-column">
     <app-selection-panel 
-      [selectedProfiles]="selectedList"
+      [selectedProfiles]="selectedList" 
       (removeProfile)="handleRemoveProfile($event)">
     </app-selection-panel>
   </div>
