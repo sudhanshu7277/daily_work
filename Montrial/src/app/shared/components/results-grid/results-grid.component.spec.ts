@@ -12,13 +12,14 @@ describe('ResultsGridComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should initialize with mock data', () => {
-    expect(component.rowData.length).toBeGreaterThan(0);
+  it('should verify Profile Name has sortable enabled', () => {
+    const profileCol = component.columnDefs.find(c => c.field === 'legalName');
+    expect(profileCol?.sortable).toBeTrue();
   });
 
-  it('should apply the expanded-parent-row class correctly', () => {
-    const parent = { isParent: true, isExpanded: true };
-    const result = component.rowClassRules['expanded-parent-row']({ data: parent });
+  it('should toggle expanded-parent-row class', () => {
+    const parentRow = { isParent: true, isExpanded: true };
+    const result = component.rowClassRules['expanded-parent-row']({ data: parentRow });
     expect(result).toBeTrue();
   });
 });

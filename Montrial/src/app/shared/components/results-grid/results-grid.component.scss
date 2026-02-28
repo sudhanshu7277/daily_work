@@ -1,57 +1,71 @@
 $bmo-blue: #0079C1;
 $bmo-navy: #001a4d;
-$bmo-light-bg: #F8FBFF; // Light blue background for expanded group
+$bmo-light-bg: #F8FBFF;
+$border-color: #E0E0E0;
+
+// Grid Full Width Container
+.results-grid-container {
+  width: 100%;
+  height: 600px;
+}
 
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
+    --ag-border-color: transparent; // Removes those small default blue/grey separators
+    --ag-header-column-separator-display: none; // Removes small vertical lines in header
+    --ag-header-background-color: #ffffff;
+    
     border: none;
 
-    // Expanded parent background
+    // 1. The Vertical Line separator to the right of Profile Name
+    .profile-name-header, .profile-name-cell {
+      border-right: 1px solid #CCCCCC !important; 
+    }
+
+    // 2. Custom Sorting Arrows (Up/Down)
+    .ag-header-cell-label {
+      .ag-sort-ascending-icon, .ag-sort-descending-icon {
+        color: $bmo-blue;
+      }
+      .ag-header-cell-text { font-weight: 700; color: #444; }
+    }
+
+    // 3. Row Grouping & Figma Background
     .ag-row.expanded-parent-row {
       background-color: $bmo-light-bg !important;
       border-top: 1.5px solid $bmo-blue !important;
     }
 
-    // Border to encapsulate children group
     .ag-row.last-child-row {
       border-bottom: 2px solid $bmo-blue !important;
     }
 
-    .name-cell-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .grid-parent-text { font-weight: 700; color: #333; }
-    .grid-child-text { margin-left: 42px; color: $bmo-blue; font-weight: 500; }
-
-    // Status Pill
-    .status-pill-badge {
-      background-color: $bmo-navy !important;
-      color: #ffffff !important;
-      font-weight: 700;
-      font-size: 10px;
-      padding: 3px 12px;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-
-    // The Custom Thin Carrot
+    // 4. Custom Carrot for Grouping
     .bmo-thin-carrot {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-right: 2px solid $bmo-blue;
       border-bottom: 2px solid $bmo-blue;
       display: inline-block;
-      cursor: pointer;
-      transition: transform 0.3s ease;
-      
-      &.down { transform: rotate(45deg); margin-top: -4px; }
-      &.up { transform: rotate(-135deg); margin-top: 4px; }
+      transition: transform 0.3s;
+      &.down { transform: rotate(45deg); }
+      &.up { transform: rotate(-135deg); }
     }
 
-    // Header Sort Icons
-    .ag-header-cell-label { font-weight: 700; }
+    // 5. Status Pill (Figma Navy)
+    .status-pill-badge {
+      background-color: $bmo-navy !important;
+      color: #fff;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 2px 10px;
+      border-radius: 4px;
+    }
+
+    // Indent for child text
+    .grid-child-text {
+      margin-left: 42px;
+      color: $bmo-blue;
+    }
   }
 }

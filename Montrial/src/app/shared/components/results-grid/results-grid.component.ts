@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AgGridAngular } from 'ag-grid-angular';
 import { GridApi, GridReadyEvent, ColDef } from 'ag-grid-community';
@@ -8,7 +8,8 @@ import { GridApi, GridReadyEvent, ColDef } from 'ag-grid-community';
   standalone: true,
   imports: [CommonModule, AgGridAngular],
   templateUrl: './results-grid.component.html',
-  styleUrls: ['./results-grid.component.scss']
+  styleUrls: ['./results-grid.component.scss'],
+  encapsulation: ViewEncapsulation.None // Essential for overriding Ag-Grid internal borders
 })
 export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
@@ -16,8 +17,7 @@ export class ResultsGridComponent implements OnInit {
   private gridApi!: GridApi;
   public rowData: any[] = [];
   public selectedRowsData: any[] = [];
-  private selectionInProgress = false;
-
+  
   public rowClassRules = {
     'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
     'last-child-row': (params: any) => {
@@ -33,8 +33,13 @@ export class ResultsGridComponent implements OnInit {
       cellRenderer: (params: any) => params.data.isChild ? '' : null 
     },
     { 
-      field: 'legalName', headerName: 'Profile Name', width: 320, pinned: 'left', 
-      sortable: true, unSortIcon: true,
+      field: 'legalName', 
+      headerName: 'Profile Name', 
+      width: 350, 
+      pinned: 'left',
+      sortable: true,
+      headerClass: 'profile-name-header', // For the vertical line
+      cellClass: 'profile-name-cell',   // For the vertical line
       cellRenderer: (params: any) => {
         const data = params.data;
         const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
@@ -45,7 +50,10 @@ export class ResultsGridComponent implements OnInit {
     },
     { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
     { 
-      field: 'status', headerName: 'Legal Hold Status', width: 180, sortable: true, unSortIcon: true,
+      field: 'status', 
+      headerName: 'Legal Hold Status', 
+      width: 180, 
+      sortable: true,
       cellRenderer: (params: any) => params.value === 'LEGAL HOLD' ? 
         `<div class="status-badge-container"><span class="status-pill-badge">LEGAL HOLD</span></div>` : 
         `<span class="na-text">N/A</span>`
@@ -53,7 +61,7 @@ export class ResultsGridComponent implements OnInit {
     { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
     { field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 220 },
     { field: 'role', headerName: 'Role Type', width: 150 },
-    { field: 'address', headerName: 'Address', flex: 1 }
+    { field: 'address', headerName: 'Address', flex: 1 } // Flex ensures it fills the remaining width
   ];
 
   ngOnInit() {
@@ -63,6 +71,22 @@ export class ResultsGridComponent implements OnInit {
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
     this.gridApi.sizeColumnsToFit();
+    
+    // Watch for window resize to maintain full width
+    window.addEventListener('resize', () => {
+      setTimeout(() => this.gridApi?.sizeColumnsToFit(), 100);
+    });
+  }
+
+  toggleRowExpansion(parent: any) {
+    parent.isExpanded = !parent.isExpanded;
+    if (parent.isExpanded) {
+      const idx = this.rowData.indexOf(parent);
+      this.rowData.splice(idx + 1, 0, ...parent.children);
+    } else {
+      this.rowData = this.rowData.filter(r => !parent.children.includes(r));
+    }
+    this.gridApi.setGridOption('rowData', [...this.rowData]);
   }
 
   private generateMockData() {
@@ -78,76 +102,23 @@ export class ResultsGridComponent implements OnInit {
         isParent: true,
         isExpanded: false,
         children: [
-          { ocifId: 'CH-9921-A', legalName: 'GAM Alpha Sub-Fund', isChild: true, status: 'N/A', lifecycle: 'Active', role: 'Beneficiary' },
-          { ocifId: 'CH-9921-B', legalName: 'GAM Beta Sub-Fund', isChild: true, status: 'LEGAL HOLD', lifecycle: 'Active', role: 'Beneficiary' }
+          { ocifId: 'CH-9921-A', legalName: 'GAM Alpha Sub-Fund', isChild: true, status: 'N/A' },
+          { ocifId: 'CH-9921-B', legalName: 'GAM Beta Sub-Fund', isChild: true, status: 'LEGAL HOLD' }
         ]
       },
       {
         ocifId: 'OCIF-4412',
         legalName: 'Capital One Financial Corp',
         status: 'N/A',
-        holdName: 'N/A',
-        lifecycle: 'Closed',
-        role: 'Principal',
-        address: '1680 Capital One Dr, McLean',
-        isParent: false
-      },
-      {
-        ocifId: 'OCIF-1102',
-        legalName: 'Royal Bank of Canada',
-        status: 'LEGAL HOLD',
-        holdName: 'Project Horizon',
-        lifecycle: 'Active',
-        role: 'Custodian',
-        address: '200 Bay St, Toronto',
-        isParent: true,
-        isExpanded: false,
-        children: [
-          { ocifId: 'CH-1102-01', legalName: 'RBC Investor Services', isChild: true, status: 'LEGAL HOLD', lifecycle: 'Active', role: 'Subsidiary' }
-        ]
+        isParent: false,
+        address: 'McLean, Virginia'
       }
     ];
   }
 
   onSelectionChanged() {
-    if (this.selectionInProgress || !this.gridApi) return;
-    this.selectionInProgress = true;
-    const selectedNodes = this.gridApi.getSelectedNodes();
-    const finalMap = new Map<string, any>();
-    selectedNodes.forEach(node => { if (node.data) finalMap.set(node.data.ocifId, node.data); });
-
-    this.gridApi.forEachNode((node: any) => {
-      const wasSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
-      if (node.data.isParent && node.isSelected() && !wasSelected) {
-        node.data.children?.forEach((c: any) => finalMap.set(c.ocifId, c));
-        this.syncVisibleCheckmarks(node, true);
-      } else if (node.data.isParent && !node.isSelected() && wasSelected) {
-        node.data.children?.forEach((c: any) => finalMap.delete(c.ocifId));
-        this.syncVisibleCheckmarks(node, false);
-      }
-    });
-
-    this.selectedRowsData = Array.from(finalMap.values());
+    const nodes = this.gridApi.getSelectedNodes();
+    this.selectedRowsData = nodes.map(n => n.data);
     this.selectionChanged.emit(this.selectedRowsData);
-    this.selectionInProgress = false;
-  }
-
-  private syncVisibleCheckmarks(parentNode: any, state: boolean) {
-    const ids = parentNode.data.children?.map((c: any) => c.ocifId) || [];
-    this.gridApi.forEachNode(node => { if (ids.includes(node.data?.ocifId)) node.setSelected(state, false); });
-  }
-
-  toggleRowExpansion(parent: any) {
-    parent.isExpanded = !parent.isExpanded;
-    if (parent.isExpanded) {
-      const idx = this.rowData.indexOf(parent);
-      this.rowData.splice(idx + 1, 0, ...parent.children);
-    } else {
-      this.rowData = this.rowData.filter(r => !parent.children.includes(r));
-    }
-    this.gridApi.setGridOption('rowData', [...this.rowData]);
-    this.gridApi.forEachNode(node => {
-      if (this.selectedRowsData.some(s => s.ocifId === node.data.ocifId)) node.setSelected(true, false);
-    });
   }
 }

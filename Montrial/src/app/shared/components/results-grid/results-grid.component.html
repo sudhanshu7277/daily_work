@@ -41,17 +41,17 @@
     </div>
   }
 
-  <div class="grid-container">
+  <div class="results-grid-container">
   <ag-grid-angular
-    style="width: 100%; height: 600px;"
+    style="width: 100%; height: 100%;"
     class="ag-theme-alpine bmo-grid"
     [rowData]="rowData"
     [columnDefs]="columnDefs"
     [rowSelection]="'multiple'"
     [pagination]="true"
-    [paginationPageSize]="10"
     [rowClassRules]="rowClassRules"
     [suppressRowClickSelection]="true"
+    [animateRows]="true"
     (gridReady)="onGridReady($event)"
     (selectionChanged)="onSelectionChanged()">
   </ag-grid-angular>
