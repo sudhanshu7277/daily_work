@@ -1,0 +1,7 @@
+/* Overriding the package theme in the consuming app's global styles */
+lib-maker-form {
+    --primary-color: #007bff;    /* Change submit button to a lighter blue */
+    --bg-section: #fff3cd;      /* Change section headers to a warning yellow */
+    --error-color: #ff0000;     /* Sharper red for errors */
+    --border-color: #000000;    /* High contrast borders */
+  }

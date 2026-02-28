@@ -1,0 +1,26 @@
+// Material styling tweaks to match the image
+.custom-section-header {
+    background-color: #f1f3f5 !important; // Match the light grey bar in image
+    font-weight: 700;
+    color: #495057;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .card {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+  }
+  
+  // Ensure Material form fields take up full width of Bootstrap columns
+  .mat-mdc-form-field {
+    display: block;
+    width: 100%;
+  }
+  
+  // Primary button color to match the image navy
+  .mat-primary {
+    background-color: #002b5c !important;
+    color: white !important;
+  }
