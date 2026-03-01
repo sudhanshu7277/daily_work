@@ -93,32 +93,42 @@
 /* results-grid.component.scss */
 
 .ag-theme-alpine.bmo-grid {
-  /* 1. Parent Row: Light Blue background + Dark Blue Top Border */
+  /* PARENT: Light blue background + Dark blue top border */
   .ag-row.expanded-parent-row {
     background-color: #E8F4FD !important;
-    border-top: 2px solid #004c97 !important; /* Dark BMO Blue */
-    z-index: 5; /* Ensure the border sits above other rows */
+    border-top: 2px solid #004c97 !important; 
+    z-index: 10; /* Ensures the top border stays visible */
+
+    /* Ensure it stays blue even if the user clicks the checkbox */
+    &.ag-row-selected::before {
+      background-color: transparent !important;
+    }
   }
 
-  /* 2. Child Rows: Force White Background */
+  /* CHILD: Pure white background */
   .ag-row.child-row {
     background-color: #ffffff !important;
-    border: none !important;
+    border-top: none !important;
+    
+    /* Optional: Remove the checkbox blue from child rows too */
+    &.ag-row-selected::before {
+      background-color: transparent !important;
+    }
   }
 
-  /* 3. Group Bottom Border:
-     Target the last child row in an expanded group to close the box */
+  /* BOTTOM BORDER: The dark blue line at the end of the group */
+  /* We target the last child of an expanded group */
   .ag-row.child-row:last-of-type {
     border-bottom: 2px solid #004c97 !important;
   }
 
-  /* 4. Selection Fix: 
-     Ensure clicking the checkbox doesn't turn the row a different blue */
-  .ag-row-selected::before {
-    background-color: transparent !important;
+  /* CLEANUP: Remove default AG Grid focus/hover interference */
+  .ag-cell-focus {
+    border: none !important;
+    outline: none !important;
   }
   
-  .ag-row-selected:not(.expanded-parent-row) {
-    background-color: #ffffff !important;
+  .ag-row:hover {
+     background-color: rgba(0, 0, 0, 0.02) !important;
   }
 }

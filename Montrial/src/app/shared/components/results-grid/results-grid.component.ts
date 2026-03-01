@@ -147,20 +147,23 @@ public columnDefs: ColDef[] = [
 
 
 // GROUPING CODE START
-// Define the class logic based on the 'expanded' state
+// results-grid.component.ts
+
 public getRowClass = (params: any) => {
+  // 1. If the row is currently expanded (The Parent)
   if (params.node && params.node.expanded) {
     return 'expanded-parent-row';
   }
-  // This uses your 'isChild' property from the service to keep children white
+  // 2. If it's a child row (The Nested Data)
   if (params.data && params.data.isChild) {
     return 'child-row';
   }
   return '';
 };
 
-// Force a redraw when the carrot is clicked to flip the blue background
 onRowGroupOpened(params: any) {
+  // This is vital: it forces the grid to re-apply getRowClass 
+  // to the parent row the moment the carrot is clicked.
   params.api.redrawRows({ rowNodes: [params.node] });
 }
 
