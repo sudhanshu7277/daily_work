@@ -179,6 +179,8 @@ onSelectionChanged() {
     this.selectionInProgress = false;
   }
 }
+
+
 // on selection changed function end
 
   private toggleExpand(row: any) {
@@ -199,47 +201,124 @@ onSelectionChanged() {
 
 // results-grid.component.ts
 
+// Updated getRowClass to use our new manual tags
+// public getRowClass = (params: any) => {
+//   const classes = [];
+  
+//   if (params.data?.isActiveParent) {
+//     classes.push('figma-parent-expanded');
+//   }
+  
+//   if (params.data?.isGroupChild) {
+//     classes.push('figma-child-row');
+//   }
+
+//   return classes.join(' ');
+// };
+
 onRowGroupOpened(params: any) {
-  const isExpanded = params.node.expanded;
   const rowNode = params.node;
+  const isExpanded = rowNode.expanded;
 
-  // 1. Tag the parent data so the grid knows it's active
-  if (rowNode.data) {
-    rowNode.data.isActiveParent = isExpanded;
+  // 1. Get the actual HTML element for the parent row
+  const parentElement = params.api.getRowElement(rowNode.rowIndex);
+  
+  if (parentElement) {
+    if (isExpanded) {
+      // FORCE the Figma Parent look
+      parentElement.style.backgroundColor = '#E8F4FD';
+      parentElement.style.borderTop = '2px solid #004c97';
+      parentElement.classList.add('is-sandwich-parent');
+    } else {
+      // Remove styles when closed
+      parentElement.style.backgroundColor = '';
+      parentElement.style.borderTop = '';
+      parentElement.classList.remove('is-sandwich-parent');
+    }
   }
 
-  // 2. Identify and tag the children
-  // This ensures they stay white and indented regardless of grid internal logic
-  if (rowNode.allLeafChildren) {
-    rowNode.allLeafChildren.forEach((childNode: any) => {
-      if (childNode.data) {
-        childNode.data.isGroupChild = isExpanded;
-      }
-    });
+  // 2. Handle Children Indentation (Direct DOM manipulation)
+  // We use a tiny timeout to ensure AG Grid has finished rendering the children
+  setTimeout(() => {
+    if (isExpanded && rowNode.allLeafChildren) {
+      rowNode.allLeafChildren.forEach((childNode: any) => {
+        const childElement = params.api.getRowElement(childNode.rowIndex);
+        if (childElement) {
+          childElement.style.backgroundColor = '#ffffff';
+          // Find the cell wrapper and push it right
+          const wrapper = childElement.querySelector('.ag-cell-wrapper') as HTMLElement;
+          if (wrapper) {
+            wrapper.style.paddingLeft = '48px';
+          }
+        }
+      });
+    }
+  }, 10);
+}
+
+// second onRowGroupOpened function
+
+// results-grid.component.ts
+
+onRowGroupOpened(params: any) {
+  // 1. Mark the parent data as expanded
+  if (params.node && params.node.data) {
+    params.node.data.isGroupOpen = params.node.expanded;
   }
 
-  // 3. REFRESH ONLY: Use refreshCells to avoid the checkbox 'unselect' bug.
-  // This updates the UI without destroying the DOM elements.
+  // 2. Use refreshCells instead of redrawRows. 
+  // This updates the CSS classes INSTANTLY without breaking the checkbox 'unselect' event.
   params.api.refreshCells({
-    rowNodes: [rowNode, ...rowNode.allLeafChildren],
+    rowNodes: [params.node],
     force: true
   });
 }
 
-// Updated getRowClass to use our new manual tags
 public getRowClass = (params: any) => {
   const classes = [];
   
-  if (params.data?.isActiveParent) {
-    classes.push('figma-parent-expanded');
+  // Apply the 'Blue Sandwich' class if the data is marked as open
+  if (params.data && params.data.isGroupOpen) {
+    classes.push('blue-sandwich-parent');
   }
-  
-  if (params.data?.isGroupChild) {
-    classes.push('figma-child-row');
+
+  if (params.data && params.data.isChild) {
+    classes.push('white-sandwich-child');
   }
 
   return classes.join(' ');
 };
+
+// end of second onRowGroupOpened
+
+onSelectionChanged() {
+  if (this.selectionInProgress || !this.gridApi) return;
+  this.selectionInProgress = true;
+
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  
+  // Use a Set for lightning-fast ID checks
+  const currentSelectedIds = new Set(selectedNodes.map(n => n.data?.ocifId));
+
+  selectedNodes.forEach((node: any) => {
+    if (node.data?.isParent) {
+      // If a parent is selected, select all its children directly
+      node.data.children?.forEach((child: any) => {
+        const childNode = this.gridApi.getRowNode(child.ocifId);
+        if (childNode && !childNode.isSelected()) {
+          childNode.setSelected(true, false); // false = don't re-trigger this event
+        }
+      });
+    }
+  });
+
+  // FINALIZE: Update your local array for the rest of the app
+  this.selectedRowsData = selectedNodes.map(n => n.data);
+  
+  this.selectionInProgress = false;
+  this.selectionChanged.emit(this.selectedRowsData);
+}
+
 // GROUPING CODE END
 
 
@@ -383,4 +462,28 @@ onPageSizeChange(event: any) {
     font-size: 14px;
     color: #333;
   }
+}
+
+
+onSelectionChanged() {
+  if (this.selectionInProgress || !this.gridApi) return;
+  this.selectionInProgress = true;
+
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  
+  // Logic: When parent is unselected, unselect children immediately via ID
+  this.gridApi.forEachNode((node: any) => {
+    if (node.data?.isParent && !node.isSelected()) {
+      node.data.children?.forEach((child: any) => {
+        const childNode = this.gridApi.getRowNode(child.ocifId);
+        if (childNode && childNode.isSelected()) {
+          childNode.setSelected(false, false); // No event loop
+        }
+      });
+    }
+  });
+
+  this.selectedRowsData = selectedNodes.map(n => n.data);
+  this.selectionInProgress = false;
+  this.selectionChanged.emit(this.selectedRowsData);
 }
