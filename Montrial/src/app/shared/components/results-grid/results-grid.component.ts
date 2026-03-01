@@ -147,27 +147,24 @@ public columnDefs: ColDef[] = [
 
 
 // GROUPING CODE START
-// results-grid.component.ts
 
 // results-grid.component.ts
 
 public getRowClass = (params: any) => {
   const classes = [];
 
-  // 1. If row is expanded (The Parent)
+  // 1. Logic for Parent Row Background & Top Border
   if (params.node && params.node.expanded) {
     classes.push('expanded-parent-row');
   }
 
-  // 2. If it is a child record
+  // 2. Logic for Child Row Indentation
   if (params.data && params.data.isChild) {
     classes.push('child-row');
-
-    // 3. Logic to find the LAST child to apply the bottom dark blue border
+    
+    // Logic for Group Bottom Border (Dark Blue line at the very end)
     const rowIndex = params.node.rowIndex;
     const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
-    
-    // If next row doesn't exist or isn't a child, this is the end of the group
     if (!nextNode || !nextNode.data || !nextNode.data.isChild) {
       classes.push('last-child-item');
     }
@@ -176,10 +173,11 @@ public getRowClass = (params: any) => {
   return classes.join(' ');
 };
 
-// This MUST be present to toggle the colors immediately on click
+// This ensures the blue background and borders toggle immediately
 onRowGroupOpened(params: any) {
   params.api.redrawRows(); 
 }
+
 // GROUPING CODE END
 
 

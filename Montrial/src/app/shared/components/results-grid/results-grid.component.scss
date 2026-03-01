@@ -93,31 +93,46 @@
 /* results-grid.component.scss */
 
 .ag-theme-alpine.bmo-grid {
-  /* PARENT: Light Blue Background + Dark Blue Top Border */
+  /* 1. Parent Background & Top Border */
   .ag-row.expanded-parent-row {
     background-color: #E8F4FD !important;
-    border-top: 2px solid #004c97 !important; /* The top of the sandwich */
-    z-index: 2;
+    border-top: 2px solid #004c97 !important; /* Dark Blue Top Border */
+    z-index: 5;
+
+    /* Prevent selection color from overriding the light blue */
+    &.ag-row-selected::before {
+      background-color: transparent !important;
+    }
   }
 
-  /* CHILD: Keep it pure white */
+  /* 2. Child Row Indentation & White Background */
   .ag-row.child-row {
     background-color: #ffffff !important;
     border-top: none !important;
+
+    /* Indent cells to show hierarchy */
+    .ag-cell {
+      padding-left: 44px !important; /* Moves text/checkbox to the right */
+    }
+
+    /* Keep checkboxes white even when selected */
+    &.ag-row-selected::before {
+      background-color: transparent !important;
+    }
   }
 
-  /* BOTTOM BORDER: Dark Blue line on the very last child row */
+  /* 3. Group Bottom Border */
   .ag-row.last-child-item {
-    border-bottom: 2px solid #004c97 !important; /* The bottom of the sandwich */
+    border-bottom: 2px solid #004c97 !important; /* Dark Blue Bottom Border */
   }
 
-  /* RESET SELECTION: Stop the checkbox from turning the row a different blue */
-  .ag-row-selected::before {
-    background-color: transparent !important;
+  /* 4. Cleanup Hover & Focus */
+  .ag-row.expanded-parent-row:hover {
+    background-color: #E8F4FD !important;
   }
   
-  /* Optional: Indent child rows so they look nested under the parent */
-  .ag-row.child-row .ag-cell {
-    padding-left: 40px !important;
+  .ag-cell-focus {
+    border: none !important;
+    outline: none !important;
   }
 }
