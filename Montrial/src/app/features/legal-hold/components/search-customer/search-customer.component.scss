@@ -22,6 +22,22 @@
     }
   }
 
+  // In search-customer.component.scss
+
+.form-grid {
+  display: flex; // Starts the Flexbox layout
+  flex-direction: row; // Aligns items horizontally in a row (default for flex, so this is just for explicitness)
+  align-items: center; // Vertically center-aligns all elements (labels, inputs, stars)
+  gap: 1.5rem; // Adds a clean horizontal space between each element, adjust value as needed for desired spacing
+  flex-wrap: nowrap; // Prevents any element from wrapping to a new line
+}
+
+/* This is a more aggressive rule that guarantees the three input fields themselves are horizontally arranged in a single line. */
+.form-grid > mat-form-field {
+  flex: 1; // Forces the input fields to grow and share the available horizontal space equally
+  margin: 0; // Clears any default margins that might interfere
+}
+
   .advanced-options {
     display: flex;
     align-items: center;
