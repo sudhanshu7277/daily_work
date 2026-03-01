@@ -1,41 +1,45 @@
-$bmo-blue: #0079C1;
-
-.results-container {
-  width: 100%;
-  .results-header h3 { font-size: 18px; font-weight: 400; color: #333; margin-bottom: 20px; }
-  .filter-controls { width: 320px; margin-bottom: 16px; }
-
-  .chips-row {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-    .showing-label { font-size: 14px; font-weight: 700; color: #333; }
-    .bmo-chip {
-      display: flex; align-items: center; background: #E7F2F9; color: $bmo-blue;
-      padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
-      mat-icon { font-size: 18px; width: 18px; height: 18px; margin-left: 6px; cursor: pointer; }
-    }
-    .reset-btn { color: $bmo-blue; font-weight: 700; font-size: 13px; text-decoration: underline; }
-  }
+/* Ensure the container allows full width */
+.grid-wrapper {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%); /* Centers if inside a container */
 }
 
-::ng-deep .bmo-grid {
-  border: none !important;
-  .profile-column-separator { border-right: 1.5px solid #D1D1D1 !important; }
-  
-  .name-cell-container {
-    display: flex; justify-content: space-between; align-items: center; width: 100%;
-    .grid-parent-text { font-weight: 700; color: #000; }
-    .grid-child-text { margin-left: 28px; color: $bmo-blue; font-weight: 600; }
-  }
+::ng-deep {
+    /* 1. Remove the blue lines/borders from current implementation */
+    .ag-theme-alpine {
+        --ag-range-selection-border-color: transparent;
+        --ag-row-border-color: #e2e2e2;
+        --ag-header-column-separator-display: block;
+        --ag-header-column-separator-color: transparent;
+        
+        .ag-row {
+            border-bottom: 1px solid #e2e2e2 !important;
+            &.ag-row-selected {
+                background-color: #f0f7fb !important; /* Light blue highlight from Figma */
+            }
+        }
 
-  .bmo-carrot {
-    width: 8px; height: 8px; border-right: 2.5px solid $bmo-blue; border-bottom: 2.5px solid $bmo-blue;
-    transition: transform 0.2s;
-    &.down { transform: rotate(45deg); margin-bottom: 4px; }
-    &.up { transform: rotate(-135deg); margin-top: 4px; }
-  }
+        /* 2. Add the vertical black separator after Profile Name */
+        .profile-name-header-separator, 
+        .profile-name-cell-separator {
+            border-right: 2px solid #000000 !important; /* Thick black separator */
+        }
 
-  .status-pill {
-    background: #001e42; color: #fff; padding: 3px 10px; border-radius: 4px;
-    font-size: 11px; font-weight: 700; text-align: center; width: fit-content;
-  }
+        /* Styling for Sort Arrows */
+        .ag-header-icon {
+            color: #666;
+            opacity: 1 !important;
+        }
+    }
+
+    /* Style for the Legal Hold Pill */
+    .legal-hold-pill {
+        background-color: #002e67;
+        color: white;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: bold;
+        display: inline-block;
+    }
 }

@@ -57,29 +57,56 @@ export class ResultsGridComponent implements OnInit {
     return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
   }
 
-  public columnDefs: ColDef[] = [
-    { headerName: '', checkboxSelection: true, width: 50, pinned: 'left', headerCheckboxSelection: true },
-    { 
-      field: 'legalName', headerName: 'Profile Name', width: 350, pinned: 'left',
-      headerClass: 'profile-column-separator', cellClass: 'profile-column-separator',
-      cellRenderer: (params: any) => {
+public columnDefs: ColDef[] = [
+  { 
+    headerName: '', 
+    checkboxSelection: true, 
+    width: 50, 
+    pinned: 'left', 
+    headerCheckboxSelection: true 
+  },
+  { 
+    field: 'legalName', 
+    headerName: 'Profile Name', 
+    sortable: true, // Enables up/down arrows for sorting
+    unSortIcon: true, // Shows arrows even when not sorted
+    width: 300,
+    pinned: 'left',
+    headerClass: 'profile-name-header-separator',
+    cellClass: 'profile-name-cell-separator',
+    cellRenderer: (params: any) => {
+        // Implementation for the name and carrot icon
         const data = params.data;
-        if (!data) return '';
-        const carrot = data.isParent ? `<span class="bmo-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
-        const cls = data.isChild ? 'grid-child-text' : 'grid-parent-text';
-        return `<div class="name-cell-container"><span class="${cls}">${params.value}</span>${carrot}</div>`;
-      },
-      onCellClicked: (params: any) => { if (params.data.isParent) this.toggleExpand(params.data); }
-    },
-    { colId: 'ocifId', field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
-    { colId: 'status', field: 'status', headerName: 'Legal Hold Status', width: 180, 
-      cellRenderer: (p: any) => p.value === 'LEGAL HOLD' ? `<div class="status-pill">LEGAL HOLD</div>` : 'N/A' 
-    },
-    { colId: 'holdName', field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
-    { colId: 'lifecycle', field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 200 },
-    { colId: 'role', field: 'role', headerName: 'Role Type', width: 150 },
-    { colId: 'address', field: 'address', headerName: 'Address', flex: 1 }
-  ];
+        const carrot = data?.isParent ? `<span class="carrot-icon ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
+        return `<span>${params.value}</span> ${carrot}`;
+    }
+  },
+  { 
+    field: 'ocifId', 
+    headerName: 'OCIF / Proxy ID', 
+    width: 150 
+  },
+  { 
+    field: 'status', 
+    headerName: 'Legal Hold Status', 
+    sortable: true, // Enables up/down arrows for sorting
+    unSortIcon: true,
+    width: 180,
+    cellRenderer: (params: any) => {
+        return params.value === 'LEGAL HOLD' 
+            ? `<div class="legal-hold-pill">LEGAL HOLD</div>` 
+            : 'N/A';
+    }
+  },
+  { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
+  { field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 200 },
+  { field: 'role', headerName: 'Role Type', width: 120 },
+  { 
+    field: 'address', 
+    headerName: 'Address', 
+    flex: 1 // Forces the grid to occupy the whole width
+  }
+];
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
