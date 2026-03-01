@@ -150,30 +150,17 @@ public columnDefs: ColDef[] = [
 
 // results-grid.component.ts
 
-// results-grid.component.ts
-
 public getRowClass = (params: any) => {
-  let classes = '';
-  // 1. Parent highlight
-  if (params.node && params.node.expanded) {
-    classes += ' expanded-parent-row';
-  }
-  // 2. Child identification
+  // We only need to mark which rows are children for the white background/indent
   if (params.data && params.data.isChild) {
-    classes += ' child-row';
-    // 3. Finding the end of the group
-    const rowIndex = params.node.rowIndex;
-    const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
-    if (!nextNode || !nextNode.data || !nextNode.data.isChild) {
-      classes += ' last-child-item';
-    }
+    return 'child-row';
   }
-  return classes;
+  return '';
 };
 
+// REMOVE or EMPTY OUT onRowGroupOpened to stop the checkbox glitch
 onRowGroupOpened(params: any) {
-  // This is the "Refresh" button for your CSS classes
-  params.api.redrawRows(); 
+  // Leave empty or delete. Native CSS will handle the rest.
 }
 
 // GROUPING CODE END

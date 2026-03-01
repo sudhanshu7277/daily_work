@@ -45,46 +45,7 @@
 }
 
 // results-grid.component.scss
-::ng-deep {
-  .ag-theme-alpine.bmo-grid {
-    // 1. Remove all small default header separators
-    --ag-header-column-separator-display: none;
-    --ag-header-column-separator-height: 0%;
-    
-    // 2. Remove default blue focus/lines
-    --ag-range-selection-border-color: transparent;
 
-    // 3. Add the thick vertical black separator after Profile Name
-    .profile-name-header, .profile-name-cell {
-      border-right: 1.5px solid #000000 !important;
-    }
-
-    // Adjust sorting icon visibility to match Figma
-    .ag-header-icon {
-      opacity: 1 !important;
-      color: #666;
-    }
-
-    // The blue status pill from your Figma screenshot
-    .status-pill-blue {
-      background-color: #004c97; // BMO Blue
-      color: #ffffff;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 11px;
-      display: inline-block;
-      line-height: normal;
-    }
-  }
-
-  // Ensure the wrapper doesn't constrain width
-  .results-wrapper, .grid-card-container {
-    width: 100% !important;
-    max-width: none !important;
-    padding: 0 !important;
-  }
-}
 
 
 
@@ -95,41 +56,46 @@
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
     
-    /* FIX 1: Parent Background and Top Border */
-    .ag-row.expanded-parent-row {
+    /* FIX 1: Parent Row - Light Blue & Top Border when Expanded */
+    /* .ag-row-expanded is a native AG Grid class */
+    .ag-row.ag-row-expanded {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
-      z-index: 10;
-      
-      // Override the default "selected" blue
-      &.ag-row-selected::before {
-        background-color: transparent !important;
-      }
+      z-index: 5;
     }
 
-    /* FIX 2: Child Indentation */
-    /* This indents the entire row content (checkbox + text) */
-    .ag-row.child-row .ag-cell-wrapper {
-      padding-left: 32px !important; 
-    }
-    
+    /* FIX 2: Child Row - Indentation & White Background */
     .ag-row.child-row {
       background-color: #ffffff !important;
       
-      // Ensure children don't turn blue when selected
-      &.ag-row-selected::before {
-        background-color: transparent !important;
+      /* Target the checkbox/text container to indent */
+      .ag-selection-checkbox, 
+      .ag-group-child-count {
+        margin-left: 32px !important;
+      }
+      
+      /* If using standard columns, indent the first cell content */
+      .ag-cell:first-child .ag-cell-wrapper {
+        padding-left: 32px !important;
       }
     }
 
-    /* FIX 3: Bottom Group Border */
+    /* FIX 3: Group Bottom Border */
+    /* Target the row immediately following the expanded parent's children */
+    /* This is a bit complex in CSS, so we'll use your custom class if it renders */
     .ag-row.last-child-item {
       border-bottom: 2px solid #004c97 !important;
     }
 
-    /* Cleanup: Stop hover from flickering grey on your blue rows */
-    .ag-row.expanded-parent-row:hover {
-      background-color: #E8F4FD !important;
+    /* STABILITY FIX: Selection Checkbox */
+    /* This stops the "blue wash" over rows so the checkbox logic feels 'lighter' */
+    .ag-row-selected::before {
+      background-color: transparent !important;
+    }
+    
+    .ag-row-selected {
+      background-color: inherit !important;
     }
   }
 }
+
