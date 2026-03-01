@@ -92,47 +92,44 @@
 
 /* results-grid.component.scss */
 
-.ag-theme-alpine.bmo-grid {
-  /* 1. Parent Background & Top Border */
-  .ag-row.expanded-parent-row {
-    background-color: #E8F4FD !important;
-    border-top: 2px solid #004c97 !important; /* Dark Blue Top Border */
-    z-index: 5;
-
-    /* Prevent selection color from overriding the light blue */
-    &.ag-row-selected::before {
-      background-color: transparent !important;
-    }
-  }
-
-  /* 2. Child Row Indentation & White Background */
-  .ag-row.child-row {
-    background-color: #ffffff !important;
-    border-top: none !important;
-
-    /* Indent cells to show hierarchy */
-    .ag-cell {
-      padding-left: 44px !important; /* Moves text/checkbox to the right */
+::ng-deep {
+  .ag-theme-alpine.bmo-grid {
+    
+    /* FIX 1: Parent Background and Top Border */
+    .ag-row.expanded-parent-row {
+      background-color: #E8F4FD !important;
+      border-top: 2px solid #004c97 !important;
+      z-index: 10;
+      
+      // Override the default "selected" blue
+      &.ag-row-selected::before {
+        background-color: transparent !important;
+      }
     }
 
-    /* Keep checkboxes white even when selected */
-    &.ag-row-selected::before {
-      background-color: transparent !important;
+    /* FIX 2: Child Indentation */
+    /* This indents the entire row content (checkbox + text) */
+    .ag-row.child-row .ag-cell-wrapper {
+      padding-left: 32px !important; 
     }
-  }
+    
+    .ag-row.child-row {
+      background-color: #ffffff !important;
+      
+      // Ensure children don't turn blue when selected
+      &.ag-row-selected::before {
+        background-color: transparent !important;
+      }
+    }
 
-  /* 3. Group Bottom Border */
-  .ag-row.last-child-item {
-    border-bottom: 2px solid #004c97 !important; /* Dark Blue Bottom Border */
-  }
+    /* FIX 3: Bottom Group Border */
+    .ag-row.last-child-item {
+      border-bottom: 2px solid #004c97 !important;
+    }
 
-  /* 4. Cleanup Hover & Focus */
-  .ag-row.expanded-parent-row:hover {
-    background-color: #E8F4FD !important;
-  }
-  
-  .ag-cell-focus {
-    border: none !important;
-    outline: none !important;
+    /* Cleanup: Stop hover from flickering grey on your blue rows */
+    .ag-row.expanded-parent-row:hover {
+      background-color: #E8F4FD !important;
+    }
   }
 }

@@ -150,31 +150,29 @@ public columnDefs: ColDef[] = [
 
 // results-grid.component.ts
 
+// results-grid.component.ts
+
 public getRowClass = (params: any) => {
-  const classes = [];
-
-  // 1. Logic for Parent Row Background & Top Border
+  let classes = '';
+  // 1. Parent highlight
   if (params.node && params.node.expanded) {
-    classes.push('expanded-parent-row');
+    classes += ' expanded-parent-row';
   }
-
-  // 2. Logic for Child Row Indentation
+  // 2. Child identification
   if (params.data && params.data.isChild) {
-    classes.push('child-row');
-    
-    // Logic for Group Bottom Border (Dark Blue line at the very end)
+    classes += ' child-row';
+    // 3. Finding the end of the group
     const rowIndex = params.node.rowIndex;
     const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
     if (!nextNode || !nextNode.data || !nextNode.data.isChild) {
-      classes.push('last-child-item');
+      classes += ' last-child-item';
     }
   }
-
-  return classes.join(' ');
+  return classes;
 };
 
-// This ensures the blue background and borders toggle immediately
 onRowGroupOpened(params: any) {
+  // This is the "Refresh" button for your CSS classes
   params.api.redrawRows(); 
 }
 
