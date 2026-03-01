@@ -150,29 +150,24 @@ public columnDefs: ColDef[] = [
 
 // results-grid.component.ts
 
+
 public getRowClass = (params: any) => {
-  const classes = [];
-  // 1. Parent Background & Top Border logic
-  if (params.node && params.node.expanded) {
-    classes.push('expanded-parent-row');
-  }
-  // 2. Child Indentation logic
+  // We only use this to mark child rows for white background and indent
   if (params.data && params.data.isChild) {
-    classes.push('child-row');
-    
-    // Logic for bottom border
-    const rowIndex = params.node.rowIndex;
-    const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
-    if (!nextNode || !nextNode.data || !nextNode.data.isChild) {
-      classes.push('last-child-item');
-    }
+    return 'child-row';
   }
-  return classes.join(' ');
+  return '';
 };
 
 onRowGroupOpened(params: any) {
-  // Use refreshCells to avoid breaking the checkbox state
-  params.api.refreshCells({ force: true });
+  // LEAVE THIS EMPTY. 
+  // Do not call redrawRows or refreshCells. 
+  // This fixes the checkbox unselection bug.
+}
+
+// Ensure your pagination methods are still there!
+onPaginationChanged() {
+  this.updatePaginationInfo();
 }
 // GROUPING CODE END
 

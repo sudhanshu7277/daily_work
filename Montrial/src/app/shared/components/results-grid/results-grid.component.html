@@ -73,14 +73,16 @@
 
 
 <ag-grid-angular
+  style="width: 100%; height: 500px;" 
   class="ag-theme-alpine bmo-grid"
   [rowData]="rowData"
   [columnDefs]="columnDefs"
   [rowSelection]="'multiple'"
+  [suppressRowClickSelection]="true"
   [pagination]="true"
   [paginationPageSize]="pageSize"
   [suppressPaginationPanel]="true"
-  [suppressRowClickSelection]="true"
+  [getRowClass]="getRowClass"
   (gridReady)="onGridReady($event)"
   (rowGroupOpened)="onRowGroupOpened($event)"
   (paginationChanged)="onPaginationChanged()">
