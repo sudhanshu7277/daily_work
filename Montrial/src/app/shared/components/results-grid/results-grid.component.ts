@@ -146,7 +146,25 @@ public columnDefs: ColDef[] = [
 }
 
 
+// GROUPING CODE START
+// Define the class logic based on the 'expanded' state
+public getRowClass = (params: any) => {
+  if (params.node && params.node.expanded) {
+    return 'expanded-parent-row';
+  }
+  // This uses your 'isChild' property from the service to keep children white
+  if (params.data && params.data.isChild) {
+    return 'child-row';
+  }
+  return '';
+};
 
+// Force a redraw when the carrot is clicked to flip the blue background
+onRowGroupOpened(params: any) {
+  params.api.redrawRows({ rowNodes: [params.node] });
+}
+
+// GROUPING CODE END
 
 
 // pagination code below html, ts, scss

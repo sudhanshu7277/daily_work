@@ -85,3 +85,40 @@
     padding: 0 !important;
   }
 }
+
+
+
+// UPDATED AG-GRID SCSS
+
+/* results-grid.component.scss */
+
+.ag-theme-alpine.bmo-grid {
+  /* 1. Parent Row: Light Blue background + Dark Blue Top Border */
+  .ag-row.expanded-parent-row {
+    background-color: #E8F4FD !important;
+    border-top: 2px solid #004c97 !important; /* Dark BMO Blue */
+    z-index: 5; /* Ensure the border sits above other rows */
+  }
+
+  /* 2. Child Rows: Force White Background */
+  .ag-row.child-row {
+    background-color: #ffffff !important;
+    border: none !important;
+  }
+
+  /* 3. Group Bottom Border:
+     Target the last child row in an expanded group to close the box */
+  .ag-row.child-row:last-of-type {
+    border-bottom: 2px solid #004c97 !important;
+  }
+
+  /* 4. Selection Fix: 
+     Ensure clicking the checkbox doesn't turn the row a different blue */
+  .ag-row-selected::before {
+    background-color: transparent !important;
+  }
+  
+  .ag-row-selected:not(.expanded-parent-row) {
+    background-color: #ffffff !important;
+  }
+}
