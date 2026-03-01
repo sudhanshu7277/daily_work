@@ -78,35 +78,33 @@
     <mat-radio-button value="individual">Individual</mat-radio-button>
     <mat-radio-button value="entity">Entity</mat-radio-button>
   </mat-radio-group>
-   <div class="form-grid">
+<div class="form-grid">
   @if (searchForm.get('type')?.value === 'individual') {
-    <mat-label class="outside-label">
-      {{searchCustomerVerbiage.lastName | translate}}
-      <span class="required-field">*</span>
-    </mat-label>
-    <mat-form-field appearance="outline" class="last-name">
-      <input matInput formControlName="lastName"
-        placeholder="{{searchCustomerVerbiage.lastName | translate}}">
-    </mat-form-field>
-    
-    <mat-label class="outside-label">
-      {{searchCustomerVerbiage.middleName | translate}}
-    </mat-label>
-    <mat-form-field appearance="outline" class="middle-name">
-      <input matInput formControlName="middleName"
-        placeholder="{{searchCustomerVerbiage.middleName | translate}}">
-    </mat-form-field>
-
-    <mat-label class="outside-label">
-      {{searchCustomerVerbiage.firstName | translate}}
-      <span class="required-field">*</span>
-    </mat-label>
-    <mat-form-field appearance="outline" class="first-name">
-      <input matInput formControlName="firstName"
-        placeholder="{{searchCustomerVerbiage.firstName | translate}}">
-    </mat-form-field>
-
-    }
+    <div class="form-field-group">
+      <label class="input-label">
+        {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
+      </label>
+      <mat-form-field appearance="outline">
+        <input matInput formControlName="lastName" [placeholder]="searchCustomerVerbiage.lastName | translate">
+      </mat-form-field>
+    </div>
+    <div class="form-field-group">
+      <label class="input-label">
+        {{searchCustomerVerbiage.middleName | translate}}
+      </label>
+      <mat-form-field appearance="outline">
+        <input matInput formControlName="middleName" [placeholder]="searchCustomerVerbiage.middleName | translate">
+      </mat-form-field>
+    </div>
+    <div class="form-field-group">
+      <label class="input-label">
+        {{searchCustomerVerbiage.firstName | translate}} <span class="required-star">*</span>
+      </label>
+      <mat-form-field appearance="outline">
+        <input matInput formControlName="firstName" [placeholder]="searchCustomerVerbiage.firstName | translate">
+      </mat-form-field>
+    </div>
+  }
 </div>
   } @else {
     <mat-form-field appearance="outline">
