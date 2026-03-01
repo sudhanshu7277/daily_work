@@ -128,9 +128,57 @@ public columnDefs: ColDef[] = [
     });
   }
 
-  public onSelectionChanged() {
-    this.selectionChanged.emit(this.gridApi.getSelectedRows());
-  }
+  // on selection changed function start
+
+ onSelectionChanged() {
+  if (this.selectionInProgress || !this.gridApi) return;
+  this.selectionInProgress = true;
+
+  // 1. Get currently selected data for the 'Final Map'
+  const selectedNodes = this.gridApi.getSelectedNodes();
+  const finalSelectionMap = new Map<string, any>();
+  
+  selectedNodes.forEach((node: any) => {
+    if (node.data) finalSelectionMap.set(node.data.ocifId, node.data);
+  });
+
+  // 2. Efficiently sync Parents and Children without global loops
+  this.gridApi.forEachNode((node: any) => {
+    if (!node.data) return;
+
+    const isParent = node.data.isParent;
+    const wasParentSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
+    const isCurrentlySelected = node.isSelected();
+
+    // PARENT LOGIC: If parent state changed, update children directly
+    if (isParent && isCurrentlySelected && !wasParentSelected) {
+      // Parent just got selected -> Select all children
+      node.data.children?.forEach((childData: any) => {
+        const childNode = this.gridApi.getRowNode(childData.ocifId);
+        if (childNode) {
+          childNode.setSelected(true, false); // false = don't trigger event again
+          finalSelectionMap.set(childData.ocifId, childData);
+        }
+      });
+    } 
+    else if (isParent && !isCurrentlySelected && wasParentSelected) {
+      // Parent just got unselected -> Unselect all children
+      node.data.children?.forEach((childData: any) => {
+        const childNode = this.gridApi.getRowNode(childData.ocifId);
+        if (childNode) {
+          childNode.setSelected(false, false);
+          finalSelectionMap.delete(childData.ocifId);
+        }
+      });
+    }
+  });
+
+  // 3. Finalize
+  this.selectedRowsData = Array.from(finalSelectionMap.values());
+  this.selectionInProgress = false;
+  this.selectionChanged.emit(this.selectedRowsData);
+}
+// on selection changed function end
 
   private toggleExpand(row: any) {
     row.isExpanded = !row.isExpanded;
