@@ -276,14 +276,25 @@ onRowGroupOpened(params: any) {
 
 public getRowClass = (params: any) => {
   const classes = [];
-  
-  // Apply the 'Blue Sandwich' class if the data is marked as open
-  if (params.data && params.data.isGroupOpen) {
+
+  // 1. Parent "Sandwich" Top
+  if (params.data && params.data.isParent && params.data.isExpanded) {
     classes.push('blue-sandwich-parent');
   }
 
+  // 2. Child "Sandwich" Filling
   if (params.data && params.data.isChild) {
-    classes.push('white-sandwich-child');
+    classes.push('sandwich-child-row');
+
+    // 3. Logic for the "Sandwich" Bottom Border
+    // We check if the NEXT row is either missing or is a new Parent
+    const rowIndex = params.node.rowIndex;
+    const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
+    
+    // If there's no next node, or the next node belongs to a different parent
+    if (!nextNode || (nextNode.data && nextNode.data.isParent)) {
+      classes.push('sandwich-bottom-border');
+    }
   }
 
   return classes.join(' ');
@@ -291,33 +302,29 @@ public getRowClass = (params: any) => {
 
 // end of second onRowGroupOpened
 
-onSelectionChanged() {
-  if (this.selectionInProgress || !this.gridApi) return;
-  this.selectionInProgress = true;
 
-  const selectedNodes = this.gridApi.getSelectedNodes();
-  
-  // Use a Set for lightning-fast ID checks
-  const currentSelectedIds = new Set(selectedNodes.map(n => n.data?.ocifId));
+// results-grid.component.ts (Line 81)
+onCellClicked: (params: any) => {
+  if (params.data.isParent) {
+    params.data.isExpanded = !params.data.isExpanded;
+    this.toggleRowExpansion(params.data);
 
-  selectedNodes.forEach((node: any) => {
-    if (node.data?.isParent) {
-      // If a parent is selected, select all its children directly
-      node.data.children?.forEach((child: any) => {
-        const childNode = this.gridApi.getRowNode(child.ocifId);
-        if (childNode && !childNode.isSelected()) {
-          childNode.setSelected(true, false); // false = don't re-trigger this event
-        }
-      });
+    // This triggers the CSS classes immediately
+    params.api.refreshCells({
+      rowNodes: [params.node],
+      force: true
+    });
+    
+    // Optional: Refresh the child nodes too to ensure the bottom border calculates
+    if (params.node.allLeafChildren) {
+       params.api.refreshCells({
+         rowNodes: params.node.allLeafChildren,
+         force: true
+       });
     }
-  });
-
-  // FINALIZE: Update your local array for the rest of the app
-  this.selectedRowsData = selectedNodes.map(n => n.data);
-  
-  this.selectionInProgress = false;
-  this.selectionChanged.emit(this.selectedRowsData);
+  }
 }
+
 
 // GROUPING CODE END
 

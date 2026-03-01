@@ -92,32 +92,33 @@
 
 /* results-grid.component.scss */
 
+/* results-grid.component.scss */
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
     
-    /* THE BLUE SANDWICH TOP: Parent Row */
+    /* PART 1: TOP OF SANDWICH */
     .ag-row.blue-sandwich-parent {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
       z-index: 10 !important;
-      
-      /* Keep it blue even when hovered or selected */
-      &.ag-row-hover, &:hover {
-        background-color: #E8F4FD !important;
-      }
     }
 
-    /* THE SANDWICH FILLING: Child Rows */
-    .ag-row.white-sandwich-child {
+    /* PART 2: FILLING (CHILDREN) */
+    .ag-row.sandwich-child-row {
       background-color: #ffffff !important;
-      
-      /* Indent the checkbox and text */
+      border-top: none !important;
+
       .ag-cell-wrapper {
         padding-left: 48px !important;
       }
     }
 
-    /* FIX: Stop the checkbox selection 'blue' from hiding our sandwich blue */
+    /* PART 3: BOTTOM OF SANDWICH */
+    .ag-row.sandwich-bottom-border {
+      border-bottom: 2px solid #004c97 !important;
+    }
+
+    /* FIX: Ensure the checkbox overlay doesn't hide our blue */
     .ag-row-selected::before {
       background-color: transparent !important;
     }
