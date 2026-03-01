@@ -150,25 +150,47 @@ public columnDefs: ColDef[] = [
 
 // results-grid.component.ts
 
-
-public getRowClass = (params: any) => {
-  // We only use this to mark child rows for white background and indent
-  if (params.data && params.data.isChild) {
-    return 'child-row';
-  }
-  return '';
-};
-
 onRowGroupOpened(params: any) {
-  // LEAVE THIS EMPTY. 
-  // Do not call redrawRows or refreshCells. 
-  // This fixes the checkbox unselection bug.
+  const isExpanded = params.node.expanded;
+  const rowNode = params.node;
+
+  // 1. Tag the parent data so the grid knows it's active
+  if (rowNode.data) {
+    rowNode.data.isActiveParent = isExpanded;
+  }
+
+  // 2. Identify and tag the children
+  // This ensures they stay white and indented regardless of grid internal logic
+  if (rowNode.allLeafChildren) {
+    rowNode.allLeafChildren.forEach((childNode: any) => {
+      if (childNode.data) {
+        childNode.data.isGroupChild = isExpanded;
+      }
+    });
+  }
+
+  // 3. REFRESH ONLY: Use refreshCells to avoid the checkbox 'unselect' bug.
+  // This updates the UI without destroying the DOM elements.
+  params.api.refreshCells({
+    rowNodes: [rowNode, ...rowNode.allLeafChildren],
+    force: true
+  });
 }
 
-// Ensure your pagination methods are still there!
-onPaginationChanged() {
-  this.updatePaginationInfo();
-}
+// Updated getRowClass to use our new manual tags
+public getRowClass = (params: any) => {
+  const classes = [];
+  
+  if (params.data?.isActiveParent) {
+    classes.push('figma-parent-expanded');
+  }
+  
+  if (params.data?.isGroupChild) {
+    classes.push('figma-child-row');
+  }
+
+  return classes.join(' ');
+};
 // GROUPING CODE END
 
 

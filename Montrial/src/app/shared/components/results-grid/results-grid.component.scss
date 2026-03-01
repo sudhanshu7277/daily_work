@@ -56,33 +56,29 @@
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
     
-    /* 1. PARENT: Light Blue + Top Border when carrot is open */
-    /* Targets the native class AG Grid adds when expanded */
-    .ag-row.ag-row-expanded {
+    /* PARENT: Light Blue + Top Border */
+    .ag-row.figma-parent-expanded {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
-      z-index: 10 !important;
+      z-index: 10;
+      
+      /* Ensure it stays blue on hover */
+      &:hover { background-color: #E8F4FD !important; }
     }
 
-    /* 2. CHILD: Indentation & White Background */
-    .ag-row.child-row {
+    /* CHILD: Indentation & White Background */
+    .ag-row.figma-child-row {
       background-color: #ffffff !important;
       
-      /* Target the cell wrapper to push checkbox and text together */
-      .ag-cell-wrapper {
-        padding-left: 40px !important; 
+      /* Indent the first cell content (checkbox + text) */
+      .ag-cell:first-child .ag-cell-wrapper {
+        padding-left: 48px !important; 
       }
     }
 
-    /* 3. STABILITY: Checkbox Fix */
-    /* Stop the 'selection blue' overlay from hiding your light blue */
+    /* FIX: Stop the default selection "blue wash" from interfering */
     .ag-row-selected::before {
       background-color: transparent !important;
-    }
-
-    /* Prevent hover from flickering your custom colors */
-    .ag-row.ag-row-expanded:hover {
-      background-color: #E8F4FD !important;
     }
   }
 }
