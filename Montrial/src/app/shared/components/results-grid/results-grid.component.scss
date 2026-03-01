@@ -56,27 +56,32 @@
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
     
-    /* PARENT: Light Blue + Top Border */
-    .ag-row.figma-parent-expanded {
+    /* 1. TOP & BACKGROUND: Expanded Parent */
+    .ag-row.ag-row-expanded {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
       z-index: 10;
-      
-      /* Ensure it stays blue on hover */
-      &:hover { background-color: #E8F4FD !important; }
     }
 
-    /* CHILD: Indentation & White Background */
-    .ag-row.figma-child-row {
+    /* 2. MIDDLE: Child Rows (White + Indent) */
+    .ag-row-level-1 {
       background-color: #ffffff !important;
+      border: none !important; /* Remove default mid-row borders */
       
-      /* Indent the first cell content (checkbox + text) */
-      .ag-cell:first-child .ag-cell-wrapper {
+      .ag-cell-wrapper {
         padding-left: 48px !important; 
       }
     }
 
-    /* FIX: Stop the default selection "blue wash" from interfering */
+    /* 3. BOTTOM: The Closing Line */
+    /* This targets the last child in a sequence before the next level-0 row */
+    .ag-row-level-1:not(.ag-row-selected):last-child,
+    .ag-row-level-1:has(+ .ag-row-level-0) {
+      border-bottom: 2px solid #004c97 !important;
+    }
+
+    /* 4. SELECTION FIX: No Blue Wash */
+    /* This is critical for the "Unselect" performance you were struggling with */
     .ag-row-selected::before {
       background-color: transparent !important;
     }

@@ -131,52 +131,54 @@ public columnDefs: ColDef[] = [
   // on selection changed function start
 
  onSelectionChanged() {
+  // 1. Guard against recursive calls and ensure API is ready
   if (this.selectionInProgress || !this.gridApi) return;
   this.selectionInProgress = true;
 
-  // 1. Get currently selected data for the 'Final Map'
-  const selectedNodes = this.gridApi.getSelectedNodes();
-  const finalSelectionMap = new Map<string, any>();
-  
-  selectedNodes.forEach((node: any) => {
-    if (node.data) finalSelectionMap.set(node.data.ocifId, node.data);
-  });
-
-  // 2. Efficiently sync Parents and Children without global loops
-  this.gridApi.forEachNode((node: any) => {
-    if (!node.data) return;
-
-    const isParent = node.data.isParent;
-    const wasParentSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
-    const isCurrentlySelected = node.isSelected();
-
-    // PARENT LOGIC: If parent state changed, update children directly
-    if (isParent && isCurrentlySelected && !wasParentSelected) {
-      // Parent just got selected -> Select all children
-      node.data.children?.forEach((childData: any) => {
-        const childNode = this.gridApi.getRowNode(childData.ocifId);
-        if (childNode) {
-          childNode.setSelected(true, false); // false = don't trigger event again
-          finalSelectionMap.set(childData.ocifId, childData);
+  try {
+    // 2. Identify the nodes currently selected in the UI
+    const selectedNodes = this.gridApi.getSelectedNodes();
+    
+    // 3. Sync Children with Parents
+    // We iterate through all nodes to ensure children match their parent's state
+    this.gridApi.forEachNode((node: any) => {
+      if (node.data && node.data.isParent) {
+        const parentIsSelected = node.isSelected();
+        
+        // Find all children for this specific parent
+        // Note: Using childrenAfterFilter ensures we only touch what the user sees
+        const children = node.childrenAfterFilter || node.allLeafChildren;
+        
+        if (children && children.length > 0) {
+          children.forEach((childNode: any) => {
+            // Only update if the child state is different from the parent
+            // 'true' for suppressEvents prevents the lag/infinite loop
+            if (childNode.isSelected() !== parentIsSelected) {
+              childNode.setSelected(parentIsSelected, false, true);
+            }
+          });
         }
-      });
-    } 
-    else if (isParent && !isCurrentlySelected && wasParentSelected) {
-      // Parent just got unselected -> Unselect all children
-      node.data.children?.forEach((childData: any) => {
-        const childNode = this.gridApi.getRowNode(childData.ocifId);
-        if (childNode) {
-          childNode.setSelected(false, false);
-          finalSelectionMap.delete(childData.ocifId);
-        }
-      });
-    }
-  });
+      }
+    });
 
-  // 3. Finalize
-  this.selectedRowsData = Array.from(finalSelectionMap.values());
-  this.selectionInProgress = false;
-  this.selectionChanged.emit(this.selectedRowsData);
+    // 4. Update the Data Payloads
+    const allSelectedData = this.gridApi.getSelectedNodes().map(node => node.data);
+
+    // BACKGROUND PAYLOAD: Contains everything (Parents + Children) for the API
+    this.selectedRowsData = allSelectedData;
+
+    // UI PANEL DATA: Filtered to show ONLY Parents in the Selection Panel
+    this.displayRowsForPanel = allSelectedData.filter(data => data && data.isParent);
+
+    // 5. Emit the filtered list to your Selection Panel Component
+    this.selectionChanged.emit(this.displayRowsForPanel);
+
+  } catch (error) {
+    console.error("Selection sync failed:", error);
+  } finally {
+    // 6. Always reset the flag to allow future selections
+    this.selectionInProgress = false;
+  }
 }
 // on selection changed function end
 
