@@ -151,18 +151,29 @@ public columnDefs: ColDef[] = [
 // results-grid.component.ts
 
 public getRowClass = (params: any) => {
-  // We only need to mark which rows are children for the white background/indent
-  if (params.data && params.data.isChild) {
-    return 'child-row';
+  const classes = [];
+  // 1. Parent Background & Top Border logic
+  if (params.node && params.node.expanded) {
+    classes.push('expanded-parent-row');
   }
-  return '';
+  // 2. Child Indentation logic
+  if (params.data && params.data.isChild) {
+    classes.push('child-row');
+    
+    // Logic for bottom border
+    const rowIndex = params.node.rowIndex;
+    const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
+    if (!nextNode || !nextNode.data || !nextNode.data.isChild) {
+      classes.push('last-child-item');
+    }
+  }
+  return classes.join(' ');
 };
 
-// REMOVE or EMPTY OUT onRowGroupOpened to stop the checkbox glitch
 onRowGroupOpened(params: any) {
-  // Leave empty or delete. Native CSS will handle the rest.
+  // Use refreshCells to avoid breaking the checkbox state
+  params.api.refreshCells({ force: true });
 }
-
 // GROUPING CODE END
 
 

@@ -55,46 +55,34 @@
 
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
-    
-    /* FIX 1: Parent Row - Light Blue & Top Border when Expanded */
-    /* .ag-row-expanded is a native AG Grid class */
-    .ag-row.ag-row-expanded {
+    /* 1. PARENT: Light Blue + Top Border */
+    .ag-row.expanded-parent-row {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
       z-index: 5;
     }
 
-    /* FIX 2: Child Row - Indentation & White Background */
+    /* 2. CHILD: Indentation & White Background */
     .ag-row.child-row {
       background-color: #ffffff !important;
-      
-      /* Target the checkbox/text container to indent */
-      .ag-selection-checkbox, 
-      .ag-group-child-count {
-        margin-left: 32px !important;
-      }
-      
-      /* If using standard columns, indent the first cell content */
-      .ag-cell:first-child .ag-cell-wrapper {
-        padding-left: 32px !important;
+      .ag-cell-wrapper {
+        padding-left: 40px !important; /* Adjust to match Figma indent */
       }
     }
 
-    /* FIX 3: Group Bottom Border */
-    /* Target the row immediately following the expanded parent's children */
-    /* This is a bit complex in CSS, so we'll use your custom class if it renders */
+    /* 3. GROUP BOTTOM BORDER */
     .ag-row.last-child-item {
       border-bottom: 2px solid #004c97 !important;
     }
 
-    /* STABILITY FIX: Selection Checkbox */
-    /* This stops the "blue wash" over rows so the checkbox logic feels 'lighter' */
+    /* FIX: Selection Overlay (Removes the grey/blue wash on click) */
     .ag-row-selected::before {
       background-color: transparent !important;
     }
     
-    .ag-row-selected {
-      background-color: inherit !important;
+    /* Ensure hover doesn't remove your custom blue */
+    .ag-row.expanded-parent-row:hover {
+      background-color: #E8F4FD !important;
     }
   }
 }
