@@ -129,30 +129,29 @@ public columnDefs: ColDef[] = [
   }
 
   // on selection changed function start
+  // results-grid.component.ts
 
- onSelectionChanged() {
-  // 1. Guard against recursive calls and ensure API is ready
+public selectedRowsData: any[] = []; // Your full background payload (Parents + Children)
+public displayRowsForPanel: any[] = []; // Only Parents for the UI Selection Panel
+private selectionInProgress = false; // The mutex flag to prevent the lag/loop
+
+onSelectionChanged() {
   if (this.selectionInProgress || !this.gridApi) return;
   this.selectionInProgress = true;
 
   try {
-    // 2. Identify the nodes currently selected in the UI
     const selectedNodes = this.gridApi.getSelectedNodes();
     
-    // 3. Sync Children with Parents
-    // We iterate through all nodes to ensure children match their parent's state
+    // Sync Children with Parents state
     this.gridApi.forEachNode((node: any) => {
       if (node.data && node.data.isParent) {
         const parentIsSelected = node.isSelected();
+        const children = node.allLeafChildren || [];
         
-        // Find all children for this specific parent
-        // Note: Using childrenAfterFilter ensures we only touch what the user sees
-        const children = node.childrenAfterFilter || node.allLeafChildren;
-        
-        if (children && children.length > 0) {
+        if (children.length > 0) {
           children.forEach((childNode: any) => {
-            // Only update if the child state is different from the parent
-            // 'true' for suppressEvents prevents the lag/infinite loop
+            // Update child only if it doesn't match parent
+            // The 'true' at the end stops the 5-10 second lag
             if (childNode.isSelected() !== parentIsSelected) {
               childNode.setSelected(parentIsSelected, false, true);
             }
@@ -161,22 +160,22 @@ public columnDefs: ColDef[] = [
       }
     });
 
-    // 4. Update the Data Payloads
-    const allSelectedData = this.gridApi.getSelectedNodes().map(node => node.data);
+    // Finalize the two different data sets
+    const finalSelectedNodes = this.gridApi.getSelectedNodes();
+    const allSelectedData = finalSelectedNodes.map(node => node.data);
 
-    // BACKGROUND PAYLOAD: Contains everything (Parents + Children) for the API
+    // 1. Full payload for API/Background
     this.selectedRowsData = allSelectedData;
 
-    // UI PANEL DATA: Filtered to show ONLY Parents in the Selection Panel
+    // 2. Filtered list for the UI Selection Panel (Parents Only)
     this.displayRowsForPanel = allSelectedData.filter(data => data && data.isParent);
 
-    // 5. Emit the filtered list to your Selection Panel Component
+    // Emit the Panel Data to your parent component
     this.selectionChanged.emit(this.displayRowsForPanel);
 
   } catch (error) {
     console.error("Selection sync failed:", error);
   } finally {
-    // 6. Always reset the flag to allow future selections
     this.selectionInProgress = false;
   }
 }
