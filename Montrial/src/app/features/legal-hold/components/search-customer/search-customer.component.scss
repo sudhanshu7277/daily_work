@@ -38,6 +38,14 @@
   margin: 0; // Clears any default margins that might interfere
 }
 
+// In search-customer.component.scss
+
+.outside-label {
+  display: block; // Ensures the label is on its own line above the field
+  margin-bottom: 4px; // Adds a small gap before the input box
+  font-weight: 500; // Makes the label slightly bold for clarity
+}
+
   .advanced-options {
     display: flex;
     align-items: center;
