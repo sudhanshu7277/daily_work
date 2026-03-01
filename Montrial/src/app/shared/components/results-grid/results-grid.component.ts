@@ -57,6 +57,7 @@ export class ResultsGridComponent implements OnInit {
     return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
   }
 
+// results-grid.component.ts
 public columnDefs: ColDef[] = [
   { 
     headerName: '', 
@@ -68,43 +69,33 @@ public columnDefs: ColDef[] = [
   { 
     field: 'legalName', 
     headerName: 'Profile Name', 
-    sortable: true, // Enables up/down arrows for sorting
-    unSortIcon: true, // Shows arrows even when not sorted
+    sortable: true, 
+    unSortIcon: true, // Required for the up/down arrows in Figma
     width: 300,
     pinned: 'left',
-    headerClass: 'profile-name-header-separator',
-    cellClass: 'profile-name-cell-separator',
-    cellRenderer: (params: any) => {
-        // Implementation for the name and carrot icon
-        const data = params.data;
-        const carrot = data?.isParent ? `<span class="carrot-icon ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
-        return `<span>${params.value}</span> ${carrot}`;
-    }
+    headerClass: 'profile-name-header',
+    cellClass: 'profile-name-cell'
   },
-  { 
-    field: 'ocifId', 
-    headerName: 'OCIF / Proxy ID', 
-    width: 150 
-  },
+  { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
   { 
     field: 'status', 
     headerName: 'Legal Hold Status', 
-    sortable: true, // Enables up/down arrows for sorting
-    unSortIcon: true,
+    sortable: true, 
+    unSortIcon: true, // Required for sorting arrows
     width: 180,
     cellRenderer: (params: any) => {
-        return params.value === 'LEGAL HOLD' 
-            ? `<div class="legal-hold-pill">LEGAL HOLD</div>` 
-            : 'N/A';
+      return params.value === 'LEGAL HOLD' 
+        ? `<div class="status-pill-blue">LEGAL HOLD</div>` 
+        : 'N/A';
     }
   },
   { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
   { field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 200 },
-  { field: 'role', headerName: 'Role Type', width: 120 },
+  { field: 'role', headerName: 'Role Type', width: 150 },
   { 
     field: 'address', 
     headerName: 'Address', 
-    flex: 1 // Forces the grid to occupy the whole width
+    flex: 1 // This forces the grid to occupy 100% of the UI width
   }
 ];
 
