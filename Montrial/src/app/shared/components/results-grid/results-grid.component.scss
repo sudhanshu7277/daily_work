@@ -55,33 +55,33 @@
 
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
-    /* 1. PARENT: Light Blue + Top Border */
-    .ag-row.expanded-parent-row {
+    
+    /* 1. PARENT: Light Blue + Top Border (using native AG Grid state) */
+    .ag-row.ag-row-expanded {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
-      z-index: 5;
+      z-index: 10 !important;
     }
 
-    /* 2. CHILD: Indentation & White Background */
-    .ag-row.child-row {
+    /* 2. CHILD: Indentation (The Figma Move) */
+    /* Only indent rows that are NOT at the top level (Level 0) */
+    .ag-row:not(.ag-row-level-0) {
       background-color: #ffffff !important;
-      .ag-cell-wrapper {
-        padding-left: 40px !important; /* Adjust to match Figma indent */
+
+      /* Target the first cell specifically to shift the content right */
+      .ag-cell:first-child {
+        padding-left: 48px !important; 
       }
     }
 
-    /* 3. GROUP BOTTOM BORDER */
-    .ag-row.last-child-item {
-      border-bottom: 2px solid #004c97 !important;
-    }
-
-    /* FIX: Selection Overlay (Removes the grey/blue wash on click) */
+    /* 3. STABILITY: Selection & Unselect Fix */
+    /* Removing the "blue wash" overlay fixes the checkbox 'sticking' issue */
     .ag-row-selected::before {
       background-color: transparent !important;
     }
-    
-    /* Ensure hover doesn't remove your custom blue */
-    .ag-row.expanded-parent-row:hover {
+
+    /* Ensure the blue doesn't vanish on hover */
+    .ag-row.ag-row-expanded:hover {
       background-color: #E8F4FD !important;
     }
   }
