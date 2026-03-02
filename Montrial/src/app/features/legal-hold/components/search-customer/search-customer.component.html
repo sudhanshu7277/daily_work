@@ -92,7 +92,7 @@
     <label class="input-label">
         {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
     </label>
-    <mat-form-field appearance="outline" floatLabel="never">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <input matInput 
                formControlName="lastName" 
                [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate">

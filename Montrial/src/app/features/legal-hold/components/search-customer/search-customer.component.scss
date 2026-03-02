@@ -44,30 +44,33 @@
   display: none; /* Removes the bottom space for hints/errors to keep it tight */
 }
 
-/* 1. Remove the default Material internal border/shadow */
-::ng-deep .mat-form-field-appearance-outline {
-  .mat-form-field-flex {
-    padding: 0 0.75em !important; // Adjust padding to center text
-    margin-top: 0 !important;
-  }
+/* search-customer.component.scss */
+::ng-deep {
+  .mat-mdc-form-field {
+    width: 100%;
+    
+    /* Remove the 'gap' in the top outline that looks like a shadow */
+    .mdc-notched-outline__notch {
+      border-right: none !important;
+      display: none !important; 
+    }
 
-  .mat-form-field-outline {
-    color: #ccc !important; // Set your desired border color here
-    top: 0 !important;
-  }
+    /* Ensure the border is a solid, single line */
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__trailing {
+      border-color: #ced4da !important; // Match your UI's grey
+    }
 
-  /* 2. Fix the specific shadow/inset border inside the input */
-  input.mat-input-element {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
-    margin-top: 0 !important;
-    padding: 8px 0 !important; // Adjust based on your height preference
-  }
+    /* Fix the internal height so it doesn't look 'sunken' */
+    .mat-mdc-text-field-wrapper {
+      background-color: transparent !important;
+      height: 40px !important; // Adjust to match your design height
+    }
 
-  /* 3. Remove the label gap if you aren't using a floating label */
-  .mat-form-field-label-wrapper {
-    top: -1.5em;
+    .mat-mdc-form-field-flex {
+      height: 40px !important;
+      align-items: center !important;
+    }
   }
 }
 
