@@ -80,24 +80,44 @@
   </mat-radio-group>
 <div class="form-grid">
   @if (searchForm.get('type')?.value === 'individual') {
-    <!-- <div class="form-field-group">
+
+    <div class="search-row">
+  <div class="form-group">
+    <label class="input-label">
+      {{verbiage.firstName | translate}} <span class="required-star">*</span>
+    </label>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <input matInput formControlName="firstName" [placeholder]="verbiage.firstNamePlaceholder">
+    </mat-form-field>
+  </div>
+
+  <div class="form-group">
+    <label class="input-label">
+      {{verbiage.middleName | translate}}
+    </label>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <input matInput formControlName="middleName" [placeholder]="verbiage.middleNamePlaceholder">
+    </mat-form-field>
+  </div>
+
+  <div class="form-group">
+    <label class="input-label">
+      {{verbiage.lastName | translate}} <span class="required-star">*</span>
+    </label>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <input matInput formControlName="lastName" [placeholder]="verbiage.lastNamePlaceholder">
+    </mat-form-field>
+  </div>
+</div>
+  <!--   <div class="form-field-group">
       <label class="input-label">
         {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
       </label>
       <mat-form-field appearance="outline">
         <input matInput formControlName="lastName" [placeholder]="searchCustomerVerbiage.lastName | translate">
       </mat-form-field>
-    </div> -->
-   <div class="form-field-group">
-    <label class="input-label">
-        {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
-    </label>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <input matInput 
-               formControlName="lastName" 
-               [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate">
-    </mat-form-field>
-</div>
+    </div>
+
     <div class="form-field-group">
       <label class="input-label">
         {{searchCustomerVerbiage.middleName | translate}}
@@ -113,7 +133,7 @@
       <mat-form-field appearance="outline">
         <input matInput formControlName="firstName" [placeholder]="searchCustomerVerbiage.firstName | translate">
       </mat-form-field>
-    </div>
+    </div> -->
     
   }
 </div>

@@ -44,58 +44,6 @@
   display: none; /* Removes the bottom space for hints/errors to keep it tight */
 }
 
-::ng-deep {
-  /* Target the MDC version of the form field */
-  .mat-mdc-form-field-appearance-outline {
-    
-    /* 1. Remove the "Gap" in the top border */
-    .mdc-notched-outline__notch {
-      border-right: none !important;
-      border-left: none !important;
-      /* This ensures the top border is continuous */
-      width: auto !important; 
-    }
-
-    /* 2. Reset internal flex height (fixes the "double border" look) */
-    .mat-mdc-text-field-wrapper {
-      height: 40px !important; // Set your desired fixed height here
-      padding: 0 !important;
-      background-color: transparent !important;
-    }
-
-    /* 3. Center the input text vertically */
-    .mat-mdc-form-field-flex {
-      height: 100% !important;
-      align-items: center !important;
-    }
-
-    /* 4. Ensure the border segments are uniform in color */
-    .mdc-notched-outline__leading,
-    .mdc-notched-outline__notch,
-    .mdc-notched-outline__trailing {
-      border-color: #bcbcbc !important; 
-      border-width: 1px !important;
-    }
-
-    /* 5. Clean up the actual input element */
-    input.mat-mdc-input-element {
-      top: 0 !important;
-      position: relative !important;
-      padding: 0 12px !important;
-    }
-  }
-
-  /* Focus State */
-  .mat-mdc-form-field-appearance-outline.mat-focused {
-    .mdc-notched-outline__leading,
-    .mdc-notched-outline__notch,
-    .mdc-notched-outline__trailing {
-      border-color: #004c97 !important;
-      border-width: 2px !important;
-    }
-  }
-}
-
   .advanced-options {
     display: flex;
     align-items: center;
@@ -137,6 +85,73 @@
         background-color: #e0e0e0;
         color: #a0a0a0;
         cursor: not-allowed;
+      }
+    }
+  }
+}
+
+/* Layout Container */
+.search-row {
+  display: flex;
+  gap: 20px; /* Space between the 3 elements */
+  width: 100%;
+  margin-bottom: 20px;
+
+  .form-group {
+    flex: 1; /* Makes all 3 inputs equal width */
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Space between label and input */
+  }
+}
+
+/* Label Styling */
+.input-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+
+  .required-star {
+    color: #d32f2f; /* Red color for the asterisk */
+    margin-left: 2px;
+  }
+}
+
+/* Material Field Overrides */
+::ng-deep {
+  .mat-mdc-form-field {
+    width: 100%;
+
+    /* Apply Border Radius to the MDC Outline */
+    .mdc-notched-outline__leading {
+      border-radius: 8px 0 0 8px !important; /* Adjust 8px to your preference */
+      width: 12px !important;
+    }
+    
+    .mdc-notched-outline__trailing {
+      border-radius: 0 8px 8px 0 !important;
+    }
+
+    /* Fix the 'Shadow/Gap' issue by ensuring the notch is solid */
+    .mdc-notched-outline__notch {
+      border-left: none !important;
+      border-right: none !important;
+    }
+
+    /* Set border color */
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #bcbcbc !important;
+    }
+
+    /* Focus State: Blue border */
+    &.mat-focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: #004c97 !important;
+        border-width: 2px !important;
       }
     }
   }
