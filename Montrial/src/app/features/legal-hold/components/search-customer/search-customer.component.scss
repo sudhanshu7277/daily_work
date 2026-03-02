@@ -44,32 +44,54 @@
   display: none; /* Removes the bottom space for hints/errors to keep it tight */
 }
 
-/* search-customer.component.scss */
 ::ng-deep {
-  .mat-mdc-form-field {
-    width: 100%;
+  /* Target the MDC version of the form field */
+  .mat-mdc-form-field-appearance-outline {
     
-    /* Remove the 'gap' in the top outline that looks like a shadow */
+    /* 1. Remove the "Gap" in the top border */
     .mdc-notched-outline__notch {
       border-right: none !important;
-      display: none !important; 
+      border-left: none !important;
+      /* This ensures the top border is continuous */
+      width: auto !important; 
     }
 
-    /* Ensure the border is a solid, single line */
-    .mdc-notched-outline__leading,
-    .mdc-notched-outline__trailing {
-      border-color: #ced4da !important; // Match your UI's grey
-    }
-
-    /* Fix the internal height so it doesn't look 'sunken' */
+    /* 2. Reset internal flex height (fixes the "double border" look) */
     .mat-mdc-text-field-wrapper {
+      height: 40px !important; // Set your desired fixed height here
+      padding: 0 !important;
       background-color: transparent !important;
-      height: 40px !important; // Adjust to match your design height
     }
 
+    /* 3. Center the input text vertically */
     .mat-mdc-form-field-flex {
-      height: 40px !important;
+      height: 100% !important;
       align-items: center !important;
+    }
+
+    /* 4. Ensure the border segments are uniform in color */
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #bcbcbc !important; 
+      border-width: 1px !important;
+    }
+
+    /* 5. Clean up the actual input element */
+    input.mat-mdc-input-element {
+      top: 0 !important;
+      position: relative !important;
+      padding: 0 12px !important;
+    }
+  }
+
+  /* Focus State */
+  .mat-mdc-form-field-appearance-outline.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #004c97 !important;
+      border-width: 2px !important;
     }
   }
 }
