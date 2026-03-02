@@ -44,6 +44,33 @@
   display: none; /* Removes the bottom space for hints/errors to keep it tight */
 }
 
+/* 1. Remove the default Material internal border/shadow */
+::ng-deep .mat-form-field-appearance-outline {
+  .mat-form-field-flex {
+    padding: 0 0.75em !important; // Adjust padding to center text
+    margin-top: 0 !important;
+  }
+
+  .mat-form-field-outline {
+    color: #ccc !important; // Set your desired border color here
+    top: 0 !important;
+  }
+
+  /* 2. Fix the specific shadow/inset border inside the input */
+  input.mat-input-element {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    margin-top: 0 !important;
+    padding: 8px 0 !important; // Adjust based on your height preference
+  }
+
+  /* 3. Remove the label gap if you aren't using a floating label */
+  .mat-form-field-label-wrapper {
+    top: -1.5em;
+  }
+}
+
   .advanced-options {
     display: flex;
     align-items: center;
