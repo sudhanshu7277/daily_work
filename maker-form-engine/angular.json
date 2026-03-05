@@ -16,8 +16,8 @@
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/maker-form-lib/tsconfig.lib.prod.json"
-            },
+                  "tsConfig": "projects/maker-form-lib/tsconfig.lib.prod.json"
+                },
             "development": {
               "tsConfig": "projects/maker-form-lib/tsconfig.lib.json"
             }
