@@ -3,9 +3,5 @@
   "dest": "../../dist/maker-form-lib",
   "lib": {
     "entryFile": "src/public-api.ts"
-  },
-  "allowedNonPeerDependencies": [],
-  "assets": [
-    "src/lib/styles.scss"
-  ]
+  }
 }
