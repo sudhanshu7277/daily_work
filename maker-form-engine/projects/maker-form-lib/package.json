@@ -7,6 +7,15 @@
   "publishConfig": {
     "access": "public"
   },
+  "scripts": {
+  "ng": "ng",
+  "start": "ng serve",
+  "build": "ng build maker-form-lib --configuration production",
+  "watch": "ng build maker-form-lib --watch --configuration development",
+  "test": "ng test maker-form-lib",
+  "package": "npm run build && cd dist/maker-form-lib && npm pack",
+  "publish-lib": "chmod +x publish.sh && ./publish.sh"
+  },
   "keywords": [
     "angular",
     "dynamic-forms",
