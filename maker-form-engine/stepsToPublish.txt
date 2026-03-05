@@ -1,0 +1,50 @@
+o make your Angular 17 Dynamic Form Engine publicly available, you have two main routes: distributing it as a compressed tarball (.tgz) for private/manual sharing, or publishing it to the NPM Registry for global access via npm install.
+
+1. Build the Library
+The first step is to compile your TypeScript code, SCSS, and metadata into a format that other Angular applications can understand (the Angular Package Format).
+
+Command: ng build maker-form-lib --configuration production
+
+What happens: Angular uses ng-packagr to create a dist/ folder containing the compiled code, bundled styles, and type definitions (.d.ts files).
+
+2. Prepare for Distribution
+Before you can publish or pack, you must move into the folder where the "ready-to-use" code lives.
+
+Command: cd dist/maker-form-lib
+
+Note: Never run npm pack or npm publish from your root project folder; it must be done from the dist folder generated in step 1.
+
+3. Option A: Manual Sharing (Local/Private Usage)
+If you want to test the package yourself or send it to another team without putting it on the internet yet, use the "Pack" command.
+
+Command: npm pack
+
+Result: This generates a file named something like your-org-maker-form-engine-1.0.0.tgz.
+
+How to use: The other team can install it locally by running:
+npm install ../path/to/your-org-maker-form-engine-1.0.0.tgz
+
+4. Option B: Public Publishing (Global Usage)
+To make it available via npm install @your-org/maker-form-engine, you need to publish it to the official registry.
+
+Step 4.1: Login: npm login (Enter your username, password, and email).
+
+Step 4.2: Publish: npm publish --access public
+
+Version Control: Remember, you cannot publish the same version twice. If you make a change, you must increment the version in projects/maker-form-lib/package.json (e.g., 1.0.1) and re-build.
+
+5. Final Integration Steps for the Consumer
+Once public, the "other team" simply follows these steps:
+
+Install: npm install @your-org/maker-form-engine
+
+Configure App: Add provideHttpClient() and provideAnimations() to their app.config.ts.
+
+Import Styles: Add Bootstrap and Material themes to their styles.scss.
+
+Feed the Schema: Import FormEngineComponent into their standalone component and pass in their FieldDef[] manifest.
+
+🛠️ Pro-Tip: The "Watch" Command for Testing
+If you are still making changes and don't want to keep building/re-installing, run:
+ng build maker-form-lib --watch
+This will automatically re-compile the library every time you save a file, making your development cycle much faster.

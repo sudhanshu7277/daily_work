@@ -1,0 +1,30 @@
+<form [formGroup]="form" class="row maker-form-wrapper">
+  @for (field of fieldDefs; track field.key) {
+    <div [class]="field.gridClass || 'col-md-6'" class="mb-3">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>
+          {{ field.label }}
+          @if (field.required) { <span style="color: red">*</span> }
+        </mat-label>
+
+        @switch (field.type) {
+          @case ('select') {
+            <mat-select [formControlName]="field.key" (selectionChange)="handleFieldEvent(field, 'change')">
+              @for (opt of field.options; track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          }
+          @case ('textarea') {
+            <textarea matInput [formControlName]="field.key" (blur)="handleFieldEvent(field, 'blur')"></textarea>
+          }
+          @default {
+            <input matInput [formControlName]="field.key" 
+                   [numbersOnly]="field.type === 'number'"
+                   (blur)="handleFieldEvent(field, 'blur')">
+          }
+        }
+      </mat-form-field>
+    </div>
+  }
+</form>
