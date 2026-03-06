@@ -1,93 +1,56 @@
-:host {
-  display: block;
-  // Themeable variables to allow the parent to customize colors
-  --primary-navy: #002b5c; 
-  --section-bg: #f8f9fa;
-  --border-color: #dee2e6;
-  --error-red: #d32f2f;
-  --label-color: #495057;
-}
-
 .maker-form-wrapper {
-  padding: 1.5rem;
-  background-color: #f4f7f9;
-  border-radius: 8px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  padding: 20px;
+  background: #fff;
 
-  // Header Bar styling based on provided screenshots
-  .lmn-section-header {
-    background-color: var(--section-bg);
-    border: 1px solid var(--border-color);
-    border-bottom: none;
-    padding: 12px 20px;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-
-    h3 {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--label-color);
-      text-transform: uppercase;
-      margin: 0;
-      letter-spacing: 0.5px;
-    }
+  .form-section-label {
+    font-weight: bold;
+    font-size: 14px;
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #000;
   }
 
-  // Field container styling
-  .lmn-form-group {
-    margin-bottom: 1rem;
+  .custom-form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
 
-    mat-form-field {
-      width: 100%;
+    label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
       
-      // Material outline customization
-      ::ng-deep .mat-mdc-text-field-wrapper {
-        background-color: white;
+      .required-star {
+        color: red;
+        margin-left: 2px;
       }
     }
 
-    .required-star {
-      color: var(--error-red);
-      font-weight: bold;
-      margin-left: 2px;
-    }
-  }
-
-  // Action Button (Navy Blue Submit)
-  .form-actions {
-    margin-top: 1.5rem;
-    display: flex;
-    justify-content: flex-end;
-
-    button[type="submit"] {
-      background-color: var(--primary-navy) !important;
-      color: white !important;
-      padding: 0 2rem;
-      height: 44px;
-      font-weight: 600;
+    input, select, textarea {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
       border-radius: 4px;
-      transition: opacity 0.2s ease-in-out;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+
+      &:focus {
+        border-color: #0076b6; // Citi Blue accent
+        box-shadow: 0 0 4px rgba(0, 118, 182, 0.2);
+      }
 
       &:disabled {
-        background-color: #6c757d !important;
+        background-color: #f5f5f5;
         cursor: not-allowed;
       }
+    }
 
-      &:hover:not(:disabled) {
-        opacity: 0.9;
-      }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
     }
   }
-}
-
-// Ensure the Bootstrap grid works within the scoped component
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  margin-right: -15px;
-  margin-left: -15px;
-}
-
-[class*="col-"] {
-  padding-left: 15px;
-  padding-right: 15px;
 }
