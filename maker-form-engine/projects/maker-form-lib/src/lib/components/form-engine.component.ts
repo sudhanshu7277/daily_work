@@ -48,3 +48,71 @@ export class FormEngineComponent implements OnInit {
     }
   }
 }
+
+
+/////////// NEW CODE
+
+import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { NumbersOnlyDirective } from '../directives/numbers-only.directive';
+import { FieldDef } from '../models/form-schema.model';
+
+@Component({
+  selector: 'lib-form-engine',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, NumbersOnlyDirective],
+  templateUrl: './form-engine.component.html',
+  styleUrls: ['./form-engine.component.scss']
+})
+export class FormEngineComponent implements OnInit, OnChanges {
+  @Input({ required: true }) fieldDefs: FieldDef[] = [];
+  @Input() role: 'MAKER' | 'CHECKER' = 'MAKER';
+
+  private fb = inject(FormBuilder);
+  form: FormGroup = this.fb.group({});
+  isAmountRevealed = false;
+
+  ngOnInit() {
+    this.generateForm();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Re-generate if fieldDefs (API data) or role changes
+    if ((changes['fieldDefs'] || changes['role']) && !changes['fieldDefs']?.firstChange) {
+      this.generateForm();
+    }
+  }
+
+  private generateForm() {
+    const group: any = {};
+    
+    this.fieldDefs.forEach(field => {
+      group[field.key] = this.fb.control(
+        field.initialValue ?? '', 
+        field.required ? Validators.required : null
+      );
+    });
+
+    this.form = this.fb.group(group);
+
+    if (this.role === 'CHECKER') {
+      this.form.disable(); // Lock the entire form
+      
+      // Selectively enable 'amount' so the Checker can edit it
+      if (this.form.get('amount')) {
+        this.form.get('amount')?.enable();
+      }
+    }
+  }
+
+  revealAmount(fieldKey: string) {
+    if (this.role === 'CHECKER' && fieldKey === 'amount') {
+      this.isAmountRevealed = true;
+    }
+  }
+
+  handleFieldEvent(field: FieldDef, eventType: string) {
+    // Implementation for blur/change logic
+  }
+}

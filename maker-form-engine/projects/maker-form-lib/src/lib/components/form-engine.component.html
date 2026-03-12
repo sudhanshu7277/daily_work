@@ -38,35 +38,66 @@
   </div>
 </form>
 
+<!-- NEW CODE -->
 
-
-<!-- <form [formGroup]="form" class="row maker-form-wrapper">
-  @for (field of fieldDefs; track field.key) {
-    <div [class]="field.gridClass || 'col-md-6'" class="mb-3">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>
-          {{ field.label }}
-          @if (field.required) { <span style="color: red">*</span> }
-        </mat-label>
-
-        @switch (field.type) {
-          @case ('select') {
-            <mat-select [formControlName]="field.key" (selectionChange)="handleFieldEvent(field, 'change')">
-              @for (opt of field.options; track opt.value) {
-                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+<form [formGroup]="form" class="maker-form-wrapper">
+  <div class="row">
+    @for (field of fieldDefs; track field.key) {
+      
+      @if (field.type === 'header') { 
+        <div class="col-12 form-section-label">{{ field.label }}</div>
+      } 
+      
+      @else {
+        <div [class]="field.gridClass || 'col-md-6'">
+          <div class="custom-form-group">
+            <label [for]="field.key">
+              {{ field.label }}
+              @if (field.required && role === 'MAKER') { 
+                <span class="required-star">*</span> 
               }
-            </mat-select>
-          }
-          @case ('textarea') {
-            <textarea matInput [formControlName]="field.key" (blur)="handleFieldEvent(field, 'blur')"></textarea>
-          }
-          @default {
-            <input matInput [formControlName]="field.key" 
-                   [numbersOnly]="field.type === 'number'"
-                   (blur)="handleFieldEvent(field, 'blur')">
-          }
-        }
-      </mat-form-field>
-    </div>
-  }
-</form> -->
+            </label>
+
+            @switch (field.type) {
+              @case ('select') {
+                <select [formControlName]="field.key" [id]="field.key" (change)="handleFieldEvent(field, 'change')">
+                  <option value="" disabled>Please Select</option>
+                  @for (opt of field.options; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              }
+
+              @case ('textarea') {
+                <textarea 
+                  [formControlName]="field.key" 
+                  [id]="field.key" 
+                  (blur)="handleFieldEvent(field, 'blur')">
+                </textarea>
+              }
+
+              @case ('date') {
+                <input type="date" [formControlName]="field.key" [id]="field.key">
+              }
+
+              @default {
+                <input 
+                  [type]="field.type === 'number' ? 'text' : field.type"
+                  [formControlName]="field.key" 
+                  [id]="field.key"
+                  [numbersOnly]="field.type === 'number'"
+                  
+                  /* Masking Logic for Checker Role */
+                  [class.masked-amount]="field.key === 'amount' && role === 'CHECKER' && !isAmountRevealed"
+                  (click)="revealAmount(field.key)"
+                  
+                  [placeholder]="role === 'MAKER' ? 'Enter ' + field.label : ''"
+                  (blur)="handleFieldEvent(field, 'blur')">
+              }
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</form>

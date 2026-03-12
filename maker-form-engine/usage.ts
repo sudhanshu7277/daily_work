@@ -65,6 +65,24 @@ export class AppComponent {
 
   dummyData = { amount: '1500.00', swiftCode: 'BNKUSR33' };
 
+  private prepareCheckerData() {
+    // In the future, this data will come from an API response
+    const apiResponse = {
+      amount: '75000.00',
+      swiftCode: 'CITIUS33XXXX',
+      eventType: 'DIV',
+      intBank: 'CHASE NY',
+      abaCode: '021000021',
+      remarks: 'Standard quarterly dividend processing.'
+    };
+
+    // Map the API values into the fields for the Checker
+    this.checkerFields = this.makerFields.map(field => ({
+      ...field,
+      initialValue: apiResponse[field.key as keyof typeof apiResponse] || ''
+    }));
+  }
+
   handleApiTrigger(event: any) {
     console.log('Identifier received from library:', event.identifier);
     // Execute dummy API call using DynamicCrudService here...
