@@ -84,27 +84,59 @@ export class FormEngineComponent implements OnInit, OnChanges {
     }
   }
 
-  private generateForm() {
-    const group: any = {};
+  // private generateForm() {
+  //   const group: any = {};
     
-    this.fieldDefs.forEach(field => {
-      group[field.key] = this.fb.control(
-        field.initialValue ?? '', 
-        field.required ? Validators.required : null
-      );
-    });
+  //   this.fieldDefs.forEach(field => {
+  //     group[field.key] = this.fb.control(
+  //       field.initialValue ?? '', 
+  //       field.required ? Validators.required : null
+  //     );
+  //   });
 
-    this.form = this.fb.group(group);
+  //   this.form = this.fb.group(group);
 
-    if (this.role === 'CHECKER') {
-      this.form.disable(); // Lock the entire form
+  //   if (this.role === 'CHECKER') {
+  //     this.form.disable(); // Lock the entire form
       
-      // Selectively enable 'amount' so the Checker can edit it
-      if (this.form.get('amount')) {
-        this.form.get('amount')?.enable();
-      }
+  //     // Selectively enable 'amount' so the Checker can edit it
+  //     if (this.form.get('amount')) {
+  //       this.form.get('amount')?.enable();
+  //     }
+  //   }
+  // }
+
+  private generateForm() {
+  const group: any = {};
+  
+  this.fieldDefs.forEach(field => {
+    // 1. Create the control
+    group[field.key] = this.fb.control(
+      '', // Start empty
+      field.required ? Validators.required : null
+    );
+  });
+
+  this.form = this.fb.group(group);
+
+  // 2. Populate (Pre-populate) the values from fieldDefs
+  const patchData: any = {};
+  this.fieldDefs.forEach(field => {
+    if (field.initialValue !== undefined) {
+      patchData[field.key] = field.initialValue;
+    }
+  });
+  
+  this.form.patchValue(patchData);
+
+  // 3. Handle Checker specific locking
+  if (this.role === 'CHECKER') {
+    this.form.disable();
+    if (this.form.get('amount')) {
+      this.form.get('amount')?.enable();
     }
   }
+}
 
   revealAmount(fieldKey: string) {
     if (this.role === 'CHECKER' && fieldKey === 'amount') {
