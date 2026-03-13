@@ -229,3 +229,48 @@ private findParentNode(childNode: any): any {
   }
   // ... rest of your search and filter methods ...
 }
+
+
+////// X BUTTON STYLES
+
+.pill-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border: 4px solid #333; /* Dark outer border from the image */
+    border-radius: 50px;    /* Makes it a pill shape */
+    background-color: #fff;
+    font-family: sans-serif;
+  }
+
+  /* The blue circle around the X */
+  .close-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border: 6px solid #0047AB; /* Deep blue color */
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* The X symbol (using a thick font or pseudo-elements) */
+  .x-symbol {
+    color: #0047AB;
+    font-size: 40px;
+    font-weight: bold;
+    line-height: 0;
+    margin-top: -4px; /* Slight adjustment for visual centering */
+  }
+
+  // CLOSE ICON HTML 
+
+<div class="pill-container">
+  <div class="close-circle">
+    <span class="x-symbol">×</span>
+  </div>
+</div>
+
+&times; (×)
