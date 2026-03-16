@@ -28,33 +28,39 @@ export class LegalHoldDataService {
 
   export const MOCK_RECURSIVE_DATA = [
   {
-    ocifId: "P-100",
-    profileName: "Corporation 2 (L0)",
-    legalHoldStatus: "N/A",
-    isParent: true,
-    isExpanded: false,
-    level: 0,
-    children: [
+    "ocifId": "P-100",
+    "profileName": "Global Corp (L0)",
+    "legalHoldStatus": "N/A",
+    "isParent": true,
+    "isExpanded": true,
+    "isChild": false,
+    "level": 0,
+    "children": [
       {
-        ocifId: "C-200",
-        profileName: "Role Player A (L1)",
-        legalHoldStatus: "LEGAL HOLD",
-        isParent: true,
-        isExpanded: false,
-        level: 1,
-        children: [
+        "ocifId": "C-200",
+        "profileName": "Regional HQ (L1)",
+        "legalHoldStatus": "LEGAL HOLD",
+        "isParent": true,
+        "isExpanded": true,
+        "isChild": true,
+        "level": 1,
+        "children": [
           {
-            ocifId: "GC-300",
-            profileName: "Sub-Signatory Alpha (L2)",
-            isParent: true,
-            isExpanded: false,
-            level: 2,
-            children: [
+            "ocifId": "GC-300",
+            "profileName": "Ontario Branch (L2)",
+            "legalHoldStatus": "N/A",
+            "isParent": true,
+            "isExpanded": true,
+            "isChild": true,
+            "level": 2,
+            "children": [
               {
-                ocifId: "GGC-400",
-                profileName: "Deep Nested Actor (L3)",
-                isParent: false,
-                level: 3
+                "ocifId": "GGC-400",
+                "profileName": "Milton Unit (L3)",
+                "legalHoldStatus": "RELEASED",
+                "isParent": false,
+                "isChild": true,
+                "level": 3
               }
             ]
           }
@@ -62,5 +68,5 @@ export class LegalHoldDataService {
       }
     ]
   }
-];
+]
 }
