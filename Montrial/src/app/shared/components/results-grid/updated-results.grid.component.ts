@@ -198,3 +198,16 @@ export class ResultsGridComponent implements OnInit {
 
   .ag-checkbox-input-wrapper.ag-checked::after { color: #004c97 !important; }
 }
+
+
+.npmrc details
+
+registry=https://bmostaging.jfrog.io/artifactory/api/npm/BMOHC-NPM-Engineering-Virtual/
+strict-ssl=false
+
+# Authentication - Replace THE_TOKEN_BELOW with your actual Identity Token from JFrog
+//bmostaging.jfrog.io/artifactory/api/npm/BMOHC-NPM-Engineering-Virtual/:_authToken=THE_TOKEN_BELOW
+
+# Proxy settings (based on your internal configuration)
+proxy=http://sjain70:Up32dt72779511@@EBCSWG.bmogc.net:8080
+https-proxy=http://sjain70:Up32dt72779511@@EBCSWG.bmogc.net:8080
