@@ -29,7 +29,7 @@ export class LegalHoldDataService {
   export const MOCK_RECURSIVE_DATA = [
   {
     ocifId: "P-100",
-    profileName: "Corporation 2 (Level 0)",
+    profileName: "Corporation 2 (L0)",
     legalHoldStatus: "N/A",
     isParent: true,
     isExpanded: false,
@@ -37,7 +37,7 @@ export class LegalHoldDataService {
     children: [
       {
         ocifId: "C-200",
-        profileName: "Role Player A (Level 1)",
+        profileName: "Role Player A (L1)",
         legalHoldStatus: "LEGAL HOLD",
         isParent: true,
         isExpanded: false,
@@ -45,16 +45,14 @@ export class LegalHoldDataService {
         children: [
           {
             ocifId: "GC-300",
-            profileName: "Sub-Signatory Alpha (Level 2)",
-            legalHoldStatus: "RELEASED",
+            profileName: "Sub-Signatory Alpha (L2)",
             isParent: true,
             isExpanded: false,
             level: 2,
             children: [
               {
                 ocifId: "GGC-400",
-                profileName: "Deep Nested Actor (Level 3)",
-                legalHoldStatus: "N/A",
+                profileName: "Deep Nested Actor (L3)",
                 isParent: false,
                 level: 3
               }

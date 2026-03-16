@@ -1,270 +1,176 @@
-import { Component, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AgGridAngular } from 'ag-grid-angular';
-import { GridApi, GridReadyEvent, ColDef } from 'ag-grid-community';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { TranslateModule } from '@ngx-translate/core';
+import { Component, OnInit } from '@angular/core';
+import { ColDef, GridApi, GridReadyEvent, RowNode } from 'ag-grid-community';
 
 @Component({
   selector: 'app-results-grid',
-  standalone: true,
-  imports: [
-    CommonModule, FormsModule, AgGridAngular, MatFormFieldModule, 
-    MatSelectModule, MatIconModule, MatButtonModule, TranslateModule
-  ],
   templateUrl: './results-grid.component.html',
   styleUrls: ['./results-grid.component.scss']
 })
-export class ResultsGridComponent {
-  @Output() selectionChanged = new EventEmitter<any[]>();
+export class ResultsGridComponent implements OnInit {
   private gridApi!: GridApi;
-  
-  rowData: any[] = [];
-  selectedFilterIds: any[] = [];
+  private isSyncing = false; // Guard to prevent infinite loops
+  public rowData: any[] = [];
+  private masterData = MOCK_RECURSIVE_DATA;
 
-  // Logic to handle design-specific row classes
-  public rowClassRules = {
-    'expanded-parent-row': (params: any) => params.data.isParent && params.data.isExpanded,
-    'last-child-row': (params: any) => {
-      if (!params.data.isChild) return false;
-      const parent = this.allMockData.find(p => 
-        p.children?.some((c: any) => c.ocifId === params.data.ocifId)
-      );
-      return !!(parent && parent.isExpanded && 
-             parent.children[parent.children.length - 1].ocifId === params.data.ocifId);
-    }
-  };
-
-  columnDefs: ColDef[] = [
-    { 
-      headerName: '', 
-      checkboxSelection: true, 
-      headerCheckboxSelection: true, 
-      width: 50, 
-      pinned: 'left',
-      cellRenderer: (params: any) => params.data.isChild ? '' : null 
+  public columnDefs: ColDef[] = [
+    { field: 'select', checkboxSelection: true, headerCheckboxSelection: true, width: 50, pinned: 'left' },
+    {
+      field: 'profileName',
+      headerName: 'Profile Name',
+      minWidth: 450,
+      cellRenderer: (params: any) => this.profileNameRenderer(params)
     },
-    { 
-      field: 'legalName', 
-      headerName: 'Legal Name', 
-      width: 320, 
-      pinned: 'left', 
-      sortable: true,
-      cellRenderer: (params: any) => {
-        const data = params.data;
-        const textClass = data.isChild ? 'grid-child-text' : 'grid-parent-text';
-        const carrotHtml = data.isParent ? 
-          `<span class="bmo-thin-carrot ${data.isExpanded ? 'up' : 'down'}"></span>` : '';
-        
-        return `
-          <div class="name-cell-wrapper">
-            <span class="${textClass}">${params.value}</span>
-            ${carrotHtml}
-          </div>`;
-      },
-      onCellClicked: (params: any) => {
-        if (params.data.isParent) this.toggleRowExpansion(params.data);
-      }
-    },
-    { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
-      cellRenderer: (params: any) => {
-        return params.value === 'LEGAL HOLD' ? 
-          `<div class="status-badge-container"><span class="status-pill-badge">LEGAL HOLD</span></div>` : 
-          `<span style="color: #666;">${params.value || 'N/A'}</span>`;
-      },
-      width: 130 
-    },
-    { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
-    { field: 'lifecycle', headerName: 'Lifecycle', width: 180 },
-    { field: 'role', headerName: 'Role', width: 150 },
-    { field: 'address', headerName: 'Address', flex: 1 }
+    { field: 'legalHoldStatus', headerName: 'Legal Hold Status' }
   ];
 
-  // --- Grid Operations ---
+  ngOnInit() {
+    this.refreshGrid();
+  }
+
+  // --- RECURSIVE ENGINE: Flattens the tree for the grid display ---
+  private flatten(data: any[]): any[] {
+    let result: any[] = [];
+    data.forEach(item => {
+      result.push(item);
+      if (item.isParent && item.isExpanded && item.children) {
+        result = [...result, ...this.flatten(item.children)];
+      }
+    });
+    return result;
+  }
+
+  refreshGrid() {
+    this.rowData = this.flatten(this.masterData);
+    if (this.gridApi) this.gridApi.setRowData([...this.rowData]);
+  }
+
+  // --- FIGMA UI: Indentation & Depth Lines ---
+  private profileNameRenderer(params: any) {
+    const { level, isParent, isExpanded, profileName } = params.data;
+    const indent = (level || 0) * 24;
+    
+    let depthLines = '';
+    for (let i = 1; i <= (level || 0); i++) {
+      depthLines += `<div class="depth-line" style="left: ${(i * 24) - 12}px"></div>`;
+    }
+
+    const chevron = isParent 
+      ? `<span class="bmo-thin-carrot ${isExpanded ? 'up' : 'down'}"></span>` 
+      : '<span class="spacer"></span>';
+
+    return `
+      <div class="name-cell-wrapper" style="padding-left: ${indent}px">
+        ${depthLines}
+        <span class="profile-text">${profileName}</span>
+        ${chevron}
+      </div>
+    `;
+  }
+
+  // --- RECURSIVE SELECTION: Select All Children + Auto-Select Parent ---
+  onSelectionChanged() {
+    if (this.isSyncing || !this.gridApi) return;
+    this.isSyncing = true;
+
+    this.gridApi.forEachNode((node) => {
+      if (node.data.children && node.data.children.length > 0) {
+        const childNodes = node.data.children
+          .map((c: any) => this.gridApi.getRowNode(c.ocifId))
+          .filter((n: any) => n != null);
+
+        if (childNodes.length === 0) return;
+        const allSelected = childNodes.every(n => n.isSelected());
+
+        if (node.isSelected() && !allSelected) {
+          childNodes.forEach(n => n.setSelected(true, false));
+        } else if (allSelected && !node.isSelected()) {
+          node.setSelected(true, false);
+        } else if (!allSelected && node.isSelected()) {
+          node.setSelected(false, false);
+        }
+      }
+    });
+
+    this.isSyncing = false;
+  }
+
+  // --- BLUE SANDWICH CLASS RULES ---
+  public getRowClass = (params: any) => {
+    const { level, isParent, isExpanded } = params.data;
+    const classes = [];
+
+    if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
+    if (level > 0) classes.push('is-child-row');
+
+    const next = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
+    const isLast = !next || next.data.level < level || (level > 0 && next.data.level === 0);
+
+    if (level > 0 && isLast) classes.push('sandwich-bottom-border');
+    
+    return classes.join(' ');
+  };
+
+  onCellClicked(params: any) {
+    if (params.colDef?.field === 'profileName' && params.data.isParent) {
+      params.data.isExpanded = !params.data.isExpanded;
+      this.refreshGrid();
+    }
+  }
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
-    this.syncColumns();
+    this.refreshGrid();
   }
-
-  // onSelectionChanged() {
-  //   if (this.selectionInProgress || !this.gridApi) return;
-  //   this.selectionInProgress = true;
-
-  //   // Logic: Sync children state to match parent state
-  //   const allSelectedNodes = this.gridApi.getSelectedNodes();
-    
-  //   // We iterate through parents to force their children to match
-  //   this.gridApi.forEachNode(node => {
-  //     if (node.data.isParent && node.data.children) {
-  //       const isParentSelected = node.isSelected();
-  //       const childrenOcifIds = node.data.children.map((c: any) => c.ocifId);
-
-  //       // Find children currently rendered in the grid and sync selection
-  //       this.gridApi.forEachNode(childNode => {
-  //         if (childNode.data.isChild && childrenOcifIds.includes(childNode.data.ocifId)) {
-  //           if (childNode.isSelected() !== isParentSelected) {
-  //             childNode.setSelected(isParentSelected, false);
-  //           }
-  //         }
-  //       });
-  //     }
-  //   });
-
-  //   this.selectionInProgress = false;
-  //   this.selectionChanged.emit(this.gridApi.getSelectedRows());
-  // }
-
-
-private selectionInProgress = false;
-  
-  // Local track of selected objects to solve the 'never' and undefined errors
-  public selectedRowsData: any[] = [];
-
-
-onSelectionChanged() {
-  if (this.selectionInProgress || !this.gridApi) return;
-  this.selectionInProgress = true;
-
-  const selectedNodes = this.gridApi.getSelectedNodes();
-  const finalSelectionMap = new Map<string, any>();
-
-  // 1. Build initial map based on what is VISUALLY selected in the grid
-  selectedNodes.forEach((node: any) => {
-    if (!node.data) return;
-    finalSelectionMap.set(node.data.ocifId, node.data);
-  });
-
-  // 2. BIDIRECTIONAL CASCADING
-  this.gridApi.forEachNode((node: any) => {
-    if (!node.data) return;
-
-    // CASE A: NEW PARENT SELECTION (Select All)
-    // We only trigger "Select All" if the parent was NOT selected in our previous state
-    const wasParentPreviouslySelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
-    
-    if (node.data.isParent && node.isSelected() && !wasParentPreviouslySelected) {
-      const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
-      // Add all children to payload
-      node.data.children?.forEach((c: any) => finalSelectionMap.set(c.ocifId, c));
-      
-      // Sync visible checkmarks
-      this.gridApi.forEachNode((childNode: any) => {
-        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
-          childNode.setSelected(true, false);
-        }
-      });
-    }
-
-    // CASE B: PARENT DESELECTED (Deselect All)
-    if (node.data.isParent && !node.isSelected() && wasParentPreviouslySelected) {
-      const childIds = node.data.children?.map((c: any) => c.ocifId) || [];
-      finalSelectionMap.delete(node.data.ocifId);
-      
-      // Remove children from payload
-      node.data.children?.forEach((c: any) => finalSelectionMap.delete(c.ocifId));
-
-      // Sync visible checkmarks
-      this.gridApi.forEachNode((childNode: any) => {
-        if (childNode.data.isChild && childIds.includes(childNode.data.ocifId)) {
-          childNode.setSelected(false, false);
-        }
-      });
-    }
-
-    // CASE C: INDIVIDUAL CHILD DESELECTED
-    // If a child is unchecked, we remove it from payload and visually uncheck the parent
-    if (node.data.isChild && !node.isSelected()) {
-      finalSelectionMap.delete(node.data.ocifId);
-      const parentNode = this.findParentNode(node);
-      if (parentNode && parentNode.isSelected()) {
-        parentNode.setSelected(false, false);
-        finalSelectionMap.delete(parentNode.data.ocifId);
-      }
-    }
-  });
-
-  // 3. Persist and Emit
-  this.selectedRowsData = Array.from(finalSelectionMap.values());
-  this.selectionInProgress = false;
-  this.selectionChanged.emit(this.selectedRowsData);
-}
-  toggleRowExpansion(parent: any) {
-    parent.isExpanded = !parent.isExpanded;
-    
-    if (parent.isExpanded) {
-      const index = this.rowData.indexOf(parent);
-      this.rowData.splice(index + 1, 0, ...parent.children);
-    } else {
-      this.rowData = this.rowData.filter(row => !parent.children.includes(row));
-    }
-    
-    this.gridApi.setGridOption('rowData', [...this.rowData]);
-
-    // RE-HYDRATE SELECTION
-    // Ensure that when rows are added back, their checkmarks return
-    this.gridApi.forEachNode((node: any) => {
-      const shouldBeSelected = this.selectedRowsData.some(s => s.ocifId === node.data.ocifId);
-      if (shouldBeSelected) {
-        node.setSelected(true, false);
-      }
-    });
-  }
-
-private findParentNode(childNode: any): any {
-    let foundParent = null;
-    this.gridApi.forEachNode((node: any) => {
-      if (node.data?.isParent && node.data.children?.some((c: any) => c.ocifId === childNode.data.ocifId)) {
-        foundParent = node;
-      }
-    });
-    return foundParent;
-  }
-  // ... rest of your search and filter methods ...
 }
 
 
 ////// X BUTTON STYLES
 
-.pill-container {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 20px;
-    border: 4px solid #333; /* Dark outer border from the image */
-    border-radius: 50px;    /* Makes it a pill shape */
-    background-color: #fff;
-    font-family: sans-serif;
+::ng-deep .ag-theme-alpine.bmo-grid {
+  /* FIGMA: Level 0 Expanded Parent */
+  .ag-row.blue-sandwich-parent {
+    background-color: #E8F4FD !important;
+    border-top: 2px solid #004c97 !important;
+    z-index: 10;
   }
 
-  /* The blue circle around the X */
-  .close-circle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    border: 6px solid #0047AB; /* Deep blue color */
-    border-radius: 50%;
-    cursor: pointer;
+  /* FIGMA: Level 1+ Child Rows */
+  .ag-row.is-child-row {
+    background-color: #ffffff !important;
+    border-top: none !important;
+
+    .name-cell-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .depth-line {
+        position: absolute;
+        top: 0; bottom: 0; width: 1px;
+        background-color: #E0E0E0; /* Vertical depth guide */
+      }
+    }
   }
 
-  /* The X symbol (using a thick font or pseudo-elements) */
-  .x-symbol {
-    color: #0047AB;
-    font-size: 40px;
-    font-weight: bold;
-    line-height: 0;
-    margin-top: -4px; /* Slight adjustment for visual centering */
+  /* FIGMA: Closing the Sandwich Cluster */
+  .ag-row.sandwich-bottom-border {
+    border-bottom: 2px solid #004c97 !important;
   }
 
+  /* DARK BLUE THIN CARROT */
+  .bmo-thin-carrot {
+    width: 8px; height: 8px;
+    border-top: 1.5px solid #004c97;
+    border-right: 1.5px solid #004c97;
+    display: inline-block;
+    margin-left: 10px;
+    transition: transform 0.2s;
+    &.down { transform: rotate(135deg); }
+    &.up { transform: rotate(-45deg); margin-top: 5px; }
+  }
+
+  .ag-checkbox-input-wrapper.ag-checked::after { color: #004c97 !important; }
+}
   // CLOSE ICON HTML 
 
 <div class="pill-container">
