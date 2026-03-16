@@ -27,8 +27,8 @@ export class ResultsGridComponent implements OnInit {
     this.refreshGrid();
   }
 
-  // --- RECURSIVE ENGINE: Flattens the tree for the grid display ---
-  private flatten(data: any[]): any[] {
+
+ private flatten(data: any[]): any[] {
     let result: any[] = [];
     data.forEach(item => {
       result.push(item);
@@ -38,52 +38,16 @@ export class ResultsGridComponent implements OnInit {
     });
     return result;
   }
-
-  private flatten(data: any[]): any[] {
-    let result: any[] = [];
-    data.forEach(item => {
-      result.push(item);
-      if (item.isParent && item.isExpanded && item.children) {
-        result = [...result, ...this.flatten(item.children)];
-      }
-    });
-    return result;
+ refreshGrid() {
+    this.rowData = [...this.flatten(this.allMockData)];
+    if (this.gridApi) {
+      this.gridApi.setGridOption('rowData', this.rowData);
+    }
   }
+  
 
-  // refreshGrid() {
-  //   this.rowData = this.flatten(this.masterData);
-  //   if (this.gridApi) this.gridApi.setRowData([...this.rowData]);
-  // }
-
-  refreshGrid() {
-    this.rowData = [...this.flatten(this.masterData)];
-  }
-
-  // --- FIGMA UI: Indentation & Depth Lines ---
-  // private profileNameRenderer(params: any) {
-  //   const { level, isParent, isExpanded, profileName } = params.data;
-  //   const indent = (level || 0) * 24;
-    
-  //   let depthLines = '';
-  //   for (let i = 1; i <= (level || 0); i++) {
-  //     depthLines += `<div class="depth-line" style="left: ${(i * 24) - 12}px"></div>`;
-  //   }
-
-  //   const chevron = isParent 
-  //     ? `<span class="bmo-thin-carrot ${isExpanded ? 'up' : 'down'}"></span>` 
-  //     : '<span class="spacer"></span>';
-
-  //   return `
-  //     <div class="name-cell-wrapper" style="padding-left: ${indent}px">
-  //       ${depthLines}
-  //       <span class="profile-text">${profileName}</span>
-  //       ${chevron}
-  //     </div>
-  //   `;
-  // }
-
-  private profileNameRenderer(params: any): SafeHtml {
-    const { level, isParent, isExpanded, profileName } = params.data;
+ private profileNameRenderer(params: any): SafeHtml {
+    const { level, isParent, isExpanded, profileName, isChild } = params.data;
     const indent = (level || 0) * 24;
     
     let depthLines = '';
@@ -91,54 +55,25 @@ export class ResultsGridComponent implements OnInit {
       depthLines += `<div class="depth-line" style="left: ${(i * 24) - 12}px"></div>`;
     }
 
-    const chevron = isParent 
+    const carrot = isParent 
       ? `<span class="bmo-thin-carrot ${isExpanded ? 'up' : 'down'}"></span>` 
       : '';
 
-    const htmlString = `
+    const html = `
       <div class="name-cell-wrapper" style="padding-left: ${indent}px">
         ${depthLines}
-        <span class="profile-text">${profileName}</span>
-        ${chevron}
+        <span class="${isChild ? 'grid-child-text' : 'grid-parent-text'}">${params.value}</span>
+        ${carrot}
       </div>
     `;
-
-    // CRITICAL: Applying sanitation as present in your code
-    return this.sanitizer.bypassSecurityTrustHtml(htmlString);
+    return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
-  // --- RECURSIVE SELECTION: Select All Children + Auto-Select Parent ---
-  // onSelectionChanged() {
-  //   if (this.isSyncing || !this.gridApi) return;
-  //   this.isSyncing = true;
-
-  //   this.gridApi.forEachNode((node) => {
-  //     if (node.data.children && node.data.children.length > 0) {
-  //       const childNodes = node.data.children
-  //         .map((c: any) => this.gridApi.getRowNode(c.ocifId))
-  //         .filter((n: any) => n != null);
-
-  //       if (childNodes.length === 0) return;
-  //       const allSelected = childNodes.every(n => n.isSelected());
-
-  //       if (node.isSelected() && !allSelected) {
-  //         childNodes.forEach(n => n.setSelected(true, false));
-  //       } else if (allSelected && !node.isSelected()) {
-  //         node.setSelected(true, false);
-  //       } else if (!allSelected && node.isSelected()) {
-  //         node.setSelected(false, false);
-  //       }
-  //     }
-  //   });
-
-  //   this.isSyncing = false;
-  // }
-
-  onSelectionChanged() {
+onSelectionChanged() {
     if (this.isSyncing || !this.gridApi) return;
     this.isSyncing = true;
 
-    this.gridApi.forEachNode((node) => {
+    this.gridApi.forEachNode((node: RowNode) => {
       const data = node.data;
       if (data.children && data.children.length > 0) {
         const childNodes = data.children
@@ -160,61 +95,36 @@ export class ResultsGridComponent implements OnInit {
     this.isSyncing = false;
   }
 
-  // --- BLUE SANDWICH CLASS RULES ---
-  // public getRowClass = (params: any) => {
-  //   const { level, isParent, isExpanded } = params.data;
-  //   const classes = [];
 
-  //   if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
-  //   if (level > 0) classes.push('is-child-row');
+public getRowClass = (params: any) => {
+    const { level, isParent, isExpanded } = params.data;
+    const classes = [];
+    if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
+    if (level > 0) classes.push('is-child-row');
 
-  //   const next = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
-  //   const isLast = !next || next.data.level < level || (level > 0 && next.data.level === 0);
-
-  //   if (level > 0 && isLast) classes.push('sandwich-bottom-border');
+    const next = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
+    const isLast = !next || next.data.level < level || (level > 0 && next.data.level === 0);
+    if (level > 0 && isLast) classes.push('sandwich-bottom-border');
     
-  //   return classes.join(' ');
-  // };
+    return classes.join(' ');
+  };
 
-  public getRowClass = (params: any) => {
-  const { level, isParent, isExpanded } = params.data;
-  const classes = [];
-
-  // Top of the cluster
-  if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
-  // All nested members
-  if (level > 0) classes.push('is-child-row');
-
-  // Find the end: Does the next row have a lower level?
-  const nextNode = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
-  const isLast = !nextNode || nextNode.data.level < level || (level > 0 && nextNode.data.level === 0);
-
-  if (level > 0 && isLast) classes.push('sandwich-bottom-border');
-  
-  return classes.join(' ');
-};
-
- onCellClicked(params: any) {
+onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.refreshGrid();
     }
   }
 
-  // onGridReady(params: GridReadyEvent) {
-  //   this.gridApi = params.api;
-  //   this.refreshGrid();
-  // }
-
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
+    this.refreshGrid();
   }
 }
 
 
-////// X BUTTON STYLES
-
-::ng-deep .ag-theme-alpine.bmo-grid {
+////// NEW CODE SCSS
+::ng-deep .bmo-grid {
   /* FIGMA: Level 0 Expanded Parent */
   .ag-row.blue-sandwich-parent {
     background-color: #E8F4FD !important;
@@ -222,39 +132,36 @@ export class ResultsGridComponent implements OnInit {
     z-index: 10;
   }
 
-  /* FIGMA: Level 1+ Child Rows */
+  /* FIGMA: Child Rows + Vertical Guides */
   .ag-row.is-child-row {
     background-color: #ffffff !important;
-    border-top: none !important;
-
     .name-cell-wrapper {
       position: relative;
       display: flex;
       align-items: center;
-
       .depth-line {
         position: absolute;
         top: 0; bottom: 0; width: 1px;
-        background-color: #E0E0E0; /* Vertical depth guide */
+        background-color: #E0E0E0; // Grey depth tracker
       }
     }
   }
 
-  /* FIGMA: Closing the Sandwich Cluster */
+  /* FIGMA: Blue Sandwich Bottom Closure */
   .ag-row.sandwich-bottom-border {
     border-bottom: 2px solid #004c97 !important;
   }
 
-  /* DARK BLUE THIN CARROT */
+  /* FIGMA: Dark Blue Carrot */
   .bmo-thin-carrot {
-    width: 8px; height: 8px;
+    width: 7.5px; height: 7.5px;
     border-top: 1.5px solid #004c97;
     border-right: 1.5px solid #004c97;
     display: inline-block;
+    transition: 0.2s;
     margin-left: 10px;
-    transition: transform 0.2s;
     &.down { transform: rotate(135deg); }
-    &.up { transform: rotate(-45deg); margin-top: 5px; }
+    &.up { transform: rotate(-45deg); margin-top: 4px; }
   }
 
   .ag-checkbox-input-wrapper.ag-checked::after { color: #004c97 !important; }
