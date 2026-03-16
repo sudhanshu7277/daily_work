@@ -189,33 +189,4 @@
 }
 ////new code end/////
 
-/// last new code////
-
-::ng-deep .bmo-grid {
-  .blue-sandwich-parent {
-    background-color: #E8F4FD !important;
-    border-top: 2px solid #004c97 !important;
-  }
-  
-  .sandwich-child-row {
-    background-color: #ffffff !important;
-  }
-
-  .sandwich-bottom-border {
-    border-bottom: 2px solid #004c97 !important;
-  }
-
-  .bmo-thin-carrot {
-    width: 8px; height: 8px;
-    border-top: 1.5px solid #004c97;
-    border-right: 1.5px solid #004c97;
-    display: inline-block;
-    margin-left: 8px;
-    &.down { transform: rotate(135deg); }
-    &.up { transform: rotate(-45deg); margin-top: 4px; }
-  }
-}
-
-// last new code added end ////
-
 
