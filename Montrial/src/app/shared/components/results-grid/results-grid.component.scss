@@ -44,14 +44,8 @@
     }
 }
 
-// results-grid.component.scss
-
-
-
 
 // UPDATED AG-GRID SCSS
-
-/* results-grid.component.scss */
 
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
@@ -88,22 +82,16 @@
   }
 }
 
-/*SECOND ATTEMPT START */
 
-/* results-grid.component.scss */
-
-/* results-grid.component.scss */
 ::ng-deep {
   .ag-theme-alpine.bmo-grid {
     
-    /* PART 1: TOP OF SANDWICH */
     .ag-row.blue-sandwich-parent {
       background-color: #E8F4FD !important;
       border-top: 2px solid #004c97 !important;
       z-index: 10 !important;
     }
 
-    /* PART 2: FILLING (CHILDREN) */
     .ag-row.sandwich-child-row {
       background-color: #ffffff !important;
       border-top: none !important;
@@ -113,32 +101,27 @@
       }
     }
 
-    /* PART 3: BOTTOM OF SANDWICH */
     .ag-row.sandwich-bottom-border {
       border-bottom: 2px solid #004c97 !important;
     }
 
-    /* FIX: Ensure the checkbox overlay doesn't hide our blue */
     .ag-row-selected::before {
       background-color: transparent !important;
     }
   }
 }
 
-/*SECOND ATTEMPT END */
 
 
 ////////new code below start////
 
 ::ng-deep .ag-theme-alpine.bmo-grid {
-  /* FIGMA: Expanded Parent (Top of Sandwich) */
   .ag-row.blue-sandwich-parent {
     background-color: #E8F4FD !important;
     border-top: 2px solid #004c97 !important;
     z-index: 10;
   }
 
-  /* FIGMA: Indented Children (Body of Sandwich) */
   .ag-row.is-child-row {
     background-color: #ffffff !important;
     border-top: none !important;
@@ -154,17 +137,15 @@
         top: 0;
         bottom: 0;
         width: 1px;
-        background-color: #E0E0E0; // Guides the eye through deep levels
+        background-color: #E0E0E0;
       }
     }
   }
 
-  /* FIGMA: Closing Border (Bottom of Sandwich) */
   .ag-row.sandwich-bottom-border {
     border-bottom: 2px solid #004c97 !important;
   }
 
-  /* DARK BLUE CHEVRON CLUSTER */
   .bmo-chevron {
     width: 7px;
     height: 7px;
@@ -184,6 +165,27 @@
   }
   .ag-row-selected::before {
     background-color: transparent !important;
+  }
+}
+
+
+
+::ng-deep .ag-theme-alpine.bmo-grid {
+  .ag-paging-panel {
+    border-top: 1px solid #E0E0E0;
+    color: #333;
+    font-size: 13px;
+
+    .ag-paging-button {
+      color: #004c97 !important; // Dark Blue from Figma
+      &:hover {
+        opacity: 0.7;
+      }
+    }
+
+    .ag-paging-row-summary-panel {
+      font-weight: 600;
+    }
   }
 }
 ////new code end/////

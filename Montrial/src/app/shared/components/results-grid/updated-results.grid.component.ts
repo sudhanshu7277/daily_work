@@ -8,7 +8,7 @@ import { ColDef, GridApi, GridReadyEvent, RowNode } from 'ag-grid-community';
 })
 export class ResultsGridComponent implements OnInit {
   private gridApi!: GridApi;
-  private isSyncing = false; // Guard to prevent infinite loops
+  private isSyncing = false;
   public rowData: any[] = [];
   private masterData = MOCK_RECURSIVE_DATA;
 
@@ -39,13 +39,50 @@ export class ResultsGridComponent implements OnInit {
     return result;
   }
 
+  private flatten(data: any[]): any[] {
+    let result: any[] = [];
+    data.forEach(item => {
+      result.push(item);
+      if (item.isParent && item.isExpanded && item.children) {
+        result = [...result, ...this.flatten(item.children)];
+      }
+    });
+    return result;
+  }
+
+  // refreshGrid() {
+  //   this.rowData = this.flatten(this.masterData);
+  //   if (this.gridApi) this.gridApi.setRowData([...this.rowData]);
+  // }
+
   refreshGrid() {
-    this.rowData = this.flatten(this.masterData);
-    if (this.gridApi) this.gridApi.setRowData([...this.rowData]);
+    this.rowData = [...this.flatten(this.masterData)];
   }
 
   // --- FIGMA UI: Indentation & Depth Lines ---
-  private profileNameRenderer(params: any) {
+  // private profileNameRenderer(params: any) {
+  //   const { level, isParent, isExpanded, profileName } = params.data;
+  //   const indent = (level || 0) * 24;
+    
+  //   let depthLines = '';
+  //   for (let i = 1; i <= (level || 0); i++) {
+  //     depthLines += `<div class="depth-line" style="left: ${(i * 24) - 12}px"></div>`;
+  //   }
+
+  //   const chevron = isParent 
+  //     ? `<span class="bmo-thin-carrot ${isExpanded ? 'up' : 'down'}"></span>` 
+  //     : '<span class="spacer"></span>';
+
+  //   return `
+  //     <div class="name-cell-wrapper" style="padding-left: ${indent}px">
+  //       ${depthLines}
+  //       <span class="profile-text">${profileName}</span>
+  //       ${chevron}
+  //     </div>
+  //   `;
+  // }
+
+  private profileNameRenderer(params: any): SafeHtml {
     const { level, isParent, isExpanded, profileName } = params.data;
     const indent = (level || 0) * 24;
     
@@ -56,25 +93,55 @@ export class ResultsGridComponent implements OnInit {
 
     const chevron = isParent 
       ? `<span class="bmo-thin-carrot ${isExpanded ? 'up' : 'down'}"></span>` 
-      : '<span class="spacer"></span>';
+      : '';
 
-    return `
+    const htmlString = `
       <div class="name-cell-wrapper" style="padding-left: ${indent}px">
         ${depthLines}
         <span class="profile-text">${profileName}</span>
         ${chevron}
       </div>
     `;
+
+    // CRITICAL: Applying sanitation as present in your code
+    return this.sanitizer.bypassSecurityTrustHtml(htmlString);
   }
 
   // --- RECURSIVE SELECTION: Select All Children + Auto-Select Parent ---
+  // onSelectionChanged() {
+  //   if (this.isSyncing || !this.gridApi) return;
+  //   this.isSyncing = true;
+
+  //   this.gridApi.forEachNode((node) => {
+  //     if (node.data.children && node.data.children.length > 0) {
+  //       const childNodes = node.data.children
+  //         .map((c: any) => this.gridApi.getRowNode(c.ocifId))
+  //         .filter((n: any) => n != null);
+
+  //       if (childNodes.length === 0) return;
+  //       const allSelected = childNodes.every(n => n.isSelected());
+
+  //       if (node.isSelected() && !allSelected) {
+  //         childNodes.forEach(n => n.setSelected(true, false));
+  //       } else if (allSelected && !node.isSelected()) {
+  //         node.setSelected(true, false);
+  //       } else if (!allSelected && node.isSelected()) {
+  //         node.setSelected(false, false);
+  //       }
+  //     }
+  //   });
+
+  //   this.isSyncing = false;
+  // }
+
   onSelectionChanged() {
     if (this.isSyncing || !this.gridApi) return;
     this.isSyncing = true;
 
     this.gridApi.forEachNode((node) => {
-      if (node.data.children && node.data.children.length > 0) {
-        const childNodes = node.data.children
+      const data = node.data;
+      if (data.children && data.children.length > 0) {
+        const childNodes = data.children
           .map((c: any) => this.gridApi.getRowNode(c.ocifId))
           .filter((n: any) => n != null);
 
@@ -90,36 +157,57 @@ export class ResultsGridComponent implements OnInit {
         }
       }
     });
-
     this.isSyncing = false;
   }
 
   // --- BLUE SANDWICH CLASS RULES ---
-  public getRowClass = (params: any) => {
-    const { level, isParent, isExpanded } = params.data;
-    const classes = [];
+  // public getRowClass = (params: any) => {
+  //   const { level, isParent, isExpanded } = params.data;
+  //   const classes = [];
 
-    if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
-    if (level > 0) classes.push('is-child-row');
+  //   if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
+  //   if (level > 0) classes.push('is-child-row');
 
-    const next = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
-    const isLast = !next || next.data.level < level || (level > 0 && next.data.level === 0);
+  //   const next = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
+  //   const isLast = !next || next.data.level < level || (level > 0 && next.data.level === 0);
 
-    if (level > 0 && isLast) classes.push('sandwich-bottom-border');
+  //   if (level > 0 && isLast) classes.push('sandwich-bottom-border');
     
-    return classes.join(' ');
-  };
+  //   return classes.join(' ');
+  // };
 
-  onCellClicked(params: any) {
-    if (params.colDef?.field === 'profileName' && params.data.isParent) {
+  public getRowClass = (params: any) => {
+  const { level, isParent, isExpanded } = params.data;
+  const classes = [];
+
+  // Top of the cluster
+  if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
+  // All nested members
+  if (level > 0) classes.push('is-child-row');
+
+  // Find the end: Does the next row have a lower level?
+  const nextNode = this.gridApi?.getDisplayedRowAtIndex(params.node.rowIndex + 1);
+  const isLast = !nextNode || nextNode.data.level < level || (level > 0 && nextNode.data.level === 0);
+
+  if (level > 0 && isLast) classes.push('sandwich-bottom-border');
+  
+  return classes.join(' ');
+};
+
+ onCellClicked(params: any) {
+    if (params.colDef.field === 'profileName' && params.data.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.refreshGrid();
     }
   }
 
+  // onGridReady(params: GridReadyEvent) {
+  //   this.gridApi = params.api;
+  //   this.refreshGrid();
+  // }
+
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
-    this.refreshGrid();
   }
 }
 
