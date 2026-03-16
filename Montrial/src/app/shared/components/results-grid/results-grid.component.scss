@@ -128,3 +128,64 @@
 /*SECOND ATTEMPT END */
 
 
+////////new code below start////
+
+::ng-deep .ag-theme-alpine.bmo-grid {
+  /* FIGMA: Expanded Parent (Top of Sandwich) */
+  .ag-row.blue-sandwich-parent {
+    background-color: #E8F4FD !important;
+    border-top: 2px solid #004c97 !important;
+    z-index: 10;
+  }
+
+  /* FIGMA: Indented Children (Body of Sandwich) */
+  .ag-row.is-child-row {
+    background-color: #ffffff !important;
+    border-top: none !important;
+
+    .name-cell-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 100%;
+
+      .depth-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background-color: #E0E0E0; // Guides the eye through deep levels
+      }
+    }
+  }
+
+  /* FIGMA: Closing Border (Bottom of Sandwich) */
+  .ag-row.sandwich-bottom-border {
+    border-bottom: 2px solid #004c97 !important;
+  }
+
+  /* DARK BLUE CHEVRON CLUSTER */
+  .bmo-chevron {
+    width: 7px;
+    height: 7px;
+    border-top: 1.5px solid #004c97;
+    border-right: 1.5px solid #004c97;
+    display: inline-block;
+    transition: transform 0.2s;
+    margin-right: 10px;
+
+    &.closed { transform: rotate(45deg); }
+    &.opened { transform: rotate(135deg); margin-top: -3px; }
+  }
+
+  /* Selection Aesthetics */
+  .ag-checkbox-input-wrapper.ag-checked::after {
+    color: #004c97 !important;
+  }
+  .ag-row-selected::before {
+    background-color: transparent !important;
+  }
+}
+////new code end/////
+
+

@@ -25,4 +25,44 @@ export class LegalHoldDataService {
     }));
     return of(mockData);
   }
+
+  export const MOCK_RECURSIVE_DATA = [
+  {
+    ocifId: "P-100",
+    profileName: "Corporation 2 (Level 0)",
+    legalHoldStatus: "N/A",
+    isParent: true,
+    isExpanded: false,
+    level: 0,
+    children: [
+      {
+        ocifId: "C-200",
+        profileName: "Role Player A (Level 1)",
+        legalHoldStatus: "LEGAL HOLD",
+        isParent: true,
+        isExpanded: false,
+        level: 1,
+        children: [
+          {
+            ocifId: "GC-300",
+            profileName: "Sub-Signatory Alpha (Level 2)",
+            legalHoldStatus: "RELEASED",
+            isParent: true,
+            isExpanded: false,
+            level: 2,
+            children: [
+              {
+                ocifId: "GGC-400",
+                profileName: "Deep Nested Actor (Level 3)",
+                legalHoldStatus: "N/A",
+                isParent: false,
+                level: 3
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+];
 }

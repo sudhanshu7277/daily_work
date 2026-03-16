@@ -25,6 +25,10 @@ export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
   
   private gridApi!: GridApi;
+  private isSyncingSelection = false;
+  
+  // The 'master' recursive list
+  private masterData = MOCK_RECURSIVE_DATA; 
   public rowData: any[] = [];
   public showChipsSection = false;
   public selectedFilterIds: string[] = [];
@@ -66,16 +70,23 @@ public columnDefs: ColDef[] = [
     pinned: 'left', 
     headerCheckboxSelection: true 
   },
-  { 
-    field: 'legalName', 
-    headerName: 'Profile Name', 
-    sortable: true, 
-    unSortIcon: true, // Required for the up/down arrows in Figma
-    width: 300,
-    pinned: 'left',
-    headerClass: 'profile-name-header',
-    cellClass: 'profile-name-cell'
-  },
+  { field: 'select', checkboxSelection: true, headerCheckboxSelection: true, width: 50, pinned: 'left' },
+    {
+      field: 'profileName',
+      headerName: 'Profile Name',
+      minWidth: 450,
+      cellRenderer: (params: any) => this.profileNameRenderer(params)
+    },
+  // { 
+  //   field: 'legalName', 
+  //   headerName: 'Profile Name', 
+  //   sortable: true, 
+  //   unSortIcon: true, // Required for the up/down arrows in Figma
+  //   width: 300,
+  //   pinned: 'left',
+  //   headerClass: 'profile-name-header',
+  //   cellClass: 'profile-name-cell'
+  // },
   { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
   { 
     field: 'status', 
@@ -98,6 +109,62 @@ public columnDefs: ColDef[] = [
     flex: 1 // This forces the grid to occupy 100% of the UI width
   }
 ];
+
+
+///// NEW CODE ///////////////
+
+onCellClicked(params: any) {
+    if (params.colDef?.field === 'profileName' && params.data.isParent) {
+      params.data.isExpanded = !params.data.isExpanded;
+      this.refreshGridData(); // Re-flatten and setRowData
+    }
+  }
+
+
+  // --- RECURSIVE FLATTENING LOGIC ---
+  private refreshGridData() {
+    this.rowData = this.flattenData(this.masterData);
+    if (this.gridApi) {
+      this.gridApi.setRowData(this.rowData);
+    }
+  }
+
+ private flattenData(data: any[]): any[] {
+    let flat: any[] = [];
+    data.forEach(item => {
+      flat.push(item);
+      if (item.isParent && item.isExpanded && item.children) {
+        flat = [...flat, ...this.flattenData(item.children)];
+      }
+    });
+    return flat;
+  }
+
+  // --- DYNAMIC RENDERER (Indentation & Guide Lines) ---
+  private profileNameRenderer(params: any) {
+    const { level, isParent, isExpanded, profileName } = params.data;
+    const indent = level * 24;
+    
+    let depthLines = '';
+    for (let i = 1; i <= level; i++) {
+      depthLines += `<div class="depth-line" style="left: ${(i * 24) - 12}px"></div>`;
+    }
+
+    const chevron = isParent 
+      ? `<span class="bmo-chevron ${isExpanded ? 'opened' : 'closed'}"></span>` 
+      : '<span class="chevron-spacer"></span>';
+
+    return `
+      <div class="name-cell-wrapper" style="padding-left: ${indent}px">
+        ${depthLines}
+        ${chevron}
+        <span class="profile-name-text">${profileName}</span>
+      </div>
+    `;
+  }
+
+
+//// NEW CODE END ///////
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
@@ -135,51 +202,114 @@ public selectedRowsData: any[] = []; // Your full background payload (Parents + 
 public displayRowsForPanel: any[] = []; // Only Parents for the UI Selection Panel
 private selectionInProgress = false; // The mutex flag to prevent the lag/loop
 
-onSelectionChanged() {
-  if (this.selectionInProgress || !this.gridApi) return;
-  this.selectionInProgress = true;
+// onSelectionChanged() {
+//   if (this.selectionInProgress || !this.gridApi) return;
+//   this.selectionInProgress = true;
 
-  try {
-    const selectedNodes = this.gridApi.getSelectedNodes();
+//   try {
+//     const selectedNodes = this.gridApi.getSelectedNodes();
     
-    // Sync Children with Parents state
-    this.gridApi.forEachNode((node: any) => {
-      if (node.data && node.data.isParent) {
-        const parentIsSelected = node.isSelected();
-        const children = node.allLeafChildren || [];
+//     // Sync Children with Parents state
+//     this.gridApi.forEachNode((node: any) => {
+//       if (node.data && node.data.isParent) {
+//         const parentIsSelected = node.isSelected();
+//         const children = node.allLeafChildren || [];
         
-        if (children.length > 0) {
-          children.forEach((childNode: any) => {
-            // Update child only if it doesn't match parent
-            // The 'true' at the end stops the 5-10 second lag
-            if (childNode.isSelected() !== parentIsSelected) {
-              childNode.setSelected(parentIsSelected, false, true);
-            }
-          });
-        }
+//         if (children.length > 0) {
+//           children.forEach((childNode: any) => {
+//             // Update child only if it doesn't match parent
+//             // The 'true' at the end stops the 5-10 second lag
+//             if (childNode.isSelected() !== parentIsSelected) {
+//               childNode.setSelected(parentIsSelected, false, true);
+//             }
+//           });
+//         }
+//       }
+//     });
+
+//     // Finalize the two different data sets
+//     const finalSelectedNodes = this.gridApi.getSelectedNodes();
+//     const allSelectedData = finalSelectedNodes.map(node => node.data);
+
+//     // 1. Full payload for API/Background
+//     this.selectedRowsData = allSelectedData;
+
+//     // 2. Filtered list for the UI Selection Panel (Parents Only)
+//     this.displayRowsForPanel = allSelectedData.filter(data => data && data.isParent);
+
+//     // Emit the Panel Data to your parent component
+//     this.selectionChanged.emit(this.displayRowsForPanel);
+
+//   } catch (error) {
+//     console.error("Selection sync failed:", error);
+//   } finally {
+//     this.selectionInProgress = false;
+//   }
+// }
+
+// --- RECURSIVE SELECTION LOGIC ---
+  onSelectionChanged() {
+    if (this.isSyncingSelection || !this.gridApi) return;
+    this.isSyncingSelection = true;
+
+    // We process all nodes to ensure synchronization across levels
+    this.gridApi.forEachNode((node) => {
+      if (node.data.children && node.data.children.length > 0) {
+        this.syncRecursiveSelection(node);
       }
     });
 
-    // Finalize the two different data sets
-    const finalSelectedNodes = this.gridApi.getSelectedNodes();
-    const allSelectedData = finalSelectedNodes.map(node => node.data);
-
-    // 1. Full payload for API/Background
-    this.selectedRowsData = allSelectedData;
-
-    // 2. Filtered list for the UI Selection Panel (Parents Only)
-    this.displayRowsForPanel = allSelectedData.filter(data => data && data.isParent);
-
-    // Emit the Panel Data to your parent component
-    this.selectionChanged.emit(this.displayRowsForPanel);
-
-  } catch (error) {
-    console.error("Selection sync failed:", error);
-  } finally {
-    this.selectionInProgress = false;
+    this.isSyncingSelection = false;
   }
-}
 
+private syncRecursiveSelection(node: RowNode) {
+    // Get row nodes for direct children of this node
+    const childNodes = node.data.children
+      .map((c: any) => this.gridApi.getRowNode(c.ocifId))
+      .filter((n: any) => n != null);
+
+    if (childNodes.length === 0) return;
+
+    const allSelected = childNodes.every(n => n.isSelected());
+
+    // 1. Top-Down: If Parent is selected, select all children
+    if (node.isSelected() && !allSelected) {
+      childNodes.forEach(n => n.setSelected(true, false));
+    } 
+    // 2. Bottom-Up: If all children are selected, select Parent
+    else if (allSelected && !node.isSelected() && childNodes.length > 0) {
+      node.setSelected(true, false);
+    } 
+    // 3. De-selection: If any child is unchecked, uncheck Parent
+    else if (!allSelected && node.isSelected()) {
+      node.setSelected(false, false);
+    }
+  }
+
+  // --- BLUE SANDWICH CLASS LOGIC ---
+  public getRowClass = (params: any) => {
+    const classes = [];
+    const { level, isParent, isExpanded } = params.data;
+
+    if (isParent && isExpanded) classes.push('blue-sandwich-parent');
+    if (level > 0) classes.push('is-child-row');
+
+    const nextNode = this.gridApi.getDisplayedRowAtIndex(params.node.rowIndex + 1);
+    const isLast = !nextNode || nextNode.data.level < level || (level > 0 && nextNode.data.level === 0);
+
+    if (level > 0 && isLast) classes.push('sandwich-bottom-border');
+    
+    return classes.join(' ');
+  };
+
+  onCellClicked(params: any) {
+    if (params.colDef?.field === 'profileName' && params.data.isParent) {
+      params.data.isExpanded = !params.data.isExpanded;
+      this.refreshGridData(); // Re-flatten and setRowData
+    }
+  }
+  
+  /// end of new code/////
 
 // on selection changed function end
 
