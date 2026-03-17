@@ -23,8 +23,11 @@ export class ResultsGridComponent implements OnInit {
       headerName: '',
       checkboxSelection: true,
       headerCheckboxSelection: true,
-      width: 50,
-      pinned: 'left'
+      width: 200,
+      pinned: 'left',
+      cellStyle: (params: any) => ({
+        'padding-left': `${(params.data?.level || 0) * 32}px !important`
+      })
     },
     {
       headerName: 'Profile Name',
@@ -33,7 +36,9 @@ export class ResultsGridComponent implements OnInit {
       cellRenderer: (params: any) => {
         if (!params.data) return '';
         const level = params.data.level ?? 0;
-        const chevron = params.data.isParent ? (params.data.isExpanded ? '▲' : '▼') : '';
+        const chevron = params.data.isParent 
+          ? (params.data.isExpanded ? '▲' : '▼') 
+          : '';
         return `<span style="padding-left: ${level * 32}px; display: flex; align-items: center; font-weight: 600; cursor: pointer;">${chevron} ${params.value}</span>`;
       }
     },
@@ -55,6 +60,7 @@ export class ResultsGridComponent implements OnInit {
   constructor(private legalHoldDataService: LegalHoldDataService) {}
 
   ngOnInit() {
+
     this.allData = this.legalHoldDataService.getMockData();
     this.assignLevels(this.allData);
     this.rowData = this.buildVisibleRows(this.allData);
@@ -63,11 +69,15 @@ export class ResultsGridComponent implements OnInit {
   private assignLevels(data: any[], level = 0) {
     data.forEach(item => {
       item.level = level;
-      if (item.children?.length) this.assignLevels(item.children, level + 1);
+      item.isSelected = false;           // ← for hierarchical selection
+      item.isExpanded = item.isExpanded ?? false;
+      if (item.children?.length) {
+        this.assignLevels(item.children, level + 1);
+      }
     });
   }
 
-  private buildVisibleRows(data: any[], visible: any[] = []) {
+ private buildVisibleRows(data: any[], visible: any[] = []) {
     data.forEach(item => {
       visible.push(item);
       if (item.isParent && item.isExpanded && item.children?.length) {
@@ -77,11 +87,11 @@ export class ResultsGridComponent implements OnInit {
     return visible;
   }
 
-  onGridReady(params: any) {
+ onGridReady(params: any) {
     this.gridApi = params.api;
   }
 
-  onCellClicked(params: any) {
+ onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.rowData = this.buildVisibleRows(this.allData);
@@ -91,14 +101,126 @@ export class ResultsGridComponent implements OnInit {
 
   public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
 
-  // Keep any existing pagination/selection methods you already have here
-  onSelectionChanged() { /* your logic */ }
-  onPaginationChanged() { /* your logic */ }
+ onSelectionChanged() {
+    if (this.selectionInProgress) return;
+    this.selectionInProgress = true;
+
+    this.syncAndPropagate();
+
+    this.selectionInProgress = false;
+    this.selectionChanged.emit(this.gridApi.getSelectedRows());
+  }
+
+
+  private syncAndPropagate() {
+    // 1. Sync current grid selection to our data model
+    this.gridApi.forEachNode((node: any) => {
+      const item = this.findItemByOcifId(this.allData, node.data.ocifId);
+      if (item) item.isSelected = node.isSelected();
+    });
+
+    // 2. Force down (parent selected → all kids)
+    this.forceDown(this.allData);
+
+    // 3. Force up (any kid selected → parent selected)
+    this.forceUp(this.allData);
+
+    // 4. Rebuild visible rows + re-apply selection to grid
+    this.rowData = this.buildVisibleRows(this.allData);
+    this.gridApi.setRowData(this.rowData);
+
+    this.gridApi.forEachNode((node: any) => {
+      const item = this.findItemByOcifId(this.allData, node.data.ocifId);
+      if (item) node.setSelected(item.isSelected, false);
+    });
+  }
+
+  private findItemByOcifId(data: any[], ocifId: string): any {
+    for (const item of data) {
+      if (item.ocifId === ocifId) return item;
+      if (item.children) {
+        const found = this.findItemByOcifId(item.children, ocifId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  private forceDown(data: any[]) {
+    data.forEach(item => {
+      if (item.isParent && item.isSelected) {
+        this.propagateDown(item.children || [], true);
+      }
+    });
+  }
+
+  private propagateDown(children: any[], selected: boolean) {
+    children.forEach(child => {
+      child.isSelected = selected;
+      if (child.isParent) this.propagateDown(child.children || [], selected);
+    });
+  }
+
+
+  private forceUp(data: any[]) {
+    data.forEach(item => {
+      if (item.isParent) {
+        item.isSelected = this.hasAnyDescendantSelected(item);
+      }
+    });
+  }
+
+
+  private hasAnyDescendantSelected(item: any): boolean {
+    if (!item.children?.length) return item.isSelected;
+    return item.children.some((child: any) =>
+      child.isSelected || this.hasAnyDescendantSelected(child)
+    );
+  }
+}
+
+
+ onPaginationChanged() { this.updatePaginationInfo(); }
+  updatePaginationInfo() {
+    if (this.gridApi) {
+      this.totalResults = this.gridApi.getDisplayedRowCount();
+      this.currentPage = this.gridApi.paginationGetCurrentPage() + 1;
+      this.totalPages = this.gridApi.paginationGetTotalPages() || 1;
+    }
+  }
+  nextPage() { this.gridApi.paginationGoToNextPage(); }
+  prevPage() { this.gridApi.paginationGoToPreviousPage(); }
+  onPageSizeChange(event: any) {
+    const newSize = Number(event.target.value);
+    this.pageSize = newSize;
+    this.gridApi.setGridOption('paginationPageSize', newSize);
+  }
+
+  onRowGroupOpened(params: any) {
+    if (params.node && params.node.data) {
+      params.node.data.isGroupOpen = params.node.expanded;
+    }
+    params.api.refreshCells({ rowNodes: [params.node], force: true });
+  }
+
+  public getRowClass = (params: any) => {
+    const classes: string[] = [];
+    if (params.data?.isParent && params.data.isExpanded) classes.push('blue-sandwich-parent');
+    if (params.data?.isChild) {
+      classes.push('sandwich-child-row');
+      const rowIndex = params.node.rowIndex;
+      const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
+      if (!nextNode || (nextNode.data && nextNode.data.isParent)) {
+        classes.push('sandwich-bottom-border');
+      }
+    }
+    return classes.join(' ');
+  };
 }
 
 // html//
 
-<div class="grid-card-container grid-container-with-footer">
+  <div class="grid-card-container grid-container-with-footer">
   <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
     [rowData]="rowData"
@@ -111,8 +233,7 @@ export class ResultsGridComponent implements OnInit {
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)"
     (selectionChanged)="onSelectionChanged()"
-    (paginationChanged)="onPaginationChanged()"
-    (cellClicked)="onCellClicked($event)">
+    (paginationChanged)="onPaginationChanged()">
   </ag-grid-angular>
 </div>
 
@@ -147,6 +268,33 @@ export class ResultsGridComponent implements OnInit {
     font-size: 14px;
     line-height: 1;
   }
+}
+
+/* === HIERARCHY STYLING FOR INDENTED RECORDS === */
+.ag-theme-alpine.bmo-grid .sandwich-child-row {
+  background-color: #f0f7ff !important;     /* light blue bg for all indented children */
+  border-bottom: 1px solid #e5e5e5 !important; /* light grey border */
+  position: relative;
+}
+
+.ag-theme-alpine.bmo-grid .sandwich-child-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #d0e6ff; /* subtle blue left accent for indent feel */
+}
+
+.ag-theme-alpine.bmo-grid .blue-sandwich-parent {
+  background-color: #f8fbff !important;     /* very light blue tint on expanded parents */
+  border-bottom: 1px solid #e5e5e5 !important;
+}
+
+/* Last child gets extra clean bottom border */
+.ag-theme-alpine.bmo-grid .sandwich-bottom-border {
+  border-bottom: 1px solid #d1d1d1 !important;
 }
 
 //enc of scss//
