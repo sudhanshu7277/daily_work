@@ -14,12 +14,12 @@ export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
 
   private gridApi!: GridApi;
-  rowData: any[] = [];
+  rowData: any = [];
   pageSize = 10;
-  private allData: any[] = [];
+  private allData: any = [];
   private selectionInProgress = false;
 
-  columnDefs: ColDef[] = [
+columnDefs: ColDef[] = [
     {
       headerName: '',
       checkboxSelection: true,
@@ -63,16 +63,15 @@ export class ResultsGridComponent implements OnInit {
     this.rowData = this.buildVisibleRows(this.allData);
   }
 
-  private assignLevels(data: any[], level = 0) {
+ private assignLevels(data: any[], level = 0) {
     data.forEach(item => {
       item.level = level;
-      item.isSelected = false;
-      item.isExpanded = item.isExpanded ?? false;
+      item.isExpanded = false; // All start collapsed
       if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
 
-  private buildVisibleRows(data: any[], visible: any[] = []) {
+ private buildVisibleRows(data: any[], visible: any[] = []) {
     data.forEach(item => {
       visible.push(item);
       if (item.isParent && item.isExpanded && item.children?.length) {
@@ -84,7 +83,7 @@ export class ResultsGridComponent implements OnInit {
 
   onGridReady(params: any) { this.gridApi = params.api; }
 
-  onCellClicked(params: any) {
+ onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.rowData = this.buildVisibleRows(this.allData);
@@ -92,7 +91,7 @@ export class ResultsGridComponent implements OnInit {
     }
   }
 
-  public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
+  public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : 'parent-row';
 
   onSelectionChanged() {
     if (this.selectionInProgress) return;
@@ -177,8 +176,6 @@ export class ResultsGridComponent implements OnInit {
     [suppressRowClickSelection]="true"
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)"
-    (selectionChanged)="onSelectionChanged()"
-    (paginationChanged)="onPaginationChanged()"
     (cellClicked)="onCellClicked($event)">
   </ag-grid-angular>
 </div>
@@ -186,7 +183,7 @@ export class ResultsGridComponent implements OnInit {
 
 //scss code //
 ::ng-deep .ag-theme-alpine.bmo-grid {
-.status-pill {
+  .status-pill {
     background-color: #1e1e1e !important;
     color: #ffffff !important;
     padding: 4px 12px !important;
@@ -195,12 +192,29 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
-.indented-child-row {
+  /* Parent rows = light blue */
+  .parent-row {
     background-color: #f0f7ff !important;
-    border-bottom: 1px solid #e5e5e5 !important;
   }
 
-.ag-cell[col-id="profileName"] {
+  .indented-child-row {
+    background-color: transparent !important; /* base row white */
+  }
+
+  .indented-child-row .ag-cell {
+    position: relative;
+  }
+
+  .indented-child-row .ag-cell:not([col-id="0"]) {  /* all cells except checkbox */
+    background-color: #f0f7ff !important;
+    border: 1px solid #e5e5e5 !important;
+    border-left: none !important;
+    border-right: none !important;
+    margin: 0 8px !important; /* slight inset to make it look like a card */
+    border-radius: 4px !important;
+  }
+
+  .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
