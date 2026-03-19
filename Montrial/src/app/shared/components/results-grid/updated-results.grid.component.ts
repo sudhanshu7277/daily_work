@@ -14,12 +14,12 @@ export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
 
   private gridApi!: GridApi;
-  rowData: any = [];
+  rowData: any[] = [];
   pageSize = 10;
-  private allData: any = [];
+  private allData: any[] = [];
   private selectionInProgress = false;
 
-columnDefs: ColDef[] = [
+  columnDefs: ColDef[] = [
     {
       headerName: '',
       checkboxSelection: true,
@@ -63,15 +63,16 @@ columnDefs: ColDef[] = [
     this.rowData = this.buildVisibleRows(this.allData);
   }
 
- private assignLevels(data: any[], level = 0) {
+  private assignLevels(data: any[], level = 0) {
     data.forEach(item => {
       item.level = level;
-      item.isExpanded = false; // All start collapsed
+      item.isSelected = false;
+      item.isExpanded = false; // start collapsed
       if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
 
- private buildVisibleRows(data: any[], visible: any[] = []) {
+  private buildVisibleRows(data: any[], visible: any[] = []) {
     data.forEach(item => {
       visible.push(item);
       if (item.isParent && item.isExpanded && item.children?.length) {
@@ -83,7 +84,7 @@ columnDefs: ColDef[] = [
 
   onGridReady(params: any) { this.gridApi = params.api; }
 
- onCellClicked(params: any) {
+  onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.rowData = this.buildVisibleRows(this.allData);
@@ -91,13 +92,16 @@ columnDefs: ColDef[] = [
     }
   }
 
-  public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : 'parent-row';
+  public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
 
   onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
+
     this.syncAndPropagate();
+
     this.selectionInProgress = false;
+    console.log('Cluster selected - selected rows:', this.gridApi.getSelectedRows());
     this.selectionChanged.emit(this.gridApi.getSelectedRows());
   }
 
@@ -176,6 +180,8 @@ columnDefs: ColDef[] = [
     [suppressRowClickSelection]="true"
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)"
+    (selectionChanged)="onSelectionChanged()"
+    (paginationChanged)="onPaginationChanged()"
     (cellClicked)="onCellClicked($event)">
   </ag-grid-angular>
 </div>
@@ -197,8 +203,9 @@ columnDefs: ColDef[] = [
     background-color: #f0f7ff !important;
   }
 
-  .indented-child-row {
-    background-color: transparent !important; /* base row white */
+ .indented-child-row {
+    background-color: #f0f7ff !important;
+    border-bottom: 1px solid #e5e5e5 !important;
   }
 
   .indented-child-row .ag-cell {
