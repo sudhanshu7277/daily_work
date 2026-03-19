@@ -78,7 +78,9 @@ export class ResultsGridComponent implements OnInit {
     return visible;
   }
 
-  onGridReady(params: any) { this.gridApi = params.api; }
+  onGridReady(params: any) {
+    this.gridApi = params.api;
+  }
 
   onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
@@ -93,23 +95,29 @@ export class ResultsGridComponent implements OnInit {
   onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
+
     this.syncAndPropagate();
+
     this.selectionInProgress = false;
     this.selectionChanged.emit(this.gridApi.getSelectedRows());
   }
 
   private syncAndPropagate() {
+    // Sync grid selection to our data model
     this.gridApi.forEachNode((node: any) => {
       const item = this.findItemByOcifId(this.allData, node.data.ocifId);
       if (item) item.isSelected = node.isSelected();
     });
 
+    // Propagate down and up
     this.forceDown(this.allData);
     this.forceUp(this.allData);
 
+    // Rebuild visible rows
     this.rowData = this.buildVisibleRows(this.allData);
     this.gridApi.setGridOption('rowData', this.rowData);
 
+    // Re-apply selection to grid nodes
     this.gridApi.forEachNode((node: any) => {
       const item = this.findItemByOcifId(this.allData, node.data.ocifId);
       if (item) node.setSelected(item.isSelected, false);
@@ -191,7 +199,7 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
-  /* INDENTED ROWS (children) - light blue + thin light grey border */
+  /* Indented children - light blue background + thin light grey border */
   .indented-child-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
