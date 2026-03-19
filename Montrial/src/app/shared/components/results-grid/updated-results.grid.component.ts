@@ -341,7 +341,7 @@ export class ResultsGridComponent implements OnInit {
 // html//
 
 <div class="grid-card-container grid-container-with-footer">
-  <ag-grid-angular
+   <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
     style="width: 100%; height: 100%;"
     [rowData]="rowData"
@@ -362,6 +362,8 @@ export class ResultsGridComponent implements OnInit {
 // end of html//
 
 //scss code //
+ 
+ // ─── Grid Container ──────────────────────────────────────────────────────────
  
 .grid-card-container {
   width: 100%;
@@ -639,4 +641,5 @@ export class ResultsGridComponent implements OnInit {
     outline: none !important;
   }
 }
+
 //enc of scss//
