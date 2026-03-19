@@ -24,9 +24,11 @@ export class ResultsGridComponent implements OnInit {
       headerName: '',
       checkboxSelection: true,
       headerCheckboxSelection: true,
-      width: 50,                    // ← narrow & fixed (Figma style)
-      pinned: 'left'
-      // NO padding here — checkboxes stay left-aligned forever
+      width: 220,
+      pinned: 'left',
+      cellStyle: (params: any) => ({
+        'padding-left': `${(params.data?.level || 0) * 32}px !important`
+      })
     },
     {
       headerName: 'Profile Name',
@@ -35,9 +37,7 @@ export class ResultsGridComponent implements OnInit {
       cellRenderer: (params: any) => {
         if (!params.data) return '';
         const level = params.data.level ?? 0;
-        const chevron = params.data.isParent 
-          ? (params.data.isExpanded ? '▲' : '▼') 
-          : '';
+        const chevron = params.data.isParent ? (params.data.isExpanded ? '▲' : '▼') : '';
         return `<span style="padding-left: ${level * 32}px; display: flex; align-items: center; font-weight: 600; cursor: pointer;">${chevron} ${params.value}</span>`;
       }
     },
@@ -169,7 +169,7 @@ export class ResultsGridComponent implements OnInit {
 
 // html//
 
-  <div class="grid-card-container grid-container-with-footer">
+ <div class="grid-card-container grid-container-with-footer">
   <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
     [rowData]="rowData"
@@ -189,9 +189,7 @@ export class ResultsGridComponent implements OnInit {
 // end of html//
 
 //scss code //
-
 ::ng-deep .ag-theme-alpine.bmo-grid {
-  /* LEGAL HOLD Pill */
   .status-pill {
     background-color: #1e1e1e !important;
     color: #ffffff !important;
@@ -201,32 +199,15 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
-  /* Parent cluster rows = light blue background (exactly as in your screenshot) */
   .parent-cluster-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
 
-  /* Profile Name indentation only (checkboxes stay fixed left) */
   .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-  }
-
-  .ag-cell[col-id="profileName"] span {
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* Header clean */
-  .ag-header-cell {
-    font-weight: 600;
-    color: #333;
-    background: #fff;
-    border-bottom: 1px solid #e5e5e5;
   }
 }
 
@@ -235,10 +216,5 @@ export class ResultsGridComponent implements OnInit {
   height: calc(100vh - 250px);
   border: 1px solid #e2e2e2;
   background: #fff;
-}
-
-.grid-container-with-footer {
-  display: flex;
-  flex-direction: column;
 }
 //enc of scss//
