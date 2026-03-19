@@ -21,16 +21,12 @@ export class ResultsGridComponent implements OnInit {
 
   columnDefs: ColDef[] = [
     {
-      headerName: '',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      width: 50,
-      pinned: 'left'
-    },
-    {
       headerName: 'Profile Name',
       field: 'profileName',
       sortable: true,
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      width: 380,
       cellStyle: (params: any) => ({
         'padding-left': `${(params.data?.level || 0) * 32}px !important`
       }),
@@ -100,7 +96,7 @@ export class ResultsGridComponent implements OnInit {
     this.syncAndPropagate();
     this.selectionInProgress = false;
     const selected = this.gridApi.getSelectedRows();
-    console.log('Cluster selected - selected rows:', selected);
+    console.log('Cluster selected - selected rows count:', selected.length, 'rows:', selected);
     this.selectionChanged.emit(selected);
   }
 
@@ -113,7 +109,13 @@ export class ResultsGridComponent implements OnInit {
     this.forceDown(this.allData);
     this.forceUp(this.allData);
 
-    // NO rebuild here - this stops the loop
+    this.rowData = this.buildVisibleRows(this.allData);
+    this.gridApi.setGridOption('rowData', this.rowData);
+
+    this.gridApi.forEachNode((node: any) => {
+      const item = this.findItemByOcifId(this.allData, node.data.ocifId);
+      if (item) node.setSelected(item.isSelected, false);
+    });
   }
 
   private findItemByOcifId(data: any[], ocifId: string): any {
