@@ -15,6 +15,7 @@ export class ResultsGridComponent implements OnInit {
 
   private gridApi!: GridApi;
   rowData: any[] = [];
+  pageSize = 10;
   private allData: any[] = [];
   private selectionInProgress = false;
 
@@ -66,7 +67,7 @@ export class ResultsGridComponent implements OnInit {
     data.forEach(item => {
       item.level = level;
       item.isSelected = false;
-      item.isExpanded = false; // ← All start collapsed
+      item.isExpanded = false; // start collapsed
       if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
@@ -96,12 +97,11 @@ export class ResultsGridComponent implements OnInit {
   onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
-
     this.syncAndPropagate();
-
     this.selectionInProgress = false;
-    console.log('Cluster selected - selected rows:', this.gridApi.getSelectedRows());
-    this.selectionChanged.emit(this.gridApi.getSelectedRows());
+    const selected = this.gridApi.getSelectedRows();
+    console.log('Cluster selected - selected rows:', selected);
+    this.selectionChanged.emit(selected);
   }
 
   private syncAndPropagate() {
@@ -113,13 +113,7 @@ export class ResultsGridComponent implements OnInit {
     this.forceDown(this.allData);
     this.forceUp(this.allData);
 
-    this.rowData = this.buildVisibleRows(this.allData);
-    this.gridApi.setGridOption('rowData', this.rowData);
-
-    this.gridApi.forEachNode((node: any) => {
-      const item = this.findItemByOcifId(this.allData, node.data.ocifId);
-      if (item) node.setSelected(item.isSelected, false);
-    });
+    // NO rebuild here - this stops the loop
   }
 
   private findItemByOcifId(data: any[], ocifId: string): any {
@@ -224,6 +218,10 @@ export class ResultsGridComponent implements OnInit {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+  }
+
+  .ag-cell[col-id="profileName"] {
+    white-space: nowrap !important;
   }
 }
 
