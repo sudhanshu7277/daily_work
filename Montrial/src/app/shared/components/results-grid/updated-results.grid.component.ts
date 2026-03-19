@@ -71,9 +71,7 @@ export class ResultsGridComponent implements OnInit {
       item.level = level;
       item.isSelected = false;
       item.isExpanded = item.isExpanded ?? false;
-      if (item.children?.length) {
-        this.assignLevels(item.children, level + 1);
-      }
+      if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
 
@@ -101,6 +99,7 @@ export class ResultsGridComponent implements OnInit {
 
   public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
 
+  // ==================== HIERARCHICAL SELECTION ====================
   onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
@@ -167,6 +166,12 @@ export class ResultsGridComponent implements OnInit {
       child.isSelected || this.hasAnyDescendantSelected(child)
     );
   }
+
+  // ==================== PAGINATION (added to fix your error) ====================
+  onPaginationChanged() {
+    // Add your existing pagination logic here if you need total pages, current page, etc.
+    // For now it's just a stub so the HTML event binds cleanly
+  }
 }
 
 // html//
@@ -188,7 +193,6 @@ export class ResultsGridComponent implements OnInit {
     (cellClicked)="onCellClicked($event)">
   </ag-grid-angular>
 </div>
-
 // end of html//
 
 //scss code //
@@ -199,7 +203,7 @@ export class ResultsGridComponent implements OnInit {
 
 ::ng-deep .ag-theme-alpine.bmo-grid {
   
-  /* LEGAL HOLD Pill - exact Figma dark rounded style */
+  /* LEGAL HOLD Pill */
   .status-pill {
     background-color: #1e1e1e !important;
     color: #ffffff !important;
@@ -211,13 +215,12 @@ export class ResultsGridComponent implements OnInit {
     display: inline-block !important;
   }
 
-  /* Indented child rows - light blue background + light grey borders */
+  /* Indented child rows - light blue + light grey border */
   .indented-child-row {
-    background-color: #f0f7ff !important;     /* light blue */
-    border-bottom: 1px solid #e5e5e5 !important; /* light grey border */
+    background-color: #f0f7ff !important;
+    border-bottom: 1px solid #e5e5e5 !important;
   }
 
-  /* Subtle left accent line on indented rows (optional but looks premium) */
   .indented-child-row::before {
     content: '';
     position: absolute;
@@ -226,17 +229,14 @@ export class ResultsGridComponent implements OnInit {
     bottom: 0;
     width: 4px;
     background-color: #d0e6ff;
-    z-index: 1;
   }
 
-  /* Profile Name column - prevent wrapping when deeply indented */
   .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
 
-  /* Make chevrons clean and Figma-like */
   .ag-cell[col-id="profileName"] span {
     font-size: 14px;
     line-height: 1.2;
@@ -245,28 +245,17 @@ export class ResultsGridComponent implements OnInit {
     gap: 6px;
   }
 
-  /* Expanded parent row styling (very light tint) */
   .ag-row[role="row"].ag-row-level-0.ag-row-expanded {
     background-color: #f8fbff !important;
   }
 
-  /* Header styling - clean and BMO-like */
   .ag-header-cell {
     font-weight: 600;
     color: #333333;
     background-color: #ffffff;
     border-bottom: 1px solid #e5e5e5;
   }
-
-  /* Checkbox column alignment */
-  .ag-cell[col-id="0"] {  /* checkbox column */
-    padding-left: 0 !important;
-  }
 }
-
-/* Optional: Keep your existing custom pagination and other styles here */
-/* If you already have a big block for .custom-pagination-bar, .grid-card-container, etc., */
-/* paste it below this section so nothing breaks */
 
 .grid-card-container {
   width: 100%;
@@ -278,11 +267,5 @@ export class ResultsGridComponent implements OnInit {
 .grid-container-with-footer {
   display: flex;
   flex-direction: column;
-}
-
-/* Add your existing pagination, filter, and other custom styles below if needed */
-/* For example: */
-.custom-pagination-bar {
-  /* your existing pagination CSS */
 }
 //enc of scss//
