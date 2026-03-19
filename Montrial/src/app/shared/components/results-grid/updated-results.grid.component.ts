@@ -193,37 +193,16 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
-  /* Parent rows = light blue */
-  .parent-row {
-    background-color: #f0f7ff !important;
-  }
-
-.indented-child-row {
+  /* Indented rows - light blue background + thin grey line all the time */
+  .indented-child-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
 
-  .indented-child-row .ag-cell {
-    position: relative;
-  }
-
-  // .indented-child-row .ag-cell:not([col-id="0"]) {  /* all cells except checkbox */
-  //   background-color: #f0f7ff !important;
-  //   border: 1px solid #e5e5e5 !important;
-  //   border-left: none !important;
-  //   border-right: none !important;
-  //   margin: 0 8px !important; /* slight inset to make it look like a card */
-  //   border-radius: 4px !important;
-  // }
-
- .ag-cell[col-id="profileName"] {
+  .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-  }
-
-  .ag-cell[col-id="profileName"] {
-    white-space: nowrap !important;
   }
 }
 
