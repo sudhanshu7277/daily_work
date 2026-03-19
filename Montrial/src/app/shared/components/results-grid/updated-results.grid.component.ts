@@ -88,7 +88,7 @@ export class ResultsGridComponent implements OnInit {
     }
   }
 
-  public getRowClass = (params: any) => params.data?.isParent ? 'parent-cluster-row' : '';
+  public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
 
   onSelectionChanged() {
     if (this.selectionInProgress) return;
@@ -152,12 +152,13 @@ export class ResultsGridComponent implements OnInit {
 
   private hasAnyDescendantSelected(item: any): boolean {
     if (!item.children?.length) return item.isSelected;
-    return item.children.some((child: any) => child.isSelected || this.hasAnyDescendantSelected(child));
+    return item.children.some((child: any) =>
+      child.isSelected || this.hasAnyDescendantSelected(child)
+    );
   }
 
   onPaginationChanged() {}
 }
-
 // html//
 
 <div class="grid-card-container grid-container-with-footer">
@@ -190,7 +191,8 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
-  .parent-cluster-row {
+  /* INDENTED ROWS (children) - light blue + thin light grey border */
+  .indented-child-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
