@@ -15,7 +15,6 @@ export class ResultsGridComponent implements OnInit {
 
   private gridApi!: GridApi;
   rowData: any[] = [];
-  pageSize = 10;
   private allData: any[] = [];
   private selectionInProgress = false;
 
@@ -45,8 +44,8 @@ export class ResultsGridComponent implements OnInit {
       headerName: 'Legal Hold Status',
       field: 'legalHoldStatus',
       sortable: true,
-      cellRenderer: (params: any) => params.value === 'LEGAL HOLD' 
-        ? '<span class="status-pill">LEGAL HOLD</span>' 
+      cellRenderer: (params: any) => params.value === 'LEGAL HOLD'
+        ? '<span class="status-pill">LEGAL HOLD</span>'
         : (params.value || 'N/A')
     },
     { headerName: 'Legal Hold Name', field: 'holdName' },
@@ -67,7 +66,7 @@ export class ResultsGridComponent implements OnInit {
     data.forEach(item => {
       item.level = level;
       item.isSelected = false;
-      item.isExpanded = false; // start collapsed
+      item.isExpanded = false; // ← All start collapsed
       if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
@@ -203,7 +202,7 @@ export class ResultsGridComponent implements OnInit {
     background-color: #f0f7ff !important;
   }
 
- .indented-child-row {
+.indented-child-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
@@ -212,16 +211,16 @@ export class ResultsGridComponent implements OnInit {
     position: relative;
   }
 
-  .indented-child-row .ag-cell:not([col-id="0"]) {  /* all cells except checkbox */
-    background-color: #f0f7ff !important;
-    border: 1px solid #e5e5e5 !important;
-    border-left: none !important;
-    border-right: none !important;
-    margin: 0 8px !important; /* slight inset to make it look like a card */
-    border-radius: 4px !important;
-  }
+  // .indented-child-row .ag-cell:not([col-id="0"]) {  /* all cells except checkbox */
+  //   background-color: #f0f7ff !important;
+  //   border: 1px solid #e5e5e5 !important;
+  //   border-left: none !important;
+  //   border-right: none !important;
+  //   margin: 0 8px !important; /* slight inset to make it look like a card */
+  //   border-radius: 4px !important;
+  // }
 
-  .ag-cell[col-id="profileName"] {
+ .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
