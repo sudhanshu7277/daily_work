@@ -195,12 +195,12 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
- .indented-child-row {
+.indented-child-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
 
- .ag-cell[col-id="profileName"] {
+.ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
