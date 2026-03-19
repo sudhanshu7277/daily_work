@@ -1,6 +1,6 @@
-import { Component, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
-import { GridApi, ColDef, GridOptions } from 'ag-grid-community';
+import { ColDef, GridApi, GridReadyEvent, SelectionChangedEvent, CellClickedEvent } from 'ag-grid-community';
 import { LegalHoldDataService } from '../../services/legal-hold-data.service';
  
 @Component({
@@ -8,355 +8,359 @@ import { LegalHoldDataService } from '../../services/legal-hold-data.service';
   standalone: true,
   imports: [AgGridAngular],
   templateUrl: './results-grid.component.html',
-  styleUrls: ['./results-grid.component.scss']
+  styleUrls: ['./results-grid.component.scss'],
+  // OnPush avoids unnecessary CD cycles that cause freezing
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
  
   private gridApi!: GridApi;
-  rowData: any[] = [];
-  pageSize = 10;
-  private allData: any[] = [];
-  private selectionInProgress = false;
  
-  columnDefs: ColDef[] = [
+  /** Flat list of currently visible rows fed to AG Grid */
+  rowData: any[] = [];
+ 
+  /** Full hierarchical source-of-truth */
+  private tree: any[] = [];
+ 
+  /** Guard flag – prevents the selectionChanged callback from calling itself */
+  private updating = false;
+ 
+  readonly pageSize = 10;
+ 
+  // ─── Column Definitions ────────────────────────────────────────────────────
+ 
+  readonly columnDefs: ColDef[] = [
     {
       headerName: 'Profile Name',
       field: 'profileName',
       sortable: true,
       checkboxSelection: true,
       headerCheckboxSelection: true,
-      width: 340,
-      cellStyle: (params: any) => {
-        const level = params.data?.level || 0;
-        // Indent the whole cell (checkbox + renderer) per nesting level
-        return { 'padding-left': `${8 + level * 28}px` };
-      },
-      cellRenderer: (params: any) => {
-        if (!params.data) return '';
-        const isParent = params.data.isParent;
-        const isExpanded = params.data.isExpanded;
- 
-        if (isParent) {
-          const chevron = isExpanded
-            ? `<svg class="chevron" width="12" height="8" viewBox="0 0 12 8"><path d="M1 7L6 2L11 7" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`
-            : `<svg class="chevron" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1L6 6L11 1" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`;
-          return `<span class="profile-cell parent-cell">${chevron}<span class="profile-name parent-name">${params.value}</span></span>`;
+      minWidth: 320,
+      flex: 2,
+      /**
+       * Shift the ENTIRE cell (checkbox + renderer) right by (level * indent).
+       * We use paddingLeft on the cell itself so the checkbox also moves.
+       */
+      cellStyle: (p: any) => ({
+        'padding-left': `${6 + (p.data?.level ?? 0) * 28}px`,
+      }),
+      cellRenderer: (p: any) => {
+        if (!p.data) return '';
+        const name: string = p.value ?? '';
+        if (p.data.isParent) {
+          const icon = p.data.isExpanded
+            ? `<svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 6L5.5 1.5L10 6" stroke="#1a4fa0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            : `<svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1.5L5.5 6L10 1.5" stroke="#1a4fa0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          return `<span class="pn-cell pn-parent">${name}<span class="pn-chevron">${icon}</span></span>`;
         }
- 
-        // Child / leaf row — show a small connector line for visual hierarchy
-        return `<span class="profile-cell child-cell"><span class="child-connector"></span><span class="profile-name child-name">${params.value}</span></span>`;
-      }
+        return `<span class="pn-cell pn-child">${name}</span>`;
+      },
     },
     {
       headerName: 'Proxy OCIF ID',
       field: 'ocifId',
       sortable: false,
-      width: 150
+      width: 148,
     },
     {
       headerName: 'Legal Hold Status',
       field: 'legalHoldStatus',
       sortable: true,
-      width: 175,
-      cellRenderer: (params: any) =>
-        params.value === 'LEGAL HOLD'
-          ? `<span class="status-pill">LEGAL HOLD</span>`
-          : `<span class="status-na">N/A</span>`
+      width: 172,
+      cellRenderer: (p: any) =>
+        p.value === 'LEGAL HOLD'
+          ? `<span class="lh-pill">LEGAL HOLD</span>`
+          : `<span class="lh-na">N/A</span>`,
     },
     {
       headerName: 'Legal Hold Name',
       field: 'holdName',
-      width: 175,
-      cellRenderer: (params: any) => params.value || ''
+      width: 168,
+      cellRenderer: (p: any) => p.value || '',
     },
     {
       headerName: 'Customer Lifecycle Status',
       field: 'lifecycle',
-      width: 195
+      width: 196,
     },
     {
       headerName: 'Role Type',
       field: 'role',
-      width: 155
+      width: 148,
     },
     {
       headerName: 'Address',
       field: 'address',
       flex: 1,
-      minWidth: 200
-    }
+      minWidth: 180,
+    },
   ];
  
-  gridOptions: GridOptions = {
-    rowHeight: 52,
-    headerHeight: 44,
-    suppressCellFocus: true,
-    suppressMovableColumns: true,
-    animateRows: false,
+  // ─── AG Grid options ────────────────────────────────────────────────────────
+ 
+  readonly defaultColDef: ColDef = {
+    resizable: true,
+    suppressMovable: true,
+    cellStyle: { display: 'flex', alignItems: 'center' },
   };
  
-  constructor(private legalHoldDataService: LegalHoldDataService) {}
+  constructor(
+    private readonly dataService: LegalHoldDataService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
  
-  ngOnInit() {
-    this.allData = this.legalHoldDataService.getMockData();
-    this.assignLevels(this.allData);
-    this.rowData = this.buildVisibleRows(this.allData);
+  // ─── Lifecycle ──────────────────────────────────────────────────────────────
+ 
+  ngOnInit(): void {
+    this.tree = this.dataService.getMockData();
+    this.initTree(this.tree, 0);
+    this.rowData = this.flatten(this.tree);
   }
  
-  private assignLevels(data: any[], level = 0) {
-    data.forEach(item => {
-      item.level = level;
-      item.isSelected = false;
-      if (item.children?.length) this.assignLevels(item.children, level + 1);
-    });
+  /** Recursively stamp level, isSelected, and collapse everything initially */
+  private initTree(nodes: any[], level: number): void {
+    for (const n of nodes) {
+      n.level = level;
+      n.isSelected = false;
+      n.isExpanded = n.isExpanded ?? false; // respect pre-set value, default collapse
+      if (n.children?.length) this.initTree(n.children, level + 1);
+    }
   }
  
-  private buildVisibleRows(data: any[], visible: any[] = []) {
-    data.forEach(item => {
-      visible.push(item);
-      if (item.isParent && item.isExpanded && item.children?.length) {
-        this.buildVisibleRows(item.children, visible);
+  /** Build flat visible array from tree (only expand when isParent+isExpanded) */
+  private flatten(nodes: any[], out: any[] = []): any[] {
+    for (const n of nodes) {
+      out.push(n);
+      if (n.isParent && n.isExpanded && n.children?.length) {
+        this.flatten(n.children, out);
       }
-    });
-    return visible;
+    }
+    return out;
   }
  
-  onGridReady(params: any) {
-    this.gridApi = params.api;
+  // ─── Grid Events ────────────────────────────────────────────────────────────
+ 
+  onGridReady(e: GridReadyEvent): void {
+    this.gridApi = e.api;
   }
  
-  onCellClicked(params: any) {
-    if (params.colDef.field !== 'profileName') return;
-    if (!params.data?.isParent) return;
+  /**
+   * Expand / collapse on click of the profileName cell.
+   * Important: ignore clicks that land on the checkbox itself.
+   */
+  onCellClicked(e: CellClickedEvent): void {
+    if (e.colDef.field !== 'profileName') return;
+    if (!e.data?.isParent) return;
  
-    // Guard: don't toggle expand when user clicked the checkbox
-    const target = params.event?.target as HTMLElement;
-    if (target?.closest('.ag-selection-checkbox') || target?.closest('.ag-checkbox-input-wrapper')) return;
+    const target = e.event?.target as HTMLElement | null;
+    if (target?.closest('.ag-checkbox-input-wrapper') || target?.closest('.ag-selection-checkbox')) return;
  
-    params.data.isExpanded = !params.data.isExpanded;
-    this.rowData = this.buildVisibleRows(this.allData);
+    e.data.isExpanded = !e.data.isExpanded;
+    this.refreshRows();
+  }
+ 
+  /** Rebuild rowData and restore selection without triggering selectionChanged */
+  private refreshRows(): void {
+    this.rowData = this.flatten(this.tree);
     this.gridApi.setGridOption('rowData', this.rowData);
- 
-    // Re-apply selection state after rowData refresh
-    setTimeout(() => this.applyModelToGrid(), 0);
+    // Restore checkboxes – use suppressFinishActions so no event fires
+    this.applyModelToGrid(true);
+    this.cdr.markForCheck();
   }
  
-  public getRowClass = (params: any): string => {
-    const level = params.data?.level || 0;
-    if (level === 0) return 'root-row';
-    return `child-row level-${level}`;
+  /** Row-class callback – drives background colour per level */
+  getRowClass = (p: any): string => {
+    const level: number = p.data?.level ?? 0;
+    return level === 0 ? 'row-root' : `row-child row-child-l${Math.min(level, 4)}`;
   };
  
-  // ─── SELECTION LOGIC ─────────────────────────────────────────────────────────
+  // ─── Selection Logic ────────────────────────────────────────────────────────
  
-  onSelectionChanged() {
-    if (this.selectionInProgress) return;
-    this.selectionInProgress = true;
+  /**
+   * Called by AG Grid whenever the user checks/unchecks a row.
+   * We guard with `updating` to prevent infinite loops.
+   */
+  onSelectionChanged(_e: SelectionChangedEvent): void {
+    if (this.updating) return;
+    this.updating = true;
  
     try {
-      // Step 1 — sync grid UI state → data model
-      this.gridApi.forEachNode((node: any) => {
-        const item = this.findByOcifId(this.allData, node.data.ocifId);
+      // 1. Read current UI state into the tree
+      this.gridApi.forEachNode((node) => {
+        const item = this.findById(this.tree, node.data.ocifId);
         if (item) item.isSelected = node.isSelected();
       });
  
-      // Step 2 — cascade: checked parent → force-select all descendants
-      this.cascadeDown(this.allData);
+      // 2. Cascade downward: selected parent → select all descendants
+      this.cascadeDown(this.tree);
  
-      // Step 3 — bubble: ALL children checked → auto-check parent
-      this.bubbleUp(this.allData);
+      // 3. Bubble upward: all children selected → select parent
+      this.bubbleUp(this.tree);
  
-      // Step 4 — apply data model back to grid
-      this.applyModelToGrid();
+      // 4. Push model back to grid (silent – no event)
+      this.applyModelToGrid(true);
     } finally {
-      this.selectionInProgress = false;
+      this.updating = false;
     }
  
-    // Step 5 — log
-    this.logSelection();
+    this.emitAndLog();
   }
  
   /**
-   * If a parent node is selected, recursively select all its descendants.
-   * If a parent is NOT selected, recurse into children to handle sub-parents.
+   * If a parent is selected, force-select all its descendants.
+   * If not selected, recurse into children to let nested parents cascade too.
    */
-  private cascadeDown(nodes: any[]) {
-    nodes.forEach(node => {
-      if (node.isParent && node.children?.length) {
-        if (node.isSelected) {
-          this.selectAllDescendants(node.children, true);
-        } else {
-          this.cascadeDown(node.children);
-        }
+  private cascadeDown(nodes: any[]): void {
+    for (const n of nodes) {
+      if (!n.isParent || !n.children?.length) continue;
+      if (n.isSelected) {
+        this.setDescendants(n.children, true);
+      } else {
+        this.cascadeDown(n.children);
       }
-    });
+    }
   }
  
-  private selectAllDescendants(children: any[], selected: boolean) {
-    children.forEach(child => {
-      child.isSelected = selected;
-      if (child.children?.length) {
-        this.selectAllDescendants(child.children, selected);
-      }
-    });
+  private setDescendants(nodes: any[], selected: boolean): void {
+    for (const n of nodes) {
+      n.isSelected = selected;
+      if (n.children?.length) this.setDescendants(n.children, selected);
+    }
   }
  
   /**
-   * Post-order traversal.
-   * Returns true if EVERY node in the given array (and their descendants) is selected.
-   * Side-effect: if all children of a parent are selected, marks the parent selected.
+   * Post-order: returns true when every node in `nodes` is selected.
+   * If all children of a parent are selected, the parent becomes selected.
    */
   private bubbleUp(nodes: any[]): boolean {
-    if (!nodes.length) return true;
- 
+    if (!nodes.length) return true; // vacuous – caller may set parent
     let allSelected = true;
- 
-    nodes.forEach(node => {
-      if (node.isParent && node.children?.length) {
-        const childrenAllSelected = this.bubbleUp(node.children);
-        if (childrenAllSelected) {
-          node.isSelected = true;
-        }
+    for (const n of nodes) {
+      if (n.isParent && n.children?.length) {
+        const childrenAll = this.bubbleUp(n.children);
+        if (childrenAll) n.isSelected = true;
       }
-      if (!node.isSelected) allSelected = false;
-    });
- 
+      if (!n.isSelected) allSelected = false;
+    }
     return allSelected;
   }
  
-  /** Push data-model isSelected values back into the AG Grid row nodes */
-  private applyModelToGrid() {
-    this.gridApi.forEachNode((node: any) => {
-      const item = this.findByOcifId(this.allData, node.data.ocifId);
-      if (item) {
-        // 3rd arg = suppressFinishActions prevents recursive selectionChanged
-        node.setSelected(item.isSelected, false, true);
-      }
+  /**
+   * Write isSelected from data model back to AG Grid row nodes.
+   * @param silent – when true uses suppressFinishActions to avoid re-triggering selectionChanged
+   */
+  private applyModelToGrid(silent: boolean): void {
+    this.gridApi.forEachNode((node) => {
+      const item = this.findById(this.tree, node.data.ocifId);
+      if (!item) return;
+      // setSelected(newValue, clearSelection, suppressFinishActions)
+      node.setSelected(item.isSelected, false, silent);
     });
   }
  
-  // ─── LOGGING ─────────────────────────────────────────────────────────────────
+  // ─── Logging & Emit ─────────────────────────────────────────────────────────
  
-  private logSelection() {
-    const selected = this.gridApi.getSelectedRows();
+  private emitAndLog(): void {
+    const selected: any[] = this.gridApi.getSelectedRows();
  
-    if (selected.length === 0) {
-      console.log('%c[Grid] All deselected', 'color:#888;font-style:italic');
+    if (!selected.length) {
+      console.log('[Grid] Selection cleared');
       this.selectionChanged.emit([]);
       return;
     }
  
-    // Map selected rows to their root clusters
-    const clusterMap = new Map<string, { root: any; selectedRows: any[] }>();
+    // Map each selected row back to its root cluster
+    const clusterMap = new Map<string, { root: any; rows: any[] }>();
     const standalone: any[] = [];
  
-    selected.forEach(row => {
-      const root = this.findRootOf(this.allData, row.ocifId);
-      if (root && root.children?.length) {
+    for (const row of selected) {
+      const root = this.findRoot(this.tree, row.ocifId);
+      if (root?.children?.length) {
         if (!clusterMap.has(root.ocifId)) {
-          clusterMap.set(root.ocifId, { root, selectedRows: [] });
+          clusterMap.set(root.ocifId, { root, rows: [] });
         }
-        clusterMap.get(root.ocifId)!.selectedRows.push(row);
+        clusterMap.get(root.ocifId)!.rows.push(row);
       } else {
         standalone.push(row);
       }
-    });
+    }
  
-    console.groupCollapsed(
-      `%c[Grid Selection] ${selected.length} row(s) selected`,
-      'color:#1a56db;font-weight:700;font-size:13px'
-    );
+    console.groupCollapsed(`[Grid] ${selected.length} row(s) selected`);
  
-    clusterMap.forEach(({ root, selectedRows }) => {
-      const allInCluster = this.collectAll(root);
+    clusterMap.forEach(({ root, rows }) => {
+      const all = this.collectAll(root);
       console.groupCollapsed(
-        `%c📁 Cluster: "${root.profileName}" (${root.ocifId})  —  ${selectedRows.length} / ${allInCluster.length} rows selected`,
-        'color:#065f46;font-weight:600'
+        `Cluster "${root.profileName}" (${root.ocifId}) — ${rows.length}/${all.length} selected`,
       );
-      console.table(selectedRows.map(r => ({
-        ocifId: r.ocifId,
-        profileName: r.profileName,
-        level: r.level,
-        role: r.role,
-        legalHoldStatus: r.legalHoldStatus
-      })));
-      console.log('Full cluster (all rows):', allInCluster);
+      console.log('Selected in cluster:', rows);
+      console.log('Full cluster:', all);
       console.groupEnd();
     });
  
     if (standalone.length) {
-      console.groupCollapsed(
-        `%c📄 Standalone rows (${standalone.length})`,
-        'color:#7c3aed;font-weight:600'
-      );
-      console.table(standalone.map(r => ({
-        ocifId: r.ocifId,
-        profileName: r.profileName,
-        legalHoldStatus: r.legalHoldStatus
-      })));
-      console.groupEnd();
+      console.log('Standalone rows:', standalone);
     }
  
-    console.log('► All selected rows:', selected);
     console.groupEnd();
  
     this.selectionChanged.emit(selected);
   }
  
-  // ─── TREE UTILITIES ───────────────────────────────────────────────────────────
+  // ─── Tree Utilities ──────────────────────────────────────────────────────────
  
-  private findByOcifId(nodes: any[], ocifId: string): any {
-    for (const node of nodes) {
-      if (node.ocifId === ocifId) return node;
-      if (node.children?.length) {
-        const found = this.findByOcifId(node.children, ocifId);
+  private findById(nodes: any[], ocifId: string): any | null {
+    for (const n of nodes) {
+      if (n.ocifId === ocifId) return n;
+      if (n.children?.length) {
+        const found = this.findById(n.children, ocifId);
         if (found) return found;
       }
     }
     return null;
   }
  
-  /** Returns the TOP-LEVEL root item that contains (or is) the given ocifId */
-  private findRootOf(nodes: any[], ocifId: string): any {
-    for (const node of nodes) {
-      if (node.ocifId === ocifId) return node;
-      if (node.children?.length && this.findByOcifId(node.children, ocifId)) {
-        return node;
-      }
+  /** Returns the top-level node that IS or CONTAINS the given ocifId */
+  private findRoot(nodes: any[], ocifId: string): any | null {
+    for (const n of nodes) {
+      if (n.ocifId === ocifId) return n;
+      if (n.children?.length && this.findById(n.children, ocifId)) return n;
     }
     return null;
   }
  
-  /** Collect a node and every descendant into a flat array */
   private collectAll(node: any): any[] {
-    const result: any[] = [node];
-    (node.children || []).forEach((c: any) => result.push(...this.collectAll(c)));
+    const result = [node];
+    for (const c of node.children ?? []) result.push(...this.collectAll(c));
     return result;
   }
  
-  onPaginationChanged() {}
+  onPaginationChanged(): void {}
 }
-
 // html//
 
-<div class="grid-card-container grid-container-with-footer">
-   <ag-grid-angular
+<div class="grid-card-container">
+  <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
     style="width: 100%; height: 100%;"
     [rowData]="rowData"
     [columnDefs]="columnDefs"
-    [gridOptions]="gridOptions"
-    [rowSelection]="'multiple'"
+    [defaultColDef]="defaultColDef"
+    rowSelection="multiple"
     [pagination]="true"
     [paginationPageSize]="pageSize"
     [suppressPaginationPanel]="true"
     [suppressRowClickSelection]="true"
+    [rowHeight]="52"
+    [headerHeight]="44"
+    [suppressCellFocus]="true"
+    [animateRows]="false"
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)"
-    (selectionChanged)="onSelectionChanged()"
-    (paginationChanged)="onPaginationChanged()"
-    (cellClicked)="onCellClicked($event)">
+    (selectionChanged)="onSelectionChanged($event)"
+    (cellClicked)="onCellClicked($event)"
+    (paginationChanged)="onPaginationChanged()">
   </ag-grid-angular>
 </div>
 // end of html//
@@ -365,281 +369,258 @@ export class ResultsGridComponent implements OnInit {
  
  // ─── Grid Container ──────────────────────────────────────────────────────────
  
+// ─────────────────────────────────────────────────────────────────────────────
+// Grid container
+// ─────────────────────────────────────────────────────────────────────────────
+ 
 .grid-card-container {
   width: 100%;
   height: calc(100vh - 250px);
-  border: 1px solid #dde1e8;
-  border-radius: 6px;
   background: #ffffff;
+  border: 1px solid #d8dde6;
+  border-radius: 4px;
   overflow: hidden;
 }
  
-// ─── AG Grid Theme Overrides ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// AG Grid alpine overrides  (all scoped to .bmo-grid to avoid leaking)
+// ─────────────────────────────────────────────────────────────────────────────
  
 ::ng-deep .ag-theme-alpine.bmo-grid {
  
-  // ── Base font & colours ────────────────────────────────────────────────────
-  font-family: 'BMO Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 13px;
-  color: #1a1a2e;
+  // ── Reset noisy AG Grid defaults ───────────────────────────────────────────
+  .ag-root-wrapper         { border: none !important; }
+  .ag-cell-focus           { outline: none !important; border: none !important; }
+  .ag-row-even,
+  .ag-row-odd              { background-color: inherit !important; } // kill zebra
+  .ag-cell                 { border-right: none !important; }        // no vertical dividers
  
-  .ag-root-wrapper {
-    border: none !important;
-    border-radius: 0 !important;
+  // ── Header ─────────────────────────────────────────────────────────────────
+  .ag-header {
+    background-color: #f5f6f8 !important;
+    border-bottom: 2px solid #1a2e5a !important; // dark navy – matches Figma divider
+    min-height: 44px !important;
   }
  
-  // ── Header ──────────────────────────────────────────────────────────────────
-  .ag-header {
-    background-color: #f4f5f7 !important;
-    border-bottom: 2px solid #dde1e8 !important;
+  .ag-header-row {
     height: 44px !important;
   }
  
   .ag-header-cell {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #3a3f51 !important;
-    text-transform: none;
+    background-color: #f5f6f8 !important;
+    border-right: none !important;
     padding: 0 12px !important;
-    background-color: #f4f5f7 !important;
-    border-right: none !important;
+ 
+    &-text {
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      color: #1a1a2e !important;
+      letter-spacing: 0.01em;
+    }
   }
  
-  .ag-header-cell-text {
-    font-weight: 700;
-    letter-spacing: 0.01em;
+  // Sort arrow colour
+  .ag-icon-asc::before,
+  .ag-icon-desc::before {
+    color: #1a4fa0 !important;
   }
  
-  // Header checkbox
-  .ag-header-select-all {
-    margin-right: 8px;
+  // Header checkbox – same square style
+  .ag-header-select-all .ag-checkbox-input-wrapper {
+    width: 20px !important;
+    height: 20px !important;
   }
  
-  // ── Row defaults ────────────────────────────────────────────────────────────
+  // ── All rows base ──────────────────────────────────────────────────────────
   .ag-row {
-    border-bottom: 1px solid #eaedf2 !important;
+    border-bottom: 1px solid #dde3ed !important;
     border-top: none !important;
-    transition: background-color 0.1s ease;
+ 
+    // Cells vertically centred
+    .ag-cell {
+      display: flex !important;
+      align-items: center !important;
+      font-size: 13px;
+      color: #2c3049;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: 1.4;
+    }
   }
  
-  .ag-row:hover {
-    background-color: #f0f4ff !important;
+  // ── Root rows (level 0) – mint/teal tint as per Figma ─────────────────────
+  //  Corp 2, 3, 4, 5 all have that light teal-grey wash
+  .row-root {
+    background-color: #e9f3f1 !important; // Figma mint-teal
+    min-height: 56px !important;
+ 
+    .ag-cell {
+      font-weight: 600;
+    }
   }
  
-  // No vertical cell borders
-  .ag-cell {
-    border-right: none !important;
-    border-left: none !important;
-    display: flex !important;
-    align-items: center !important;
-    font-size: 13px;
-    color: #2c2f3f;
-    line-height: 1.35;
+  .row-root:hover {
+    background-color: #dceee9 !important;
   }
  
-  // ── Root (Level 0) rows — white background, bolder text ────────────────────
-  .root-row {
-    background-color: #ffffff !important;
-    border-bottom: 1px solid #dde1e8 !important;
+  // ── Child rows (level 1+) – light periwinkle-blue bg + thin light grey border
+  // Figma clearly shows Role Player rows with a blue-tinted wash & grey separator
+  .row-child {
+    background-color: #e8f0fb !important; // light periwinkle-blue from Figma
+    border-bottom: 1px solid #d0d9e8 !important; // thin light grey border
+    min-height: 50px !important;
+ 
+    .ag-cell {
+      font-weight: 400;
+    }
   }
  
-  .root-row:hover {
-    background-color: #f5f8ff !important;
+  .row-child:hover {
+    background-color: #dce8f9 !important;
   }
  
-  .root-row .ag-cell {
-    font-weight: 500;
+  // Deeper nesting – progressively slightly deeper blue
+  .row-child-l2 { background-color: #e2ecf9 !important; border-bottom: 1px solid #ccd5e6 !important; }
+  .row-child-l3 { background-color: #dce8f8 !important; border-bottom: 1px solid #c8d2e4 !important; }
+  .row-child-l4 { background-color: #d6e4f7 !important; border-bottom: 1px solid #c4cedf !important; }
+ 
+  // ── Selected state ─────────────────────────────────────────────────────────
+  .ag-row-selected.row-root  { background-color: #c9e4de !important; }
+  .ag-row-selected.row-child { background-color: #bed5f5 !important; border-bottom: 1px solid #a8c2e8 !important; }
+ 
+  // ── Thick cluster divider ──────────────────────────────────────────────────
+  // AG Grid doesn't have native group dividers, so we add a thicker bottom
+  // border on the LAST child before a new root row via CSS adjacency trick.
+  // We add class "last-in-cluster" from TS via getRowClass if needed,
+  // but the simplest approach: root rows always have a strong top border.
+  .row-root {
+    border-top: 2px solid #b0bfd4 !important;
   }
  
-  // ── Child rows — subtle blue tint per level ─────────────────────────────────
-  .child-row {
-    background-color: #f7faff !important;
-    border-bottom: 1px solid #e8eef8 !important;
+  // Very first root row should not have a top border gap
+  .ag-row-first.row-root {
+    border-top: none !important;
   }
  
-  .child-row:hover {
-    background-color: #edf3ff !important;
-  }
- 
-  .child-row.level-1 { background-color: #f5f8ff !important; }
-  .child-row.level-2 { background-color: #eef4ff !important; }
-  .child-row.level-3 { background-color: #e6eefd !important; }
-  .child-row.level-4 { background-color: #dde8fc !important; }
-  .child-row.level-5 { background-color: #d4e2fb !important; }
- 
-  // Stronger separator after each cluster group (root row bottom border)
-  .root-row + .root-row,
-  .ag-row-last {
-    border-bottom: 2px solid #c8d0df !important;
-  }
- 
-  // ── Selected row ────────────────────────────────────────────────────────────
-  .ag-row-selected {
-    background-color: #e8f0fe !important;
-  }
- 
-  .ag-row-selected:hover {
-    background-color: #dde7fd !important;
-  }
- 
-  .ag-row-selected.child-row {
-    background-color: #dde9fe !important;
-  }
- 
-  // ── Profile Name cell ────────────────────────────────────────────────────────
+  // ── Profile name cell ──────────────────────────────────────────────────────
   .ag-cell[col-id="profileName"] {
-    padding-right: 8px !important;
- 
+    // The cellStyle already sets padding-left for indentation.
+    // We just ensure the inner wrapper is flex so checkbox + renderer align.
     .ag-cell-wrapper {
       display: flex !important;
       align-items: center !important;
       width: 100%;
+      gap: 0;
       overflow: hidden;
     }
  
-    // Checkbox stays inline
     .ag-selection-checkbox {
       flex-shrink: 0;
-      margin-right: 8px;
+      margin-right: 6px;
     }
   }
  
-  // Profile name text renderer
-  .profile-cell {
-    display: flex;
+  // Profile name renderer spans
+  .pn-cell {
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: default;
+    max-width: 100%;
   }
  
-  .parent-cell {
-    cursor: pointer;
+  .pn-parent {
+    color: #1a4fa0;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer; // whole cell is clickable for expand
+  }
  
-    .chevron {
-      flex-shrink: 0;
-      margin-right: 2px;
+  .pn-child {
+    color: #1a4fa0;
+    font-weight: 400;
+    font-size: 13px;
+  }
+ 
+  .pn-chevron {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+ 
+  // ── Checkbox ───────────────────────────────────────────────────────────────
+  // Figma shows a plain square ~20×20 with visible border, no fill when empty
+  .ag-checkbox-input-wrapper {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    border-radius: 3px !important;
+    border: 1.5px solid #8a95ab !important;
+    background: #ffffff !important;
+    flex-shrink: 0;
+ 
+    &.ag-checked {
+      background: #1a4fa0 !important;
+      border-color: #1a4fa0 !important;
+ 
+      &::after {
+        color: #ffffff !important;
+        font-size: 12px !important;
+      }
+    }
+ 
+    &:hover {
+      border-color: #1a4fa0 !important;
+    }
+ 
+    // Remove AG Grid's default inner shadow/focus ring
+    input[type="checkbox"] {
+      width: 20px !important;
+      height: 20px !important;
+      opacity: 0;
+      cursor: pointer;
     }
   }
  
-  .parent-name {
-    font-weight: 600;
-    font-size: 13px;
-    color: #1a56db;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
- 
-  .child-cell {
-    cursor: default;
-  }
- 
-  .child-name {
-    font-weight: 400;
-    font-size: 13px;
-    color: #1a56db;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
- 
-  // Small vertical connector line to visualise tree depth
-  .child-connector {
+  // ── Legal Hold Status pill ─────────────────────────────────────────────────
+  // Figma: near-black bg, white bold text, small radius
+  .lh-pill {
     display: inline-block;
-    width: 2px;
-    height: 18px;
-    background: #c3d4f5;
-    border-radius: 1px;
-    flex-shrink: 0;
-    margin-right: 4px;
-  }
- 
-  // ── Checkbox styling ─────────────────────────────────────────────────────────
-  .ag-checkbox-input-wrapper {
-    width: 18px !important;
-    height: 18px !important;
-    border-radius: 4px !important;
-    border: 2px solid #9ba6bf !important;
-    background: #fff !important;
-    transition: border-color 0.15s, background 0.15s;
-  }
- 
-  .ag-checkbox-input-wrapper.ag-checked {
-    background-color: #1a56db !important;
-    border-color: #1a56db !important;
-  }
- 
-  .ag-checkbox-input-wrapper.ag-checked::after {
-    color: #ffffff !important;
-    font-size: 11px !important;
-  }
- 
-  .ag-checkbox-input-wrapper:hover {
-    border-color: #1a56db !important;
-  }
- 
-  // ── Legal Hold Status pill ────────────────────────────────────────────────────
-  .status-pill {
-    display: inline-block;
-    background-color: #1a1a2e !important;
-    color: #ffffff !important;
-    padding: 3px 10px !important;
-    border-radius: 4px !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.04em;
+    background: #111827;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
     white-space: nowrap;
   }
  
-  .status-na {
-    color: #7a8096;
+  .lh-na {
+    color: #6b7280;
     font-size: 13px;
   }
  
   // ── Pagination ──────────────────────────────────────────────────────────────
   .ag-paging-panel {
-    border-top: 1px solid #dde1e8 !important;
-    background: #f9fafc !important;
-    height: 44px !important;
+    border-top: 1px solid #d8dde6 !important;
+    background: #f5f6f8 !important;
+    height: 42px !important;
     font-size: 12px !important;
     color: #3a3f51 !important;
+    padding: 0 16px !important;
   }
  
-  // ── Sort icons ───────────────────────────────────────────────────────────────
-  .ag-sort-indicator-icon {
-    color: #1a56db;
-  }
- 
-  // ── Scrollbar ────────────────────────────────────────────────────────────────
-  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar,
-  .ag-body-viewport::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
- 
-  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-track,
-  .ag-body-viewport::-webkit-scrollbar-track {
-    background: #f1f3f7;
-  }
- 
-  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb,
-  .ag-body-viewport::-webkit-scrollbar-thumb {
-    background: #c0c8d8;
-    border-radius: 3px;
-  }
- 
-  // ── Remove default AG Grid zebra / selection blue ────────────────────────────
-  .ag-row-even,
-  .ag-row-odd {
-    background-color: inherit;
-  }
- 
-  // Focus ring on cells
-  .ag-cell-focus {
-    border: none !important;
-    outline: none !important;
-  }
+  // ── Scrollbars ──────────────────────────────────────────────────────────────
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f3f7; }
+  ::-webkit-scrollbar-thumb { background: #bcc5d6; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9aa5b8; }
 }
+ 
 
 //enc of scss//
