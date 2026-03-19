@@ -1,7 +1,8 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
-import { GridApi, ColDef, GridReadyEvent } from 'ag-grid-community';
-
+import { GridApi, ColDef } from 'ag-grid-community';
+import { LegalHoldDataService } from '../../services/legal-hold-data.service';
+ 
 @Component({
   selector: 'app-results-grid',
   standalone: true,
@@ -11,48 +12,70 @@ import { GridApi, ColDef, GridReadyEvent } from 'ag-grid-community';
 })
 export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<any[]>();
-
+ 
   private gridApi!: GridApi;
-  public rowData: any[] = [];
-  public pageSize = 10;
-  public allData: any[] = [];
-
-  public columnDefs: ColDef[] = [
+  rowData: any[] = [];
+  pageSize = 10;
+  private allData: any[] = [];
+  private selectionInProgress = false;
+ 
+  columnDefs: ColDef[] = [
     {
       headerName: 'Profile Name',
       field: 'profileName',
-      pinned: 'left',
-      width: 450,
-      // No checkboxSelection: true here; we build it manually below
-      cellRenderer: (params: any) => this.profileNameRenderer(params)
+      sortable: true,
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      width: 380,
+      cellStyle: (params: any) => {
+        const level = params.data?.level || 0;
+        // Indent the entire cell (including checkbox) by using paddingLeft on the cell
+        // The checkbox itself is inline so this shifts both checkbox + text together
+        return {
+          'padding-left': `${8 + level * 32}px !important`
+        };
+      },
+      cellRenderer: (params: any) => {
+        if (!params.data) return '';
+        const level = params.data.level || 0;
+        const chevron = params.data.isParent
+          ? `<span class="chevron-icon">${params.data.isExpanded ? '▲' : '▼'}</span>`
+          : `<span class="chevron-placeholder"></span>`;
+        return `<span style="display:flex;align-items:center;gap:4px;font-weight:600;cursor:${params.data.isParent ? 'pointer' : 'default'};">${chevron}${params.value}</span>`;
+      }
     },
-    { field: 'ocifId', headerName: 'Proxy OCIF ID', width: 150 },
+    { headerName: 'Proxy OCIF ID', field: 'ocifId', sortable: true },
     {
+      headerName: 'Legal Hold Status',
       field: 'legalHoldStatus',
-      headerName: 'Status',
-      width: 150,
-      cellRenderer: (params: any) => params.value === 'LEGAL HOLD' 
-        ? '<span class="status-pill">LEGAL HOLD</span>' : 'N/A'
+      sortable: true,
+      cellRenderer: (params: any) => params.value === 'LEGAL HOLD'
+        ? '<span class="status-pill">LEGAL HOLD</span>'
+        : (params.value || 'N/A')
     },
-    { field: 'lifecycle', headerName: 'Lifecycle', width: 200 },
-    { field: 'role', headerName: 'Role', width: 150 },
-    { field: 'address', headerName: 'Address', flex: 1 }
+    { headerName: 'Legal Hold Name', field: 'holdName' },
+    { headerName: 'Customer Lifecycle Status', field: 'lifecycle' },
+    { headerName: 'Role Type', field: 'role' },
+    { headerName: 'Address', field: 'address' }
   ];
-
+ 
+  constructor(private legalHoldDataService: LegalHoldDataService) {}
+ 
   ngOnInit() {
-    // Assuming you populate allData here from your service
+    this.allData = this.legalHoldDataService.getMockData();
     this.assignLevels(this.allData);
-    this.refreshGrid();
+    this.rowData = this.buildVisibleRows(this.allData);
   }
-
-  // RECURSIVE ENGINE
+ 
   private assignLevels(data: any[], level = 0) {
     data.forEach(item => {
       item.level = level;
+      item.isSelected = false;
+      item.isExpanded = item.isExpanded ?? false;
       if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
-
+ 
   private buildVisibleRows(data: any[], visible: any[] = []) {
     data.forEach(item => {
       visible.push(item);
@@ -62,86 +85,176 @@ export class ResultsGridComponent implements OnInit {
     });
     return visible;
   }
-
-  public refreshGrid() {
-    this.rowData = [...this.buildVisibleRows(this.allData)];
-    if (this.gridApi) {
+ 
+  onGridReady(params: any) {
+    this.gridApi = params.api;
+  }
+ 
+  onCellClicked(params: any) {
+    if (params.colDef.field === 'profileName' && params.data?.isParent) {
+      // Only toggle expand when clicking the chevron / text area, not the checkbox
+      const target = params.event?.target as HTMLElement;
+      if (target?.closest('.ag-selection-checkbox')) return;
+ 
+      params.data.isExpanded = !params.data.isExpanded;
+      this.rowData = this.buildVisibleRows(this.allData);
       this.gridApi.setGridOption('rowData', this.rowData);
+ 
+      // Re-apply selection state after row rebuild
+      this.applySelectionStateToGrid();
     }
   }
-
-  // FIGMA RENDERER: Combined Checkbox + Text
-  private profileNameRenderer(params: any): HTMLElement {
-    const eGui = document.createElement('div');
-    if (!params.data) return eGui;
-
-    const { level, isParent, isExpanded, isSelected } = params.data;
-    const indent = (level || 0) * 32;
-
-    eGui.className = 'unified-profile-cell';
-    eGui.style.paddingLeft = `${indent}px`;
-    eGui.style.display = 'flex';
-    eGui.style.alignItems = 'center';
-
-    const checkboxHtml = `
-      <div class="custom-checkbox ${isSelected ? 'checked' : ''}">
-        ${isSelected ? '✓' : ''}
-      </div>`;
-
-    const chevronHtml = isParent 
-      ? `<span class="bmo-thin-carrot ${isExpanded ? 'up' : 'down'}"></span>` 
-      : '<span style="width: 20px; display: inline-block;"></span>';
-
-    eGui.innerHTML = `
-      ${checkboxHtml}
-      ${chevronHtml}
-      <span class="profile-name-text" style="font-weight: 600;">${params.value || ''}</span>
-    `;
-
-    return eGui;
+ 
+  public getRowClass = (params: any) => {
+    const level = params.data?.level || 0;
+    if (level === 0) return '';
+    return `indented-child-row level-${level}`;
   }
-
-  onCellClicked(params: any) {
-    const event = window.event as any;
-    const target = event?.target as HTMLElement;
-
-    // Handle Manual Checkbox Toggle
-    if (target.classList.contains('custom-checkbox')) {
-      params.data.isSelected = !params.data.isSelected;
-      this.refreshGrid(); // Update UI
-      this.selectionChanged.emit(this.rowData.filter(r => r.isSelected));
+ 
+  onSelectionChanged() {
+    if (this.selectionInProgress) return;
+    this.selectionInProgress = true;
+ 
+    // Step 1: Read current UI selection into data model
+    this.gridApi.forEachNode((node: any) => {
+      const item = this.findItemByOcifId(this.allData, node.data.ocifId);
+      if (item) item.isSelected = node.isSelected();
+    });
+ 
+    // Step 2: Cascade down — if parent selected, select all children
+    this.cascadeDown(this.allData);
+ 
+    // Step 3: Bubble up — if ALL children selected, select parent
+    this.bubbleUp(this.allData);
+ 
+    // Step 4: Re-apply selection state back to grid nodes
+    this.applySelectionStateToGrid();
+ 
+    this.selectionInProgress = false;
+ 
+    // Step 5: Console log cluster-aware selection
+    const selected = this.gridApi.getSelectedRows();
+    this.logClusterSelection(selected);
+    this.selectionChanged.emit(selected);
+  }
+ 
+  private applySelectionStateToGrid() {
+    this.gridApi.forEachNode((node: any) => {
+      const item = this.findItemByOcifId(this.allData, node.data.ocifId);
+      if (item) node.setSelected(item.isSelected, false, true);
+    });
+  }
+ 
+  private cascadeDown(data: any[]) {
+    data.forEach(item => {
+      if (item.isParent && item.children?.length) {
+        if (item.isSelected) {
+          // Parent selected: force all descendants selected
+          this.propagateDown(item.children, true);
+        } else {
+          // Parent not selected: recurse to handle sub-parents
+          this.cascadeDown(item.children);
+        }
+      }
+    });
+  }
+ 
+  private propagateDown(children: any[], selected: boolean) {
+    children.forEach(child => {
+      child.isSelected = selected;
+      if (child.isParent && child.children?.length) {
+        this.propagateDown(child.children, selected);
+      }
+    });
+  }
+ 
+  private bubbleUp(data: any[]): boolean {
+    // Returns true if all items in this array are selected
+    let allSelected = data.length > 0;
+    data.forEach(item => {
+      if (item.isParent && item.children?.length) {
+        const childrenAllSelected = this.bubbleUp(item.children);
+        if (childrenAllSelected) {
+          item.isSelected = true;
+        }
+      }
+      if (!item.isSelected) allSelected = false;
+    });
+    return allSelected;
+  }
+ 
+  /**
+   * Finds the root-level cluster for a given item and logs it with all descendants.
+   */
+  private logClusterSelection(selected: any[]) {
+    if (selected.length === 0) {
+      console.log('Selection cleared');
       return;
     }
-
-    // Handle Expansion
-    if (params.colDef.field === 'profileName' && params.data?.isParent) {
-      params.data.isExpanded = !params.data.isExpanded;
-      this.refreshGrid();
+ 
+    // Find unique clusters (root-level parents) involved in the selection
+    const involvedClusters = new Set<any>();
+    const standaloneRows: any[] = [];
+ 
+    selected.forEach(row => {
+      const root = this.findRootCluster(this.allData, row.ocifId);
+      if (root && root.isParent) {
+        involvedClusters.add(root);
+      } else {
+        standaloneRows.push(row);
+      }
+    });
+ 
+    if (involvedClusters.size > 0) {
+      involvedClusters.forEach(cluster => {
+        const clusterRows = this.collectAllDescendants(cluster);
+        const selectedInCluster = clusterRows.filter(r => r.isSelected);
+        console.log(`Cluster: "${cluster.profileName}" (${cluster.ocifId})`, {
+          clusterRoot: cluster,
+          allRowsInCluster: clusterRows,
+          selectedRowsInCluster: selectedInCluster
+        });
+      });
     }
+ 
+    if (standaloneRows.length > 0) {
+      console.log('Standalone selected rows (no cluster):', standaloneRows);
+    }
+ 
+    console.log('All selected rows:', selected);
   }
-
-  public getRowClass = (params: any) => {
-    if (!params.data) return '';
-    const { level, isParent, isExpanded } = params.data;
-    const classes = [];
-    
-    if (level === 0 && isParent && isExpanded) classes.push('blue-sandwich-parent');
-    if (level > 0) classes.push('indented-child-row');
-
-    const next = params.api.getDisplayedRowAtIndex(params.node.rowIndex + 1);
-    if (level > 0 && (!next || next.data.level === 0)) classes.push('sandwich-bottom-border');
-
-    return classes.join(' ');
-  };
-
-  // Stubs to clear HTML errors
-  onSelectionChanged() {}
+ 
+  private findRootCluster(data: any[], ocifId: string): any {
+    for (const item of data) {
+      if (item.ocifId === ocifId) return item;
+      if (item.children?.length) {
+        const found = this.findRootCluster(item.children, ocifId);
+        if (found) return item; // return root, not the found child
+      }
+    }
+    return null;
+  }
+ 
+  private collectAllDescendants(item: any): any[] {
+    const result: any[] = [item];
+    (item.children || []).forEach((child: any) => {
+      result.push(...this.collectAllDescendants(child));
+    });
+    return result;
+  }
+ 
+  private findItemByOcifId(data: any[], ocifId: string): any {
+    for (const item of data) {
+      if (item.ocifId === ocifId) return item;
+      if (item.children) {
+        const found = this.findItemByOcifId(item.children, ocifId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+ 
   onPaginationChanged() {}
-
-  onGridReady(params: GridReadyEvent) {
-    this.gridApi = params.api;
-    this.refreshGrid();
-  }
 }
 // html//
 
@@ -166,56 +279,78 @@ export class ResultsGridComponent implements OnInit {
 
 //scss code //
 ::ng-deep .ag-theme-alpine.bmo-grid {
-  /* Remove vertical lines between columns */
-  .ag-header-cell::after, .ag-cell::after {
-    display: none !important;
-  }
-
-  .ag-row { border-bottom: 1px solid #f2f2f2 !important; }
-
-  /* Blue Sandwich Visuals */
-  .blue-sandwich-parent {
-    background-color: #E8F4FD !important;
-    border-top: 2px solid #004c97 !important;
-  }
-
-  .indented-child-row { background-color: #ffffff !important; }
-
-  .sandwich-bottom-border {
-    border-bottom: 2px solid #004c97 !important;
-  }
-
-  /* Custom Checkbox that indents */
-  .custom-checkbox {
-    width: 18px; height: 18px;
-    border: 1.5px solid #004c97;
-    border-radius: 2px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-right: 12px;
-    background: white;
-    cursor: pointer;
-    font-size: 10px;
-    color: white;
-    &.checked { background: #004c97; }
-  }
-
-  /* Thin Carrot */
-  .bmo-thin-carrot {
-    width: 8px; height: 8px;
-    border-top: 1.5px solid #004c97;
-    border-right: 1.5px solid #004c97;
-    display: inline-block;
-    transition: 0.2s;
-    margin-right: 10px;
-    &.down { transform: rotate(135deg); }
-    &.up { transform: rotate(-45deg); margin-top: 4px; }
-  }
-  
   .status-pill {
-    background: #1e1e1e; color: #fff;
-    padding: 2px 8px; border-radius: 4px; font-weight: 700;
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    padding: 4px 12px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
   }
+ 
+  /* Child rows - light blue background */
+  .indented-child-row {
+    background-color: #f0f7ff !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+ 
+  /* Deeper nesting gets slightly deeper blue tint */
+  .indented-child-row.level-2 {
+    background-color: #e4f1fd !important;
+  }
+ 
+  .indented-child-row.level-3 {
+    background-color: #d8ebfb !important;
+  }
+ 
+  .indented-child-row.level-4 {
+    background-color: #cce4f9 !important;
+  }
+ 
+  .indented-child-row.level-5 {
+    background-color: #c0ddf7 !important;
+  }
+ 
+  /* Profile name cell: shift the ENTIRE cell content (checkbox + text) by level */
+  /* The cellStyle padding-left on the ColDef handles this, but we also need
+     to ensure the checkbox renders inline with the text, not independently */
+  .ag-cell[col-id="profileName"] {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+ 
+  /* Make sure the checkbox and the cell content are in a single flex row */
+  .ag-cell[col-id="profileName"] .ag-cell-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+ 
+  .ag-cell[col-id="profileName"] .ag-selection-checkbox {
+    /* Checkbox stays inline, indentation comes from the parent cell padding */
+    flex-shrink: 0;
+  }
+ 
+  .chevron-icon {
+    font-size: 10px;
+    color: #0050c8;
+    margin-right: 4px;
+  }
+ 
+  .chevron-placeholder {
+    display: inline-block;
+    width: 14px; /* Same width as chevron to keep text aligned */
+  }
+}
+ 
+.grid-card-container {
+  width: 100%;
+  height: calc(100vh - 250px);
+  border: 1px solid #e2e2e2;
+  background: #fff;
 }
 //enc of scss//
