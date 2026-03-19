@@ -16,7 +16,8 @@ export class ResultsGridComponent implements OnInit {
   private gridApi!: GridApi;
   rowData: any[] = [];
   pageSize = 10;
-  private allData: any[] = []; // keeps the full nested tree
+  private allData: any[] = [];
+  private selectionInProgress = false;
 
   columnDefs: ColDef[] = [
     {
@@ -60,7 +61,6 @@ export class ResultsGridComponent implements OnInit {
   constructor(private legalHoldDataService: LegalHoldDataService) {}
 
   ngOnInit() {
-
     this.allData = this.legalHoldDataService.getMockData();
     this.assignLevels(this.allData);
     this.rowData = this.buildVisibleRows(this.allData);
@@ -69,7 +69,7 @@ export class ResultsGridComponent implements OnInit {
   private assignLevels(data: any[], level = 0) {
     data.forEach(item => {
       item.level = level;
-      item.isSelected = false;           // ← for hierarchical selection
+      item.isSelected = false;
       item.isExpanded = item.isExpanded ?? false;
       if (item.children?.length) {
         this.assignLevels(item.children, level + 1);
@@ -77,7 +77,7 @@ export class ResultsGridComponent implements OnInit {
     });
   }
 
- private buildVisibleRows(data: any[], visible: any[] = []) {
+  private buildVisibleRows(data: any[], visible: any[] = []) {
     data.forEach(item => {
       visible.push(item);
       if (item.isParent && item.isExpanded && item.children?.length) {
@@ -87,47 +87,39 @@ export class ResultsGridComponent implements OnInit {
     return visible;
   }
 
- onGridReady(params: any) {
+  onGridReady(params: any) {
     this.gridApi = params.api;
   }
 
- onCellClicked(params: any) {
+  onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.rowData = this.buildVisibleRows(this.allData);
-      this.gridApi.setRowData(this.rowData);
+      this.gridApi.setGridOption('rowData', this.rowData);
     }
   }
 
   public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
 
- onSelectionChanged() {
+  onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
-
     this.syncAndPropagate();
-
     this.selectionInProgress = false;
     this.selectionChanged.emit(this.gridApi.getSelectedRows());
   }
 
-
   private syncAndPropagate() {
-    // 1. Sync current grid selection to our data model
     this.gridApi.forEachNode((node: any) => {
       const item = this.findItemByOcifId(this.allData, node.data.ocifId);
       if (item) item.isSelected = node.isSelected();
     });
 
-    // 2. Force down (parent selected → all kids)
     this.forceDown(this.allData);
-
-    // 3. Force up (any kid selected → parent selected)
     this.forceUp(this.allData);
 
-    // 4. Rebuild visible rows + re-apply selection to grid
     this.rowData = this.buildVisibleRows(this.allData);
-    this.gridApi.setRowData(this.rowData);
+    this.gridApi.setGridOption('rowData', this.rowData);
 
     this.gridApi.forEachNode((node: any) => {
       const item = this.findItemByOcifId(this.allData, node.data.ocifId);
@@ -161,7 +153,6 @@ export class ResultsGridComponent implements OnInit {
     });
   }
 
-
   private forceUp(data: any[]) {
     data.forEach(item => {
       if (item.isParent) {
@@ -170,52 +161,12 @@ export class ResultsGridComponent implements OnInit {
     });
   }
 
-
   private hasAnyDescendantSelected(item: any): boolean {
     if (!item.children?.length) return item.isSelected;
     return item.children.some((child: any) =>
       child.isSelected || this.hasAnyDescendantSelected(child)
     );
   }
-}
-
-
- onPaginationChanged() { this.updatePaginationInfo(); }
-  updatePaginationInfo() {
-    if (this.gridApi) {
-      this.totalResults = this.gridApi.getDisplayedRowCount();
-      this.currentPage = this.gridApi.paginationGetCurrentPage() + 1;
-      this.totalPages = this.gridApi.paginationGetTotalPages() || 1;
-    }
-  }
-  nextPage() { this.gridApi.paginationGoToNextPage(); }
-  prevPage() { this.gridApi.paginationGoToPreviousPage(); }
-  onPageSizeChange(event: any) {
-    const newSize = Number(event.target.value);
-    this.pageSize = newSize;
-    this.gridApi.setGridOption('paginationPageSize', newSize);
-  }
-
-  onRowGroupOpened(params: any) {
-    if (params.node && params.node.data) {
-      params.node.data.isGroupOpen = params.node.expanded;
-    }
-    params.api.refreshCells({ rowNodes: [params.node], force: true });
-  }
-
-  public getRowClass = (params: any) => {
-    const classes: string[] = [];
-    if (params.data?.isParent && params.data.isExpanded) classes.push('blue-sandwich-parent');
-    if (params.data?.isChild) {
-      classes.push('sandwich-child-row');
-      const rowIndex = params.node.rowIndex;
-      const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
-      if (!nextNode || (nextNode.data && nextNode.data.isParent)) {
-        classes.push('sandwich-bottom-border');
-      }
-    }
-    return classes.join(' ');
-  };
 }
 
 // html//
@@ -233,7 +184,8 @@ export class ResultsGridComponent implements OnInit {
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)"
     (selectionChanged)="onSelectionChanged()"
-    (paginationChanged)="onPaginationChanged()">
+    (paginationChanged)="onPaginationChanged()"
+    (cellClicked)="onCellClicked($event)">
   </ag-grid-angular>
 </div>
 
@@ -241,60 +193,96 @@ export class ResultsGridComponent implements OnInit {
 
 //scss code //
 
+/* ============================================= */
+/* RESULTS GRID - Figma-Perfect Styling          */
+/* ============================================= */
+
 ::ng-deep .ag-theme-alpine.bmo-grid {
+  
+  /* LEGAL HOLD Pill - exact Figma dark rounded style */
   .status-pill {
-    background-color: #1e1e1e;
-    color: #ffffff;
-    padding: 3px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    padding: 4px 12px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    display: inline-block !important;
   }
 
+  /* Indented child rows - light blue background + light grey borders */
   .indented-child-row {
-    background-color: #f0f7ff !important;
-    border-bottom: 1px solid #e5e5e5 !important;
+    background-color: #f0f7ff !important;     /* light blue */
+    border-bottom: 1px solid #e5e5e5 !important; /* light grey border */
   }
 
+  /* Subtle left accent line on indented rows (optional but looks premium) */
+  .indented-child-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #d0e6ff;
+    z-index: 1;
+  }
+
+  /* Profile Name column - prevent wrapping when deeply indented */
   .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
-  /* Chevrons match Figma size & weight */
+  /* Make chevrons clean and Figma-like */
   .ag-cell[col-id="profileName"] span {
     font-size: 14px;
-    line-height: 1;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Expanded parent row styling (very light tint) */
+  .ag-row[role="row"].ag-row-level-0.ag-row-expanded {
+    background-color: #f8fbff !important;
+  }
+
+  /* Header styling - clean and BMO-like */
+  .ag-header-cell {
+    font-weight: 600;
+    color: #333333;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  /* Checkbox column alignment */
+  .ag-cell[col-id="0"] {  /* checkbox column */
+    padding-left: 0 !important;
   }
 }
 
-/* === HIERARCHY STYLING FOR INDENTED RECORDS === */
-.ag-theme-alpine.bmo-grid .sandwich-child-row {
-  background-color: #f0f7ff !important;     /* light blue bg for all indented children */
-  border-bottom: 1px solid #e5e5e5 !important; /* light grey border */
-  position: relative;
+/* Optional: Keep your existing custom pagination and other styles here */
+/* If you already have a big block for .custom-pagination-bar, .grid-card-container, etc., */
+/* paste it below this section so nothing breaks */
+
+.grid-card-container {
+  width: 100%;
+  height: calc(100vh - 250px);
+  border: 1px solid #e2e2e2;
+  background: #fff;
 }
 
-.ag-theme-alpine.bmo-grid .sandwich-child-row::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background-color: #d0e6ff; /* subtle blue left accent for indent feel */
+.grid-container-with-footer {
+  display: flex;
+  flex-direction: column;
 }
 
-.ag-theme-alpine.bmo-grid .blue-sandwich-parent {
-  background-color: #f8fbff !important;     /* very light blue tint on expanded parents */
-  border-bottom: 1px solid #e5e5e5 !important;
+/* Add your existing pagination, filter, and other custom styles below if needed */
+/* For example: */
+.custom-pagination-bar {
+  /* your existing pagination CSS */
 }
-
-/* Last child gets extra clean bottom border */
-.ag-theme-alpine.bmo-grid .sandwich-bottom-border {
-  border-bottom: 1px solid #d1d1d1 !important;
-}
-
 //enc of scss//
