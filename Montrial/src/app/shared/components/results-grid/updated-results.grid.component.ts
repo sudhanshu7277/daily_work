@@ -21,24 +21,19 @@ export class ResultsGridComponent implements OnInit {
 
   columnDefs: ColDef[] = [
     {
-      headerName: '',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      width: 220,
-      pinned: 'left',
-      cellStyle: (params: any) => ({
-        'padding-left': `${(params.data?.level || 0) * 32}px !important`
-      })
-    },
-    {
       headerName: 'Profile Name',
       field: 'profileName',
       sortable: true,
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      width: 350,
+      cellStyle: (params: any) => ({
+        'padding-left': `${(params.data?.level || 0) * 32}px !important`
+      }),
       cellRenderer: (params: any) => {
         if (!params.data) return '';
-        const level = params.data.level ?? 0;
         const chevron = params.data.isParent ? (params.data.isExpanded ? '▲' : '▼') : '';
-        return `<span style="padding-left: ${level * 32}px; display: flex; align-items: center; font-weight: 600; cursor: pointer;">${chevron} ${params.value}</span>`;
+        return `<span style="display:flex;align-items:center;font-weight:600;cursor:pointer;">${chevron} ${params.value}</span>`;
       }
     },
     { headerName: 'Proxy OCIF ID', field: 'ocifId', sortable: true },
@@ -83,9 +78,7 @@ export class ResultsGridComponent implements OnInit {
     return visible;
   }
 
-  onGridReady(params: any) {
-    this.gridApi = params.api;
-  }
+  onGridReady(params: any) { this.gridApi = params.api; }
 
   onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
@@ -159,9 +152,7 @@ export class ResultsGridComponent implements OnInit {
 
   private hasAnyDescendantSelected(item: any): boolean {
     if (!item.children?.length) return item.isSelected;
-    return item.children.some((child: any) =>
-      child.isSelected || this.hasAnyDescendantSelected(child)
-    );
+    return item.children.some((child: any) => child.isSelected || this.hasAnyDescendantSelected(child));
   }
 
   onPaginationChanged() {}
@@ -169,7 +160,7 @@ export class ResultsGridComponent implements OnInit {
 
 // html//
 
- <div class="grid-card-container grid-container-with-footer">
+<div class="grid-card-container grid-container-with-footer">
   <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
     [rowData]="rowData"
