@@ -24,11 +24,9 @@ export class ResultsGridComponent implements OnInit {
       headerName: '',
       checkboxSelection: true,
       headerCheckboxSelection: true,
-      width: 200,
-      pinned: 'left',
-      cellStyle: (params: any) => ({
-        'padding-left': `${(params.data?.level || 0) * 32}px !important`
-      })
+      width: 50,                    // ← narrow & fixed (Figma style)
+      pinned: 'left'
+      // NO padding here — checkboxes stay left-aligned forever
     },
     {
       headerName: 'Profile Name',
@@ -97,9 +95,8 @@ export class ResultsGridComponent implements OnInit {
     }
   }
 
-  public getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
+  public getRowClass = (params: any) => params.data?.isParent ? 'parent-cluster-row' : '';
 
-  // ==================== HIERARCHICAL SELECTION ====================
   onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
@@ -167,11 +164,7 @@ export class ResultsGridComponent implements OnInit {
     );
   }
 
-  // ==================== PAGINATION (added to fix your error) ====================
-  onPaginationChanged() {
-    // Add your existing pagination logic here if you need total pages, current page, etc.
-    // For now it's just a stub so the HTML event binds cleanly
-  }
+  onPaginationChanged() {}
 }
 
 // html//
@@ -197,12 +190,7 @@ export class ResultsGridComponent implements OnInit {
 
 //scss code //
 
-/* ============================================= */
-/* RESULTS GRID - Figma-Perfect Styling          */
-/* ============================================= */
-
 ::ng-deep .ag-theme-alpine.bmo-grid {
-  
   /* LEGAL HOLD Pill */
   .status-pill {
     background-color: #1e1e1e !important;
@@ -211,26 +199,15 @@ export class ResultsGridComponent implements OnInit {
     border-radius: 4px !important;
     font-size: 11px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.5px !important;
-    display: inline-block !important;
   }
 
-  /* Indented child rows - light blue + light grey border */
-  .indented-child-row {
+  /* Parent cluster rows = light blue background (exactly as in your screenshot) */
+  .parent-cluster-row {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
 
-  .indented-child-row::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background-color: #d0e6ff;
-  }
-
+  /* Profile Name indentation only (checkboxes stay fixed left) */
   .ag-cell[col-id="profileName"] {
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -239,20 +216,16 @@ export class ResultsGridComponent implements OnInit {
 
   .ag-cell[col-id="profileName"] span {
     font-size: 14px;
-    line-height: 1.2;
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
-  .ag-row[role="row"].ag-row-level-0.ag-row-expanded {
-    background-color: #f8fbff !important;
-  }
-
+  /* Header clean */
   .ag-header-cell {
     font-weight: 600;
-    color: #333333;
-    background-color: #ffffff;
+    color: #333;
+    background: #fff;
     border-bottom: 1px solid #e5e5e5;
   }
 }
