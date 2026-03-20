@@ -10,6 +10,7 @@ import {
   GridReadyEvent,
   ICellRendererParams,
   RowClassParams,
+  SelectionColumnDef,
   RowSelectedEvent,
 } from 'ag-grid-community';
 
@@ -60,7 +61,22 @@ export class ResultsGridComponent implements OnInit {
   @Output() selectionChanged = new EventEmitter<ResultsGridRow[]>();
 
   public rowData: ResultsGridRow[] = [];
-  public readonly rowSelection: 'multiple' = 'multiple';
+  public readonly rowSelection = {
+    mode: 'multiRow' as const,
+    checkboxes: true,
+    headerCheckbox: true,
+    enableClickSelection: false,
+    selectAll: 'all' as const,
+  };
+  public readonly selectionColumnDef: SelectionColumnDef = {
+    width: 52,
+    minWidth: 52,
+    maxWidth: 52,
+    pinned: 'left',
+    resizable: false,
+    suppressHeaderMenuButton: true,
+    sortable: false,
+  };
   public pendingColumnToShow = '';
 
   public readonly filterOptions: GridFilterOption[] = [
@@ -76,27 +92,12 @@ export class ResultsGridComponent implements OnInit {
   public visibleColumnIds = this.filterOptions.map((option) => option.id);
 
   public readonly defaultColDef: ColDef<ResultsGridRow> = {
-    sortable: true,
+    sortable: false,
     resizable: true,
     suppressHeaderMenuButton: true,
   };
 
   public readonly columnDefs: ColDef<ResultsGridRow>[] = [
-    {
-      colId: 'select',
-      headerName: '',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      pinned: 'left',
-      lockPinned: true,
-      lockPosition: true,
-      width: 52,
-      minWidth: 52,
-      maxWidth: 52,
-      sortable: false,
-      resizable: false,
-      suppressMovable: true,
-    },
     {
       colId: 'profileName',
       field: 'profileName',
@@ -104,6 +105,7 @@ export class ResultsGridComponent implements OnInit {
       minWidth: 230,
       flex: 1.5,
       suppressMovable: true,
+      sortable: true,
       unSortIcon: true,
       cellRenderer: (params: ICellRendererParams<ResultsGridRow>) =>
         this.renderProfileCell(params.data),
@@ -123,6 +125,7 @@ export class ResultsGridComponent implements OnInit {
       minWidth: 170,
       flex: 1,
       suppressMovable: true,
+      sortable: true,
       unSortIcon: true,
       cellRenderer: (params: ICellRendererParams<ResultsGridRow, ResultsGridRow['legalHoldStatus']>) => {
         if (params.value === 'LEGAL HOLD') {
@@ -167,8 +170,21 @@ export class ResultsGridComponent implements OnInit {
     },
   ];
 
-  public readonly getRowClass = (params: RowClassParams<ResultsGridRow>): string =>
-    params.data?.hasChildren ? 'rg-parent-row' : 'rg-child-row';
+  public readonly getRowClass = (params: RowClassParams<ResultsGridRow>): string => {
+    if (!params.data) {
+      return '';
+    }
+
+    const rowClasses = [params.data.hasChildren ? 'rg-parent-row' : 'rg-child-row'];
+
+    if (params.data.isExpanded) {
+      rowClasses.push('rg-parent-expanded');
+    }
+
+    rowClasses.push(`rg-depth-${params.data.depth}`);
+
+    return rowClasses.join(' ');
+  };
 
   public readonly getRowId = (params: GetRowIdParams<ResultsGridRow>): string => params.data.id;
 
@@ -209,7 +225,7 @@ export class ResultsGridComponent implements OnInit {
       return;
     }
 
-    if (event.colDef.colId === 'select') {
+    if (!event.colDef.field) {
       return;
     }
 
@@ -315,12 +331,16 @@ export class ResultsGridComponent implements OnInit {
     }
 
     const indent = row.depth * 24;
+    const guidesMarkup = Array.from({ length: row.depth })
+      .map((_, index) => `<span class="rg-depth-guide" style="left:${index * 24 + 8}px"></span>`)
+      .join('');
     const toggleMarkup = row.hasChildren
       ? `<button class="rg-chevron ${row.isExpanded ? 'expanded' : 'collapsed'}" data-action="toggle-expand" aria-label="${row.isExpanded ? 'Collapse row' : 'Expand row'}"></button>`
       : '<span class="rg-chevron-spacer"></span>';
 
     return `
       <div class="rg-profile-cell" style="--rg-indent:${indent}px">
+        <span class="rg-depth-guides">${guidesMarkup}</span>
         ${toggleMarkup}
         <span class="rg-profile-name">${this.escapeHtml(row.profileName)}</span>
       </div>
