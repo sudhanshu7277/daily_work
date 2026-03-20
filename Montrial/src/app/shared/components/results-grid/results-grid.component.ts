@@ -206,8 +206,11 @@ export class ResultsGridComponent implements OnInit {
       return;
     }
 
+    const rowId = event.data.id;
+    const shouldSelect = Boolean(event.node.isSelected());
+
     this.withSelectionSync(() => {
-      this.updateClusterSelection(event.data.id, Boolean(event.node.isSelected()));
+      this.updateClusterSelection(rowId, shouldSelect);
       this.syncGridSelectionToState();
     });
   }
