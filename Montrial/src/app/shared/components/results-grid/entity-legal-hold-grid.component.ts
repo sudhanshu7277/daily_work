@@ -5,14 +5,11 @@ import {
   GridApi,
   GridOptions,
   GridReadyEvent,
-  ICellRendererParams,
-  RowNode
+  ICellRendererParams
 } from 'ag-grid-community';
 import { AgGridAngular } from 'ag-grid-angular';
 
-// =============================================================================
-//  Badge renderer – exact dark blue from screenshots
-// =============================================================================
+// ─── LEGAL HOLD BADGE RENDERER ──────────────────────────────────────────────
 @Component({
   selector: 'legal-hold-badge',
   standalone: true,
@@ -33,28 +30,25 @@ export class LegalHoldBadgeComponent {
   refresh(params: ICellRendererParams) { this.value = params.value; return true; }
 }
 
-// =============================================================================
-//  Main component
-// =============================================================================
+// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 @Component({
   selector: 'app-entity-legal-hold-grid',
   standalone: true,
   imports: [AgGridAngular, LegalHoldBadgeComponent],
   template: `
-    <!-- Filter bar – visual match -->
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-3 mb-4 bg-white p-4 rounded-t-xl border border-gray-200 border-b-0">
+    <!-- Filter bar (visual match to screenshots) -->
+    <div class="flex flex-wrap items-center gap-3 mb-4 bg-white p-4 rounded-t-xl border border-gray-200 border-b-0">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium text-gray-700">Search result filter</span>
-        <select class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option>Select</option>
         </select>
       </div>
 
-      <div class="flex items-center gap-2 flex-1">
+      <div class="flex items-center gap-2 flex-1 min-w-[300px]">
         <span class="text-sm font-medium text-gray-700">Showing:</span>
         <div class="flex flex-wrap gap-2">
-          <span *ngFor="let f of visibleColumns"
-                class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-white border border-gray-300 rounded-full">
+          <span *ngFor="let f of visibleFilters" class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-white border border-gray-300 rounded-full">
             {{ f }}
           </span>
         </div>
@@ -110,25 +104,25 @@ export class LegalHoldBadgeComponent {
 export class EntityLegalHoldGridComponent {
   private gridApi!: GridApi;
 
-  visibleColumns = [
+  visibleFilters = [
     'Profile Name', 'Proxy OCIF ID', 'Legal Hold Status',
     'Legal Hold Name', 'Customer Lifecycle Status', 'Role Type', 'Address'
   ];
 
-  // Flat data + unique path + unique id
+  // Flat data + unique ID + path for tree structure
   rowData = [
-    { id: 'c2',   path: ['Corp 2'],      profileName: 'Corp 2',      ocifId: '1000-12345', legalHoldStatus: 'N/A',         holdName: '',          lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'c3',   path: ['Corp 3'],      profileName: 'Corp 3',      ocifId: '1000-12345', legalHoldStatus: 'LEGAL HOLD',  holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'c4',   path: ['Corp 4'],      profileName: 'Corp 4',      ocifId: '1000-12345', legalHoldStatus: 'LEGAL HOLD',  holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'c5',   path: ['Corp 5'],      profileName: 'Corp 5',      ocifId: '1000-12345', legalHoldStatus: 'LEGAL HOLD',  holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-f', path: ['Corp 5', 'Role Player F'], profileName: 'Role Player F', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-g', path: ['Corp 5', 'Role Player G'], profileName: 'Role Player G', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-d', path: ['Corp 5', 'Role Player D'], profileName: 'Role Player D', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-e', path: ['Corp 5', 'Role Player E'], profileName: 'Role Player E', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-a', path: ['Corp 5', 'Role Player A'], profileName: 'Role Player A', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Owner of ABC Ltd.',             address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-b', path: ['Corp 5', 'Role Player B'], profileName: 'Role Player B', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'rp-c', path: ['Corp 5', 'Role Player C'], profileName: 'Role Player C', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
-    { id: 'abc',  path: ['Corp 5', 'ABC Ltd.'],      profileName: 'ABC Ltd.',     ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' }
+    { id: 'corp2', path: ['Corp 2'],      profileName: 'Corp 2',      ocifId: '1000-12345', legalHoldStatus: 'N/A',         holdName: '',          lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'corp3', path: ['Corp 3'],      profileName: 'Corp 3',      ocifId: '1000-12345', legalHoldStatus: 'LEGAL HOLD',  holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'corp4', path: ['Corp 4'],      profileName: 'Corp 4',      ocifId: '1000-12345', legalHoldStatus: 'LEGAL HOLD',  holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'corp5', path: ['Corp 5'],      profileName: 'Corp 5',      ocifId: '1000-12345', legalHoldStatus: 'LEGAL HOLD',  holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-f',  path: ['Corp 5', 'Role Player F'], profileName: 'Role Player F', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-g',  path: ['Corp 5', 'Role Player G'], profileName: 'Role Player G', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-d',  path: ['Corp 5', 'Role Player D'], profileName: 'Role Player D', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-e',  path: ['Corp 5', 'Role Player E'], profileName: 'Role Player E', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-a',  path: ['Corp 5', 'Role Player A'], profileName: 'Role Player A', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Owner of ABC Ltd.',             address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-b',  path: ['Corp 5', 'Role Player B'], profileName: 'Role Player B', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'rp-c',  path: ['Corp 5', 'Role Player C'], profileName: 'Role Player C', ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { id: 'abc',   path: ['Corp 5', 'ABC Ltd.'],      profileName: 'ABC Ltd.',     ocifId: '1000-12345', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Owner',                          address: '33 Dundas St W, Toronto, ON M5G 2C3' }
   ];
 
   columnDefs: ColDef[] = [
@@ -154,28 +148,28 @@ export class EntityLegalHoldGridComponent {
         suppressCount: true
       }
     },
-    { headerName: 'Proxy OCIF ID',          field: 'ocifId',      width: 145 },
-    { headerName: 'Legal Hold Status',      field: 'legalHoldStatus', width: 165, cellRenderer: LegalHoldBadgeComponent },
-    { headerName: 'Legal Hold Name',        field: 'holdName',    width: 185 },
+    { headerName: 'Proxy OCIF ID', field: 'ocifId', width: 145 },
+    { headerName: 'Legal Hold Status', field: 'legalHoldStatus', width: 165, cellRenderer: LegalHoldBadgeComponent },
+    { headerName: 'Legal Hold Name', field: 'holdName', width: 185 },
     { headerName: 'Customer Lifecycle Status', field: 'lifecycle', width: 175 },
-    { headerName: 'Role Type',              field: 'role',        minWidth: 260, flex: 1.4 },
-    { headerName: 'Address',                field: 'address',     minWidth: 320, flex: 1.8 }
+    { headerName: 'Role Type', field: 'role', minWidth: 260, flex: 1.4 },
+    { headerName: 'Address', field: 'address', minWidth: 320, flex: 1.8 }
   ];
 
   gridOptions: GridOptions = {
     treeData: true,
-    getDataPath: (data) => data.path,
-    getRowId: (params) => params.data.id,
+    getDataPath: data => data.path,
+    getRowId: params => params.data.id,
 
     rowSelection: {
       mode: 'multiRow',
       checkboxes: true,
       headerCheckbox: true,
-      groupSelects: 'descendants'     // parent checkbox → selects all descendants
+      groupSelects: 'descendants'           // ← This is what you need (both directions)
     },
 
     groupDefaultExpanded: 1,
-    suppressRowClickSelection: true,  // only checkbox selects
+    suppressRowClickSelection: true,        // only checkboxes select
     animateRows: true,
 
     // Performance & stability
@@ -188,13 +182,31 @@ export class EntityLegalHoldGridComponent {
       params.api.sizeColumnsToFit();
     },
 
+    // Log selected records on every change
     onSelectionChanged: () => {
-      // Optional: log or react to selection changes
-      console.log('Selection changed');
+      if (!this.gridApi) return;
+
+      const selectedRows = this.gridApi.getSelectedRows();
+
+      console.groupCollapsed('Selected Records Updated');
+      console.log(`Total selected: ${selectedRows.length}`);
+
+      if (selectedRows.length > 0) {
+        console.table(
+          selectedRows.map(row => ({
+            Profile: row.profileName,
+            OCIF: row.ocifId,
+            Status: row.legalHoldStatus,
+            Role: row.role,
+            Path: row.path?.join(' → ') || '-'
+          }))
+        );
+      } else {
+        console.log('No rows selected');
+      }
+      console.groupEnd();
     }
   };
-
-  private gridApi!: GridApi;
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
