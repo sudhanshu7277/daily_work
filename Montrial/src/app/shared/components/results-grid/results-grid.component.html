@@ -1,15 +1,12 @@
 <div class="results-grid-wrapper">
   <div class="results-filter-row">
     <span class="filter-title">Search result filter</span>
-    <select class="filter-select" [(ngModel)]="pendingColumnToShow">
+    <select class="filter-select" [(ngModel)]="pendingColumnToShow" (change)="addPendingFilter()">
       <option value="">Select</option>
       @for (filter of hiddenFilters; track filter.id) {
         <option [value]="filter.id">{{ filter.label }}</option>
       }
     </select>
-    <button type="button" class="filter-add-btn" (click)="addPendingFilter()" [disabled]="!pendingColumnToShow">
-      ADD
-    </button>
   </div>
 
   <div class="results-showing-row">

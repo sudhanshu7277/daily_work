@@ -67,6 +67,7 @@ export class ResultsGridComponent implements OnInit {
 
   private gridApi!: GridApi<ResultsGridNode>;
   private isSyncing = false;
+  private isEmitScheduled = false;
 
   public rowData: ResultsGridNode[] = [];
   public pendingColumnToShow = '';
@@ -103,6 +104,8 @@ export class ResultsGridComponent implements OnInit {
     { id: 'lifecycle', label: 'Customer Lifecycle Status' },
     { id: 'role', label: 'Role Type' },
     { id: 'address', label: 'Address' },
+    { id: 'legalHoldAppliedDate', label: 'Legal Hold Applied Date' },
+    { id: 'legalHoldReleaseDate', label: 'Legal Hold Release Date' },
   ];
 
   public visibleColumnIds = this.filterOptions.map((item) => item.id);
@@ -219,6 +222,8 @@ export class ResultsGridComponent implements OnInit {
       this.updateClusterSelection(rowId, shouldSelect);
       this.syncGridSelectionToState();
     });
+
+    this.scheduleSelectionEmit();
   }
 
   public onSelectionChanged(): void {
@@ -226,14 +231,14 @@ export class ResultsGridComponent implements OnInit {
       return;
     }
 
-    this.emitSelectedData();
+    this.scheduleSelectionEmit();
   }
 
   public performSearch(_criteria: unknown): void {
     this.initializeMasterData();
     this.selectedIds.clear();
     this.refreshGrid();
-    this.emitSelectedData();
+    this.scheduleSelectionEmit();
   }
 
   public deselectRow(item: Partial<ResultsGridNode>): void {
@@ -247,7 +252,7 @@ export class ResultsGridComponent implements OnInit {
       this.syncGridSelectionToState();
     });
 
-    this.emitSelectedData();
+    this.scheduleSelectionEmit();
   }
 
   public deselectRows(ids: string[]): void {
@@ -261,7 +266,7 @@ export class ResultsGridComponent implements OnInit {
       this.syncGridSelectionToState();
     });
 
-    this.emitSelectedData();
+    this.scheduleSelectionEmit();
   }
 
   public addPendingFilter(): void {
@@ -416,6 +421,18 @@ export class ResultsGridComponent implements OnInit {
     console.log('Results grid selected data:', selectedRows);
   }
 
+  private scheduleSelectionEmit(): void {
+    if (this.isEmitScheduled) {
+      return;
+    }
+
+    this.isEmitScheduled = true;
+    queueMicrotask(() => {
+      this.isEmitScheduled = false;
+      this.emitSelectedData();
+    });
+  }
+
   private applyColumnVisibility(): void {
     if (!this.gridApi) {
       return;
@@ -423,7 +440,10 @@ export class ResultsGridComponent implements OnInit {
 
     const visible = new Set(this.visibleColumnIds);
     this.filterOptions.forEach((item) => {
-      this.gridApi.setColumnsVisible([item.id], visible.has(item.id));
+      const columnExists = Boolean(this.gridApi.getColumn(item.id));
+      if (columnExists) {
+        this.gridApi.setColumnsVisible([item.id], visible.has(item.id));
+      }
     });
   }
 
