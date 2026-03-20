@@ -1,6 +1,7 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
-import { GridApi, ColDef, GridReadyEvent, CellClickedEvent, SelectionChangedEvent, RowStyle } from 'ag-grid-community';
+import { GridApi, ColDef } from 'ag-grid-community';
+import { LegalHoldDataService } from '../../services/legal-hold-data.service';
 
 @Component({
   selector: 'app-results-grid',
@@ -26,6 +27,9 @@ export class ResultsGridComponent implements OnInit {
       checkboxSelection: true,
       headerCheckboxSelection: true,
       width: 380,
+      cellStyle: (params: any) => ({
+        'padding-left': `${(params.data?.level || 0) * 32}px !important`
+      }),
       cellRenderer: (params: any) => {
         if (!params.data) return '';
         const chevron = params.data.isParent ? (params.data.isExpanded ? '▲' : '▼') : '';
@@ -47,10 +51,10 @@ export class ResultsGridComponent implements OnInit {
     { headerName: 'Address', field: 'address' }
   ];
 
-  constructor() { }
+  constructor(private legalHoldDataService: LegalHoldDataService) {}
 
   ngOnInit() {
-    this.allData = this.getMockData();
+    this.allData = this.legalHoldDataService.getMockData();
     this.assignLevels(this.allData);
     this.rowData = this.buildVisibleRows(this.allData);
   }
@@ -59,8 +63,7 @@ export class ResultsGridComponent implements OnInit {
     data.forEach(item => {
       item.level = level;
       item.isSelected = false;
-      // Set default expanded states here if needed
-      item.isExpanded = item.isExpanded ?? false; 
+      item.isExpanded = false; // start collapsed
       if (item.children?.length) this.assignLevels(item.children, level + 1);
     });
   }
@@ -75,106 +78,70 @@ export class ResultsGridComponent implements OnInit {
     return visible;
   }
 
-  onGridReady(params: GridReadyEvent) {
-    this.gridApi = params.api;
-  }
+  onGridReady(params: any) { this.gridApi = params.api; }
 
-  onCellClicked(params: CellClickedEvent) {
+  onCellClicked(params: any) {
     if (params.colDef.field === 'profileName' && params.data?.isParent) {
       params.data.isExpanded = !params.data.isExpanded;
       this.rowData = this.buildVisibleRows(this.allData);
-      this.gridApi.setRowData(this.rowData);
+      this.gridApi.setGridOption('rowData', this.rowData);
     }
   }
 
-  getRowClass = (params: any) => params.data?.level > 0 ? 'indented-child-row' : '';
-
-  // This is the key to indent checkbox along with the row profile name
-  getRowStyle = (params: any): RowStyle => {
-    return {
-      '--level': params.data?.level || 0
-    };
+  public getRowClass = (params: any) => {
+    const level = params.data?.level || 0;
+    const isSelected = params.node.isSelected() || this.isAnyDescendantSelected(params.node);
+    if (level > 0 && isSelected) return 'indented-child-row-selected';
+    if (level > 0) return 'indented-child-row';
+    return '';
   };
 
-  onSelectionChanged(event: SelectionChangedEvent) {
+  // Helper to check if any descendant is selected (for parent highlighting)
+  private isAnyDescendantSelected(node: any): boolean {
+    if (!node.childrenAfterFilter?.length) return false;
+    return node.childrenAfterFilter.some((child: any) =>
+      child.isSelected() || this.isAnyDescendantSelected(child)
+    );
+  }
+
+  onSelectionChanged() {
     if (this.selectionInProgress) return;
     this.selectionInProgress = true;
 
-    this.syncSelectionWithModel();
+    this.syncAndPropagate();
 
     this.selectionInProgress = false;
 
-    const selectedRows = this.gridApi.getSelectedRows();
-    const cluster = this.getClusterDetails(selectedRows);
-    console.log('Cluster selected:', cluster);
+    const selected = this.gridApi.getSelectedRows();
+    console.log('Cluster selected - selected rows count:', selected.length, 'rows:', selected);
+    this.selectionChanged.emit(selected);
 
-    this.selectionChanged.emit(selectedRows);
+    // Force refresh row classes to update light blue on selected cluster
+    this.gridApi.refreshCells({ force: true });
   }
 
-  private syncSelectionWithModel() {
-    // Sync grid selection to data model
+  private syncAndPropagate() {
     this.gridApi.forEachNode((node: any) => {
       const item = this.findItemByOcifId(this.allData, node.data.ocifId);
       if (item) item.isSelected = node.isSelected();
     });
 
-    // Propagate selection down and up for parents and children
-    this.propagateDown(this.allData);
-    this.propagateUp(this.allData);
+    this.forceDown(this.allData);
+    this.forceUp(this.allData);
 
-    // Refresh visible rows and update grid data
     this.rowData = this.buildVisibleRows(this.allData);
-    this.gridApi.setRowData(this.rowData);
+    this.gridApi.setGridOption('rowData', this.rowData);
 
-    // Reapply selection in grid according to model (no event firing)
     this.gridApi.forEachNode((node: any) => {
       const item = this.findItemByOcifId(this.allData, node.data.ocifId);
       if (item) node.setSelected(item.isSelected, false);
     });
   }
 
-  private propagateDown(data: any[]) {
-    data.forEach(item => {
-      if (item.isParent && item.isSelected) {
-        this.setChildrenSelection(item.children, true);
-      } else if (item.isParent) {
-        this.setChildrenSelection(item.children, false);
-      }
-      if (item.children?.length) this.propagateDown(item.children);
-    });
-  }
-
-  private setChildrenSelection(children: any[], selected: boolean) {
-    children.forEach(child => {
-      child.isSelected = selected;
-      if (child.isParent) this.setChildrenSelection(child.children || [], selected);
-    });
-  }
-
-  private propagateUp(data: any[]) {
-    data.forEach(item => {
-      if (item.isParent && item.children?.length) {
-        // A parent is selected if all children are selected
-        const allChildrenSelected = item.children.every((child: any) =>
-          child.isSelected && (!child.isParent || this.allDescendantsSelected(child))
-        );
-        item.isSelected = allChildrenSelected;
-        this.propagateUp(item.children);
-      }
-    });
-  }
-
-  private allDescendantsSelected(item: any): boolean {
-    if (!item.children || item.children.length === 0) return item.isSelected;
-    return item.children.every((child: any) =>
-      child.isSelected && (!child.isParent || this.allDescendantsSelected(child))
-    );
-  }
-
-  private findItemByOcifId(data: any[], ocifId: string): any | null {
+  private findItemByOcifId(data: any[], ocifId: string): any {
     for (const item of data) {
       if (item.ocifId === ocifId) return item;
-      if (item.children?.length) {
+      if (item.children) {
         const found = this.findItemByOcifId(item.children, ocifId);
         if (found) return found;
       }
@@ -182,65 +149,65 @@ export class ResultsGridComponent implements OnInit {
     return null;
   }
 
-  private findParentOfItem(data: any[], childOcifId: string, parent: any = null): any | null {
-    for (const item of data) {
-      if (item.ocifId === childOcifId) {
-        return parent;
-      }
-      if (item.children?.length) {
-        const found = this.findParentOfItem(item.children, childOcifId, item);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
-  private getClusterDetails(selectedRows: any[]): any[] {
-    const clusterMap = new Map<string, any>();
-
-    const addItemAndChildren = (item: any) => {
-      if (!clusterMap.has(item.ocifId)) {
-        clusterMap.set(item.ocifId, item);
-        if (item.children) item.children.forEach(addItemAndChildren);
-      }
-    };
-
-    selectedRows.forEach(row => {
-      // Add parent chain and children
-      let current = this.findItemByOcifId(this.allData, row.ocifId);
-      while (current) {
-        addItemAndChildren(current);
-        current = this.findParentOfItem(this.allData, current.ocifId);
+  private forceDown(data: any[]) {
+    data.forEach(item => {
+      if (item.isParent && item.isSelected) {
+        this.propagateDown(item.children || [], true);
       }
     });
-
-    return Array.from(clusterMap.values());
   }
 
+  private propagateDown(children: any[], selected: boolean) {
+    children.forEach(child => {
+      child.isSelected = selected;
+      if (child.isParent) this.propagateDown(child.children || [], selected);
+    });
+  }
+
+  private forceUp(data: any[]) {
+    data.forEach(item => {
+      if (item.isParent) {
+        item.isSelected = this.hasAnyDescendantSelected(item);
+      }
+    });
+  }
+
+  private hasAnyDescendantSelected(item: any): boolean {
+    if (!item.children?.length) return item.isSelected;
+    return item.children.some((child: any) =>
+      child.isSelected || this.hasAnyDescendantSelected(child)
+    );
+  }
+
+  onPaginationChanged() {}
+}
 // html//
 
 <div class="grid-card-container grid-container-with-footer">
   <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
+    style="width: 100%; height: 100%;"
     [rowData]="rowData"
     [columnDefs]="columnDefs"
+    [gridOptions]="gridOptions"
     [rowSelection]="'multiple'"
     [pagination]="true"
     [paginationPageSize]="pageSize"
     [suppressPaginationPanel]="true"
     [suppressRowClickSelection]="true"
     [getRowClass]="getRowClass"
-    [getRowStyle]="getRowStyle"
     (gridReady)="onGridReady($event)"
-    (selectionChanged)="onSelectionChanged($event)"
+    (selectionChanged)="onSelectionChanged()"
+    (paginationChanged)="onPaginationChanged()"
     (cellClicked)="onCellClicked($event)">
   </ag-grid-angular>
 </div>
 // end of html//
 
 //scss code //
- 
  ::ng-deep .ag-theme-alpine.bmo-grid {
+  background-color: #ffffff !important; /* whole grid white */
+
   .status-pill {
     background-color: #1e1e1e !important;
     color: #ffffff !important;
@@ -250,41 +217,29 @@ export class ResultsGridComponent implements OnInit {
     font-weight: 700 !important;
   }
 
-  /* Indented rows - light blue background + thin grey line */
-  .indented-child-row {
+  /* Indented rows - light blue background + thin grey border when selected */
+  .indented-child-row-selected {
     background-color: #f0f7ff !important;
     border-bottom: 1px solid #e5e5e5 !important;
+    border-top: 1px solid #e5e5e5 !important;
   }
 
-  /* Profile Name column styles for checkbox + text indentation */
+  /* Normal indented rows stay white */
+  .indented-child-row {
+    background-color: #ffffff !important;
+  }
+
   .ag-cell[col-id="profileName"] {
-    display: flex;
-    align-items: center;
-    padding-left: 0 !important;
-  }
-
-  /* Indent checkboxes by level */
-  .ag-cell[col-id="profileName"] .ag-checkbox-input {
-    margin-left: calc(var(--level) * 32px + 8px) !important;
-  }
-
-  /* Indent profile name text by level */
-  .ag-cell[col-id="profileName"] span {
-    margin-left: calc(var(--level) * 32px) !important;
-  }
-
-  /* Prevent horizontal scrollbar caused by padding */
-  .ag-center-cols-container {
-    padding-right: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 }
 
-/* Container styling */
 .grid-card-container {
   width: 100%;
   height: calc(100vh - 250px);
   border: 1px solid #e2e2e2;
   background: #fff;
 }
-
 //enc of scss//
