@@ -15,7 +15,7 @@ import {
 } from 'ag-grid-community';
 
 interface ResultsGridInputNode {
-  id: string;
+  id?: string;
   profileName: string;
   ocifId: string;
   legalHoldStatus: 'LEGAL HOLD' | 'N/A';
@@ -81,13 +81,19 @@ export class ResultsGridComponent implements OnInit {
   };
 
   public readonly selectionColumnDef: SelectionColumnDef = {
-    width: 50,
-    minWidth: 50,
-    maxWidth: 50,
-    pinned: 'left',
+    width: 44,
+    minWidth: 44,
+    maxWidth: 44,
     sortable: false,
     resizable: false,
     suppressHeaderMenuButton: true,
+    cellClass: 'indent-checkbox-cell',
+    cellStyle: (params) => ({
+      '--checkbox-indent': `${(params.data?.level ?? 0) * 24}px`,
+      overflow: 'visible',
+      paddingLeft: '8px',
+      zIndex: 5,
+    }),
   };
 
   public readonly defaultColDef: ColDef<ResultsGridNode> = {
@@ -494,7 +500,7 @@ export class ResultsGridComponent implements OnInit {
   ): ResultsGridNode[] {
     return sourceNodes.map((sourceNode) => {
       const normalizedNode: ResultsGridNode = {
-        id: sourceNode.id,
+        id: sourceNode.id ?? sourceNode.ocifId,
         profileName: sourceNode.profileName,
         legalName: sourceNode.profileName,
         ocifId: sourceNode.ocifId,
@@ -547,201 +553,82 @@ export class ResultsGridComponent implements OnInit {
   }
 
   private buildMasterData(): ResultsGridInputNode[] {
-    const commonAddress = '33 Dundas St W, Toronto, ON M5G 2C3';
-
     return [
       {
-        id: 'corp-2',
+        ocifId: 'C2-001',
         profileName: 'Corp 2',
-        ocifId: '1000-12345',
         legalHoldStatus: 'N/A',
         holdName: '',
         lifecycle: 'Active Customer',
         role: 'Owner',
-        address: commonAddress,
+        address: '33 Dundas St W, Toronto, ON M5G 2C3',
         isParent: true,
-        isExpanded: false,
+        isExpanded: true,
         isHighlighted: true,
         children: [
           {
-            id: 'corp-2-role-h1',
-            profileName: 'Role Player H1',
-            ocifId: '1000-12345',
+            ocifId: 'RP-F',
+            profileName: 'Role Player F',
             legalHoldStatus: 'N/A',
             holdName: '',
             lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
+            role: 'Authorized Signature of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            isParent: false,
+            children: [],
           },
           {
-            id: 'corp-2-role-h2',
-            profileName: 'Role Player H2',
-            ocifId: '1000-12345',
+            ocifId: 'RP-G',
+            profileName: 'Role Player G',
             legalHoldStatus: 'N/A',
             holdName: '',
             lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
+            role: 'Authorized Signature of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            isParent: true,
+            isExpanded: true,
+            children: [
+              {
+                ocifId: 'SUB-X',
+                profileName: 'Sub Entity X',
+                legalHoldStatus: 'N/A',
+                holdName: '',
+                lifecycle: 'Active Customer',
+                role: 'Owner',
+                address: '33 Dundas St W, Toronto, ON M5G 2C3',
+                isParent: true,
+                isExpanded: true,
+                children: [
+                  {
+                    ocifId: 'DEEP-1',
+                    profileName: 'Deep Level 1',
+                    legalHoldStatus: 'LEGAL HOLD',
+                    holdName: 'Project Omega',
+                    lifecycle: 'Active Customer',
+                    role: 'Authorized Signature',
+                    address: '33 Dundas St W, Toronto, ON M5G 2C3',
+                    isParent: true,
+                    isExpanded: true,
+                    children: [
+                      {
+                        ocifId: 'DEEP-2',
+                        profileName: 'Deep Level 2',
+                        legalHoldStatus: 'N/A',
+                        holdName: '',
+                        lifecycle: 'Active Customer',
+                        role: 'Owner',
+                        address: '33 Dundas St W, Toronto, ON M5G 2C3',
+                        isParent: false,
+                        children: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
-        ],
-      },
-      {
-        id: 'corp-3',
-        profileName: 'Corp 3',
-        ocifId: '1000-12345',
-        legalHoldStatus: 'LEGAL HOLD',
-        holdName: 'legalhold_name_123',
-        lifecycle: 'Active Customer',
-        role: 'Owner',
-        address: commonAddress,
-        isParent: true,
-        isExpanded: false,
-        isHighlighted: true,
-        children: [
-          {
-            id: 'corp-3-role-h1',
-            profileName: 'Role Player H1',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-          },
-        ],
-      },
-      {
-        id: 'corp-4',
-        profileName: 'Corp 4',
-        ocifId: '1000-12345',
-        legalHoldStatus: 'LEGAL HOLD',
-        holdName: 'legalhold_name_123',
-        lifecycle: 'Active Customer',
-        role: 'Owner',
-        address: commonAddress,
-        isParent: true,
-        isExpanded: true,
-        children: [
-          {
-            id: 'corp-4-role-d',
-            profileName: 'Role Player D',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-          },
-          {
-            id: 'corp-4-role-e',
-            profileName: 'Role Player E',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-          },
-          {
-            id: 'corp-4-role-a',
-            profileName: 'Role Player A',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Owner of ABC Ltd.',
-            address: commonAddress,
-          },
-          {
-            id: 'corp-4-role-b',
-            profileName: 'Role Player B',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-          },
-          {
-            id: 'corp-4-role-c',
-            profileName: 'Role Player C',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-          },
-        ],
-      },
-      {
-        id: 'abc-ltd',
-        profileName: 'ABC Ltd.',
-        ocifId: '1000-12345',
-        legalHoldStatus: 'N/A',
-        holdName: '',
-        lifecycle: 'Active Customer',
-        role: 'Owner',
-        address: commonAddress,
-        isParent: true,
-        isExpanded: true,
-        children: [
-          {
-            id: 'abc-ltd-r1',
-            profileName: 'ABC Branch 1',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-          },
-          this.buildDeepNestedBranch('abc-ltd-r2', 'ABC Branch 2', 10, commonAddress),
         ],
       },
     ];
-  }
-
-  private buildDeepNestedBranch(
-    baseId: string,
-    baseName: string,
-    depth: number,
-    commonAddress: string
-  ): ResultsGridInputNode {
-    const root: ResultsGridInputNode = {
-      id: baseId,
-      profileName: baseName,
-      ocifId: '1000-12345',
-      legalHoldStatus: 'N/A',
-      holdName: '',
-      lifecycle: 'Active Customer',
-      role: 'Authorized Signatory of ABC Ltd.',
-      address: commonAddress,
-      isParent: true,
-      isExpanded: false,
-      children: [],
-    };
-
-    let cursor = root;
-    for (let level = 2; level <= depth; level += 1) {
-      const child: ResultsGridInputNode = {
-        id: `${baseId}-l${level}`,
-        profileName: `${baseName} - Level ${level}`,
-        ocifId: '1000-12345',
-        legalHoldStatus: 'N/A',
-        holdName: '',
-        lifecycle: 'Active Customer',
-        role: level % 2 === 0 ? 'Authorized Delegate' : 'Owner of Nested Entity',
-        address: commonAddress,
-        isParent: level < depth,
-        isExpanded: level < 4,
-        children: [],
-      };
-
-      cursor.children = [child];
-      cursor = child;
-    }
-
-    return root;
   }
 }

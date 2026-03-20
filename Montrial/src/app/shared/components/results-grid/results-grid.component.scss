@@ -162,6 +162,16 @@
     border-bottom: 2px solid #003b7a !important;
   }
 
+  .ag-cell[col-id='ag-Grid-SelectionColumn'],
+  .ag-header-cell[col-id='ag-Grid-SelectionColumn'] {
+    border-right: 0 !important;
+  }
+
+  .ag-cell[col-id='profileName'],
+  .ag-header-cell[col-id='profileName'] {
+    border-left: 0 !important;
+  }
+
   .ag-cell[col-id='profileName'],
   .ag-header-cell[col-id='profileName'] {
     border-right: 1px solid #d9dde3 !important;
@@ -213,6 +223,19 @@
   height: 7px;
   margin-left: 10px;
   flex-shrink: 0;
+}
+
+::ng-deep .indent-checkbox-cell {
+  overflow: visible !important;
+
+  .ag-cell-wrapper {
+    overflow: visible;
+  }
+
+  .ag-selection-checkbox {
+    margin-left: var(--checkbox-indent);
+    transition: margin-left 0.15s ease-in-out;
+  }
 }
 
 ::ng-deep .status-pill-blue {
