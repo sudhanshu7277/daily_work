@@ -10,11 +10,11 @@ import {
   GridReadyEvent,
   ICellRendererParams,
   RowClassParams,
-  SelectionColumnDef,
   RowSelectedEvent,
+  SelectionColumnDef,
 } from 'ag-grid-community';
 
-interface HierarchyNode {
+interface ResultsGridInputNode {
   id: string;
   profileName: string;
   ocifId: string;
@@ -23,16 +23,13 @@ interface HierarchyNode {
   lifecycle: string;
   role: string;
   address: string;
-  children?: HierarchyNode[];
+  isParent?: boolean;
+  isExpanded?: boolean;
+  children?: ResultsGridInputNode[];
 }
 
-interface ResultsGridRow {
+interface ResultsGridNode {
   id: string;
-  parentId: string | null;
-  rootId: string;
-  depth: number;
-  hasChildren: boolean;
-  isExpanded: boolean;
   profileName: string;
   legalName: string;
   ocifId: string;
@@ -42,6 +39,12 @@ interface ResultsGridRow {
   lifecycle: string;
   role: string;
   address: string;
+  isParent: boolean;
+  isExpanded: boolean;
+  level: number;
+  parentId: string | null;
+  rootId: string;
+  children: ResultsGridNode[];
 }
 
 interface GridFilterOption {
@@ -58,9 +61,14 @@ interface GridFilterOption {
   encapsulation: ViewEncapsulation.None,
 })
 export class ResultsGridComponent implements OnInit {
-  @Output() selectionChanged = new EventEmitter<ResultsGridRow[]>();
+  @Output() selectionChanged = new EventEmitter<ResultsGridNode[]>();
 
-  public rowData: ResultsGridRow[] = [];
+  private gridApi!: GridApi<ResultsGridNode>;
+  private isSyncing = false;
+
+  public rowData: ResultsGridNode[] = [];
+  public pendingColumnToShow = '';
+
   public readonly rowSelection = {
     mode: 'multiRow' as const,
     checkboxes: true,
@@ -68,16 +76,22 @@ export class ResultsGridComponent implements OnInit {
     enableClickSelection: false,
     selectAll: 'all' as const,
   };
+
   public readonly selectionColumnDef: SelectionColumnDef = {
-    width: 52,
-    minWidth: 52,
-    maxWidth: 52,
+    width: 50,
+    minWidth: 50,
+    maxWidth: 50,
     pinned: 'left',
+    sortable: false,
     resizable: false,
     suppressHeaderMenuButton: true,
-    sortable: false,
   };
-  public pendingColumnToShow = '';
+
+  public readonly defaultColDef: ColDef<ResultsGridNode> = {
+    sortable: false,
+    resizable: true,
+    suppressHeaderMenuButton: true,
+  };
 
   public readonly filterOptions: GridFilterOption[] = [
     { id: 'profileName', label: 'Profile Name' },
@@ -89,217 +103,165 @@ export class ResultsGridComponent implements OnInit {
     { id: 'address', label: 'Address' },
   ];
 
-  public visibleColumnIds = this.filterOptions.map((option) => option.id);
+  public visibleColumnIds = this.filterOptions.map((item) => item.id);
 
-  public readonly defaultColDef: ColDef<ResultsGridRow> = {
-    sortable: false,
-    resizable: true,
-    suppressHeaderMenuButton: true,
-  };
-
-  public readonly columnDefs: ColDef<ResultsGridRow>[] = [
+  public readonly columnDefs: ColDef<ResultsGridNode>[] = [
     {
-      colId: 'profileName',
       field: 'profileName',
       headerName: 'Profile Name',
-      minWidth: 230,
-      flex: 1.5,
-      suppressMovable: true,
+      minWidth: 260,
+      flex: 1.6,
       sortable: true,
       unSortIcon: true,
-      cellRenderer: (params: ICellRendererParams<ResultsGridRow>) =>
-        this.renderProfileCell(params.data),
+      cellRenderer: (params: ICellRendererParams<ResultsGridNode>) => this.profileNameRenderer(params),
     },
+    { field: 'ocifId', headerName: 'Proxy OCIF ID', minWidth: 145, flex: 1 },
     {
-      colId: 'ocifId',
-      field: 'ocifId',
-      headerName: 'Proxy OCIF ID',
-      minWidth: 150,
-      flex: 1,
-      suppressMovable: true,
-    },
-    {
-      colId: 'legalHoldStatus',
       field: 'legalHoldStatus',
       headerName: 'Legal Hold Status',
       minWidth: 170,
       flex: 1,
-      suppressMovable: true,
       sortable: true,
       unSortIcon: true,
-      cellRenderer: (params: ICellRendererParams<ResultsGridRow, ResultsGridRow['legalHoldStatus']>) => {
-        if (params.value === 'LEGAL HOLD') {
-          return '<span class="rg-status-pill">LEGAL HOLD</span>';
-        }
-
-        return '<span class="rg-status-na">N/A</span>';
-      },
+      cellRenderer: (params: ICellRendererParams<ResultsGridNode, ResultsGridNode['legalHoldStatus']>) =>
+        params.value === 'LEGAL HOLD'
+          ? '<span class="status-pill-blue">LEGAL HOLD</span>'
+          : '<span class="status-na">N/A</span>',
     },
-    {
-      colId: 'holdName',
-      field: 'holdName',
-      headerName: 'Legal Hold Name',
-      minWidth: 170,
-      flex: 1.2,
-      suppressMovable: true,
-    },
-    {
-      colId: 'lifecycle',
-      field: 'lifecycle',
-      headerName: 'Customer Lifecycle Status',
-      minWidth: 190,
-      flex: 1.2,
-      suppressMovable: true,
-    },
-    {
-      colId: 'role',
-      field: 'role',
-      headerName: 'Role Type',
-      minWidth: 210,
-      flex: 1.4,
-      suppressMovable: true,
-    },
-    {
-      colId: 'address',
-      field: 'address',
-      headerName: 'Address',
-      minWidth: 220,
-      flex: 1.4,
-      suppressMovable: true,
-      cellClass: 'rg-address-cell',
-    },
+    { field: 'holdName', headerName: 'Legal Hold Name', minWidth: 175, flex: 1.2 },
+    { field: 'lifecycle', headerName: 'Customer Lifecycle Status', minWidth: 190, flex: 1.3 },
+    { field: 'role', headerName: 'Role Type', minWidth: 205, flex: 1.3 },
+    { field: 'address', headerName: 'Address', minWidth: 220, flex: 1.5, cellClass: 'address-cell' },
   ];
 
-  public readonly getRowClass = (params: RowClassParams<ResultsGridRow>): string => {
+  public readonly getRowId = (params: GetRowIdParams<ResultsGridNode>): string => params.data.id;
+
+  public readonly getRowClass = (params: RowClassParams<ResultsGridNode>): string => {
     if (!params.data) {
       return '';
     }
 
-    const rowClasses = [params.data.hasChildren ? 'rg-parent-row' : 'rg-child-row'];
+    const classes: string[] = [];
 
-    if (params.data.isExpanded) {
-      rowClasses.push('rg-parent-expanded');
+    if (params.data.isParent && params.data.isExpanded) {
+      classes.push('blue-sandwich-parent');
     }
 
-    rowClasses.push(`rg-depth-${params.data.depth}`);
+    if (params.data.level > 0) {
+      classes.push('is-child-row');
+    }
 
-    return rowClasses.join(' ');
+    const nextNode = params.api.getDisplayedRowAtIndex((params.node?.rowIndex ?? -1) + 1);
+    const closesCluster = params.data.level > 0 && (!nextNode || nextNode.data?.rootId !== params.data.rootId);
+    if (closesCluster) {
+      classes.push('sandwich-bottom-border');
+    }
+
+    return classes.join(' ');
   };
 
-  public readonly getRowId = (params: GetRowIdParams<ResultsGridRow>): string => params.data.id;
-
-  private gridApi?: GridApi<ResultsGridRow>;
-  private sourceTree: HierarchyNode[] = [];
-  private readonly rowById = new Map<string, ResultsGridRow>();
-  private readonly orderById = new Map<string, number>();
+  private masterData: ResultsGridNode[] = [];
+  private readonly selectedIds = new Set<string>();
+  private readonly nodeById = new Map<string, ResultsGridNode>();
   private readonly parentById = new Map<string, string | null>();
   private readonly descendantsById = new Map<string, string[]>();
-  private readonly childIdsById = new Map<string, string[]>();
-  private readonly selectedIds = new Set<string>();
-  private expandedIds = new Set<string>();
-  private isSyncingSelection = false;
-  private displayOrder = 0;
+  private readonly displayOrderById = new Map<string, number>();
+  private displayOrderCounter = 0;
 
   public ngOnInit(): void {
     this.performSearch({});
   }
 
-  public onGridReady(event: GridReadyEvent<ResultsGridRow>): void {
-    this.gridApi = event.api;
+  public onGridReady(params: GridReadyEvent<ResultsGridNode>): void {
+    this.gridApi = params.api;
     this.applyColumnVisibility();
     this.gridApi.setGridOption('rowData', this.rowData);
-    this.syncVisibleSelection();
+    this.withSelectionSync(() => this.syncGridSelectionToState());
     this.gridApi.sizeColumnsToFit();
   }
 
-  public onCellClicked(event: CellClickedEvent<ResultsGridRow>): void {
-    if (!event.data) {
+  public onCellClicked(params: CellClickedEvent<ResultsGridNode>): void {
+    if (!params.data) {
       return;
     }
 
-    const target = event.event?.target as HTMLElement | null;
-    const isExpandToggle = Boolean(target?.closest('[data-action="toggle-expand"]'));
+    const target = params.event?.target as HTMLElement | null;
+    const clickedChevron = Boolean(target?.closest('[data-action="toggle-expand"]'));
 
-    if (isExpandToggle) {
-      this.toggleRowExpansion(event.data.id);
+    if (clickedChevron && params.colDef.field === 'profileName' && params.data.isParent) {
+      params.data.isExpanded = !params.data.isExpanded;
+      this.refreshGrid();
       return;
     }
 
-    if (!event.colDef.field) {
+    if (!params.colDef.field) {
       return;
     }
 
-    event.node.setSelected(!event.node.isSelected());
+    params.node.setSelected(!params.node.isSelected());
   }
 
-  public onRowSelected(event: RowSelectedEvent<ResultsGridRow>): void {
-    if (this.isSyncingSelection || !event.data) {
+  public onRowSelected(event: RowSelectedEvent<ResultsGridNode>): void {
+    if (this.isSyncing || !event.data) {
       return;
     }
 
-    this.isSyncingSelection = true;
+    this.withSelectionSync(() => {
+      this.updateClusterSelection(event.data.id, Boolean(event.node.isSelected()));
+      this.syncGridSelectionToState();
+    });
+  }
 
-    try {
-      this.updateSelectionState(event.data.id, Boolean(event.node.isSelected()));
-      this.syncVisibleSelection();
-      this.emitSelectionAndLog();
-    } finally {
-      this.isSyncingSelection = false;
+  public onSelectionChanged(): void {
+    if (this.isSyncing) {
+      return;
     }
+
+    this.emitSelectedData();
   }
 
   public performSearch(_criteria: unknown): void {
-    this.sourceTree = this.buildMockTree();
-    this.rebuildIndexes();
-    this.expandedIds = new Set(['corp-5', 'corp-5-role-f', 'corp-5-role-g']);
+    this.initializeMasterData();
     this.selectedIds.clear();
-    this.refreshVisibleRows();
-    this.emitSelectionAndLog();
+    this.refreshGrid();
+    this.emitSelectedData();
   }
 
-  public deselectRow(item: Partial<ResultsGridRow>): void {
-    const rowId = this.resolveRowId(item);
-
+  public deselectRow(item: Partial<ResultsGridNode>): void {
+    const rowId = this.resolveSelectedRowId(item);
     if (!rowId) {
       return;
     }
 
-    this.isSyncingSelection = true;
+    this.withSelectionSync(() => {
+      this.updateClusterSelection(rowId, false);
+      this.syncGridSelectionToState();
+    });
 
-    try {
-      this.updateSelectionState(rowId, false);
-      this.syncVisibleSelection();
-      this.emitSelectionAndLog();
-    } finally {
-      this.isSyncingSelection = false;
-    }
+    this.emitSelectedData();
   }
 
   public deselectRows(ids: string[]): void {
-    this.isSyncingSelection = true;
-
-    try {
+    this.withSelectionSync(() => {
       ids.forEach((id) => {
-        if (this.rowById.has(id)) {
-          this.updateSelectionState(id, false);
+        if (this.nodeById.has(id)) {
+          this.updateClusterSelection(id, false);
         }
       });
-      this.syncVisibleSelection();
-      this.emitSelectionAndLog();
-    } finally {
-      this.isSyncingSelection = false;
-    }
+
+      this.syncGridSelectionToState();
+    });
+
+    this.emitSelectedData();
   }
 
   public addPendingFilter(): void {
-    const selectedFilter = this.pendingColumnToShow;
-
-    if (!selectedFilter) {
+    if (!this.pendingColumnToShow) {
       return;
     }
 
-    if (!this.visibleColumnIds.includes(selectedFilter)) {
-      this.visibleColumnIds = [...this.visibleColumnIds, selectedFilter];
+    if (!this.visibleColumnIds.includes(this.pendingColumnToShow)) {
+      this.visibleColumnIds = [...this.visibleColumnIds, this.pendingColumnToShow];
       this.applyColumnVisibility();
     }
 
@@ -312,182 +274,97 @@ export class ResultsGridComponent implements OnInit {
   }
 
   public resetFilters(): void {
-    this.visibleColumnIds = this.filterOptions.map((option) => option.id);
+    this.visibleColumnIds = this.filterOptions.map((item) => item.id);
     this.pendingColumnToShow = '';
     this.applyColumnVisibility();
   }
 
   public get activeFilters(): GridFilterOption[] {
-    return this.filterOptions.filter((option) => this.visibleColumnIds.includes(option.id));
+    return this.filterOptions.filter((item) => this.visibleColumnIds.includes(item.id));
   }
 
   public get hiddenFilters(): GridFilterOption[] {
-    return this.filterOptions.filter((option) => !this.visibleColumnIds.includes(option.id));
+    return this.filterOptions.filter((item) => !this.visibleColumnIds.includes(item.id));
   }
 
-  private renderProfileCell(row: ResultsGridRow | undefined): string {
-    if (!row) {
-      return '';
-    }
+  // Converts Tree -> Flat list for AG Grid rendering.
+  private flatten(data: ResultsGridNode[]): ResultsGridNode[] {
+    const result: ResultsGridNode[] = [];
 
-    const indent = row.depth * 24;
-    const guidesMarkup = Array.from({ length: row.depth })
-      .map((_, index) => `<span class="rg-depth-guide" style="left:${index * 24 + 8}px"></span>`)
-      .join('');
-    const toggleMarkup = row.hasChildren
-      ? `<button class="rg-chevron ${row.isExpanded ? 'expanded' : 'collapsed'}" data-action="toggle-expand" aria-label="${row.isExpanded ? 'Collapse row' : 'Expand row'}"></button>`
-      : '<span class="rg-chevron-spacer"></span>';
+    data.forEach((item) => {
+      result.push(item);
+      if (item.isParent && item.isExpanded && item.children.length > 0) {
+        result.push(...this.flatten(item.children));
+      }
+    });
 
-    return `
-      <div class="rg-profile-cell" style="--rg-indent:${indent}px">
-        <span class="rg-depth-guides">${guidesMarkup}</span>
-        ${toggleMarkup}
-        <span class="rg-profile-name">${this.escapeHtml(row.profileName)}</span>
-      </div>
-    `;
+    return result;
   }
 
-  private toggleRowExpansion(rowId: string): void {
-    const childIds = this.childIdsById.get(rowId) ?? [];
-
-    if (childIds.length === 0) {
-      return;
-    }
-
-    if (this.expandedIds.has(rowId)) {
-      this.expandedIds.delete(rowId);
-    } else {
-      this.expandedIds.add(rowId);
-    }
-
-    this.refreshVisibleRows();
-  }
-
-  private refreshVisibleRows(): void {
-    this.rowData = this.buildVisibleRows();
+  private refreshGrid(): void {
+    this.rowData = [...this.flatten(this.masterData)];
 
     if (!this.gridApi) {
       return;
     }
 
     this.gridApi.setGridOption('rowData', this.rowData);
-    queueMicrotask(() => this.syncVisibleSelection());
-  }
 
-  private buildVisibleRows(): ResultsGridRow[] {
-    const visibleRows: ResultsGridRow[] = [];
-
-    const walk = (nodes: HierarchyNode[]): void => {
-      nodes.forEach((node) => {
-        const row = this.rowById.get(node.id);
-
-        if (!row) {
-          return;
-        }
-
-        visibleRows.push({
-          ...row,
-          isExpanded: this.expandedIds.has(node.id),
-        });
-
-        if (row.hasChildren && this.expandedIds.has(node.id) && node.children?.length) {
-          walk(node.children);
-        }
-      });
-    };
-
-    walk(this.sourceTree);
-
-    return visibleRows;
-  }
-
-  private rebuildIndexes(): void {
-    this.rowById.clear();
-    this.orderById.clear();
-    this.parentById.clear();
-    this.descendantsById.clear();
-    this.childIdsById.clear();
-    this.displayOrder = 0;
-
-    this.sourceTree.forEach((rootNode) => {
-      this.indexNode(rootNode, null, rootNode.id, 0);
+    queueMicrotask(() => {
+      this.withSelectionSync(() => this.syncGridSelectionToState());
     });
   }
 
-  private indexNode(
-    node: HierarchyNode,
-    parentId: string | null,
-    rootId: string,
-    depth: number
-  ): string[] {
-    const children = node.children ?? [];
-    const childIds: string[] = [];
-    const descendants: string[] = [];
-
-    const row: ResultsGridRow = {
-      id: node.id,
-      parentId,
-      rootId,
-      depth,
-      hasChildren: children.length > 0,
-      isExpanded: false,
-      profileName: node.profileName,
-      legalName: node.profileName,
-      ocifId: node.ocifId,
-      legalHoldStatus: node.legalHoldStatus,
-      status: node.legalHoldStatus,
-      holdName: node.holdName,
-      lifecycle: node.lifecycle,
-      role: node.role,
-      address: node.address,
-    };
-
-    this.rowById.set(node.id, row);
-    this.parentById.set(node.id, parentId);
-    this.orderById.set(node.id, this.displayOrder);
-    this.displayOrder += 1;
-
-    children.forEach((child) => {
-      childIds.push(child.id);
-      const nestedDescendants = this.indexNode(child, node.id, rootId, depth + 1);
-      descendants.push(child.id, ...nestedDescendants);
-    });
-
-    this.childIdsById.set(node.id, childIds);
-    this.descendantsById.set(node.id, descendants);
-
-    return descendants;
-  }
-
-  private updateSelectionState(rowId: string, isSelected: boolean): void {
-    if (isSelected) {
-      this.selectedIds.add(rowId);
-    } else {
-      this.selectedIds.delete(rowId);
+  private profileNameRenderer(params: ICellRendererParams<ResultsGridNode>): string {
+    const row = params.data;
+    if (!row) {
+      return '';
     }
 
-    const descendants = this.descendantsById.get(rowId) ?? [];
-    descendants.forEach((descendantId) => {
-      if (isSelected) {
-        this.selectedIds.add(descendantId);
-      } else {
-        this.selectedIds.delete(descendantId);
-      }
-    });
+    const indent = row.level * 24;
+    const depthLines = Array.from({ length: row.level })
+      .map((_, index) => `<div class="depth-line" style="left:${index * 24 + 12}px"></div>`)
+      .join('');
 
+    const chevron = row.isParent
+      ? `<span class="bmo-thin-carrot ${row.isExpanded ? 'up' : 'down'}" data-action="toggle-expand"></span>`
+      : '<span class="bmo-thin-carrot-spacer"></span>';
+
+    return `
+      <div class="name-cell-wrapper" style="padding-left:${indent}px">
+        ${depthLines}
+        <span class="profile-text">${this.escapeHtml(row.profileName)}</span>
+        ${chevron}
+      </div>
+    `;
+  }
+
+  private updateClusterSelection(rowId: string, shouldSelect: boolean): void {
+    this.applyRowAndDescendantsSelection(rowId, shouldSelect);
     this.syncAncestorSelection(rowId);
   }
 
-  private syncAncestorSelection(startingRowId: string): void {
-    let parentId = this.parentById.get(startingRowId) ?? null;
+  private applyRowAndDescendantsSelection(rowId: string, shouldSelect: boolean): void {
+    const allIds = [rowId, ...(this.descendantsById.get(rowId) ?? [])];
+
+    allIds.forEach((id) => {
+      if (shouldSelect) {
+        this.selectedIds.add(id);
+      } else {
+        this.selectedIds.delete(id);
+      }
+    });
+  }
+
+  private syncAncestorSelection(startRowId: string): void {
+    let parentId = this.parentById.get(startRowId) ?? null;
 
     while (parentId) {
-      const descendantIds = this.descendantsById.get(parentId) ?? [];
-      const allDescendantsSelected =
-        descendantIds.length > 0 &&
-        descendantIds.every((descendantId) => this.selectedIds.has(descendantId));
+      const descendants = this.descendantsById.get(parentId) ?? [];
+      const shouldParentBeSelected =
+        descendants.length > 0 && descendants.every((descendantId) => this.selectedIds.has(descendantId));
 
-      if (allDescendantsSelected) {
+      if (shouldParentBeSelected) {
         this.selectedIds.add(parentId);
       } else {
         this.selectedIds.delete(parentId);
@@ -497,57 +374,37 @@ export class ResultsGridComponent implements OnInit {
     }
   }
 
-  private syncVisibleSelection(): void {
+  private syncGridSelectionToState(): void {
     if (!this.gridApi) {
       return;
     }
 
     this.gridApi.forEachNode((node) => {
       const rowId = node.data?.id;
-
       if (!rowId) {
         return;
       }
 
-      const shouldBeSelected = this.selectedIds.has(rowId);
-
-      if (node.isSelected() !== shouldBeSelected) {
-        node.setSelected(shouldBeSelected, false);
+      const shouldSelect = this.selectedIds.has(rowId);
+      if (node.isSelected() !== shouldSelect) {
+        node.setSelected(shouldSelect, false);
       }
     });
   }
 
-  private emitSelectionAndLog(): void {
+  private emitSelectedData(): void {
     const selectedRows = Array.from(this.selectedIds)
-      .map((id) => this.rowById.get(id))
-      .filter((row): row is ResultsGridRow => Boolean(row))
-      .sort((left, right) => (this.orderById.get(left.id) ?? 0) - (this.orderById.get(right.id) ?? 0))
-      .map((row) => ({ ...row }));
+      .map((id) => this.nodeById.get(id))
+      .filter((node): node is ResultsGridNode => Boolean(node))
+      .sort((left, right) => {
+        const leftOrder = this.displayOrderById.get(left.id) ?? 0;
+        const rightOrder = this.displayOrderById.get(right.id) ?? 0;
+        return leftOrder - rightOrder;
+      })
+      .map((node) => ({ ...node }));
 
     this.selectionChanged.emit(selectedRows);
     console.log('Results grid selected data:', selectedRows);
-  }
-
-  private resolveRowId(item: Partial<ResultsGridRow>): string | null {
-    if (item.id && this.rowById.has(item.id)) {
-      return item.id;
-    }
-
-    const selectedCandidate = Array.from(this.selectedIds).find((selectedId) => {
-      const row = this.rowById.get(selectedId);
-
-      if (!row) {
-        return false;
-      }
-
-      const legalNameMatches = !item.legalName || row.legalName === item.legalName;
-      const profileNameMatches = !item.profileName || row.profileName === item.profileName;
-      const ocifMatches = !item.ocifId || row.ocifId === item.ocifId;
-
-      return legalNameMatches && profileNameMatches && ocifMatches;
-    });
-
-    return selectedCandidate ?? null;
   }
 
   private applyColumnVisibility(): void {
@@ -556,9 +413,97 @@ export class ResultsGridComponent implements OnInit {
     }
 
     const visible = new Set(this.visibleColumnIds);
+    this.filterOptions.forEach((item) => {
+      this.gridApi.setColumnsVisible([item.id], visible.has(item.id));
+    });
+  }
 
-    this.filterOptions.forEach((option) => {
-      this.gridApi?.setColumnsVisible([option.id], visible.has(option.id));
+  private resolveSelectedRowId(item: Partial<ResultsGridNode>): string | null {
+    if (item.id && this.nodeById.has(item.id)) {
+      return item.id;
+    }
+
+    const selectedCandidate = Array.from(this.selectedIds).find((selectedId) => {
+      const row = this.nodeById.get(selectedId);
+      if (!row) {
+        return false;
+      }
+
+      const byName = !item.legalName || row.legalName === item.legalName;
+      const byProfileName = !item.profileName || row.profileName === item.profileName;
+      const byOcif = !item.ocifId || row.ocifId === item.ocifId;
+      return byName && byProfileName && byOcif;
+    });
+
+    return selectedCandidate ?? null;
+  }
+
+  private withSelectionSync(action: () => void): void {
+    this.isSyncing = true;
+    try {
+      action();
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  private initializeMasterData(): void {
+    this.nodeById.clear();
+    this.parentById.clear();
+    this.descendantsById.clear();
+    this.displayOrderById.clear();
+    this.displayOrderCounter = 0;
+
+    this.masterData = this.normalizeNodes(this.buildMasterData(), null, null, 0);
+  }
+
+  private normalizeNodes(
+    sourceNodes: ResultsGridInputNode[],
+    parentId: string | null,
+    rootId: string | null,
+    level: number
+  ): ResultsGridNode[] {
+    return sourceNodes.map((sourceNode) => {
+      const normalizedNode: ResultsGridNode = {
+        id: sourceNode.id,
+        profileName: sourceNode.profileName,
+        legalName: sourceNode.profileName,
+        ocifId: sourceNode.ocifId,
+        legalHoldStatus: sourceNode.legalHoldStatus,
+        status: sourceNode.legalHoldStatus,
+        holdName: sourceNode.holdName,
+        lifecycle: sourceNode.lifecycle,
+        role: sourceNode.role,
+        address: sourceNode.address,
+        isParent: Boolean(sourceNode.isParent),
+        isExpanded: Boolean(sourceNode.isExpanded),
+        level,
+        parentId,
+        rootId: rootId ?? sourceNode.id,
+        children: [],
+      };
+
+      this.nodeById.set(normalizedNode.id, normalizedNode);
+      this.parentById.set(normalizedNode.id, parentId);
+      this.displayOrderById.set(normalizedNode.id, this.displayOrderCounter++);
+
+      normalizedNode.children = this.normalizeNodes(
+        sourceNode.children ?? [],
+        normalizedNode.id,
+        normalizedNode.rootId,
+        level + 1
+      );
+
+      normalizedNode.isParent = normalizedNode.isParent || normalizedNode.children.length > 0;
+
+      const descendants = normalizedNode.children.flatMap((child) => [
+        child.id,
+        ...(this.descendantsById.get(child.id) ?? []),
+      ]);
+
+      this.descendantsById.set(normalizedNode.id, descendants);
+
+      return normalizedNode;
     });
   }
 
@@ -571,7 +516,9 @@ export class ResultsGridComponent implements OnInit {
       .replaceAll("'", '&#39;');
   }
 
-  private buildMockTree(): HierarchyNode[] {
+  private buildMasterData(): ResultsGridInputNode[] {
+    const commonAddress = '33 Dundas St W, Toronto, ON M5G 2C3';
+
     return [
       {
         id: 'corp-2',
@@ -581,19 +528,9 @@ export class ResultsGridComponent implements OnInit {
         holdName: '',
         lifecycle: 'Active Customer',
         role: 'Owner',
-        address: '33 Dundas St W, Toronto, ON M5G 2C3',
-        children: [
-          {
-            id: 'corp-2-rp-a',
-            profileName: 'Role Player A',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
-          },
-        ],
+        address: commonAddress,
+        isParent: true,
+        isExpanded: true,
       },
       {
         id: 'corp-3',
@@ -603,19 +540,9 @@ export class ResultsGridComponent implements OnInit {
         holdName: 'legalhold_name_123',
         lifecycle: 'Active Customer',
         role: 'Owner',
-        address: '33 Dundas St W, Toronto, ON M5G 2C3',
-        children: [
-          {
-            id: 'corp-3-rp-a',
-            profileName: 'Role Player A',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
-          },
-        ],
+        address: commonAddress,
+        isParent: true,
+        isExpanded: true,
       },
       {
         id: 'corp-4',
@@ -625,19 +552,9 @@ export class ResultsGridComponent implements OnInit {
         holdName: 'legalhold_name_123',
         lifecycle: 'Active Customer',
         role: 'Owner',
-        address: '33 Dundas St W, Toronto, ON M5G 2C3',
-        children: [
-          {
-            id: 'corp-4-rp-a',
-            profileName: 'Role Player A',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
-          },
-        ],
+        address: commonAddress,
+        isParent: true,
+        isExpanded: true,
       },
       {
         id: 'corp-5',
@@ -647,7 +564,9 @@ export class ResultsGridComponent implements OnInit {
         holdName: 'legalhold_name_123',
         lifecycle: 'Active Customer',
         role: 'Owner',
-        address: '33 Dundas St W, Toronto, ON M5G 2C3',
+        address: commonAddress,
+        isParent: true,
+        isExpanded: true,
         children: [
           {
             id: 'corp-5-role-f',
@@ -657,7 +576,9 @@ export class ResultsGridComponent implements OnInit {
             holdName: '',
             lifecycle: 'Active Customer',
             role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            address: commonAddress,
+            isParent: true,
+            isExpanded: true,
             children: [
               {
                 id: 'corp-5-role-f-l2',
@@ -667,44 +588,11 @@ export class ResultsGridComponent implements OnInit {
                 holdName: '',
                 lifecycle: 'Active Customer',
                 role: 'Owner of F Sub Entity',
-                address: '33 Dundas St W, Toronto, ON M5G 2C3',
+                address: commonAddress,
               },
             ],
           },
-          {
-            id: 'corp-5-role-g',
-            profileName: 'Role Player G',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
-            children: [
-              {
-                id: 'corp-5-role-g-l2',
-                profileName: 'Role Player G - Level 2',
-                ocifId: '1000-12345',
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Delegate',
-                address: '33 Dundas St W, Toronto, ON M5G 2C3',
-                children: [
-                  {
-                    id: 'corp-5-role-g-l3',
-                    profileName: 'Role Player G - Level 3',
-                    ocifId: '1000-12345',
-                    legalHoldStatus: 'N/A',
-                    holdName: '',
-                    lifecycle: 'Active Customer',
-                    role: 'Authorized Delegate',
-                    address: '33 Dundas St W, Toronto, ON M5G 2C3',
-                  },
-                ],
-              },
-            ],
-          },
+          this.buildDeepNestedBranch(8, commonAddress),
           {
             id: 'corp-5-role-d',
             profileName: 'Role Player D',
@@ -713,7 +601,7 @@ export class ResultsGridComponent implements OnInit {
             holdName: '',
             lifecycle: 'Active Customer',
             role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            address: commonAddress,
           },
           {
             id: 'corp-5-role-e',
@@ -723,7 +611,7 @@ export class ResultsGridComponent implements OnInit {
             holdName: '',
             lifecycle: 'Active Customer',
             role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            address: commonAddress,
           },
           {
             id: 'corp-5-role-a',
@@ -733,7 +621,7 @@ export class ResultsGridComponent implements OnInit {
             holdName: '',
             lifecycle: 'Active Customer',
             role: 'Owner of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            address: commonAddress,
           },
           {
             id: 'corp-5-role-b',
@@ -743,7 +631,7 @@ export class ResultsGridComponent implements OnInit {
             holdName: '',
             lifecycle: 'Active Customer',
             role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            address: commonAddress,
           },
           {
             id: 'corp-5-role-c',
@@ -753,10 +641,48 @@ export class ResultsGridComponent implements OnInit {
             holdName: '',
             lifecycle: 'Active Customer',
             role: 'Authorized Signatory of ABC Ltd.',
-            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            address: commonAddress,
           },
         ],
       },
     ];
+  }
+
+  private buildDeepNestedBranch(depth: number, commonAddress: string): ResultsGridInputNode {
+    const root: ResultsGridInputNode = {
+      id: 'corp-5-role-g',
+      profileName: 'Role Player G',
+      ocifId: '1000-12345',
+      legalHoldStatus: 'N/A',
+      holdName: '',
+      lifecycle: 'Active Customer',
+      role: 'Authorized Signatory of ABC Ltd.',
+      address: commonAddress,
+      isParent: true,
+      isExpanded: true,
+      children: [],
+    };
+
+    let cursor = root;
+    for (let level = 2; level <= depth; level += 1) {
+      const child: ResultsGridInputNode = {
+        id: `corp-5-role-g-l${level}`,
+        profileName: `Role Player G - Level ${level}`,
+        ocifId: '1000-12345',
+        legalHoldStatus: 'N/A',
+        holdName: '',
+        lifecycle: 'Active Customer',
+        role: level % 2 === 0 ? 'Authorized Delegate' : 'Owner of Nested Entity',
+        address: commonAddress,
+        isParent: level < depth,
+        isExpanded: level < 4,
+        children: [],
+      };
+
+      cursor.children = [child];
+      cursor = child;
+    }
+
+    return root;
   }
 }

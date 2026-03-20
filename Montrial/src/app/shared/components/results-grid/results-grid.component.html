@@ -1,18 +1,12 @@
 <div class="results-grid-wrapper">
   <div class="results-filter-row">
     <span class="filter-title">Search result filter</span>
-
-    <select
-      class="filter-select"
-      [(ngModel)]="pendingColumnToShow"
-      aria-label="Select a column to show"
-    >
+    <select class="filter-select" [(ngModel)]="pendingColumnToShow">
       <option value="">Select</option>
       @for (filter of hiddenFilters; track filter.id) {
         <option [value]="filter.id">{{ filter.label }}</option>
       }
     </select>
-
     <button type="button" class="filter-add-btn" (click)="addPendingFilter()" [disabled]="!pendingColumnToShow">
       ADD
     </button>
@@ -20,7 +14,6 @@
 
   <div class="results-showing-row">
     <span class="showing-label">Showing:</span>
-
     <div class="showing-chips">
       @for (filter of activeFilters; track filter.id) {
         <div class="filter-chip">
@@ -30,25 +23,27 @@
           </button>
         </div>
       }
-
       <button type="button" class="reset-btn" (click)="resetFilters()">RESET</button>
     </div>
   </div>
 
-  <ag-grid-angular
-    class="ag-theme-alpine results-ag-grid"
-    [rowData]="rowData"
-    [columnDefs]="columnDefs"
-    [selectionColumnDef]="selectionColumnDef"
-    [defaultColDef]="defaultColDef"
-    [rowSelection]="rowSelection"
-    [rowHeight]="54"
-    [headerHeight]="50"
-    [getRowId]="getRowId"
-    [getRowClass]="getRowClass"
-    [animateRows]="false"
-    (gridReady)="onGridReady($event)"
-    (cellClicked)="onCellClicked($event)"
-    (rowSelected)="onRowSelected($event)"
-  ></ag-grid-angular>
+  <div class="grid-wrapper">
+    <ag-grid-angular
+      class="ag-theme-alpine bmo-grid"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [selectionColumnDef]="selectionColumnDef"
+      [defaultColDef]="defaultColDef"
+      [getRowClass]="getRowClass"
+      [getRowId]="getRowId"
+      [rowSelection]="rowSelection"
+      [rowHeight]="54"
+      [headerHeight]="48"
+      [animateRows]="false"
+      (selectionChanged)="onSelectionChanged()"
+      (rowSelected)="onRowSelected($event)"
+      (cellClicked)="onCellClicked($event)"
+      (gridReady)="onGridReady($event)"
+    ></ag-grid-angular>
+  </div>
 </div>

@@ -22,7 +22,8 @@ describe('ResultsGridComponent', () => {
 
   it('should initialize with nested mock rows', () => {
     expect(component.rowData.length).toBeGreaterThan(0);
-    expect(component.rowData.some((row) => row.depth > 0)).toBeTrue();
+    expect(component.rowData.some((row) => row.level > 0)).toBeTrue();
+    expect(Math.max(...component.rowData.map((row) => row.level))).toBeGreaterThanOrEqual(4);
   });
 
   it('should clear all selected rows when deselectRows is called', () => {
@@ -34,5 +35,27 @@ describe('ResultsGridComponent', () => {
     component.deselectRows([firstRow.id, secondRow.id]);
 
     expect(component['selectedIds'].size).toBe(0);
+  });
+
+  it('should select a full cluster when a parent is selected', () => {
+    const parentId = 'corp-5';
+    component['updateClusterSelection'](parentId, true);
+
+    const descendants = component['descendantsById'].get(parentId) as string[];
+    const selectedIds = component['selectedIds'] as Set<string>;
+
+    expect(selectedIds.has(parentId)).toBeTrue();
+    expect(descendants.every((id) => selectedIds.has(id))).toBeTrue();
+  });
+
+  it('should auto-select parent when all descendants are selected', () => {
+    const parentId = 'corp-5';
+    const descendants = component['descendantsById'].get(parentId) as string[];
+    const selectedIds = component['selectedIds'] as Set<string>;
+
+    descendants.forEach((id) => selectedIds.add(id));
+    component['syncAncestorSelection'](descendants[descendants.length - 1]);
+
+    expect(selectedIds.has(parentId)).toBeTrue();
   });
 });
