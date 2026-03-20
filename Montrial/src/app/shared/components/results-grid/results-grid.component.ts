@@ -499,8 +499,9 @@ export class ResultsGridComponent implements OnInit {
     level: number
   ): ResultsGridNode[] {
     return sourceNodes.map((sourceNode) => {
+      const normalizedId = sourceNode.id ?? sourceNode.ocifId;
       const normalizedNode: ResultsGridNode = {
-        id: sourceNode.id ?? sourceNode.ocifId,
+        id: normalizedId,
         profileName: sourceNode.profileName,
         legalName: sourceNode.profileName,
         ocifId: sourceNode.ocifId,
@@ -515,7 +516,7 @@ export class ResultsGridComponent implements OnInit {
         isHighlighted: Boolean(sourceNode.isHighlighted),
         level,
         parentId,
-        rootId: rootId ?? sourceNode.id,
+        rootId: rootId ?? normalizedId,
         children: [],
       };
 

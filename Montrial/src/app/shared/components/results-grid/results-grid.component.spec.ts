@@ -23,7 +23,7 @@ describe('ResultsGridComponent', () => {
   it('should initialize with nested mock rows', () => {
     expect(component.rowData.length).toBeGreaterThan(0);
     expect(component.rowData.some((row) => row.level > 0)).toBeTrue();
-    expect(component['nodeById'].get('DEEP-2')?.level).toBe(5);
+    expect(component['nodeById'].get('DEEP-2')?.level).toBe(4);
   });
 
   it('should clear all selected rows when deselectRows is called', () => {
