@@ -181,7 +181,9 @@ export class ResultsGridComponent implements OnInit {
 
   onPaginationChanged() {}
 }
-// html//
+
+// end of ts code //
+// start of html//
 
 <div class="grid-card-container grid-container-with-footer">
   <ag-grid-angular
@@ -202,7 +204,8 @@ export class ResultsGridComponent implements OnInit {
     (cellClicked)="onCellClicked($event)">
   </ag-grid-angular>
 </div>
-// end of html//
+
+// end of html code //
 
 //scss code //
  ::ng-deep .ag-theme-alpine.bmo-grid {
