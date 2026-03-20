@@ -19,7 +19,7 @@
 
   .filter-select {
     height: 32px;
-    min-width: 140px;
+    min-width: 150px;
     border: 1px solid #adb9c8;
     border-radius: 4px;
     background: #ffffff;
@@ -28,23 +28,6 @@
     padding: 0 10px;
   }
 
-  .filter-add-btn {
-    height: 32px;
-    padding: 0 12px;
-    border: 1px solid #004c97;
-    border-radius: 16px;
-    background: #ffffff;
-    color: #004c97;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-
-    &:disabled {
-      cursor: not-allowed;
-      border-color: #bcc9d8;
-      color: #95a8be;
-    }
-  }
 }
 
 .results-showing-row {
@@ -73,11 +56,11 @@
   align-items: center;
   gap: 6px;
   border: 1px solid #9ca9b8;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #ffffff;
   color: #1f2b37;
   font-size: 12px;
-  padding: 4px 10px;
+  padding: 4px 12px;
 
   button {
     border: 0;
@@ -97,6 +80,7 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  letter-spacing: 0.2px;
 }
 
 .grid-wrapper {
@@ -142,13 +126,16 @@
     background-color: #dcecff !important;
   }
 
-  .ag-row.blue-sandwich-parent {
+  .ag-row.figma-highlight-row .ag-cell {
     background-color: #e8f4fd !important;
-    border-top: 2px solid #004c97 !important;
+  }
 
-    .ag-cell {
-      background-color: #e8f4fd !important;
-    }
+  .ag-row.figma-highlight-row.ag-row-selected .ag-cell {
+    background-color: #d2e8ff !important;
+  }
+
+  .ag-row.is-parent-row .ag-cell {
+    font-weight: 400;
   }
 
   .ag-row.is-child-row {
@@ -166,13 +153,18 @@
         top: -12px;
         bottom: -12px;
         width: 1px;
-        background-color: #e0e6ee;
+        background-color: #dfe6ef;
       }
     }
   }
 
   .ag-row.sandwich-bottom-border {
-    border-bottom: 2px solid #004c97 !important;
+    border-bottom: 2px solid #003b7a !important;
+  }
+
+  .ag-cell[col-id='profileName'],
+  .ag-header-cell[col-id='profileName'] {
+    border-right: 1px solid #d9dde3 !important;
   }
 }
 
@@ -206,6 +198,7 @@
 
   &.down {
     transform: rotate(135deg);
+    margin-top: -2px;
   }
 
   &.up {
@@ -228,11 +221,11 @@
   justify-content: center;
   background: #002f6d;
   color: #ffffff;
-  border-radius: 4px;
+  border-radius: 3px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2px;
-  padding: 2px 8px;
+  letter-spacing: 0.18px;
+  padding: 2px 7px;
 }
 
 ::ng-deep .status-na {
