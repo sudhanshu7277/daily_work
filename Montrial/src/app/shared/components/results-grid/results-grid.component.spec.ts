@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+
 import { ResultsGridComponent } from './results-grid.component';
 
 describe('ResultsGridComponent', () => {
@@ -6,22 +7,55 @@ describe('ResultsGridComponent', () => {
   let fixture: ComponentFixture<ResultsGridComponent>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [ResultsGridComponent] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [ResultsGridComponent],
+    }).compileComponents();
+
     fixture = TestBed.createComponent(ResultsGridComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should deselect rows based on IDs provided from shell', () => {
-    const mockApi = jasmine.createSpyObj('GridApi', ['forEachNode']);
-    (component as any).gridApi = mockApi;
-    component.deselectRows(['OCIF-123']);
-    expect(mockApi.forEachNode).toHaveBeenCalled();
+  it('should create', () => {
+    expect(component).toBeTruthy();
   });
 
-  it('should apply expanded-parent-row class correctly', () => {
-    const parent = { isParent: true, isExpanded: true };
-    const result = component.rowClassRules['expanded-parent-row']({ data: parent });
-    expect(result).toBeTrue();
+  it('should initialize with nested mock rows', () => {
+    expect(component.rowData.length).toBeGreaterThan(0);
+    expect(component.rowData.some((row) => row.level > 0)).toBeTrue();
+    expect(Math.max(...component.rowData.map((row) => row.level))).toBeGreaterThanOrEqual(4);
+  });
+
+  it('should clear all selected rows when deselectRows is called', () => {
+    const firstRow = component.rowData[0];
+    const secondRow = component.rowData[1];
+
+    component['selectedIds'].add(firstRow.id);
+    component['selectedIds'].add(secondRow.id);
+    component.deselectRows([firstRow.id, secondRow.id]);
+
+    expect(component['selectedIds'].size).toBe(0);
+  });
+
+  it('should select a full cluster when a parent is selected', () => {
+    const parentId = 'corp-5';
+    component['updateClusterSelection'](parentId, true);
+
+    const descendants = component['descendantsById'].get(parentId) as string[];
+    const selectedIds = component['selectedIds'] as Set<string>;
+
+    expect(selectedIds.has(parentId)).toBeTrue();
+    expect(descendants.every((id) => selectedIds.has(id))).toBeTrue();
+  });
+
+  it('should auto-select parent when all descendants are selected', () => {
+    const parentId = 'corp-5';
+    const descendants = component['descendantsById'].get(parentId) as string[];
+    const selectedIds = component['selectedIds'] as Set<string>;
+
+    descendants.forEach((id) => selectedIds.add(id));
+    component['syncAncestorSelection'](descendants[descendants.length - 1]);
+
+    expect(selectedIds.has(parentId)).toBeTrue();
   });
 });

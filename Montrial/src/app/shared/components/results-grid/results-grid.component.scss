@@ -1,142 +1,172 @@
-/* Ensure the container allows full width */
+.results-grid-wrapper {
+  border: 1px solid #d9dde3;
+  background: #ffffff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.results-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 8px;
+
+  .filter-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2b37;
+  }
+
+  .filter-select {
+    height: 32px;
+    min-width: 140px;
+    border: 1px solid #adb9c8;
+    border-radius: 4px;
+    background: #ffffff;
+    font-size: 12px;
+    color: #1f2b37;
+    padding: 0 10px;
+  }
+
+  .filter-add-btn {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid #004c97;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #004c97;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      border-color: #bcc9d8;
+      color: #95a8be;
+    }
+  }
+}
+
+.results-showing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px 10px;
+
+  .showing-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f2b37;
+    white-space: nowrap;
+  }
+}
+
+.showing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #9ca9b8;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1f2b37;
+  font-size: 12px;
+  padding: 4px 10px;
+
+  button {
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    color: #1f2b37;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+  }
+}
+
+.reset-btn {
+  border: 0;
+  background: transparent;
+  color: #003b7a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .grid-wrapper {
-    width: 100vw;
-    margin-left: calc(-50vw + 50%); /* Centers if inside a container */
+  width: 100%;
 }
 
-::ng-deep {
-    /* 1. Remove the blue lines/borders from current implementation */
-    .ag-theme-alpine {
-        --ag-range-selection-border-color: transparent;
-        --ag-row-border-color: #e2e2e2;
-        --ag-header-column-separator-display: block;
-        --ag-header-column-separator-color: transparent;
-        
-        .ag-row {
-            border-bottom: 1px solid #e2e2e2 !important;
-            &.ag-row-selected {
-                background-color: #f0f7fb !important; /* Light blue highlight from Figma */
-            }
-        }
+::ng-deep .bmo-grid {
+  width: 100%;
+  height: 640px;
+  font-family: 'Open Sans', 'Roboto', sans-serif;
+  --ag-font-size: 13px;
+  --ag-row-height: 54px;
+  --ag-header-height: 48px;
+  --ag-border-color: #d9dde3;
+  --ag-row-border-color: #e5e8ec;
+  --ag-header-background-color: #ffffff;
+  --ag-selected-row-background-color: #dcecff;
+  --ag-checkbox-checked-color: #004c97;
+  --ag-checkbox-unchecked-color: #77889b;
 
-        /* 2. Add the vertical black separator after Profile Name */
-        .profile-name-header-separator, 
-        .profile-name-cell-separator {
-            border-right: 2px solid #000000 !important; /* Thick black separator */
-        }
-
-        /* Styling for Sort Arrows */
-        .ag-header-icon {
-            color: #666;
-            opacity: 1 !important;
-        }
-    }
-
-    /* Style for the Legal Hold Pill */
-    .legal-hold-pill {
-        background-color: #002e67;
-        color: white;
-        border-radius: 4px;
-        padding: 2px 8px;
-        font-size: 11px;
-        font-weight: bold;
-        display: inline-block;
-    }
-}
-
-
-// UPDATED AG-GRID SCSS
-
-::ng-deep {
-  .ag-theme-alpine.bmo-grid {
-    
-    /* 1. TOP & BACKGROUND: Expanded Parent */
-    .ag-row.ag-row-expanded {
-      background-color: #E8F4FD !important;
-      border-top: 2px solid #004c97 !important;
-      z-index: 10;
-    }
-
-    /* 2. MIDDLE: Child Rows (White + Indent) */
-    .ag-row-level-1 {
-      background-color: #ffffff !important;
-      border: none !important; /* Remove default mid-row borders */
-      
-      .ag-cell-wrapper {
-        padding-left: 48px !important; 
-      }
-    }
-
-    /* 3. BOTTOM: The Closing Line */
-    /* This targets the last child in a sequence before the next level-0 row */
-    .ag-row-level-1:not(.ag-row-selected):last-child,
-    .ag-row-level-1:has(+ .ag-row-level-0) {
-      border-bottom: 2px solid #004c97 !important;
-    }
-
-    /* 4. SELECTION FIX: No Blue Wash */
-    /* This is critical for the "Unselect" performance you were struggling with */
-    .ag-row-selected::before {
-      background-color: transparent !important;
-    }
+  .ag-header {
+    border-top: 2px solid #003b7a;
+    border-bottom: 1px solid #d9dde3;
   }
-}
 
-
-::ng-deep {
-  .ag-theme-alpine.bmo-grid {
-    
-    .ag-row.blue-sandwich-parent {
-      background-color: #E8F4FD !important;
-      border-top: 2px solid #004c97 !important;
-      z-index: 10 !important;
-    }
-
-    .ag-row.sandwich-child-row {
-      background-color: #ffffff !important;
-      border-top: none !important;
-
-      .ag-cell-wrapper {
-        padding-left: 48px !important;
-      }
-    }
-
-    .ag-row.sandwich-bottom-border {
-      border-bottom: 2px solid #004c97 !important;
-    }
-
-    .ag-row-selected::before {
-      background-color: transparent !important;
-    }
+  .ag-header-cell {
+    font-size: 12px;
+    font-weight: 700;
+    color: #14243b;
   }
-}
 
+  .ag-row {
+    border-bottom: 1px solid #e5e8ec !important;
+  }
 
+  .ag-row .ag-cell {
+    display: flex;
+    align-items: center;
+    color: #1f2b37;
+  }
 
-////////new code below start////
+  .ag-row.ag-row-selected .ag-cell {
+    background-color: #dcecff !important;
+  }
 
-::ng-deep .ag-theme-alpine.bmo-grid {
-  .blue-sandwich-parent {
-    background-color: #E8F4FD !important;
+  .ag-row.blue-sandwich-parent {
+    background-color: #e8f4fd !important;
     border-top: 2px solid #004c97 !important;
+
+    .ag-cell {
+      background-color: #e8f4fd !important;
+    }
   }
 
   .ag-row.is-child-row {
     background-color: #ffffff !important;
-    border-top: none !important;
-
     .name-cell-wrapper {
       position: relative;
       display: flex;
       align-items: center;
+      gap: 8px;
+      width: 100%;
       height: 100%;
 
       .depth-line {
         position: absolute;
-        top: 0;
-        bottom: 0;
+        top: -12px;
+        bottom: -12px;
         width: 1px;
-        background-color: #E0E0E0;
+        background-color: #e0e6ee;
       }
     }
   }
@@ -144,49 +174,72 @@
   .ag-row.sandwich-bottom-border {
     border-bottom: 2px solid #004c97 !important;
   }
+}
 
-  .bmo-chevron {
-    width: 7px;
-    height: 7px;
-    border-top: 1.5px solid #004c97;
-    border-right: 1.5px solid #004c97;
-    display: inline-block;
-    transition: transform 0.2s;
-    margin-right: 10px;
+::ng-deep .name-cell-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
 
-    &.closed { transform: rotate(45deg); }
-    &.opened { transform: rotate(135deg); margin-top: -3px; }
+::ng-deep .profile-text {
+  color: #17324d;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+::ng-deep .bmo-thin-carrot {
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid #004c97;
+  border-right: 1.5px solid #004c97;
+  display: inline-block;
+  transition: transform 0.2s ease-in-out;
+  margin-left: 10px;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &.down {
+    transform: rotate(135deg);
   }
 
-  /* Selection Aesthetics */
-  .ag-checkbox-input-wrapper.ag-checked::after {
-    color: #004c97 !important;
-  }
-  .ag-row-selected::before {
-    background-color: transparent !important;
+  &.up {
+    transform: rotate(-45deg);
+    margin-top: 3px;
   }
 }
 
-
-
-::ng-deep .ag-theme-alpine.bmo-grid {
-  .ag-paging-panel {
-    border-top: 1px solid #E0E0E0;
-    color: #333;
-    font-size: 13px;
-
-    .ag-paging-button {
-      color: #004c97 !important; // Dark Blue from Figma
-      &:hover {
-        opacity: 0.7;
-      }
-    }
-
-    .ag-paging-row-summary-panel {
-      font-weight: 600;
-    }
-  }
+::ng-deep .bmo-thin-carrot-spacer {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 10px;
+  flex-shrink: 0;
 }
-////new code end/////
 
+::ng-deep .status-pill-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #002f6d;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 2px 8px;
+}
 
+::ng-deep .status-na {
+  color: #1f2b37;
+}
+
+::ng-deep .address-cell {
+  white-space: normal;
+  line-height: 1.3;
+}
