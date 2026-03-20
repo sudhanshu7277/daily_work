@@ -1,5 +1,5 @@
 .results-grid-wrapper {
-  border: 1px solid #d9dde3;
+  border: 0;
   background: #ffffff;
   border-radius: 4px;
   overflow: hidden;
@@ -94,12 +94,19 @@
   --ag-font-size: 13px;
   --ag-row-height: 56px;
   --ag-header-height: 46px;
-  --ag-border-color: #d9dde3;
+  --ag-border-color: transparent;
+  --ag-borders: none;
   --ag-row-border-color: #e5e8ec;
   --ag-header-background-color: #ffffff;
   --ag-selected-row-background-color: #dcecff;
   --ag-checkbox-checked-color: #004c97;
   --ag-checkbox-unchecked-color: #77889b;
+
+  .ag-root-wrapper,
+  .ag-root-wrapper-body,
+  .ag-layout-normal {
+    border: 0 !important;
+  }
 
   .ag-header {
     border-top: 2px solid #003b7a;
