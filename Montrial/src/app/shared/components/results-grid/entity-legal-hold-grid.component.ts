@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 import { ColDef, GridApi, GridOptions, ICellRendererParams } from 'ag-grid-community';
 import { AgGridAngular } from 'ag-grid-angular';
 
-// ─── LEGAL HOLD Badge Renderer ──────────────────────────────────────────────
+// LEGAL HOLD Badge (exact navy blue from Figma)
 @Component({
   selector: 'legal-hold-badge',
   standalone: true,
@@ -24,13 +24,13 @@ export class LegalHoldBadgeComponent {
   refresh(params: ICellRendererParams) { this.value = params.value; return true; }
 }
 
-// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
+// MAIN COMPONENT
 @Component({
   selector: 'app-entity-legal-hold-grid',
   standalone: true,
   imports: [AgGridAngular, LegalHoldBadgeComponent],
   template: `
-    <!-- Filter bar (matches screenshots) -->
+    <!-- Filter bar (exact match to screenshots) -->
     <div class="flex flex-wrap items-center gap-3 mb-4 bg-white p-4 rounded-t-xl border border-gray-200 border-b-0">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium text-gray-700">Search result filter</span>
@@ -57,7 +57,7 @@ export class LegalHoldBadgeComponent {
 
     <!-- AG Grid -->
     <ag-grid-angular
-      class="ag-theme-alpine w-full border border-gray-200 rounded-b-xl overflow-hidden shadow-sm"
+      class="ag-theme-alpine w-full border border-gray-200 rounded-b-xl overflow-hidden"
       style="height: 680px;"
       [rowData]="rowData"
       [columnDefs]="columnDefs"
@@ -70,37 +70,28 @@ export class LegalHoldBadgeComponent {
       --ag-row-height: 52px;
       --ag-header-height: 44px;
       --ag-font-size: 14px;
-      --ag-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --ag-foreground-color: #111827;
-      --ag-header-foreground-color: #334155;
+      --ag-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --ag-header-background-color: #f8fafc;
-      --ag-background-color: #ffffff;
       --ag-selected-row-background-color: #eff6ff;
       --ag-row-hover-color: #f1f5f9;
-      --ag-header-cell-moving-background-color: #e5e7eb;
     }
 
-    .ag-theme-alpine .ag-header-cell {
-      border-right: 1px solid #e2e8f0;
+    /* Pinned columns styling */
+    .ag-theme-alpine .ag-pinned-left-header {
+      background-color: #f8fafc;
     }
 
-    .ag-theme-alpine .ag-header-cell:last-child {
-      border-right: none;
-    }
-
-    .ag-theme-alpine .ag-group-cell {
-      padding-left: 8px !important;
-      font-weight: 500;
-    }
-
-    /* Light blue background for expanded top-level rows */
     .ag-row-level-0.ag-row-expanded {
       background-color: #f0f7ff !important;
     }
 
-    /* Chevron styling */
-    .ag-theme-alpine .ag-group-expanded .ag-group-contract-icon,
-    .ag-theme-alpine .ag-group-contracted .ag-group-expand-icon {
+    .ag-group-cell {
+      padding-left: 8px !important;
+      font-weight: 500;
+    }
+
+    .ag-group-expanded .ag-group-contract-icon,
+    .ag-group-contracted .ag-group-expand-icon {
       font-size: 18px;
       color: #374151;
       font-weight: 600;
@@ -111,117 +102,30 @@ export class EntityLegalHoldGridComponent {
   private gridApi!: GridApi;
 
   showingFilters = [
-    'Profile Name',
-    'Proxy OCIF ID',
-    'Legal Hold Status',
-    'Legal Hold Name',
-    'Customer Lifecycle Status',
-    'Role Type',
-    'Address',
-    'Legal Hold Applied Date',
-    'Legal Hold Release Date'
+    'Profile Name', 'Proxy OCIF ID', 'Legal Hold Status',
+    'Legal Hold Name', 'Customer Lifecycle Status', 'Role Type',
+    'Address', 'Legal Hold Applied Date', 'Legal Hold Release Date'
   ];
 
   removeFilter(index: number) {
     this.showingFilters.splice(index, 1);
   }
 
-  // FLAT DATA with path (required for v32+ treeData without typing issues)
+  // FLAT DATA + UNIQUE ocifId (this fixes freezing / performance issues)
   rowData = [
-    {
-      path: ['Corp 2'],
-      ocifId: "1000-12345",
-      profileName: "Corp 2",
-      legalHoldStatus: "N/A",
-      holdName: "",
-      lifecycle: "Active Customer",
-      role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 3'],
-      ocifId: "1000-12345",
-      profileName: "Corp 3",
-      legalHoldStatus: "LEGAL HOLD",
-      holdName: "legalhold_name_123",
-      lifecycle: "Active Customer",
-      role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 4'],
-      ocifId: "1000-12345",
-      profileName: "Corp 4",
-      legalHoldStatus: "LEGAL HOLD",
-      holdName: "legalhold_name_123",
-      lifecycle: "Active Customer",
-      role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 5'],
-      ocifId: "1000-12345",
-      profileName: "Corp 5",
-      legalHoldStatus: "LEGAL HOLD",
-      holdName: "legalhold_name_123",
-      lifecycle: "Active Customer",
-      role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 5', 'Role Player F'],
-      ocifId: "RP-F",
-      profileName: "Role Player F",
-      legalHoldStatus: "N/A",
-      holdName: "",
-      lifecycle: "Active Customer",
-      role: "Authorized Signatory of ABC Ltd.",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 5', 'Role Player G'],
-      ocifId: "RP-G",
-      profileName: "Role Player G",
-      legalHoldStatus: "N/A",
-      holdName: "",
-      lifecycle: "Active Customer",
-      role: "Authorized Signatory of ABC Ltd.",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 5', 'Role Player D'],
-      ocifId: "RP-D",
-      profileName: "Role Player D",
-      legalHoldStatus: "N/A",
-      holdName: "",
-      lifecycle: "Active Customer",
-      role: "Authorized Signatory of ABC Ltd.",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 5', 'Role Player E'],
-      ocifId: "RP-E",
-      profileName: "Role Player E",
-      legalHoldStatus: "N/A",
-      holdName: "",
-      lifecycle: "Active Customer",
-      role: "Authorized Signatory of ABC Ltd.",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    },
-    {
-      path: ['Corp 5', 'ABC Ltd.'],
-      ocifId: "ABC-Ltd",
-      profileName: "ABC Ltd.",
-      legalHoldStatus: "N/A",
-      holdName: "",
-      lifecycle: "Active Customer",
-      role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3"
-    }
-    // Add more rows following the same pattern
+    { path: ['Corp 2'],      ocifId: 'C2',   profileName: 'Corp 2',      legalHoldStatus: 'N/A',          holdName: '', lifecycle: 'Active Customer', role: 'Owner', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 3'],      ocifId: 'C3',   profileName: 'Corp 3',      legalHoldStatus: 'LEGAL HOLD',   holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 4'],      ocifId: 'C4',   profileName: 'Corp 4',      legalHoldStatus: 'LEGAL HOLD',   holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 5'],      ocifId: 'C5',   profileName: 'Corp 5',      legalHoldStatus: 'LEGAL HOLD',   holdName: 'legalhold_name_123', lifecycle: 'Active Customer', role: 'Owner', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 5', 'Role Player F'], ocifId: 'RPF', profileName: 'Role Player F', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 5', 'Role Player G'], ocifId: 'RPG', profileName: 'Role Player G', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 5', 'Role Player D'], ocifId: 'RPD', profileName: 'Role Player D', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 5', 'Role Player E'], ocifId: 'RPE', profileName: 'Role Player E', legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Authorized Signatory of ABC Ltd.', address: '33 Dundas St W, Toronto, ON M5G 2C3' },
+    { path: ['Corp 5', 'ABC Ltd.'],      ocifId: 'ABC', profileName: 'ABC Ltd.',     legalHoldStatus: 'N/A', holdName: '', lifecycle: 'Active Customer', role: 'Owner', address: '33 Dundas St W, Toronto, ON M5G 2C3' }
   ];
 
   columnDefs: ColDef[] = [
+    // 1. Checkbox column – pinned left
     {
       headerName: '',
       checkboxSelection: true,
@@ -234,61 +138,37 @@ export class EntityLegalHoldGridComponent {
       suppressHeaderMenuButton: true,
       suppressHeaderFilterButton: true
     },
+    // 2. Profile Name (with expander) – also pinned left (this is what you asked for)
     {
       headerName: 'Profile Name',
       field: 'profileName',
       minWidth: 340,
       flex: 2.1,
+      pinned: 'left',                     // ← pinned so it never scrolls
       cellRenderer: 'agGroupCellRenderer',
       cellRendererParams: {
         suppressCount: true,
         innerRenderer: (params: any) => `<span class="text-gray-900 font-medium">${params.value}</span>`
       }
     },
-    {
-      headerName: 'Proxy OCIF ID',
-      field: 'ocifId',
-      width: 140
-    },
-    {
-      headerName: 'Legal Hold Status',
-      field: 'legalHoldStatus',
-      width: 160,
-      cellRenderer: LegalHoldBadgeComponent
-    },
-    {
-      headerName: 'Legal Hold Name',
-      field: 'holdName',
-      width: 180
-    },
-    {
-      headerName: 'Customer Lifecycle Status',
-      field: 'lifecycle',
-      width: 170
-    },
-    {
-      headerName: 'Role Type',
-      field: 'role',
-      minWidth: 240,
-      flex: 1.4
-    },
-    {
-      headerName: 'Address',
-      field: 'address',
-      minWidth: 300,
-      flex: 1.8
-    }
+    // 3+ All other columns – scrollable
+    { headerName: 'Proxy OCIF ID',          field: 'ocifId',      width: 140 },
+    { headerName: 'Legal Hold Status',      field: 'legalHoldStatus', width: 160, cellRenderer: LegalHoldBadgeComponent },
+    { headerName: 'Legal Hold Name',        field: 'holdName',    width: 180 },
+    { headerName: 'Customer Lifecycle Status', field: 'lifecycle', width: 170 },
+    { headerName: 'Role Type',              field: 'role',        minWidth: 240, flex: 1.4 },
+    { headerName: 'Address',                field: 'address',     minWidth: 300, flex: 1.8 }
   ];
 
   gridOptions: GridOptions = {
     treeData: true,
-    getDataPath: (data: any) => data.path, // ← Required for path-based tree data
+    getDataPath: (data: any) => data.path,
 
-    getRowId: (params) => params.data.ocifId,
+    getRowId: (params) => params.data.ocifId,   // unique IDs → fixes freezing
 
     rowSelection: {
       mode: 'multiRow',
-      groupSelects: 'descendants',
+      groupSelects: 'descendants',   // ← parent selected = all children auto-selected
       headerCheckbox: true,
       checkboxes: true
     },
@@ -297,9 +177,14 @@ export class EntityLegalHoldGridComponent {
     suppressRowClickSelection: true,
     animateRows: true,
 
+    // Performance optimisations (prevents freezing with tree data)
+    suppressColumnVirtualisation: false,
+    rowBuffer: 10,
+    debounceVerticalScrollbar: true,
+
     icons: {
       treeClosed: '<span class="text-gray-700 text-xl">▼</span>',
-      treeOpen: '<span class="text-gray-700 text-xl">▲</span>'
+      treeOpen:  '<span class="text-gray-700 text-xl">▲</span>'
     },
 
     onGridReady: (params) => {
