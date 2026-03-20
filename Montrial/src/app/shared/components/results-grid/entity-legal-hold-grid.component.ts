@@ -30,7 +30,7 @@ export class LegalHoldBadgeComponent {
   standalone: true,
   imports: [AgGridAngular, LegalHoldBadgeComponent],
   template: `
-    <!-- Filter bar (as visible in Figma screenshots) -->
+    <!-- Filter bar (matches screenshots) -->
     <div class="flex flex-wrap items-center gap-3 mb-4 bg-white p-4 rounded-t-xl border border-gray-200 border-b-0">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium text-gray-700">Search result filter</span>
@@ -126,77 +126,99 @@ export class EntityLegalHoldGridComponent {
     this.showingFilters.splice(index, 1);
   }
 
-  // Sample hierarchical data matching screenshots
+  // FLAT DATA with path (required for v32+ treeData without typing issues)
   rowData = [
     {
+      path: ['Corp 2'],
       ocifId: "1000-12345",
       profileName: "Corp 2",
       legalHoldStatus: "N/A",
       holdName: "",
       lifecycle: "Active Customer",
       role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3",
-      children: []
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
     },
     {
+      path: ['Corp 3'],
       ocifId: "1000-12345",
       profileName: "Corp 3",
       legalHoldStatus: "LEGAL HOLD",
       holdName: "legalhold_name_123",
       lifecycle: "Active Customer",
       role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3",
-      children: []
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
     },
     {
+      path: ['Corp 4'],
       ocifId: "1000-12345",
       profileName: "Corp 4",
       legalHoldStatus: "LEGAL HOLD",
       holdName: "legalhold_name_123",
       lifecycle: "Active Customer",
       role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3",
-      children: []
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
     },
     {
+      path: ['Corp 5'],
       ocifId: "1000-12345",
       profileName: "Corp 5",
       legalHoldStatus: "LEGAL HOLD",
       holdName: "legalhold_name_123",
       lifecycle: "Active Customer",
       role: "Owner",
-      address: "33 Dundas St W, Toronto, ON M5G 2C3",
-      children: [
-        {
-          ocifId: "RP-F",
-          profileName: "Role Player F",
-          legalHoldStatus: "N/A",
-          holdName: "",
-          lifecycle: "Active Customer",
-          role: "Authorized Signatory of ABC Ltd.",
-          address: "33 Dundas St W, Toronto, ON M5G 2C3"
-        },
-        {
-          ocifId: "RP-G",
-          profileName: "Role Player G",
-          legalHoldStatus: "N/A",
-          holdName: "",
-          lifecycle: "Active Customer",
-          role: "Authorized Signatory of ABC Ltd.",
-          address: "33 Dundas St W, Toronto, ON M5G 2C3"
-        },
-        // ... add more role players as needed
-        {
-          ocifId: "ABC-Ltd",
-          profileName: "ABC Ltd.",
-          legalHoldStatus: "N/A",
-          holdName: "",
-          lifecycle: "Active Customer",
-          role: "Owner",
-          address: "33 Dundas St W, Toronto, ON M5G 2C3"
-        }
-      ]
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
+    },
+    {
+      path: ['Corp 5', 'Role Player F'],
+      ocifId: "RP-F",
+      profileName: "Role Player F",
+      legalHoldStatus: "N/A",
+      holdName: "",
+      lifecycle: "Active Customer",
+      role: "Authorized Signatory of ABC Ltd.",
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
+    },
+    {
+      path: ['Corp 5', 'Role Player G'],
+      ocifId: "RP-G",
+      profileName: "Role Player G",
+      legalHoldStatus: "N/A",
+      holdName: "",
+      lifecycle: "Active Customer",
+      role: "Authorized Signatory of ABC Ltd.",
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
+    },
+    {
+      path: ['Corp 5', 'Role Player D'],
+      ocifId: "RP-D",
+      profileName: "Role Player D",
+      legalHoldStatus: "N/A",
+      holdName: "",
+      lifecycle: "Active Customer",
+      role: "Authorized Signatory of ABC Ltd.",
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
+    },
+    {
+      path: ['Corp 5', 'Role Player E'],
+      ocifId: "RP-E",
+      profileName: "Role Player E",
+      legalHoldStatus: "N/A",
+      holdName: "",
+      lifecycle: "Active Customer",
+      role: "Authorized Signatory of ABC Ltd.",
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
+    },
+    {
+      path: ['Corp 5', 'ABC Ltd.'],
+      ocifId: "ABC-Ltd",
+      profileName: "ABC Ltd.",
+      legalHoldStatus: "N/A",
+      holdName: "",
+      lifecycle: "Active Customer",
+      role: "Owner",
+      address: "33 Dundas St W, Toronto, ON M5G 2C3"
     }
+    // Add more rows following the same pattern
   ];
 
   columnDefs: ColDef[] = [
@@ -260,10 +282,10 @@ export class EntityLegalHoldGridComponent {
 
   gridOptions: GridOptions = {
     treeData: true,
-    treeDataChildrenField: 'children',
-    getRowId: params => params.data.ocifId,
+    getDataPath: (data: any) => data.path, // ← Required for path-based tree data
 
-    // Correct rowSelection configuration for AG Grid 32.3.9
+    getRowId: (params) => params.data.ocifId,
+
     rowSelection: {
       mode: 'multiRow',
       groupSelects: 'descendants',
@@ -277,10 +299,10 @@ export class EntityLegalHoldGridComponent {
 
     icons: {
       treeClosed: '<span class="text-gray-700 text-xl">▼</span>',
-      treeOpen:  '<span class="text-gray-700 text-xl">▲</span>'
+      treeOpen: '<span class="text-gray-700 text-xl">▲</span>'
     },
 
-    onGridReady: params => {
+    onGridReady: (params) => {
       this.gridApi = params.api;
       params.api.sizeColumnsToFit();
     }
@@ -290,4 +312,3 @@ export class EntityLegalHoldGridComponent {
     this.gridApi = params.api;
   }
 }
-
