@@ -25,6 +25,7 @@ interface ResultsGridInputNode {
   address: string;
   isParent?: boolean;
   isExpanded?: boolean;
+  isHighlighted?: boolean;
   children?: ResultsGridInputNode[];
 }
 
@@ -41,6 +42,7 @@ interface ResultsGridNode {
   address: string;
   isParent: boolean;
   isExpanded: boolean;
+  isHighlighted: boolean;
   level: number;
   parentId: string | null;
   rootId: string;
@@ -143,8 +145,12 @@ export class ResultsGridComponent implements OnInit {
 
     const classes: string[] = [];
 
-    if (params.data.isParent && params.data.isExpanded) {
-      classes.push('blue-sandwich-parent');
+    if (params.data.isParent) {
+      classes.push('is-parent-row');
+    }
+
+    if (params.data.isHighlighted) {
+      classes.push('figma-highlight-row');
     }
 
     if (params.data.level > 0) {
@@ -330,7 +336,7 @@ export class ResultsGridComponent implements OnInit {
       .join('');
 
     const chevron = row.isParent
-      ? `<span class="bmo-thin-carrot ${row.isExpanded ? 'up' : 'down'}" data-action="toggle-expand"></span>`
+      ? `<span class="bmo-thin-carrot ${row.isExpanded ? 'down' : 'up'}" data-action="toggle-expand"></span>`
       : '<span class="bmo-thin-carrot-spacer"></span>';
 
     return `
@@ -480,6 +486,7 @@ export class ResultsGridComponent implements OnInit {
         address: sourceNode.address,
         isParent: Boolean(sourceNode.isParent),
         isExpanded: Boolean(sourceNode.isExpanded),
+        isHighlighted: Boolean(sourceNode.isHighlighted),
         level,
         parentId,
         rootId: rootId ?? sourceNode.id,
@@ -533,7 +540,30 @@ export class ResultsGridComponent implements OnInit {
         role: 'Owner',
         address: commonAddress,
         isParent: true,
-        isExpanded: true,
+        isExpanded: false,
+        isHighlighted: true,
+        children: [
+          {
+            id: 'corp-2-role-h1',
+            profileName: 'Role Player H1',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: commonAddress,
+          },
+          {
+            id: 'corp-2-role-h2',
+            profileName: 'Role Player H2',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: commonAddress,
+          },
+        ],
       },
       {
         id: 'corp-3',
@@ -545,7 +575,20 @@ export class ResultsGridComponent implements OnInit {
         role: 'Owner',
         address: commonAddress,
         isParent: true,
-        isExpanded: true,
+        isExpanded: false,
+        isHighlighted: true,
+        children: [
+          {
+            id: 'corp-3-role-h1',
+            profileName: 'Role Player H1',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: commonAddress,
+          },
+        ],
       },
       {
         id: 'corp-4',
@@ -558,46 +601,9 @@ export class ResultsGridComponent implements OnInit {
         address: commonAddress,
         isParent: true,
         isExpanded: true,
-      },
-      {
-        id: 'corp-5',
-        profileName: 'Corp 5',
-        ocifId: '1000-12345',
-        legalHoldStatus: 'LEGAL HOLD',
-        holdName: 'legalhold_name_123',
-        lifecycle: 'Active Customer',
-        role: 'Owner',
-        address: commonAddress,
-        isParent: true,
-        isExpanded: true,
         children: [
           {
-            id: 'corp-5-role-f',
-            profileName: 'Role Player F',
-            ocifId: '1000-12345',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory of ABC Ltd.',
-            address: commonAddress,
-            isParent: true,
-            isExpanded: true,
-            children: [
-              {
-                id: 'corp-5-role-f-l2',
-                profileName: 'Role Player F - Level 2',
-                ocifId: '1000-12345',
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Owner of F Sub Entity',
-                address: commonAddress,
-              },
-            ],
-          },
-          this.buildDeepNestedBranch(8, commonAddress),
-          {
-            id: 'corp-5-role-d',
+            id: 'corp-4-role-d',
             profileName: 'Role Player D',
             ocifId: '1000-12345',
             legalHoldStatus: 'N/A',
@@ -607,7 +613,7 @@ export class ResultsGridComponent implements OnInit {
             address: commonAddress,
           },
           {
-            id: 'corp-5-role-e',
+            id: 'corp-4-role-e',
             profileName: 'Role Player E',
             ocifId: '1000-12345',
             legalHoldStatus: 'N/A',
@@ -617,7 +623,7 @@ export class ResultsGridComponent implements OnInit {
             address: commonAddress,
           },
           {
-            id: 'corp-5-role-a',
+            id: 'corp-4-role-a',
             profileName: 'Role Player A',
             ocifId: '1000-12345',
             legalHoldStatus: 'N/A',
@@ -627,7 +633,7 @@ export class ResultsGridComponent implements OnInit {
             address: commonAddress,
           },
           {
-            id: 'corp-5-role-b',
+            id: 'corp-4-role-b',
             profileName: 'Role Player B',
             ocifId: '1000-12345',
             legalHoldStatus: 'N/A',
@@ -637,7 +643,7 @@ export class ResultsGridComponent implements OnInit {
             address: commonAddress,
           },
           {
-            id: 'corp-5-role-c',
+            id: 'corp-4-role-c',
             profileName: 'Role Player C',
             ocifId: '1000-12345',
             legalHoldStatus: 'N/A',
@@ -648,13 +654,43 @@ export class ResultsGridComponent implements OnInit {
           },
         ],
       },
+      {
+        id: 'abc-ltd',
+        profileName: 'ABC Ltd.',
+        ocifId: '1000-12345',
+        legalHoldStatus: 'N/A',
+        holdName: '',
+        lifecycle: 'Active Customer',
+        role: 'Owner',
+        address: commonAddress,
+        isParent: true,
+        isExpanded: true,
+        children: [
+          {
+            id: 'abc-ltd-r1',
+            profileName: 'ABC Branch 1',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: commonAddress,
+          },
+          this.buildDeepNestedBranch('abc-ltd-r2', 'ABC Branch 2', 10, commonAddress),
+        ],
+      },
     ];
   }
 
-  private buildDeepNestedBranch(depth: number, commonAddress: string): ResultsGridInputNode {
+  private buildDeepNestedBranch(
+    baseId: string,
+    baseName: string,
+    depth: number,
+    commonAddress: string
+  ): ResultsGridInputNode {
     const root: ResultsGridInputNode = {
-      id: 'corp-5-role-g',
-      profileName: 'Role Player G',
+      id: baseId,
+      profileName: baseName,
       ocifId: '1000-12345',
       legalHoldStatus: 'N/A',
       holdName: '',
@@ -662,15 +698,15 @@ export class ResultsGridComponent implements OnInit {
       role: 'Authorized Signatory of ABC Ltd.',
       address: commonAddress,
       isParent: true,
-      isExpanded: true,
+      isExpanded: false,
       children: [],
     };
 
     let cursor = root;
     for (let level = 2; level <= depth; level += 1) {
       const child: ResultsGridInputNode = {
-        id: `corp-5-role-g-l${level}`,
-        profileName: `Role Player G - Level ${level}`,
+        id: `${baseId}-l${level}`,
+        profileName: `${baseName} - Level ${level}`,
         ocifId: '1000-12345',
         legalHoldStatus: 'N/A',
         holdName: '',

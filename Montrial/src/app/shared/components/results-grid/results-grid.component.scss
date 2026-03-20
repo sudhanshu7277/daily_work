@@ -142,13 +142,12 @@
     background-color: #dcecff !important;
   }
 
-  .ag-row.blue-sandwich-parent {
+  .ag-row.figma-highlight-row .ag-cell {
     background-color: #e8f4fd !important;
-    border-top: 2px solid #004c97 !important;
+  }
 
-    .ag-cell {
-      background-color: #e8f4fd !important;
-    }
+  .ag-row.is-parent-row .ag-cell {
+    font-weight: 400;
   }
 
   .ag-row.is-child-row {
@@ -166,13 +165,18 @@
         top: -12px;
         bottom: -12px;
         width: 1px;
-        background-color: #e0e6ee;
+        background-color: #dfe6ef;
       }
     }
   }
 
   .ag-row.sandwich-bottom-border {
-    border-bottom: 2px solid #004c97 !important;
+    border-bottom: 2px solid #003b7a !important;
+  }
+
+  .ag-cell[col-id='profileName'],
+  .ag-header-cell[col-id='profileName'] {
+    border-right: 1px solid #d9dde3 !important;
   }
 }
 
@@ -206,6 +210,7 @@
 
   &.down {
     transform: rotate(135deg);
+    margin-top: -2px;
   }
 
   &.up {

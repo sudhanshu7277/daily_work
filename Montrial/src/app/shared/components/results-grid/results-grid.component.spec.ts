@@ -23,7 +23,7 @@ describe('ResultsGridComponent', () => {
   it('should initialize with nested mock rows', () => {
     expect(component.rowData.length).toBeGreaterThan(0);
     expect(component.rowData.some((row) => row.level > 0)).toBeTrue();
-    expect(Math.max(...component.rowData.map((row) => row.level))).toBeGreaterThanOrEqual(4);
+    expect(component['nodeById'].get('abc-ltd-r2-l10')?.level).toBe(10);
   });
 
   it('should clear all selected rows when deselectRows is called', () => {
@@ -38,7 +38,7 @@ describe('ResultsGridComponent', () => {
   });
 
   it('should select a full cluster when a parent is selected', () => {
-    const parentId = 'corp-5';
+    const parentId = 'corp-4';
     component['updateClusterSelection'](parentId, true);
 
     const descendants = component['descendantsById'].get(parentId) as string[];
@@ -49,7 +49,7 @@ describe('ResultsGridComponent', () => {
   });
 
   it('should auto-select parent when all descendants are selected', () => {
-    const parentId = 'corp-5';
+    const parentId = 'corp-4';
     const descendants = component['descendantsById'].get(parentId) as string[];
     const selectedIds = component['selectedIds'] as Set<string>;
 
