@@ -55,4 +55,12 @@ export class SelectionPanelComponent {
     console.log('Confirmed:', this.holdName);
     this.closeModal();
   }
+
+  onRelease() {
+    console.log('Release selected rows:', this.selectedRows);
+  }
+
+  onApply() {
+    console.log('Apply selected rows:', this.selectedRows);
+  }
 }

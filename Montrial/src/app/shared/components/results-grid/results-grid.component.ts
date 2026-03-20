@@ -1,496 +1,742 @@
-import { Component, EventEmitter, Output, OnInit, ChangeDetectorRef, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Component, EventEmitter, OnInit, Output, ViewEncapsulation } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AgGridAngular } from 'ag-grid-angular';
-import { GridApi, GridReadyEvent, ColDef, RowClassRules } from 'ag-grid-community';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { TranslateModule } from '@ngx-translate/core';
-import { LegalHoldDataService } from '../../services/legal-hold-data.service';
+import {
+  CellClickedEvent,
+  ColDef,
+  GetRowIdParams,
+  GridApi,
+  GridReadyEvent,
+  ICellRendererParams,
+  RowClassParams,
+  RowSelectedEvent,
+} from 'ag-grid-community';
+
+interface HierarchyNode {
+  id: string;
+  profileName: string;
+  ocifId: string;
+  legalHoldStatus: 'LEGAL HOLD' | 'N/A';
+  holdName: string;
+  lifecycle: string;
+  role: string;
+  address: string;
+  children?: HierarchyNode[];
+}
+
+interface ResultsGridRow {
+  id: string;
+  parentId: string | null;
+  rootId: string;
+  depth: number;
+  hasChildren: boolean;
+  isExpanded: boolean;
+  profileName: string;
+  legalName: string;
+  ocifId: string;
+  legalHoldStatus: 'LEGAL HOLD' | 'N/A';
+  status: 'LEGAL HOLD' | 'N/A';
+  holdName: string;
+  lifecycle: string;
+  role: string;
+  address: string;
+}
+
+interface GridFilterOption {
+  id: string;
+  label: string;
+}
 
 @Component({
   selector: 'app-results-grid',
   standalone: true,
-  imports: [
-    CommonModule, FormsModule, ReactiveFormsModule, AgGridAngular, 
-    MatFormFieldModule, MatSelectModule, MatIconModule, MatButtonModule, TranslateModule
-  ],
+  imports: [CommonModule, FormsModule, AgGridAngular],
   templateUrl: './results-grid.component.html',
   styleUrls: ['./results-grid.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
 })
 export class ResultsGridComponent implements OnInit {
-  @Output() selectionChanged = new EventEmitter<any[]>();
-  
-  private gridApi!: GridApi;
-  public rowData: any[] = [];
-  public showChipsSection = false;
-  public selectedFilterIds: string[] = [];
+  @Output() selectionChanged = new EventEmitter<ResultsGridRow[]>();
 
-  public filterOptions = [
-    { id: 'ocifId', label: 'OCIF / Proxy ID' },
-    { id: 'status', label: 'Legal Hold Status' },
+  public rowData: ResultsGridRow[] = [];
+  public readonly rowSelection: 'multiple' = 'multiple';
+  public pendingColumnToShow = '';
+
+  public readonly filterOptions: GridFilterOption[] = [
+    { id: 'profileName', label: 'Profile Name' },
+    { id: 'ocifId', label: 'Proxy OCIF ID' },
+    { id: 'legalHoldStatus', label: 'Legal Hold Status' },
     { id: 'holdName', label: 'Legal Hold Name' },
     { id: 'lifecycle', label: 'Customer Lifecycle Status' },
     { id: 'role', label: 'Role Type' },
-    { id: 'address', label: 'Address' }
+    { id: 'address', label: 'Address' },
   ];
 
-  // Restoring Row Class Rules for styling parent/child rows dynamically
-  public rowClassRules: RowClassRules = {
-    'grid-parent-row': (params) => params.data.isParent === true,
-    'grid-child-row': (params) => params.data.isChild === true,
+  public visibleColumnIds = this.filterOptions.map((option) => option.id);
+
+  public readonly defaultColDef: ColDef<ResultsGridRow> = {
+    sortable: true,
+    resizable: true,
+    suppressHeaderMenuButton: true,
   };
 
-  constructor(
-    private legalHoldDataService: LegalHoldDataService, 
-    private cdr: ChangeDetectorRef
-  ) {
-    this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
+  public readonly columnDefs: ColDef<ResultsGridRow>[] = [
+    {
+      colId: 'select',
+      headerName: '',
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      pinned: 'left',
+      lockPinned: true,
+      lockPosition: true,
+      width: 52,
+      minWidth: 52,
+      maxWidth: 52,
+      sortable: false,
+      resizable: false,
+      suppressMovable: true,
+    },
+    {
+      colId: 'profileName',
+      field: 'profileName',
+      headerName: 'Profile Name',
+      minWidth: 230,
+      flex: 1.5,
+      suppressMovable: true,
+      unSortIcon: true,
+      cellRenderer: (params: ICellRendererParams<ResultsGridRow>) =>
+        this.renderProfileCell(params.data),
+    },
+    {
+      colId: 'ocifId',
+      field: 'ocifId',
+      headerName: 'Proxy OCIF ID',
+      minWidth: 150,
+      flex: 1,
+      suppressMovable: true,
+    },
+    {
+      colId: 'legalHoldStatus',
+      field: 'legalHoldStatus',
+      headerName: 'Legal Hold Status',
+      minWidth: 170,
+      flex: 1,
+      suppressMovable: true,
+      unSortIcon: true,
+      cellRenderer: (params: ICellRendererParams<ResultsGridRow, ResultsGridRow['legalHoldStatus']>) => {
+        if (params.value === 'LEGAL HOLD') {
+          return '<span class="rg-status-pill">LEGAL HOLD</span>';
+        }
+
+        return '<span class="rg-status-na">N/A</span>';
+      },
+    },
+    {
+      colId: 'holdName',
+      field: 'holdName',
+      headerName: 'Legal Hold Name',
+      minWidth: 170,
+      flex: 1.2,
+      suppressMovable: true,
+    },
+    {
+      colId: 'lifecycle',
+      field: 'lifecycle',
+      headerName: 'Customer Lifecycle Status',
+      minWidth: 190,
+      flex: 1.2,
+      suppressMovable: true,
+    },
+    {
+      colId: 'role',
+      field: 'role',
+      headerName: 'Role Type',
+      minWidth: 210,
+      flex: 1.4,
+      suppressMovable: true,
+    },
+    {
+      colId: 'address',
+      field: 'address',
+      headerName: 'Address',
+      minWidth: 220,
+      flex: 1.4,
+      suppressMovable: true,
+      cellClass: 'rg-address-cell',
+    },
+  ];
+
+  public readonly getRowClass = (params: RowClassParams<ResultsGridRow>): string =>
+    params.data?.hasChildren ? 'rg-parent-row' : 'rg-child-row';
+
+  public readonly getRowId = (params: GetRowIdParams<ResultsGridRow>): string => params.data.id;
+
+  private gridApi?: GridApi<ResultsGridRow>;
+  private sourceTree: HierarchyNode[] = [];
+  private readonly rowById = new Map<string, ResultsGridRow>();
+  private readonly orderById = new Map<string, number>();
+  private readonly parentById = new Map<string, string | null>();
+  private readonly descendantsById = new Map<string, string[]>();
+  private readonly childIdsById = new Map<string, string[]>();
+  private readonly selectedIds = new Set<string>();
+  private expandedIds = new Set<string>();
+  private isSyncingSelection = false;
+  private displayOrder = 0;
+
+  public ngOnInit(): void {
+    this.performSearch({});
   }
 
-  ngOnInit(): void {}
-
-  get activeFilters() {
-    return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
-  }
-
-// results-grid.component.ts
-public columnDefs: ColDef[] = [
-  { 
-    headerName: '', 
-    checkboxSelection: true, 
-    width: 50, 
-    pinned: 'left', 
-    headerCheckboxSelection: true 
-  },
-  { 
-    field: 'legalName', 
-    headerName: 'Profile Name', 
-    sortable: true, 
-    unSortIcon: true, // Required for the up/down arrows in Figma
-    width: 300,
-    pinned: 'left',
-    headerClass: 'profile-name-header',
-    cellClass: 'profile-name-cell'
-  },
-  { field: 'ocifId', headerName: 'OCIF / Proxy ID', width: 150 },
-  { 
-    field: 'status', 
-    headerName: 'Legal Hold Status', 
-    sortable: true, 
-    unSortIcon: true, // Required for sorting arrows
-    width: 180,
-    cellRenderer: (params: any) => {
-      return params.value === 'LEGAL HOLD' 
-        ? `<div class="status-pill-blue">LEGAL HOLD</div>` 
-        : 'N/A';
-    }
-  },
-  { field: 'holdName', headerName: 'Legal Hold Name', width: 200 },
-  { field: 'lifecycle', headerName: 'Customer Lifecycle Status', width: 200 },
-  { field: 'role', headerName: 'Role Type', width: 150 },
-  { 
-    field: 'address', 
-    headerName: 'Address', 
-    flex: 1 // This forces the grid to occupy 100% of the UI width
-  }
-];
-
-  onGridReady(params: GridReadyEvent) {
-    this.gridApi = params.api;
+  public onGridReady(event: GridReadyEvent<ResultsGridRow>): void {
+    this.gridApi = event.api;
+    this.applyColumnVisibility();
+    this.gridApi.setGridOption('rowData', this.rowData);
+    this.syncVisibleSelection();
     this.gridApi.sizeColumnsToFit();
   }
 
-  public onFilterChange() {
-    this.filterOptions.forEach(opt => {
-      this.gridApi.setColumnVisible(opt.id, this.selectedFilterIds.includes(opt.id));
-    });
-    setTimeout(() => this.gridApi.sizeColumnsToFit());
+  public onCellClicked(event: CellClickedEvent<ResultsGridRow>): void {
+    if (!event.data) {
+      return;
+    }
+
+    const target = event.event?.target as HTMLElement | null;
+    const isExpandToggle = Boolean(target?.closest('[data-action="toggle-expand"]'));
+
+    if (isExpandToggle) {
+      this.toggleRowExpansion(event.data.id);
+      return;
+    }
+
+    if (event.colDef.colId === 'select') {
+      return;
+    }
+
+    event.node.setSelected(!event.node.isSelected());
   }
 
-  public removeFilter(id: string) {
-    this.selectedFilterIds = this.selectedFilterIds.filter(fId => fId !== id);
-    this.onFilterChange();
+  public onRowSelected(event: RowSelectedEvent<ResultsGridRow>): void {
+    if (this.isSyncingSelection || !event.data) {
+      return;
+    }
+
+    this.isSyncingSelection = true;
+
+    try {
+      this.updateSelectionState(event.data.id, Boolean(event.node.isSelected()));
+      this.syncVisibleSelection();
+      this.emitSelectionAndLog();
+    } finally {
+      this.isSyncingSelection = false;
+    }
   }
 
-  public performSearch(criteria: any): void {
-    this.rowData = this.legalHoldDataService.postApiSearchResult(criteria);
-    this.showChipsSection = this.rowData.length > 0;
-    this.cdr.detectChanges();
+  public performSearch(_criteria: unknown): void {
+    this.sourceTree = this.buildMockTree();
+    this.rebuildIndexes();
+    this.expandedIds = new Set(['corp-5', 'corp-5-role-f', 'corp-5-role-g']);
+    this.selectedIds.clear();
+    this.refreshVisibleRows();
+    this.emitSelectionAndLog();
   }
 
-  public deselectRow(item: any): void {
-    this.gridApi.forEachNode(node => {
-      if (node.data.ocifId === item.ocifId) node.setSelected(false);
-    });
+  public deselectRow(item: Partial<ResultsGridRow>): void {
+    const rowId = this.resolveRowId(item);
+
+    if (!rowId) {
+      return;
+    }
+
+    this.isSyncingSelection = true;
+
+    try {
+      this.updateSelectionState(rowId, false);
+      this.syncVisibleSelection();
+      this.emitSelectionAndLog();
+    } finally {
+      this.isSyncingSelection = false;
+    }
   }
 
-  // on selection changed function start
-  // results-grid.component.ts
+  public deselectRows(ids: string[]): void {
+    this.isSyncingSelection = true;
 
-public selectedRowsData: any[] = []; // Your full background payload (Parents + Children)
-public displayRowsForPanel: any[] = []; // Only Parents for the UI Selection Panel
-private selectionInProgress = false; // The mutex flag to prevent the lag/loop
-
-onSelectionChanged() {
-  if (this.selectionInProgress || !this.gridApi) return;
-  this.selectionInProgress = true;
-
-  try {
-    const selectedNodes = this.gridApi.getSelectedNodes();
-    
-    // Sync Children with Parents state
-    this.gridApi.forEachNode((node: any) => {
-      if (node.data && node.data.isParent) {
-        const parentIsSelected = node.isSelected();
-        const children = node.allLeafChildren || [];
-        
-        if (children.length > 0) {
-          children.forEach((childNode: any) => {
-            // Update child only if it doesn't match parent
-            // The 'true' at the end stops the 5-10 second lag
-            if (childNode.isSelected() !== parentIsSelected) {
-              childNode.setSelected(parentIsSelected, false, true);
-            }
-          });
+    try {
+      ids.forEach((id) => {
+        if (this.rowById.has(id)) {
+          this.updateSelectionState(id, false);
         }
+      });
+      this.syncVisibleSelection();
+      this.emitSelectionAndLog();
+    } finally {
+      this.isSyncingSelection = false;
+    }
+  }
+
+  public addPendingFilter(): void {
+    const selectedFilter = this.pendingColumnToShow;
+
+    if (!selectedFilter) {
+      return;
+    }
+
+    if (!this.visibleColumnIds.includes(selectedFilter)) {
+      this.visibleColumnIds = [...this.visibleColumnIds, selectedFilter];
+      this.applyColumnVisibility();
+    }
+
+    this.pendingColumnToShow = '';
+  }
+
+  public removeFilter(columnId: string): void {
+    this.visibleColumnIds = this.visibleColumnIds.filter((id) => id !== columnId);
+    this.applyColumnVisibility();
+  }
+
+  public resetFilters(): void {
+    this.visibleColumnIds = this.filterOptions.map((option) => option.id);
+    this.pendingColumnToShow = '';
+    this.applyColumnVisibility();
+  }
+
+  public get activeFilters(): GridFilterOption[] {
+    return this.filterOptions.filter((option) => this.visibleColumnIds.includes(option.id));
+  }
+
+  public get hiddenFilters(): GridFilterOption[] {
+    return this.filterOptions.filter((option) => !this.visibleColumnIds.includes(option.id));
+  }
+
+  private renderProfileCell(row: ResultsGridRow | undefined): string {
+    if (!row) {
+      return '';
+    }
+
+    const indent = row.depth * 24;
+    const toggleMarkup = row.hasChildren
+      ? `<button class="rg-chevron ${row.isExpanded ? 'expanded' : 'collapsed'}" data-action="toggle-expand" aria-label="${row.isExpanded ? 'Collapse row' : 'Expand row'}"></button>`
+      : '<span class="rg-chevron-spacer"></span>';
+
+    return `
+      <div class="rg-profile-cell" style="--rg-indent:${indent}px">
+        ${toggleMarkup}
+        <span class="rg-profile-name">${this.escapeHtml(row.profileName)}</span>
+      </div>
+    `;
+  }
+
+  private toggleRowExpansion(rowId: string): void {
+    const childIds = this.childIdsById.get(rowId) ?? [];
+
+    if (childIds.length === 0) {
+      return;
+    }
+
+    if (this.expandedIds.has(rowId)) {
+      this.expandedIds.delete(rowId);
+    } else {
+      this.expandedIds.add(rowId);
+    }
+
+    this.refreshVisibleRows();
+  }
+
+  private refreshVisibleRows(): void {
+    this.rowData = this.buildVisibleRows();
+
+    if (!this.gridApi) {
+      return;
+    }
+
+    this.gridApi.setGridOption('rowData', this.rowData);
+    queueMicrotask(() => this.syncVisibleSelection());
+  }
+
+  private buildVisibleRows(): ResultsGridRow[] {
+    const visibleRows: ResultsGridRow[] = [];
+
+    const walk = (nodes: HierarchyNode[]): void => {
+      nodes.forEach((node) => {
+        const row = this.rowById.get(node.id);
+
+        if (!row) {
+          return;
+        }
+
+        visibleRows.push({
+          ...row,
+          isExpanded: this.expandedIds.has(node.id),
+        });
+
+        if (row.hasChildren && this.expandedIds.has(node.id) && node.children?.length) {
+          walk(node.children);
+        }
+      });
+    };
+
+    walk(this.sourceTree);
+
+    return visibleRows;
+  }
+
+  private rebuildIndexes(): void {
+    this.rowById.clear();
+    this.orderById.clear();
+    this.parentById.clear();
+    this.descendantsById.clear();
+    this.childIdsById.clear();
+    this.displayOrder = 0;
+
+    this.sourceTree.forEach((rootNode) => {
+      this.indexNode(rootNode, null, rootNode.id, 0);
+    });
+  }
+
+  private indexNode(
+    node: HierarchyNode,
+    parentId: string | null,
+    rootId: string,
+    depth: number
+  ): string[] {
+    const children = node.children ?? [];
+    const childIds: string[] = [];
+    const descendants: string[] = [];
+
+    const row: ResultsGridRow = {
+      id: node.id,
+      parentId,
+      rootId,
+      depth,
+      hasChildren: children.length > 0,
+      isExpanded: false,
+      profileName: node.profileName,
+      legalName: node.profileName,
+      ocifId: node.ocifId,
+      legalHoldStatus: node.legalHoldStatus,
+      status: node.legalHoldStatus,
+      holdName: node.holdName,
+      lifecycle: node.lifecycle,
+      role: node.role,
+      address: node.address,
+    };
+
+    this.rowById.set(node.id, row);
+    this.parentById.set(node.id, parentId);
+    this.orderById.set(node.id, this.displayOrder);
+    this.displayOrder += 1;
+
+    children.forEach((child) => {
+      childIds.push(child.id);
+      const nestedDescendants = this.indexNode(child, node.id, rootId, depth + 1);
+      descendants.push(child.id, ...nestedDescendants);
+    });
+
+    this.childIdsById.set(node.id, childIds);
+    this.descendantsById.set(node.id, descendants);
+
+    return descendants;
+  }
+
+  private updateSelectionState(rowId: string, isSelected: boolean): void {
+    if (isSelected) {
+      this.selectedIds.add(rowId);
+    } else {
+      this.selectedIds.delete(rowId);
+    }
+
+    const descendants = this.descendantsById.get(rowId) ?? [];
+    descendants.forEach((descendantId) => {
+      if (isSelected) {
+        this.selectedIds.add(descendantId);
+      } else {
+        this.selectedIds.delete(descendantId);
       }
     });
 
-    // Finalize the two different data sets
-    const finalSelectedNodes = this.gridApi.getSelectedNodes();
-    const allSelectedData = finalSelectedNodes.map(node => node.data);
-
-    // 1. Full payload for API/Background
-    this.selectedRowsData = allSelectedData;
-
-    // 2. Filtered list for the UI Selection Panel (Parents Only)
-    this.displayRowsForPanel = allSelectedData.filter(data => data && data.isParent);
-
-    // Emit the Panel Data to your parent component
-    this.selectionChanged.emit(this.displayRowsForPanel);
-
-  } catch (error) {
-    console.error("Selection sync failed:", error);
-  } finally {
-    this.selectionInProgress = false;
+    this.syncAncestorSelection(rowId);
   }
-}
 
+  private syncAncestorSelection(startingRowId: string): void {
+    let parentId = this.parentById.get(startingRowId) ?? null;
 
-// on selection changed function end
+    while (parentId) {
+      const descendantIds = this.descendantsById.get(parentId) ?? [];
+      const allDescendantsSelected =
+        descendantIds.length > 0 &&
+        descendantIds.every((descendantId) => this.selectedIds.has(descendantId));
 
-  private toggleExpand(row: any) {
-    row.isExpanded = !row.isExpanded;
-    if (row.isExpanded) {
-      const idx = this.rowData.findIndex(r => r.ocifId === row.ocifId);
-      this.rowData.splice(idx + 1, 0, ...row.children);
-    } else {
-      const childIds = row.children.map((c: any) => c.ocifId);
-      this.rowData = this.rowData.filter(r => !childIds.includes(r.ocifId));
-    }
-    this.rowData = [...this.rowData];
-  }
-}
+      if (allDescendantsSelected) {
+        this.selectedIds.add(parentId);
+      } else {
+        this.selectedIds.delete(parentId);
+      }
 
-
-// GROUPING CODE START
-
-// results-grid.component.ts
-
-// Updated getRowClass to use our new manual tags
-// public getRowClass = (params: any) => {
-//   const classes = [];
-  
-//   if (params.data?.isActiveParent) {
-//     classes.push('figma-parent-expanded');
-//   }
-  
-//   if (params.data?.isGroupChild) {
-//     classes.push('figma-child-row');
-//   }
-
-//   return classes.join(' ');
-// };
-
-onRowGroupOpened(params: any) {
-  const rowNode = params.node;
-  const isExpanded = rowNode.expanded;
-
-  // 1. Get the actual HTML element for the parent row
-  const parentElement = params.api.getRowElement(rowNode.rowIndex);
-  
-  if (parentElement) {
-    if (isExpanded) {
-      // FORCE the Figma Parent look
-      parentElement.style.backgroundColor = '#E8F4FD';
-      parentElement.style.borderTop = '2px solid #004c97';
-      parentElement.classList.add('is-sandwich-parent');
-    } else {
-      // Remove styles when closed
-      parentElement.style.backgroundColor = '';
-      parentElement.style.borderTop = '';
-      parentElement.classList.remove('is-sandwich-parent');
+      parentId = this.parentById.get(parentId) ?? null;
     }
   }
 
-  // 2. Handle Children Indentation (Direct DOM manipulation)
-  // We use a tiny timeout to ensure AG Grid has finished rendering the children
-  setTimeout(() => {
-    if (isExpanded && rowNode.allLeafChildren) {
-      rowNode.allLeafChildren.forEach((childNode: any) => {
-        const childElement = params.api.getRowElement(childNode.rowIndex);
-        if (childElement) {
-          childElement.style.backgroundColor = '#ffffff';
-          // Find the cell wrapper and push it right
-          const wrapper = childElement.querySelector('.ag-cell-wrapper') as HTMLElement;
-          if (wrapper) {
-            wrapper.style.paddingLeft = '48px';
-          }
-        }
-      });
+  private syncVisibleSelection(): void {
+    if (!this.gridApi) {
+      return;
     }
-  }, 10);
-}
 
-// second onRowGroupOpened function
+    this.gridApi.forEachNode((node) => {
+      const rowId = node.data?.id;
 
-// results-grid.component.ts
+      if (!rowId) {
+        return;
+      }
 
-onRowGroupOpened(params: any) {
-  // 1. Mark the parent data as expanded
-  if (params.node && params.node.data) {
-    params.node.data.isGroupOpen = params.node.expanded;
-  }
+      const shouldBeSelected = this.selectedIds.has(rowId);
 
-  // 2. Use refreshCells instead of redrawRows. 
-  // This updates the CSS classes INSTANTLY without breaking the checkbox 'unselect' event.
-  params.api.refreshCells({
-    rowNodes: [params.node],
-    force: true
-  });
-}
-
-public getRowClass = (params: any) => {
-  const classes = [];
-
-  // 1. Parent "Sandwich" Top
-  if (params.data && params.data.isParent && params.data.isExpanded) {
-    classes.push('blue-sandwich-parent');
-  }
-
-  // 2. Child "Sandwich" Filling
-  if (params.data && params.data.isChild) {
-    classes.push('sandwich-child-row');
-
-    // 3. Logic for the "Sandwich" Bottom Border
-    // We check if the NEXT row is either missing or is a new Parent
-    const rowIndex = params.node.rowIndex;
-    const nextNode = params.api.getDisplayedRowAtIndex(rowIndex + 1);
-    
-    // If there's no next node, or the next node belongs to a different parent
-    if (!nextNode || (nextNode.data && nextNode.data.isParent)) {
-      classes.push('sandwich-bottom-border');
-    }
-  }
-
-  return classes.join(' ');
-};
-
-// end of second onRowGroupOpened
-
-
-// results-grid.component.ts (Line 81)
-onCellClicked: (params: any) => {
-  if (params.data.isParent) {
-    params.data.isExpanded = !params.data.isExpanded;
-    this.toggleRowExpansion(params.data);
-
-    // This triggers the CSS classes immediately
-    params.api.refreshCells({
-      rowNodes: [params.node],
-      force: true
+      if (node.isSelected() !== shouldBeSelected) {
+        node.setSelected(shouldBeSelected, false);
+      }
     });
-    
-    // Optional: Refresh the child nodes too to ensure the bottom border calculates
-    if (params.node.allLeafChildren) {
-       params.api.refreshCells({
-         rowNodes: params.node.allLeafChildren,
-         force: true
-       });
-    }
-  }
-}
-
-
-// GROUPING CODE END
-
-
-// pagination code below html, ts, scss
-
-@if (rowData && rowData.length > 0) {
-  <div class="grid-container-with-footer">
-    <ag-grid-angular
-      style="width: 100%; height: 500px;"
-      class="ag-theme-alpine bmo-grid"
-      [columnDefs]="columnDefs"
-      [rowData]="rowData"
-      [pagination]="true"
-      [paginationPageSize]="pageSize"
-      [suppressPaginationPanel]="true"
-      (gridReady)="onGridReady($event)"
-      (paginationChanged)="onPaginationChanged()">
-    </ag-grid-angular>
-
-    <div class="custom-pagination-bar">
-      <div class="pag-section pag-left">
-        Showing <b>{{totalResults}}</b> results
-      </div>
-
-      <div class="pag-section pag-center">
-        <button class="icon-btn" (click)="prevPage()" [disabled]="currentPage === 1">
-          <mat-icon>chevron_left</mat-icon>
-        </button>
-        
-        <span class="page-text">
-          Page <b>{{currentPage}}</b> of <b>{{totalPages}}</b>
-        </span>
-
-        <button class="icon-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
-          <mat-icon>chevron_right</mat-icon>
-        </button>
-      </div>
-
-      <div class="pag-section pag-right">
-        <span>Rows per page:</span>
-        <select class="page-dropdown" (change)="onPageSizeChange($event)">
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-        </select>
-      </div>
-    </div>
-  </div>
-}
-
-// ts code below
-
-// Properties to track pagination state
-public gridApi: any;
-public totalResults = 0;
-public currentPage = 1;
-public totalPages = 1;
-public pageSize = 10;
-onGridReady(params: any) {
-  this.gridApi = params.api;
-  this.updatePaginationInfo();
-}
-
-onPaginationChanged() {
-  this.updatePaginationInfo();
-}
-
-updatePaginationInfo() {
-  if (this.gridApi) {
-    this.totalResults = this.gridApi.getDisplayedRowCount();
-    this.currentPage = this.gridApi.paginationGetCurrentPage() + 1;
-    this.totalPages = this.gridApi.paginationGetTotalPages() || 1;
-  }
-}
-
-// Navigation Methods
-nextPage() { this.gridApi.paginationGoToNextPage(); }
-prevPage() { this.gridApi.paginationGoToPreviousPage(); }
-
-onPageSizeChange(event: any) {
-  const newSize = Number(event.target.value);
-  this.pageSize = newSize;
-  // Modern API fix for v30+
-  this.gridApi.setGridOption('paginationPageSize', newSize);
-}
-
-// scss code below 
-
-.grid-container-with-footer {
-  border: 1px solid #e2e2e2;
-  background: #fff;
-}
-
-.custom-pagination-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 24px;
-  background-color: #ffffff;
-  border-top: 1px solid #e2e2e2;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
-  color: #333;
-
-  .pag-section {
-    flex: 1;
-    display: flex;
-    align-items: center;
   }
 
-  .pag-left { justify-content: flex-start; }
-  .pag-center { justify-content: center; gap: 16px; }
-  .pag-right { justify-content: flex-end; gap: 8px; }
+  private emitSelectionAndLog(): void {
+    const selectedRows = Array.from(this.selectedIds)
+      .map((id) => this.rowById.get(id))
+      .filter((row): row is ResultsGridRow => Boolean(row))
+      .sort((left, right) => (this.orderById.get(left.id) ?? 0) - (this.orderById.get(right.id) ?? 0))
+      .map((row) => ({ ...row }));
 
-  b { font-weight: 600; }
+    this.selectionChanged.emit(selectedRows);
+    console.log('Results grid selected data:', selectedRows);
+  }
 
-  .icon-btn {
-    background: white;
-    border: 1px solid #dcdcdc;
-    border-radius: 4px;
-    padding: 2px;
-    cursor: pointer;
-    display: flex;
-    color: #007da3; // Theme Blue
-
-    &:disabled {
-      color: #ccc;
-      cursor: not-allowed;
-      border-color: #f2f2f2;
+  private resolveRowId(item: Partial<ResultsGridRow>): string | null {
+    if (item.id && this.rowById.has(item.id)) {
+      return item.id;
     }
 
-    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    const selectedCandidate = Array.from(this.selectedIds).find((selectedId) => {
+      const row = this.rowById.get(selectedId);
+
+      if (!row) {
+        return false;
+      }
+
+      const legalNameMatches = !item.legalName || row.legalName === item.legalName;
+      const profileNameMatches = !item.profileName || row.profileName === item.profileName;
+      const ocifMatches = !item.ocifId || row.ocifId === item.ocifId;
+
+      return legalNameMatches && profileNameMatches && ocifMatches;
+    });
+
+    return selectedCandidate ?? null;
   }
 
-  .page-dropdown {
-    border: none;
-    font-weight: 600;
-    background: transparent;
-    cursor: pointer;
-    outline: none;
-    font-size: 14px;
-    color: #333;
-  }
-}
-
-
-onSelectionChanged() {
-  if (this.selectionInProgress || !this.gridApi) return;
-  this.selectionInProgress = true;
-
-  const selectedNodes = this.gridApi.getSelectedNodes();
-  
-  // Logic: When parent is unselected, unselect children immediately via ID
-  this.gridApi.forEachNode((node: any) => {
-    if (node.data?.isParent && !node.isSelected()) {
-      node.data.children?.forEach((child: any) => {
-        const childNode = this.gridApi.getRowNode(child.ocifId);
-        if (childNode && childNode.isSelected()) {
-          childNode.setSelected(false, false); // No event loop
-        }
-      });
+  private applyColumnVisibility(): void {
+    if (!this.gridApi) {
+      return;
     }
-  });
 
-  this.selectedRowsData = selectedNodes.map(n => n.data);
-  this.selectionInProgress = false;
-  this.selectionChanged.emit(this.selectedRowsData);
+    const visible = new Set(this.visibleColumnIds);
+
+    this.filterOptions.forEach((option) => {
+      this.gridApi?.setColumnsVisible([option.id], visible.has(option.id));
+    });
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  private buildMockTree(): HierarchyNode[] {
+    return [
+      {
+        id: 'corp-2',
+        profileName: 'Corp 2',
+        ocifId: '1000-12345',
+        legalHoldStatus: 'N/A',
+        holdName: '',
+        lifecycle: 'Active Customer',
+        role: 'Owner',
+        address: '33 Dundas St W, Toronto, ON M5G 2C3',
+        children: [
+          {
+            id: 'corp-2-rp-a',
+            profileName: 'Role Player A',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+        ],
+      },
+      {
+        id: 'corp-3',
+        profileName: 'Corp 3',
+        ocifId: '1000-12345',
+        legalHoldStatus: 'LEGAL HOLD',
+        holdName: 'legalhold_name_123',
+        lifecycle: 'Active Customer',
+        role: 'Owner',
+        address: '33 Dundas St W, Toronto, ON M5G 2C3',
+        children: [
+          {
+            id: 'corp-3-rp-a',
+            profileName: 'Role Player A',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+        ],
+      },
+      {
+        id: 'corp-4',
+        profileName: 'Corp 4',
+        ocifId: '1000-12345',
+        legalHoldStatus: 'LEGAL HOLD',
+        holdName: 'legalhold_name_123',
+        lifecycle: 'Active Customer',
+        role: 'Owner',
+        address: '33 Dundas St W, Toronto, ON M5G 2C3',
+        children: [
+          {
+            id: 'corp-4-rp-a',
+            profileName: 'Role Player A',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+        ],
+      },
+      {
+        id: 'corp-5',
+        profileName: 'Corp 5',
+        ocifId: '1000-12345',
+        legalHoldStatus: 'LEGAL HOLD',
+        holdName: 'legalhold_name_123',
+        lifecycle: 'Active Customer',
+        role: 'Owner',
+        address: '33 Dundas St W, Toronto, ON M5G 2C3',
+        children: [
+          {
+            id: 'corp-5-role-f',
+            profileName: 'Role Player F',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            children: [
+              {
+                id: 'corp-5-role-f-l2',
+                profileName: 'Role Player F - Level 2',
+                ocifId: '1000-12345',
+                legalHoldStatus: 'N/A',
+                holdName: '',
+                lifecycle: 'Active Customer',
+                role: 'Owner of F Sub Entity',
+                address: '33 Dundas St W, Toronto, ON M5G 2C3',
+              },
+            ],
+          },
+          {
+            id: 'corp-5-role-g',
+            profileName: 'Role Player G',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+            children: [
+              {
+                id: 'corp-5-role-g-l2',
+                profileName: 'Role Player G - Level 2',
+                ocifId: '1000-12345',
+                legalHoldStatus: 'N/A',
+                holdName: '',
+                lifecycle: 'Active Customer',
+                role: 'Authorized Delegate',
+                address: '33 Dundas St W, Toronto, ON M5G 2C3',
+                children: [
+                  {
+                    id: 'corp-5-role-g-l3',
+                    profileName: 'Role Player G - Level 3',
+                    ocifId: '1000-12345',
+                    legalHoldStatus: 'N/A',
+                    holdName: '',
+                    lifecycle: 'Active Customer',
+                    role: 'Authorized Delegate',
+                    address: '33 Dundas St W, Toronto, ON M5G 2C3',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: 'corp-5-role-d',
+            profileName: 'Role Player D',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+          {
+            id: 'corp-5-role-e',
+            profileName: 'Role Player E',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+          {
+            id: 'corp-5-role-a',
+            profileName: 'Role Player A',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Owner of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+          {
+            id: 'corp-5-role-b',
+            profileName: 'Role Player B',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+          {
+            id: 'corp-5-role-c',
+            profileName: 'Role Player C',
+            ocifId: '1000-12345',
+            legalHoldStatus: 'N/A',
+            holdName: '',
+            lifecycle: 'Active Customer',
+            role: 'Authorized Signatory of ABC Ltd.',
+            address: '33 Dundas St W, Toronto, ON M5G 2C3',
+          },
+        ],
+      },
+    ];
+  }
 }
