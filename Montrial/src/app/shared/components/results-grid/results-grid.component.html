@@ -25,22 +25,29 @@
   </div>
 
   <div class="grid-wrapper">
-    <ag-grid-angular
-      class="ag-theme-alpine bmo-grid"
-      [rowData]="rowData"
-      [columnDefs]="columnDefs"
-      [selectionColumnDef]="selectionColumnDef"
-      [defaultColDef]="defaultColDef"
-      [getRowClass]="getRowClass"
-      [getRowId]="getRowId"
-      [rowSelection]="rowSelection"
-      [rowHeight]="54"
-      [headerHeight]="48"
-      [animateRows]="false"
-      (selectionChanged)="onSelectionChanged()"
-      (rowSelected)="onRowSelected($event)"
-      (cellClicked)="onCellClicked($event)"
-      (gridReady)="onGridReady($event)"
-    ></ag-grid-angular>
+    <div class="grid-card-container">
+  <ag-grid-angular
+    class="ag-theme-alpine bmo-grid"
+    style="width: 100%; height: 100%;"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [getRowId]="getRowId"
+    rowSelection="multiple"
+    [pagination]="true"
+    [paginationPageSize]="pageSize"
+    [suppressPaginationPanel]="true"
+    [suppressRowClickSelection]="true"
+    [rowHeight]="52"
+    [headerHeight]="44"
+    [suppressCellFocus]="true"
+    [animateRows]="false"
+    [getRowClass]="getRowClass"
+    (gridReady)="onGridReady($event)"
+    (selectionChanged)="onSelectionChanged()"
+    (cellClicked)="onCellClicked($event)"
+    (paginationChanged)="onPaginationChanged()">
+  </ag-grid-angular>
+</div>
   </div>
 </div>

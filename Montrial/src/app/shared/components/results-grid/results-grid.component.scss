@@ -1,238 +1,180 @@
-.results-grid-wrapper {
-  border: 1px solid #d9dde3;
-  background: #ffffff;
+// ── Container ─────────────────────────────────────────────────────────────────
+.grid-card-container {
+  width: 100%;
+  height: calc(100vh - 250px);
+  border: 1px solid #d0d5de;
   border-radius: 4px;
+  background: #fff;
   overflow: hidden;
 }
 
-.results-filter-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px 8px;
+// ── All AG Grid overrides scoped to .bmo-grid ─────────────────────────────────
+::ng-deep .ag-theme-alpine.bmo-grid {
 
-  .filter-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1f2b37;
-  }
+  // ── Kill AG Grid defaults that fight us ──────────────────────────────────
+  .ag-root-wrapper                { border: none !important; }
+  .ag-cell-focus                  { outline: none !important; border: none !important; }
+  .ag-row-even, .ag-row-odd       { background-color: inherit !important; }  // no zebra
+  .ag-cell                        { border-right: none !important; }          // no vertical dividers
 
-  .filter-select {
-    height: 32px;
-    min-width: 150px;
-    border: 1px solid #adb9c8;
-    border-radius: 4px;
-    background: #ffffff;
-    font-size: 12px;
-    color: #1f2b37;
-    padding: 0 10px;
-  }
-
-}
-
-.results-showing-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 16px 10px;
-
-  .showing-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #1f2b37;
-    white-space: nowrap;
-  }
-}
-
-.showing-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid #9ca9b8;
-  border-radius: 18px;
-  background: #ffffff;
-  color: #1f2b37;
-  font-size: 12px;
-  padding: 4px 12px;
-
-  button {
-    border: 0;
-    background: transparent;
-    font-size: 13px;
-    color: #1f2b37;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-  }
-}
-
-.reset-btn {
-  border: 0;
-  background: transparent;
-  color: #003b7a;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.2px;
-}
-
-.grid-wrapper {
-  width: 100%;
-}
-
-::ng-deep .bmo-grid {
-  width: 100%;
-  height: 640px;
-  font-family: 'Open Sans', 'Roboto', sans-serif;
-  --ag-font-size: 13px;
-  --ag-row-height: 54px;
-  --ag-header-height: 48px;
-  --ag-border-color: #d9dde3;
-  --ag-row-border-color: #e5e8ec;
-  --ag-header-background-color: #ffffff;
-  --ag-selected-row-background-color: #dcecff;
-  --ag-checkbox-checked-color: #004c97;
-  --ag-checkbox-unchecked-color: #77889b;
-
+  // ── Header ───────────────────────────────────────────────────────────────
   .ag-header {
-    border-top: 2px solid #003b7a;
-    border-bottom: 1px solid #d9dde3;
+    background-color: #f5f6f8 !important;
+    border-bottom: 2px solid #1a2e5a !important;
+    min-height: 44px !important;
   }
-
+  .ag-header-row { height: 44px !important; }
   .ag-header-cell {
-    font-size: 12px;
-    font-weight: 700;
-    color: #14243b;
+    background-color: #f5f6f8 !important;
+    border-right: none !important;
+    padding: 0 12px !important;
   }
+  .ag-header-cell-text {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #1a1a2e !important;
+  }
+  .ag-icon-asc::before,
+  .ag-icon-desc::before { color: #1a4fa0 !important; }
 
+  // ── Row base ─────────────────────────────────────────────────────────────
   .ag-row {
-    border-bottom: 1px solid #e5e8ec !important;
-  }
+    border-top: none !important;
 
-  .ag-row .ag-cell {
-    display: flex;
-    align-items: center;
-    color: #1f2b37;
-  }
-
-  .ag-row.ag-row-selected .ag-cell {
-    background-color: #dcecff !important;
-  }
-
-  .ag-row.figma-highlight-row .ag-cell {
-    background-color: #e8f4fd !important;
-  }
-
-  .ag-row.figma-highlight-row.ag-row-selected .ag-cell {
-    background-color: #d2e8ff !important;
-  }
-
-  .ag-row.is-parent-row .ag-cell {
-    font-weight: 400;
-  }
-
-  .ag-row.is-child-row {
-    background-color: #ffffff !important;
-    .name-cell-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      height: 100%;
-
-      .depth-line {
-        position: absolute;
-        top: -12px;
-        bottom: -12px;
-        width: 1px;
-        background-color: #dfe6ef;
-      }
+    .ag-cell {
+      display: flex !important;
+      align-items: center !important;
+      font-size: 13px;
+      color: #2c3049;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: 1.4;
     }
   }
 
-  .ag-row.sandwich-bottom-border {
-    border-bottom: 2px solid #003b7a !important;
+  // ── ROOT rows — mint-teal wash (Corp 2, 3, 4, 5) ────────────────────────
+  .row-root {
+    background-color: #e9f3f1 !important;
+    border-bottom: 1px solid #c5d5d1 !important;
+    border-top: 2px solid #a8bfb9 !important;   // cluster separator line
+
+    .ag-cell { font-weight: 600; }
+  }
+  .ag-row-first.row-root { border-top: none !important; }  // no top gap on first row
+
+  .row-root:hover { background-color: #dceee9 !important; }
+
+  // ── CHILD rows — light blue bg + thin light grey border ─────────────────
+  //  Figma: Role Player rows are clearly a soft periwinkle-blue, NOT white
+  .row-child {
+    background-color: #eaf1fb !important;   // light blue
+    border-bottom: 1px solid #d4dcea !important;  // thin light grey
+    border-top: none !important;
+
+    .ag-cell { font-weight: 400; }
+  }
+  .row-child:hover { background-color: #dfe8f8 !important; }
+
+  // Deeper nesting — progressively slightly deeper blue shade
+  .row-child-l2 { background-color: #e4edf8 !important; }
+  .row-child-l3 { background-color: #dde8f6 !important; }
+  .row-child-l4 { background-color: #d7e3f4 !important; }
+
+  // ── Selected states ──────────────────────────────────────────────────────
+  .ag-row-selected.row-root  { background-color: #c2dfd8 !important; }
+  .ag-row-selected.row-child { background-color: #c8d9f5 !important; border-bottom: 1px solid #b0c4e8 !important; }
+
+  // ── Profile Name cell ─────────────────────────────────────────────────────
+  .ag-cell[col-id="profileName"] {
+    // cellStyle already handles padding-left for indentation
+    .ag-cell-wrapper {
+      display: flex !important;
+      align-items: center !important;
+      width: 100%;
+      overflow: hidden;
+    }
+    .ag-selection-checkbox {
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
   }
 
-  .ag-cell[col-id='profileName'],
-  .ag-header-cell[col-id='profileName'] {
-    border-right: 1px solid #d9dde3 !important;
+  // Text renderer elements
+  .pn-parent,
+  .pn-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: #1a4fa0;
   }
-}
-
-::ng-deep .name-cell-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 100%;
-}
-
-::ng-deep .profile-text {
-  color: #17324d;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-::ng-deep .bmo-thin-carrot {
-  width: 7px;
-  height: 7px;
-  border-top: 1.5px solid #004c97;
-  border-right: 1.5px solid #004c97;
-  display: inline-block;
-  transition: transform 0.2s ease-in-out;
-  margin-left: 10px;
-  flex-shrink: 0;
-  cursor: pointer;
-
-  &.down {
-    transform: rotate(135deg);
-    margin-top: -2px;
+  .pn-parent { font-weight: 600; cursor: pointer; }
+  .pn-child  { font-weight: 400; cursor: default; }
+  .pn-chevron {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 3px;
   }
 
-  &.up {
-    transform: rotate(-45deg);
-    margin-top: 3px;
+  // ── Checkboxes ────────────────────────────────────────────────────────────
+  .ag-checkbox-input-wrapper {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    border-radius: 3px !important;
+    border: 1.5px solid #8a95ab !important;
+    background: #ffffff !important;
+    flex-shrink: 0;
+
+    &.ag-checked {
+      background: #1a4fa0 !important;
+      border-color: #1a4fa0 !important;
+      &::after { color: #ffffff !important; font-size: 12px !important; }
+    }
+    &:hover { border-color: #1a4fa0 !important; }
+
+    input[type="checkbox"] {
+      width: 20px !important;
+      height: 20px !important;
+      opacity: 0;
+      cursor: pointer;
+    }
   }
-}
 
-::ng-deep .bmo-thin-carrot-spacer {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-left: 10px;
-  flex-shrink: 0;
-}
+  // ── LEGAL HOLD pill ───────────────────────────────────────────────────────
+  .lh-pill {
+    display: inline-block;
+    background: #111827;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .lh-na {
+    color: #6b7280;
+    font-size: 13px;
+  }
 
-::ng-deep .status-pill-blue {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #002f6d;
-  color: #ffffff;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18px;
-  padding: 2px 7px;
-}
+  // ── Pagination ────────────────────────────────────────────────────────────
+  .ag-paging-panel {
+    border-top: 1px solid #d0d5de !important;
+    background: #f5f6f8 !important;
+    height: 42px !important;
+    font-size: 12px !important;
+    color: #3a3f51 !important;
+    padding: 0 16px !important;
+  }
 
-::ng-deep .status-na {
-  color: #1f2b37;
-}
-
-::ng-deep .address-cell {
-  white-space: normal;
-  line-height: 1.3;
+  // ── Scrollbars ────────────────────────────────────────────────────────────
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f3f7; }
+  ::-webkit-scrollbar-thumb { background: #bcc5d6; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9aa5b8; }
 }
