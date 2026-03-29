@@ -238,12 +238,12 @@ export class ResultsGridComponent implements OnInit {
 
   /**
    * Push _selected from model → AG Grid nodes.
-   * Uses suppressFinishActions=true so no selectionChanged fires.
+   * Passing source 'api' prevents AG Grid from firing selectionChanged.
    */
   private syncSelectionToGrid(): void {
     this.gridApi.forEachNode(node => {
       const n = this.findByUid(this.tree, node.data._uid);
-      if (n) node.setSelected(n._selected, false, true);
+      if (n) node.setSelected(n._selected, false, 'api');
     });
   }
 
