@@ -1,0 +1,323 @@
+// checker-form.scss — payment-checker v1.0.0
+// Same design as payment-maker. All fields readonly/disabled.
+// Adds: Reject (red) + Approve (green) buttons, loading spinner overlay.
+
+*, *::before, *::after { box-sizing: border-box; }
+
+.pc-page {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #b8c8d8;
+  min-height: 100vh;
+  padding: 0 0 40px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.pc-card {
+  width: 50%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+// ── Section ──────────────────────────────────────────────────
+.pc-section {
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.pc-section-header {
+  display: block;
+  background: linear-gradient(180deg, #1f618d 0%, #1a5276 100%);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-style: italic;
+  padding: 10px 16px;
+  border-bottom: 2px solid #154360;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.pc-section-body {
+  background: #eaecee;
+  padding: 16px 16px 18px;
+}
+
+// ── Grid ─────────────────────────────────────────────────────
+.pc-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  &:last-child { margin-bottom: 0; }
+}
+
+.pc-field      { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pc-field-half { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pc-field-full { display: flex; flex-direction: column; flex: 0 0 100%; min-width: 0; }
+
+// ── Labels ───────────────────────────────────────────────────
+.pc-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  line-height: 1.35;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.pc-req {
+  color: #e74c3c;
+  font-weight: 400;
+  margin-left: 1px;
+}
+
+// ── Readonly inputs — same look as maker but disabled ────────
+// Readonly inputs — light gray background, not-allowed cursor
+%pc-input-base {
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #5d6d7e;
+  background: #e8ecef;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: not-allowed;
+  pointer-events: auto;
+  user-select: text;
+}
+
+.pc-input    { @extend %pc-input-base; display: block; }
+.pc-select   { @extend %pc-input-base; display: block; }
+.pc-textarea {
+  @extend %pc-input-base;
+  height: auto;
+  min-height: 64px;
+  padding: 6px 8px;
+  line-height: 1.5;
+  resize: none;
+  display: block;
+}
+
+// ── Action bar ───────────────────────────────────────────────
+.pc-action-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 0 8px;
+  background: transparent;
+}
+
+// ── Reject button — red ──────────────────────────────────────
+.pc-btn-reject {
+  width: 140px;
+  padding: 9px 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #ffffff;
+  background: #c0392b;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.18s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover:not(:disabled)  { background: #a93226; }
+  &:active:not(:disabled) { transform: translateY(1px); }
+  &:disabled { background: #e6b0aa; cursor: not-allowed; }
+  &:focus-visible { outline: 3px solid rgba(192,57,43,0.4); outline-offset: 2px; }
+}
+
+// ── Approve button — green ───────────────────────────────────
+.pc-btn-approve {
+  width: 140px;
+  padding: 9px 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #ffffff;
+  background: #1e8449;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.18s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover:not(:disabled)  { background: #196f3d; }
+  &:active:not(:disabled) { transform: translateY(1px); }
+  &:disabled { background: #a9dfbf; cursor: not-allowed; }
+  &:focus-visible { outline: 3px solid rgba(30,132,73,0.4); outline-offset: 2px; }
+}
+
+// ── Button spinner ───────────────────────────────────────────
+.pc-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: pc-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+// ── Loading overlay — shown while GET API fetches data ───────
+.pc-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 16px;
+  color: #1a5276;
+  font-size: 14px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+
+  .pc-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #d0dce8;
+    border-top-color: #1a5276;
+    border-radius: 50%;
+    animation: pc-spin 0.8s linear infinite;
+  }
+}
+
+// ── Error state ───────────────────────────────────────────────
+.pc-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  gap: 16px;
+  text-align: center;
+  color: #c0392b;
+  font-size: 14px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+// ── Modal overlay ─────────────────────────────────────────────
+.pc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: pc-fade 0.18s ease;
+}
+
+.pc-modal {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 36px 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+  animation: pc-rise 0.2s ease;
+
+  @media (max-width: 480px) { padding: 24px 18px; }
+
+  .pc-modal-icon {
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 12px;
+    &.approved { color: #1e8449; }
+    &.rejected  { color: #c0392b; }
+    &.fail      { color: #e74c3c; }
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a2332;
+    margin: 0 0 10px;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+    margin: 0 0 6px;
+  }
+
+  .pc-modal-txn {
+    display: inline-block;
+    margin: 8px 0 18px;
+    padding: 6px 16px;
+    background: #f0f4f8;
+    border: 1px solid #d0d8e2;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1a5276;
+    letter-spacing: 0.05em;
+    word-break: break-all;
+  }
+
+  .pc-modal-ts {
+    font-size: 0.74rem;
+    color: #95a5a6;
+    margin: 0 0 20px;
+  }
+
+  .pc-modal-btn {
+    padding: 8px 28px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    cursor: pointer;
+    transition: background 0.18s;
+
+    &.primary { background: #1a5276; color: #fff; &:hover { background: #154360; } }
+    &.danger  { background: #c0392b; color: #fff; &:hover { background: #a93226; } }
+  }
+}
+
+// ── Animations ────────────────────────────────────────────────
+@keyframes pc-spin { to { transform: rotate(360deg); } }
+@keyframes pc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pc-rise {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 1200px) { .pc-card { width: 60%; } }
+@media (max-width: 900px)  { .pc-card { width: 80%; } }
+@media (max-width: 700px) {
+  .pc-row { flex-wrap: wrap; }
+  .pc-field, .pc-field-half {
+    flex: 0 0 calc(50% - 8px);
+    max-width: calc(50% - 8px);
+  }
+  .pc-field-full { flex: 0 0 100%; }
+}
+@media (max-width: 600px) { .pc-card { width: 96%; } }
+@media (max-width: 460px) {
+  .pc-section-body { padding: 12px 12px 14px; }
+  .pc-row { flex-direction: column; gap: 10px; }
+  .pc-field, .pc-field-half, .pc-field-full {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .pc-action-bar { flex-direction: column; gap: 12px; }
+  .pc-btn-reject, .pc-btn-approve { width: 100%; max-width: 280px; }
+}
