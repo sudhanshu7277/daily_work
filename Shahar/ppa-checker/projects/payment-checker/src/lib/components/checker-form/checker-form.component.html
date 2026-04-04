@@ -1,31 +1,38 @@
-<!-- checker-form.component.html — payment-checker v1.0.0
-  Same layout as maker form. All inputs disabled (readonly).
-  Shows loading spinner while GET API fetches data.
-  Reject + Approve buttons at the bottom.
--->
 <div class="pc-page">
-
-  <!-- ── LOADING STATE ── -->
   <div *ngIf="isLoading" class="pc-loading">
     <div class="pc-loading-spinner"></div>
     <span>Loading transaction data...</span>
   </div>
-
-  <!-- ── ERROR STATE ── -->
   <div *ngIf="!isLoading && loadError" class="pc-card">
     <div class="pc-error-state">
       <p>⚠ {{ loadError }}</p>
       <button class="pc-btn-approve" (click)="retryLoad()">Retry</button>
     </div>
   </div>
-
-  <!-- ── CHECKER FORM (readonly) ── -->
   <div class="pc-card" *ngIf="!isLoading && !loadError && checkerData">
     <form [formGroup]="form" novalidate>
+      <div class="pc-section">
+        <div class="pc-section-header">Payment Information</div>
+        <div class="pc-section-body">
+          <div class="pc-row">
+            <div class="pc-field-full">
+              <label class="pc-label">Value Date <span class="pc-req">*</span></label>
+              <input type="text" class="pc-input" formControlName="requestedExecutionDate" />
+            </div>
+          </div>
+          <div class="pc-row">
+            <div class="pc-field-half">
+              <label class="pc-label">Currency <span class="pc-req">*</span></label>
+              <input type="text" class="pc-input" formControlName="instructedAmountCurrencyCode" />
+            </div>
+            <div class="pc-field-half">
+              <label class="pc-label">Transaction Amount <span class="pc-req">*</span></label>
+              <input type="text" class="pc-input" formControlName="instructedAmount" />
+            </div>
+          </div>
 
-      <!-- ═══════════════════════════════════════════
-           SECTION 1 — DEBTOR INFORMATION
-           ═══════════════════════════════════════════ -->
+        </div>
+      </div>
       <div class="pc-section">
         <div class="pc-section-header">Debtor Information</div>
         <div class="pc-section-body">
@@ -45,14 +52,9 @@
           </div>
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 2 — DEBTOR ADDRESS DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pc-section">
         <div class="pc-section-header">Debtor Address Details</div>
         <div class="pc-section-body">
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Debtor Address Line 1</label>
@@ -63,7 +65,6 @@
               <input type="text" class="pc-input" formControlName="debtorAddressLines2" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field">
               <label class="pc-label">Debtor Street</label>
@@ -78,7 +79,6 @@
               <input type="text" class="pc-input" formControlName="debtorPostalCode" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Debtor Town / City Name</label>
@@ -89,7 +89,6 @@
               <input type="text" class="pc-input" formControlName="debtorCountrySubDivision" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Debtor Country</label>
@@ -100,7 +99,6 @@
               <input type="text" class="pc-input" formControlName="debtorCountrySubDivision" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-full">
               <label class="pc-label">Debtor Sort Code</label>
@@ -110,14 +108,9 @@
 
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 3 — INTERMEDIARY BANK DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pc-section">
         <div class="pc-section-header">Intermediary Bank Details</div>
         <div class="pc-section-body">
-
           <div class="pc-row">
             <div class="pc-field">
               <label class="pc-label">1st Intermediary Bank SWIFT Code</label>
@@ -132,7 +125,6 @@
               <input type="text" class="pc-input" formControlName="firstIntermediaryBankName" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">1st Intermediary Bank Country Code</label>
@@ -143,7 +135,6 @@
               <input type="text" class="pc-input" formControlName="firstIntermediaryBankAccountId" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field">
               <label class="pc-label">2nd Intermediary Bank SWIFT Code</label>
@@ -158,7 +149,6 @@
               <input type="text" class="pc-input" formControlName="secondIntermediaryBankName" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">2nd Intermediary Bank Country Code</label>
@@ -172,14 +162,9 @@
 
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 4 — CREDITOR INFORMATION
-           ═══════════════════════════════════════════ -->
       <div class="pc-section">
         <div class="pc-section-header">Creditor Information</div>
         <div class="pc-section-body">
-
           <div class="pc-row">
             <div class="pc-field">
               <label class="pc-label">Creditor Name <span class="pc-req">*</span></label>
@@ -194,7 +179,6 @@
               <input type="text" class="pc-input" formControlName="creditorAgentFinancialInstitutionBIC" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Creditor Agent Bank Name <span class="pc-req">*</span></label>
@@ -208,14 +192,9 @@
 
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 5 — CREDITOR ADDRESS DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pc-section">
         <div class="pc-section-header">Creditor Address Details</div>
         <div class="pc-section-body">
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Creditor Address Line 1</label>
@@ -226,7 +205,6 @@
               <input type="text" class="pc-input" formControlName="creditorAddressLines2" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field">
               <label class="pc-label">Creditor Street</label>
@@ -241,7 +219,6 @@
               <input type="text" class="pc-input" formControlName="creditorPostalCode" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Creditor Town / City Name</label>
@@ -252,7 +229,6 @@
               <input type="text" class="pc-input" formControlName="creditorCountrySubDivision" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-half">
               <label class="pc-label">Creditor Country</label>
@@ -263,20 +239,14 @@
               <input type="text" class="pc-input" formControlName="creditorCountrySubDivision" />
             </div>
           </div>
-
           <div class="pc-row">
             <div class="pc-field-full">
               <label class="pc-label">Creditor Sort Code</label>
               <input type="text" class="pc-input" formControlName="creditorSortCodeUK" />
             </div>
           </div>
-
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 6 — ADDITIONAL DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pc-section">
         <div class="pc-section-header">Additional Details</div>
         <div class="pc-section-body">
@@ -292,10 +262,6 @@
           </div>
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 7 — CHARGE DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pc-section">
         <div class="pc-section-header">Charge Details</div>
         <div class="pc-section-body">
@@ -315,38 +281,26 @@
           </div>
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           REJECT / APPROVE BUTTONS
-           ═══════════════════════════════════════════ -->
       <div class="pc-action-bar">
-
         <button
           type="button"
           class="pc-btn-reject"
           [disabled]="isActioning"
-          (click)="onAction('REJECTED')"
-        >
+          (click)="onAction('REJECTED')">
           <span *ngIf="isActioning && pendingAction === 'REJECTED'" class="pc-spinner"></span>
           {{ isActioning && pendingAction === 'REJECTED' ? 'Rejecting...' : 'Reject' }}
         </button>
-
         <button
           type="button"
           class="pc-btn-approve"
           [disabled]="isActioning"
-          (click)="onAction('APPROVED')"
-        >
+          (click)="onAction('APPROVED')">
           <span *ngIf="isActioning && pendingAction === 'APPROVED'" class="pc-spinner"></span>
           {{ isActioning && pendingAction === 'APPROVED' ? 'Approving...' : 'Approve' }}
         </button>
-
       </div>
-
     </form>
   </div>
-
-  <!-- ══ APPROVED MODAL ══ -->
   <div class="pc-overlay" *ngIf="showApprovedModal" (click)="closeModal()">
     <div class="pc-modal" (click)="$event.stopPropagation()">
       <div class="pc-modal-icon approved">✓</div>
@@ -357,8 +311,6 @@
       <button class="pc-modal-btn primary" (click)="closeModal()">Close</button>
     </div>
   </div>
-
-  <!-- ══ REJECTED MODAL ══ -->
   <div class="pc-overlay" *ngIf="showRejectedModal" (click)="closeModal()">
     <div class="pc-modal" (click)="$event.stopPropagation()">
       <div class="pc-modal-icon rejected">✕</div>
@@ -369,8 +321,6 @@
       <button class="pc-modal-btn danger" (click)="closeModal()">Close</button>
     </div>
   </div>
-
-  <!-- ══ API ERROR MODAL ══ -->
   <div class="pc-overlay" *ngIf="showErrorModal" (click)="closeModal()">
     <div class="pc-modal" (click)="$event.stopPropagation()">
       <div class="pc-modal-icon fail">⚠</div>
@@ -379,5 +329,4 @@
       <button class="pc-modal-btn primary" (click)="closeModal()">Close</button>
     </div>
   </div>
-
 </div>

@@ -1,54 +1,61 @@
-<!-- maker-form.component.html
-  Layout extracted precisely from maker-child-component-view-01 through 04.
-
-  SECTION 1 — Debtor Information
-    Row: [Debtor Name *] [Debtor Account Number *] [Debtor Agent BIC *]  ← 3 equal cols
-
-  SECTION 2 — Debtor Address Details
-    Row: [Debtor Address Line 1        ] [Debtor Address Line 2  ]       ← 2 equal cols
-    Row: [Debtor Street     ] [Debtor Building Number] [Debtor Postal Code] ← 3 equal cols
-    Row: [Debtor Town / City Name      ] [Debtor State           ]       ← 2 equal cols
-    Row: [Debtor Country               ] [Debtor Country Sub Division]   ← 2 equal cols
-    Row: [Debtor Sort Code                                        ]       ← FULL WIDTH
-
-  SECTION 3 — Intermediary Bank Details
-    Row: [1st SWIFT Code] [1st Routing Code] [1st Bank Name]             ← 3 equal cols
-    Row: [1st Country Code              ] [1st Account Number]           ← 2 equal cols
-    Row: [2nd SWIFT Code] [2nd Routing Code] [2nd Bank Name]             ← 3 equal cols
-    Row: [2nd Country Code              ] [2nd Account Number]           ← 2 equal cols
-
-  SECTION 4 — Creditor Information
-    Row: [Creditor Name *] [Creditor Account Number *] [Creditor Agent BIC *] ← 3 equal cols
-    Row: [Creditor Agent Bank Name *    ] [Creditor Agent Account Number *]    ← 2 equal cols
-
-  SECTION 5 — Creditor Address Details
-    Row: [Creditor Address Line 1       ] [Creditor Address Line 2]      ← 2 equal cols
-    Row: [Creditor Street] [Creditor Building Number] [Creditor Postal Code] ← 3 equal cols
-    Row: [Creditor Town / City Name     ] [Creditor State         ]      ← 2 equal cols
-    Row: [Creditor Country              ] [Creditor Country Sub Division] ← 2 equal cols
-    Row: [Creditor Sort Code                                       ]      ← FULL WIDTH
-
-  SECTION 6 — Additional Details
-    Row: [Remittance Information        ] [Payment Type (CBT,BKT,DFT) *] ← 2 equal cols
-
-  SECTION 7 — Charge Details
-    Row: [Charge Information] [Charges Amount] [Charges Agent BIC]       ← 3 equal cols
-
-  [         Submit Payment         ]
--->
 <div class="pm-page">
   <div class="pm-card">
     <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate autocomplete="off">
+      <div class="pm-section">
+        <div class="pm-section-header">Payment Information</div>
+        <div class="pm-section-body">
+          <div class="pm-row">
+            <div class="pm-field-full">
+              <label class="pm-label">Value Date <span class="pm-req">*</span></label>
+              <input type="date" class="pm-input"
+                formControlName="requestedExecutionDate"
+                [class.is-invalid]="isInvalid('requestedExecutionDate')" />
+              <span class="pm-error" *ngIf="isInvalid('requestedExecutionDate')">{{ getError('requestedExecutionDate') }}</span>
+            </div>
+          </div>
+          <div class="pm-row">
 
-      <!-- ═══════════════════════════════════════════
-           SECTION 1 — DEBTOR INFORMATION
-           3 equal columns
-           ═══════════════════════════════════════════ -->
+            <div class="pm-field-half">
+              <label class="pm-label">Currency <span class="pm-req">*</span></label>
+              <input type="text" class="pm-input"
+                formControlName="instructedAmountCurrencyCode"
+                [class.is-invalid]="isInvalid('instructedAmountCurrencyCode')"
+                placeholder="e.g. USD, EUR" />
+              <span class="pm-error" *ngIf="isInvalid('instructedAmountCurrencyCode')">{{ getError('instructedAmountCurrencyCode') }}</span>
+            </div>
+
+            <div class="pm-field-half">
+              <label class="pm-label">Transaction Amount <span class="pm-req">*</span></label>
+              <input type="number" class="pm-input"
+                formControlName="instructedAmount"
+                [class.is-invalid]="isInvalid('instructedAmount') || hardcapFailed"
+                [class.pm-input-passed]="hardcapPassed"
+                min="0"
+                step="0.01"
+                placeholder="0.00" />
+              <span class="pm-hardcap checking" *ngIf="hardcapChecking">
+                Checking...
+              </span>
+              <span class="pm-hardcap"
+                *ngIf="!hardcapChecking && hardcapResponse"
+                [class.passed]="hardcapPassed"
+                [class.failed]="hardcapFailed">
+                {{ hardcapResponse.message }}
+              </span>
+              <span class="pm-error"
+                *ngIf="!hardcapChecking && !hardcapResponse && isInvalid('instructedAmount')">
+                {{ getError('instructedAmount') }}
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
       <div class="pm-section">
         <div class="pm-section-header">Debtor Information</div>
         <div class="pm-section-body">
           <div class="pm-row">
-
             <div class="pm-field">
               <label class="pm-label">Debtor Name <span class="pm-req">*</span></label>
               <input type="text" class="pm-input"
@@ -79,15 +86,9 @@
           </div>
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 2 — DEBTOR ADDRESS DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pm-section">
         <div class="pm-section-header">Debtor Address Details</div>
         <div class="pm-section-body">
-
-          <!-- Address Line 1 | Address Line 2 — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Debtor Address Line 1</label>
@@ -102,8 +103,6 @@
                 placeholder="Address" />
             </div>
           </div>
-
-          <!-- Street | Building Number | Postal Code — 3 equal cols -->
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label">Debtor Street</label>
@@ -122,8 +121,6 @@
                 formControlName="debtorPostalCode" />
             </div>
           </div>
-
-          <!-- Town / City Name | State — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Debtor Town / City Name</label>
@@ -136,8 +133,6 @@
                 formControlName="debtorCountrySubDivision" />
             </div>
           </div>
-
-          <!-- Country | Country Sub Division — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Debtor Country</label>
@@ -151,8 +146,6 @@
                 formControlName="debtorCountrySubDivision" />
             </div>
           </div>
-
-          <!-- Sort Code — FULL WIDTH (as in design image 1) -->
           <div class="pm-row">
             <div class="pm-field-full">
               <label class="pm-label">Debtor Sort Code</label>
@@ -163,15 +156,9 @@
 
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 3 — INTERMEDIARY BANK DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pm-section">
         <div class="pm-section-header">Intermediary Bank Details</div>
         <div class="pm-section-body">
-
-          <!-- 1st Bank: SWIFT | Routing Code | Name — 3 equal cols -->
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label">1st Intermediary Bank SWIFT Code</label>
@@ -190,8 +177,6 @@
                 formControlName="firstIntermediaryBankName" />
             </div>
           </div>
-
-          <!-- 1st Bank: Country Code | Account Number — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">1st Intermediary Bank Country Code</label>
@@ -204,8 +189,6 @@
                 formControlName="firstIntermediaryBankAccountId" />
             </div>
           </div>
-
-          <!-- 2nd Bank: SWIFT | Routing Code | Name — 3 equal cols -->
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label">2nd Intermediary Bank SWIFT Code</label>
@@ -224,8 +207,6 @@
                 formControlName="secondIntermediaryBankName" />
             </div>
           </div>
-
-          <!-- 2nd Bank: Country Code | Account Number — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">2nd Intermediary Bank Country Code</label>
@@ -241,15 +222,9 @@
 
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 4 — CREDITOR INFORMATION
-           ═══════════════════════════════════════════ -->
       <div class="pm-section">
         <div class="pm-section-header">Creditor Information</div>
         <div class="pm-section-body">
-
-          <!-- Name | Account Number | Agent BIC — 3 equal cols -->
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label">Creditor Name <span class="pm-req">*</span></label>
@@ -276,8 +251,6 @@
               <span class="pm-error" *ngIf="isInvalid('creditorAgentFinancialInstitutionBIC')">{{ getError('creditorAgentFinancialInstitutionBIC') }}</span>
             </div>
           </div>
-
-          <!-- Agent Bank Name | Agent Account Number — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Creditor Agent Bank Name <span class="pm-req">*</span></label>
@@ -296,18 +269,11 @@
               <span class="pm-error" *ngIf="isInvalid('creditorAgentAccountNumber')">{{ getError('creditorAgentAccountNumber') }}</span>
             </div>
           </div>
-
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 5 — CREDITOR ADDRESS DETAILS
-           ═══════════════════════════════════════════ -->
       <div class="pm-section">
         <div class="pm-section-header">Creditor Address Details</div>
         <div class="pm-section-body">
-
-          <!-- Address Line 1 | Address Line 2 — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Creditor Address Line 1</label>
@@ -322,8 +288,6 @@
                 placeholder="Address" />
             </div>
           </div>
-
-          <!-- Street | Building Number | Postal Code — 3 equal cols -->
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label">Creditor Street</label>
@@ -342,8 +306,6 @@
                 formControlName="creditorPostalCode" />
             </div>
           </div>
-
-          <!-- Town / City | State — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Creditor Town / City Name</label>
@@ -356,8 +318,6 @@
                 formControlName="creditorCountrySubDivision" />
             </div>
           </div>
-
-          <!-- Country | Country Sub Division — 2 equal cols -->
           <div class="pm-row">
             <div class="pm-field-half">
               <label class="pm-label">Creditor Country</label>
@@ -371,8 +331,6 @@
                 formControlName="creditorCountrySubDivision" />
             </div>
           </div>
-
-          <!-- Sort Code — FULL WIDTH (as in design image 3) -->
           <div class="pm-row">
             <div class="pm-field-full">
               <label class="pm-label">Creditor Sort Code</label>
@@ -383,23 +341,16 @@
 
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 6 — ADDITIONAL DETAILS
-           2 equal cols: Remittance | Payment Type
-           ═══════════════════════════════════════════ -->
       <div class="pm-section">
         <div class="pm-section-header">Additional Details</div>
         <div class="pm-section-body">
           <div class="pm-row">
-
             <div class="pm-field-half">
               <label class="pm-label">Remittance Information</label>
               <input type="text" class="pm-input"
                 formControlName="ustrdPaymentDetails"
                 placeholder="Enter remittance details" />
             </div>
-
             <div class="pm-field-half">
               <label class="pm-label">Payment Type (CBT, BKT, DFT) <span class="pm-req">*</span></label>
               <select class="pm-select"
@@ -414,16 +365,10 @@
           </div>
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SECTION 7 — CHARGE DETAILS
-           3 equal cols
-           ═══════════════════════════════════════════ -->
       <div class="pm-section">
         <div class="pm-section-header">Charge Details</div>
         <div class="pm-section-body">
           <div class="pm-row">
-
             <div class="pm-field">
               <label class="pm-label">Charge Information</label>
               <select class="pm-select" formControlName="chargeBearer">
@@ -431,7 +376,6 @@
                 <option *ngFor="let o of chargeBearerOptions" [value]="o.value">{{ o.label }}</option>
               </select>
             </div>
-
             <div class="pm-field">
               <label class="pm-label">Charges Amount</label>
               <input type="number" class="pm-input"
@@ -439,22 +383,15 @@
                 min="0" step="0.01"
                 placeholder="0.00" />
             </div>
-
             <div class="pm-field">
               <label class="pm-label">Charges Agent BIC</label>
               <input type="text" class="pm-input"
                 formControlName="chargesAgentBIC"
                 placeholder="Enter BIC" />
             </div>
-
           </div>
         </div>
       </div>
-
-      <!-- ═══════════════════════════════════════════
-           SUBMIT PAYMENT
-           Disabled (gray) → Enabled (blue) when form valid
-           ═══════════════════════════════════════════ -->
       <div class="pm-action-bar">
         <button type="submit" class="pm-btn-submit"
           [disabled]="!isFormValid || isSubmitting">
@@ -462,11 +399,8 @@
           {{ isSubmitting ? 'Submitting...' : 'Submit Payment' }}
         </button>
       </div>
-
     </form>
   </div>
-
-  <!-- SUCCESS MODAL -->
   <div class="pm-overlay" *ngIf="showSuccessModal" (click)="closeModal()">
     <div class="pm-modal" (click)="$event.stopPropagation()">
       <div class="pm-modal-icon ok">✓</div>
@@ -477,8 +411,6 @@
       <button class="pm-modal-btn" (click)="closeModal()">Close</button>
     </div>
   </div>
-
-  <!-- ERROR MODAL -->
   <div class="pm-overlay" *ngIf="showErrorModal" (click)="closeModal()">
     <div class="pm-modal" (click)="$event.stopPropagation()">
       <div class="pm-modal-icon fail">✕</div>
@@ -487,5 +419,4 @@
       <button class="pm-modal-btn" (click)="closeModal()">Close</button>
     </div>
   </div>
-
 </div>

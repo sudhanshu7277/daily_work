@@ -1,14 +1,3 @@
-// ============================================================
-// checker-form.component.ts — payment-checker v1.0.0
-//
-// Flow:
-//   1. ngOnInit → GET API (mocked) → loads form data + transactionId
-//   2. All form fields are disabled — user cannot edit anything
-//   3. Approve → POST { transactionId, action:'APPROVED', formData }
-//   4. Reject  → POST { transactionId, action:'REJECTED', formData }
-//   5. Both actions show a result modal
-// ============================================================
-
 import {
   Component, Input, Output, EventEmitter,
   OnInit, ChangeDetectionStrategy, ChangeDetectorRef
@@ -35,24 +24,14 @@ import { CheckerApiService } from '../../services/checker-api.service';
 })
 export class CheckerFormComponent implements OnInit {
 
-  /** Injected by parent — app context + API URLs */
   @Input() checkerInput!: CheckerComponentInput;
-
-  /** Fires after approve or reject POST succeeds */
   @Output() actionCompleted = new EventEmitter<CheckerActionResponse>();
-
   form!: FormGroup;
-
-  // State
   isLoading    = true;
   loadError    = '';
   isActioning  = false;
   pendingAction: 'APPROVED' | 'REJECTED' | null = null;
-
-  // Data from GET response
   checkerData: CheckerGetResponse | null = null;
-
-  // Modals
   showApprovedModal = false;
   showRejectedModal = false;
   showErrorModal    = false;
@@ -73,17 +52,13 @@ export class CheckerFormComponent implements OnInit {
     this.loadData();
   }
 
-  // Build empty disabled form — populated once GET returns
   private initEmptyForm(): void {
     const disabled = (val: any) => ({ value: val, disabled: true });
 
     this.form = this.fb.group({
-      // Debtor Information
       debtorName:          [disabled('')],
       debtorAccountNumber: [disabled('')],
       debtorAgentBIC:      [disabled('')],
-
-      // Debtor Address
       debtorAddressLines:       [disabled('')],
       debtorAddressLines2:      [disabled('')],
       debtorStreetName:         [disabled('')],
@@ -94,8 +69,6 @@ export class CheckerFormComponent implements OnInit {
       debtorCountryCode:        [disabled('')],
       debtorSortCodeUK:         [disabled('')],
       debtorSortCodeUS:         [disabled('')],
-
-      // Intermediary Banks
       firstIntermediaryBankBIC:          [disabled('')],
       firstIntermediaryBankRoutingCode:  [disabled('')],
       firstIntermediaryBankName:         [disabled('')],
@@ -106,15 +79,11 @@ export class CheckerFormComponent implements OnInit {
       secondIntermediaryBankName:        [disabled('')],
       secondIntermediaryBankCountryCode: [disabled('')],
       secondIntermediaryBankAccountId:   [disabled('')],
-
-      // Creditor Information
       creditorName:                          [disabled('')],
       creditorAccount:                       [disabled('')],
       creditorAgentFinancialInstitutionBIC:  [disabled('')],
       creditorAgentFinancialInstitutionName: [disabled('')],
       creditorAgentAccountNumber:            [disabled('')],
-
-      // Creditor Address
       creditorAddressLines:       [disabled('')],
       creditorAddressLines2:      [disabled('')],
       creditorStreetName:         [disabled('')],
@@ -125,17 +94,11 @@ export class CheckerFormComponent implements OnInit {
       creditorCountryCode:        [disabled('')],
       creditorSortCodeUK:         [disabled('')],
       creditorSortCodeUS:         [disabled('')],
-
-      // Additional Details
       ustrdPaymentDetails:   [disabled('')],
       painPaymentMethodType: [disabled('')],
-
-      // Charge Details
       chargeBearer:    [disabled('')],
       chargesAmount:   [disabled(0)],
       chargesAgentBIC: [disabled('')],
-
-      // Context
       requestedExecutionDate:       [disabled('')],
       instructedAmount:             [disabled(0)],
       instructedAmountCurrencyCode: [disabled('')],
@@ -145,12 +108,10 @@ export class CheckerFormComponent implements OnInit {
     });
   }
 
-  // GET API — loads maker data and pre-populates form
   private loadData(): void {
     this.isLoading = true;
     this.loadError = '';
     this.cdr.markForCheck();
-
     this.apiService.getCheckerData(this.checkerInput).subscribe({
       next: (data: CheckerGetResponse) => {
         this.checkerData = data;
@@ -166,7 +127,6 @@ export class CheckerFormComponent implements OnInit {
     });
   }
 
-  // Patch all form fields with data from GET response — all remain disabled
   private populateForm(d: Pain001Model): void {
     this.form.patchValue({
       debtorName:                          d.debtorName,
@@ -219,15 +179,12 @@ export class CheckerFormComponent implements OnInit {
     }, { emitEvent: false });
   }
 
-  // Called when Approve or Reject is clicked
   onAction(action: 'APPROVED' | 'REJECTED'): void {
     if (!this.checkerData || this.isActioning) return;
 
     this.isActioning   = true;
     this.pendingAction = action;
     this.cdr.markForCheck();
-
-    // getRawValue() gets values even from disabled controls
     const formData: Pain001Model = this.form.getRawValue();
 
     const request = {

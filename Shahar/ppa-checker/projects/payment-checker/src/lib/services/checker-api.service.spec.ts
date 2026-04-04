@@ -1,4 +1,3 @@
-// checker-api.service.spec.ts
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CheckerApiService } from './checker-api.service';

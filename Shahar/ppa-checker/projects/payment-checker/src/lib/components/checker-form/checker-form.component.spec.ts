@@ -1,4 +1,3 @@
-// checker-form.component.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CheckerFormComponent } from './checker-form.component';
@@ -48,7 +47,6 @@ describe('CheckerFormComponent', () => {
   });
 
   it('should emit actionCompleted after approve', (done) => {
-    // Wait for mock GET to resolve
     setTimeout(() => {
       component.actionCompleted.subscribe(res => {
         expect(res.action).toBe('APPROVED');

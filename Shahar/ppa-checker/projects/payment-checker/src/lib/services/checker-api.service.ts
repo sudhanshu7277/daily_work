@@ -1,12 +1,3 @@
-// ============================================================
-// services/checker-api.service.ts — payment-checker v1.0.0
-//
-// GET  {checkerGetUrl}              → loads maker data + transactionId
-// POST {checkerActionUrl}           → approve or reject with full payload
-//
-// USE_MOCK_API = true  (flip to false for production)
-// ============================================================
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
@@ -19,16 +10,13 @@ import {
   createMockCheckerGetResponse
 } from '../models/pain001.model';
 
-export const USE_MOCK_API = true; // ← flip to false in production
+export const USE_MOCK_API = true;
 
 @Injectable({ providedIn: 'root' })
 export class CheckerApiService {
 
   constructor(private http: HttpClient) {}
 
-  // ── GET: load maker-submitted data ──────────────────────────
-  // In production: GET {input.checkerGetUrl}
-  // Response includes transactionId bundled with formData
   getCheckerData(
     input: CheckerComponentInput
   ): Observable<CheckerGetResponse> {
@@ -47,10 +35,7 @@ export class CheckerApiService {
         )
       );
   }
-
-  // ── POST: approve or reject ──────────────────────────────────
-  // Body: { transactionId, action: 'APPROVED'|'REJECTED', formData }
-  // Same endpoint, action field distinguishes approve vs reject
+  
   submitCheckerAction(
     request: CheckerActionRequest,
     input: CheckerComponentInput

@@ -1,33 +1,23 @@
-// ============================================================
-// maker-form.component.ts — payment-maker v1.0.0
-//
-// Required fields (must be filled for Submit to enable):
-//   - debtorName, debtorAccountNumber, debtorAgentBIC
-//   - creditorName, creditorAccount
-//   - creditorAgentFinancialInstitutionBIC (Agent BIC)
-//   - creditorAgentFinancialInstitutionName (Agent Bank Name)
-//   - creditorAgentAccountNumber (Agent Account Number)
-//   - painPaymentMethodType (Payment Type)
-//
-// Fields validated but NOT shown in the design as visible inputs
-// (requestedExecutionDate, instructedAmount, instructedAmountCurrencyCode)
-// are passed via paymentInput from the parent and auto-populated.
-//
-// All other fields are optional.
-// ============================================================
 
 import {
   Component, Input, Output, EventEmitter,
-  OnInit, ChangeDetectionStrategy, ChangeDetectorRef
+  OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import {
   FormBuilder, FormGroup, Validators, ReactiveFormsModule
 } from '@angular/forms';
 import {
+  Subject, EMPTY
+} from 'rxjs';
+import {
+  debounceTime, distinctUntilChanged, takeUntil, switchMap, catchError
+} from 'rxjs/operators';
+import {
   Pain001Model,
   PaymentComponentInput,
   MakerSubmitResponse,
+  HardcapCheckResponse,
   createEmptyPain001,
   CHARGE_BEARER_OPTIONS,
   PAYMENT_METHOD_OPTIONS
@@ -42,40 +32,43 @@ import { MakerApiService } from '../../services/maker-api.service';
   styleUrls: ['../../shared/maker-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MakerFormComponent implements OnInit {
+export class MakerFormComponent implements OnInit, OnDestroy {
 
-  /** Injected by parent — app context + API config */
   @Input() paymentInput!: PaymentComponentInput;
-
-  /** Optional: pre-populate form (e.g. edit mode) */
   @Input() initialData: Partial<Pain001Model> = {};
-
-  /** Fires after successful POST API response — carries transactionId */
-  @Output() submitted = new EventEmitter<MakerSubmitResponse>();
-
-  /** Fires on every form value change for external state tracking */
+  @Output() submitted  = new EventEmitter<MakerSubmitResponse>();
   @Output() formChange = new EventEmitter<Partial<Pain001Model>>();
 
   form!: FormGroup;
   isSubmitting = false;
   showSuccessModal = false;
-  showErrorModal = false;
+  showErrorModal   = false;
   submitResponse: MakerSubmitResponse | null = null;
   errorMessage = '';
+  hardcapResponse: HardcapCheckResponse | null = null;
+  hardcapChecking = false;
 
   readonly chargeBearerOptions  = CHARGE_BEARER_OPTIONS;
   readonly paymentMethodOptions = PAYMENT_METHOD_OPTIONS;
+  private destroy$ = new Subject<void>();
 
   constructor(
-    private fb: FormBuilder,
+    private fb:         FormBuilder,
     private apiService: MakerApiService,
-    private cdr: ChangeDetectorRef
+    private cdr:        ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.buildForm();
-    // Emit every value change so parent can track state externally
-    this.form.valueChanges.subscribe(val => this.formChange.emit(val));
+    this.subscribeHardcap();
+    this.form.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(val => this.formChange.emit(val));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private buildForm(): void {
@@ -83,16 +76,14 @@ export class MakerFormComponent implements OnInit {
     const pi = this.paymentInput || ({} as PaymentComponentInput);
 
     this.form = this.fb.group({
-
-      // ── DEBTOR INFORMATION ──────────────────────────────────
-      // All 3 are REQUIRED — these drive the submit button state
+      requestedExecutionDate:       [d.requestedExecutionDate || '', Validators.required],
+      instructedAmountCurrencyCode: [d.instructedAmountCurrencyCode || '', Validators.required],
+      instructedAmount:             [d.instructedAmount || null, [Validators.required, Validators.min(0.01)]],
       debtorName:          [d.debtorName,          Validators.required],
       debtorAccountNumber: [d.debtorAccountNumber, Validators.required],
       debtorAgentBIC:      [d.debtorAgentBIC,      Validators.required],
-
-      // ── DEBTOR ADDRESS (all optional) ───────────────────────
       debtorAddressLines:       [d.debtorAddressLines       ?? ''],
-      debtorAddressLines2:      [''],          // UI-only, not in Pain001Model
+      debtorAddressLines2:      [''],
       debtorStreetName:         [d.debtorStreetName         ?? ''],
       debtorBuildingNumber:     [d.debtorBuildingNumber     ?? ''],
       debtorPostalCode:         [d.debtorPostalCode         ?? ''],
@@ -101,8 +92,6 @@ export class MakerFormComponent implements OnInit {
       debtorCountryCode:        [d.debtorCountryCode        ?? ''],
       debtorSortCodeUK:         [d.debtorSortCodeUK         ?? ''],
       debtorSortCodeUS:         [d.debtorSortCodeUS         ?? ''],
-
-      // ── INTERMEDIARY BANKS (all optional) ───────────────────
       firstIntermediaryBankBIC:          [d.firstIntermediaryBankBIC          ?? ''],
       firstIntermediaryBankRoutingCode:  [d.firstIntermediaryBankRoutingCode  ?? ''],
       firstIntermediaryBankName:         [d.firstIntermediaryBankName         ?? ''],
@@ -113,18 +102,13 @@ export class MakerFormComponent implements OnInit {
       secondIntermediaryBankName:        [d.secondIntermediaryBankName        ?? ''],
       secondIntermediaryBankCountryCode: [d.secondIntermediaryBankCountryCode ?? ''],
       secondIntermediaryBankAccountId:   [d.secondIntermediaryBankAccountId   ?? ''],
-
-      // ── CREDITOR INFORMATION ────────────────────────────────
-      // All 5 are REQUIRED — these drive the submit button state
       creditorName:                          [d.creditorName,                          Validators.required],
       creditorAccount:                       [d.creditorAccount,                       Validators.required],
       creditorAgentFinancialInstitutionBIC:  [d.creditorAgentFinancialInstitutionBIC,  Validators.required],
       creditorAgentFinancialInstitutionName: [d.creditorAgentFinancialInstitutionName, Validators.required],
       creditorAgentAccountNumber:            ['',                                       Validators.required],
-
-      // ── CREDITOR ADDRESS (all optional) ─────────────────────
       creditorAddressLines:       [d.creditorAddressLines       ?? ''],
-      creditorAddressLines2:      [''],          // UI-only, not in Pain001Model
+      creditorAddressLines2:      [''],
       creditorStreetName:         [d.creditorStreetName         ?? ''],
       creditorBuildingNumber:     [d.creditorBuildingNumber     ?? ''],
       creditorPostalCode:         [d.creditorPostalCode         ?? ''],
@@ -133,40 +117,67 @@ export class MakerFormComponent implements OnInit {
       creditorCountryCode:        [d.creditorCountryCode        ?? ''],
       creditorSortCodeUK:         [d.creditorSortCodeUK         ?? ''],
       creditorSortCodeUS:         [d.creditorSortCodeUS         ?? ''],
-
-      // ── ADDITIONAL DETAILS ──────────────────────────────────
-      ustrdPaymentDetails:   [d.ustrdPaymentDetails   ?? ''],        // optional remittance
-      painPaymentMethodType: [d.painPaymentMethodType,  Validators.required], // REQUIRED
-
-      // ── CHARGE DETAILS (all optional) ───────────────────────
+      ustrdPaymentDetails:   [d.ustrdPaymentDetails ?? ''],
+      painPaymentMethodType: [d.painPaymentMethodType, Validators.required],
       chargeBearer:    [d.chargeBearer    ?? ''],
       chargesAmount:   [d.chargesAmount   ?? 0],
       chargesAgentBIC: [d.chargesAgentBIC ?? ''],
-
-      // ── CONTEXT (auto-populated from paymentInput, not editable by user) ──
-      // These are included in the POST payload automatically
-      requestedExecutionDate:       [pi.requestedExecutionDate       || new Date().toISOString().split('T')[0]],
-      instructedAmount:             [pi.instructedAmount             || 0],
-      instructedAmountCurrencyCode: [pi.instructedAmountCurrencyCode || ''],
-      applicationName:              [pi.applicationName              || ''],
-      applicationModule:            [pi.applicationModule            || ''],
-      region:                       [pi.region                       || ''],
-      creditorAgentPostalAddress:   [d.creditorAgentPostalAddress    ?? '']
+      applicationName:   [(pi as any).applicationName   || ''],
+      applicationModule: [(pi as any).applicationModule || ''],
+      region:            [(pi as any).region            || ''],
+      creditorAgentPostalAddress: [d.creditorAgentPostalAddress ?? '']
     });
   }
 
-  /** True only when all required fields pass — drives submit button */
-  get isFormValid(): boolean {
-    return this.form.valid;
+  private subscribeHardcap(): void {
+    const amountCtrl = this.form.get('instructedAmount');
+    if (!amountCtrl) return;
+    amountCtrl.valueChanges.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+      switchMap(value => {
+        this.hardcapChecking = true;
+        this.hardcapResponse = null;
+        this.cdr.markForCheck();
+        const amount = parseFloat(value);
+        return this.apiService.checkHardcap(
+          {
+            amount:            isNaN(amount) ? 0 : amount,
+            currencyCode:      this.form.get('instructedAmountCurrencyCode')?.value || '',
+            applicationName:   this.paymentInput?.applicationName   || '',
+            applicationModule: this.paymentInput?.applicationModule || ''
+          },
+          this.paymentInput
+        ).pipe(
+          catchError(() => {
+            this.hardcapChecking = false;
+            this.cdr.markForCheck();
+            return EMPTY;
+          })
+        );
+      })
+    ).subscribe(response => {
+      this.hardcapChecking = false;
+      this.hardcapResponse = response;
+      this.cdr.markForCheck();
+    });
   }
 
-  /** Shows red border + error message only after user has interacted with field */
+  get isFormValid(): boolean {
+    return this.form.valid && this.hardcapResponse?.status === 'PASSED';
+  }
+
+  get hardcapPassed():  boolean { return this.hardcapResponse?.status === 'PASSED'; }
+  get hardcapFailed():  boolean {
+    return !!this.hardcapResponse && this.hardcapResponse.status !== 'PASSED';
+  }
+
   isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);
     return !!(ctrl && ctrl.invalid && (ctrl.dirty || ctrl.touched));
   }
 
-  /** Returns appropriate error message for a field */
   getError(field: string): string {
     const errors = this.form.get(field)?.errors;
     if (!errors) return '';
@@ -175,11 +186,8 @@ export class MakerFormComponent implements OnInit {
     return 'Invalid value';
   }
 
-  /** Called when user clicks Submit Payment */
   onSubmit(): void {
-    // Safety check — button should already be disabled if invalid
-    if (this.form.invalid) {
-      // Mark all fields touched so errors are visible
+    if (this.form.invalid || !this.hardcapPassed) {
       this.form.markAllAsTouched();
       this.cdr.markForCheck();
       return;
@@ -187,24 +195,18 @@ export class MakerFormComponent implements OnInit {
 
     this.isSubmitting = true;
     this.cdr.markForCheck();
-
-    // Build the complete Pain001 payload from all form values
-    // getRawValue() includes disabled controls too
     const payload: Pain001Model = this.form.getRawValue();
-
-    // POST to makerSubmitUrl (mocked by default, plug in real URL via paymentInput)
     this.apiService.submitMakerForm(payload, this.paymentInput).subscribe({
       next: res => {
-        this.isSubmitting = false;
-        this.submitResponse = res;
+        this.isSubmitting    = false;
+        this.submitResponse  = res;
         this.showSuccessModal = true;
-        // Emit to parent — carries transactionId for checker flow
         this.submitted.emit(res);
         this.cdr.markForCheck();
       },
       error: err => {
-        this.isSubmitting = false;
-        this.errorMessage = err.message || 'Submission failed. Please try again.';
+        this.isSubmitting  = false;
+        this.errorMessage  = err.message || 'Submission failed. Please try again.';
         this.showErrorModal = true;
         this.cdr.markForCheck();
       }

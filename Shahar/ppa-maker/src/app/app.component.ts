@@ -1,4 +1,3 @@
-// src/app/app.component.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -16,13 +15,12 @@ import {
 })
 export class AppComponent {
 
-  // ── Inject this from parent in a real consuming app ──────
-  // Mirrors the paymentInput getter from payment-parent.component.ts
   paymentInput: PaymentComponentInput = {
     applicationName:   'ADR',
     applicationModule: 'ADR',
     region:            'US',
-    makerSubmitUrl:    '/api/v1/pain001/maker/submit',  // placeholder — mocked
+    makerSubmitUrl:    '/api/v1/pain001/maker/submit',
+    hardcapCheckUrl:   '/api/v1/pain001/hardcap/check',
     headers: {
       'X-Correlation-Id': this.correlationId()
     }
