@@ -8,8 +8,7 @@ const mockInput: PaymentComponentInput = {
   applicationName:   'ADR',
   applicationModule: 'ADR',
   region:            'US',
-  makerSubmitUrl:    '/api/v1/pain001/maker/submit',
-  hardcapCheckUrl:   '/api/v1/pain001/maker/hardcap-check'
+  makerSubmitUrl:    '/api/v1/pain001/maker/submit'
 };
 
 describe('MakerApiService (Mock Mode)', () => {

@@ -1,6 +1,9 @@
+// maker-form.scss — payment-maker v1.0.0
+// CSS values taken directly from the approved live widget.
 
 *, *::before, *::after { box-sizing: border-box; }
 
+// Page
 .pm-page {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #ffffff;
@@ -29,9 +32,9 @@
   font-weight: 700;
   font-style: italic;
   padding: 10px 16px;
-  border-bottom: 2px solid #154360;
   border-top-right-radius: 8px;
   border-top-left-radius: 8px;
+  border-bottom: 2px solid #154360;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 

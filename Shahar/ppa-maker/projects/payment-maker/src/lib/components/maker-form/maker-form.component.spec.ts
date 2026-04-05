@@ -1,3 +1,4 @@
+// maker-form.component.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MakerFormComponent } from './maker-form.component';
@@ -7,8 +8,7 @@ const mockInput: PaymentComponentInput = {
   applicationName:   'ADR',
   applicationModule: 'ADR',
   region:            'US',
-  makerSubmitUrl:    '/api/v1/pain001/maker/submit',
-  hardcapCheckUrl:   '/api/v1/pain001/maker/hardcap-check'
+  makerSubmitUrl:    '/api/v1/pain001/maker/submit'
 };
 
 describe('MakerFormComponent', () => {

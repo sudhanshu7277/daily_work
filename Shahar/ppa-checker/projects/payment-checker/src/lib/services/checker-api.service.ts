@@ -15,7 +15,7 @@ export const USE_MOCK_API = true;
 @Injectable({ providedIn: 'root' })
 export class CheckerApiService {
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getCheckerData(
     input: CheckerComponentInput
@@ -35,7 +35,7 @@ export class CheckerApiService {
         )
       );
   }
-  
+
   submitCheckerAction(
     request: CheckerActionRequest,
     input: CheckerComponentInput
@@ -45,10 +45,10 @@ export class CheckerApiService {
       console.log('[MOCK] CheckerApiService.submitCheckerAction →', request);
       const isApproved = request.action === 'APPROVED';
       return of({
-        success:       true,
+        success: true,
         transactionId: request.transactionId,
-        action:        request.action,
-        message:       isApproved
+        action: request.action,
+        message: isApproved
           ? `Transaction ${request.transactionId} has been approved successfully.`
           : `Transaction ${request.transactionId} has been rejected.`,
         timestamp: new Date().toISOString()
@@ -67,9 +67,9 @@ export class CheckerApiService {
 
   private buildHeaders(input: CheckerComponentInput): HttpHeaders {
     return new HttpHeaders({
-      'Content-Type':          'application/json',
-      'X-Application-Name':    input.applicationName,
-      'X-Application-Module':  input.applicationModule,
+      'Content-Type': 'application/json',
+      'X-Application-Name': input.applicationName,
+      'X-Application-Module': input.applicationModule,
       ...(input.region ? { 'X-Region': input.region } : {}),
       ...(input.headers || {})
     });

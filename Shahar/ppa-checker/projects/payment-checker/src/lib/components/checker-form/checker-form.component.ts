@@ -9,12 +9,16 @@ import {
   CheckerComponentInput,
   CheckerGetResponse,
   CheckerActionResponse,
+  FormFieldConfig,
+  DEFAULT_CHECKER_FIELD_CONFIG,
   CHARGE_BEARER_OPTIONS,
-  PAYMENT_METHOD_OPTIONS
+  PAYMENT_METHOD_OPTIONS,
+  createMockCheckerGetResponse
 } from '../../models/pain001.model';
 import { CheckerApiService } from '../../services/checker-api.service';
 
 @Component({
+
   selector: 'pc-checker-form',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, DatePipe],
@@ -25,87 +29,74 @@ import { CheckerApiService } from '../../services/checker-api.service';
 export class CheckerFormComponent implements OnInit {
 
   @Input() checkerInput!: CheckerComponentInput;
+  @Input() fieldConfig: FormFieldConfig[] = [];
   @Output() actionCompleted = new EventEmitter<CheckerActionResponse>();
+
   form!: FormGroup;
-  isLoading    = true;
-  loadError    = '';
-  isActioning  = false;
+  isLoading = true;
+  loadError = '';
+  isActioning = false;
   pendingAction: 'APPROVED' | 'REJECTED' | null = null;
   checkerData: CheckerGetResponse | null = null;
   showApprovedModal = false;
   showRejectedModal = false;
-  showErrorModal    = false;
+  showErrorModal = false;
   actionResponse: CheckerActionResponse | null = null;
   errorMessage = '';
 
-  readonly chargeBearerOptions  = CHARGE_BEARER_OPTIONS;
+  readonly chargeBearerOptions = CHARGE_BEARER_OPTIONS;
   readonly paymentMethodOptions = PAYMENT_METHOD_OPTIONS;
 
+  resolvedConfig: FormFieldConfig[] = [];
+
+  private configMap = new Map<string, FormFieldConfig>();
+
   constructor(
-    private fb:         FormBuilder,
+    private fb: FormBuilder,
     private apiService: CheckerApiService,
-    private cdr:        ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
-    this.initEmptyForm();
+    this.resolvedConfig = (this.fieldConfig && this.fieldConfig.length > 0)
+      ? this.fieldConfig
+      : DEFAULT_CHECKER_FIELD_CONFIG;
+
+    this.configMap.clear();
+    this.resolvedConfig.forEach(cfg => this.configMap.set(cfg.fieldName as string, cfg));
+
+    this.buildForm();
     this.loadData();
   }
 
-  private initEmptyForm(): void {
-    const disabled = (val: any) => ({ value: val, disabled: true });
+  isHidden(fieldName: string): boolean {
+    return this.configMap.get(fieldName)?.hidden === true;
+  }
 
-    this.form = this.fb.group({
-      debtorName:          [disabled('')],
-      debtorAccountNumber: [disabled('')],
-      debtorAgentBIC:      [disabled('')],
-      debtorAddressLines:       [disabled('')],
-      debtorAddressLines2:      [disabled('')],
-      debtorStreetName:         [disabled('')],
-      debtorBuildingNumber:     [disabled('')],
-      debtorPostalCode:         [disabled('')],
-      debtorTownName:           [disabled('')],
-      debtorCountrySubDivision: [disabled('')],
-      debtorCountryCode:        [disabled('')],
-      debtorSortCodeUK:         [disabled('')],
-      debtorSortCodeUS:         [disabled('')],
-      firstIntermediaryBankBIC:          [disabled('')],
-      firstIntermediaryBankRoutingCode:  [disabled('')],
-      firstIntermediaryBankName:         [disabled('')],
-      firstIntermediaryBankCountryCode:  [disabled('')],
-      firstIntermediaryBankAccountId:    [disabled('')],
-      secondIntermediaryBankBIC:         [disabled('')],
-      secondIntermediaryBankRoutingCode: [disabled('')],
-      secondIntermediaryBankName:        [disabled('')],
-      secondIntermediaryBankCountryCode: [disabled('')],
-      secondIntermediaryBankAccountId:   [disabled('')],
-      creditorName:                          [disabled('')],
-      creditorAccount:                       [disabled('')],
-      creditorAgentFinancialInstitutionBIC:  [disabled('')],
-      creditorAgentFinancialInstitutionName: [disabled('')],
-      creditorAgentAccountNumber:            [disabled('')],
-      creditorAddressLines:       [disabled('')],
-      creditorAddressLines2:      [disabled('')],
-      creditorStreetName:         [disabled('')],
-      creditorBuildingNumber:     [disabled('')],
-      creditorPostalCode:         [disabled('')],
-      creditorTownName:           [disabled('')],
-      creditorCountrySubDivision: [disabled('')],
-      creditorCountryCode:        [disabled('')],
-      creditorSortCodeUK:         [disabled('')],
-      creditorSortCodeUS:         [disabled('')],
-      ustrdPaymentDetails:   [disabled('')],
-      painPaymentMethodType: [disabled('')],
-      chargeBearer:    [disabled('')],
-      chargesAmount:   [disabled(0)],
-      chargesAgentBIC: [disabled('')],
-      requestedExecutionDate:       [disabled('')],
-      instructedAmount:             [disabled(0)],
-      instructedAmountCurrencyCode: [disabled('')],
-      applicationName:              [disabled('')],
-      applicationModule:            [disabled('')],
-      region:                       [disabled('')]
-    });
+  getLabel(fieldName: string, defaultLabel: string): string {
+    return this.configMap.get(fieldName)?.label ?? defaultLabel;
+  }
+
+  private buildForm(): void {
+    const controls: Record<string, any> = {};
+
+    for (const cfg of this.resolvedConfig) {
+      const name = cfg.fieldName as string;
+      const initialValue = cfg.value ?? '';
+      controls[name] = [{ value: initialValue, disabled: true }];
+    }
+
+    if (!controls['debtorAddressLines2']) controls['debtorAddressLines2'] = [{ value: '', disabled: true }];
+    if (!controls['creditorAddressLines2']) controls['creditorAddressLines2'] = [{ value: '', disabled: true }];
+    if (controls['creditorAgentPostalAddress'] && !controls['creditorAgentAccountNumber']) {
+      controls['creditorAgentAccountNumber'] = [{ value: '', disabled: true }];
+    }
+
+    controls['applicationName'] = [{ value: '', disabled: true }];
+    controls['applicationModule'] = [{ value: '', disabled: true }];
+    controls['region'] = [{ value: '', disabled: true }];
+
+    this.form = this.fb.group(controls);
   }
 
   private loadData(): void {
@@ -128,101 +119,64 @@ export class CheckerFormComponent implements OnInit {
   }
 
   private populateForm(d: Pain001Model): void {
-    this.form.patchValue({
-      debtorName:                          d.debtorName,
-      debtorAccountNumber:                 d.debtorAccountNumber,
-      debtorAgentBIC:                      d.debtorAgentBIC,
-      debtorAddressLines:                  d.debtorAddressLines       ?? '',
-      debtorAddressLines2:                 d.debtorAddressLines2      ?? '',
-      debtorStreetName:                    d.debtorStreetName         ?? '',
-      debtorBuildingNumber:                d.debtorBuildingNumber     ?? '',
-      debtorPostalCode:                    d.debtorPostalCode         ?? '',
-      debtorTownName:                      d.debtorTownName           ?? '',
-      debtorCountrySubDivision:            d.debtorCountrySubDivision ?? '',
-      debtorCountryCode:                   d.debtorCountryCode        ?? '',
-      debtorSortCodeUK:                    d.debtorSortCodeUK         ?? '',
-      firstIntermediaryBankBIC:            d.firstIntermediaryBankBIC          ?? '',
-      firstIntermediaryBankRoutingCode:    d.firstIntermediaryBankRoutingCode  ?? '',
-      firstIntermediaryBankName:           d.firstIntermediaryBankName         ?? '',
-      firstIntermediaryBankCountryCode:    d.firstIntermediaryBankCountryCode  ?? '',
-      firstIntermediaryBankAccountId:      d.firstIntermediaryBankAccountId    ?? '',
-      secondIntermediaryBankBIC:           d.secondIntermediaryBankBIC         ?? '',
-      secondIntermediaryBankRoutingCode:   d.secondIntermediaryBankRoutingCode ?? '',
-      secondIntermediaryBankName:          d.secondIntermediaryBankName        ?? '',
-      secondIntermediaryBankCountryCode:   d.secondIntermediaryBankCountryCode ?? '',
-      secondIntermediaryBankAccountId:     d.secondIntermediaryBankAccountId   ?? '',
-      creditorName:                        d.creditorName,
-      creditorAccount:                     d.creditorAccount,
-      creditorAgentFinancialInstitutionBIC:  d.creditorAgentFinancialInstitutionBIC,
-      creditorAgentFinancialInstitutionName: d.creditorAgentFinancialInstitutionName,
-      creditorAgentAccountNumber:            d.creditorAgentAccountNumber,
-      creditorAddressLines:       d.creditorAddressLines       ?? '',
-      creditorAddressLines2:      d.creditorAddressLines2      ?? '',
-      creditorStreetName:         d.creditorStreetName         ?? '',
-      creditorBuildingNumber:     d.creditorBuildingNumber     ?? '',
-      creditorPostalCode:         d.creditorPostalCode         ?? '',
-      creditorTownName:           d.creditorTownName           ?? '',
-      creditorCountrySubDivision: d.creditorCountrySubDivision ?? '',
-      creditorCountryCode:        d.creditorCountryCode        ?? '',
-      creditorSortCodeUK:         d.creditorSortCodeUK         ?? '',
-      ustrdPaymentDetails:        d.ustrdPaymentDetails        ?? '',
-      painPaymentMethodType:      d.painPaymentMethodType,
-      chargeBearer:               d.chargeBearer               ?? '',
-      chargesAmount:              d.chargesAmount              ?? 0,
-      chargesAgentBIC:            d.chargesAgentBIC            ?? '',
-      requestedExecutionDate:     d.requestedExecutionDate,
-      instructedAmount:           d.instructedAmount,
-      instructedAmountCurrencyCode: d.instructedAmountCurrencyCode,
-      applicationName:            d.applicationName            ?? '',
-      applicationModule:          d.applicationModule          ?? '',
-      region:                     d.region                     ?? ''
-    }, { emitEvent: false });
+    const patch: Record<string, any> = {};
+
+    for (const cfg of this.resolvedConfig) {
+      const name = cfg.fieldName as string;
+      patch[name] = cfg.value !== undefined
+        ? cfg.value
+        : (d as any)[name] ?? '';
+    }
+
+    patch['debtorAddressLines2'] = (d as any)['debtorAddressLines2'] ?? '';
+    patch['creditorAddressLines2'] = (d as any)['creditorAddressLines2'] ?? '';
+    if (this.form.get('creditorAgentAccountNumber')) {
+      patch['creditorAgentAccountNumber'] = (d as any)['creditorAgentPostalAddress'] ?? '';
+    }
+
+    patch['applicationName'] = d.applicationName ?? '';
+    patch['applicationModule'] = d.applicationModule ?? '';
+    patch['region'] = d.region ?? '';
+
+    this.form.patchValue(patch, { emitEvent: false });
   }
 
   onAction(action: 'APPROVED' | 'REJECTED'): void {
     if (!this.checkerData || this.isActioning) return;
 
-    this.isActioning   = true;
+    this.isActioning = true;
     this.pendingAction = action;
     this.cdr.markForCheck();
     const formData: Pain001Model = this.form.getRawValue();
-
-    const request = {
-      transactionId: this.checkerData.transactionId,
-      action,
-      formData
-    };
-
-    this.apiService.submitCheckerAction(request, this.checkerInput).subscribe({
+    this.apiService.submitCheckerAction(
+      { transactionId: this.checkerData.transactionId, action, formData },
+      this.checkerInput
+    ).subscribe({
       next: (res: CheckerActionResponse) => {
-        this.isActioning   = false;
+        this.isActioning = false;
         this.pendingAction = null;
         this.actionResponse = res;
-
         if (action === 'APPROVED') this.showApprovedModal = true;
-        else                       this.showRejectedModal = true;
-
+        else this.showRejectedModal = true;
         this.actionCompleted.emit(res);
         this.cdr.markForCheck();
       },
       error: (err: Error) => {
-        this.isActioning   = false;
+        this.isActioning = false;
         this.pendingAction = null;
-        this.errorMessage  = err.message || 'Action failed. Please try again.';
+        this.errorMessage = err.message || 'Action failed. Please try again.';
         this.showErrorModal = true;
         this.cdr.markForCheck();
       }
     });
   }
 
-  retryLoad(): void {
-    this.loadData();
-  }
+  retryLoad(): void { this.loadData(); }
 
   closeModal(): void {
     this.showApprovedModal = false;
     this.showRejectedModal = false;
-    this.showErrorModal    = false;
+    this.showErrorModal = false;
     this.cdr.markForCheck();
   }
 }
