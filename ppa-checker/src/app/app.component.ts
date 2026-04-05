@@ -12,7 +12,22 @@ import {
   standalone: true,
   imports: [CommonModule, CheckerFormComponent],
   template: `
+    <div *ngIf="!showChecker" style="
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 100vh; gap: 16px;
+      background: #ffffff; font-family: 'Segoe UI', Arial, sans-serif;">
+      <p style="color: #1a5276; font-size: 15px; margin: 0;">
+        Checker component is waiting for trigger from parent
+      </p>
+      <button (click)="triggerChecker()" style="
+        padding: 10px 32px; background: #1a5276; color: #fff;
+        border: none; border-radius: 4px; font-size: 14px;
+        font-weight: 600; cursor: pointer; font-family: inherit;">
+         Maker Submit → Trigger Checker
+      </button>
+    </div>
     <pc-checker-form
+      [visible]="showChecker"
       [checkerInput]="checkerInput"
       [fieldConfig]="fieldConfig"
       (actionCompleted)="onActionCompleted($event)">
@@ -20,16 +35,18 @@ import {
   `
 })
 export class AppComponent {
-
+  showChecker = false;
   checkerInput: CheckerComponentInput = {
     applicationName: 'ADR',
     applicationModule: 'ADR',
     region: 'US',
     checkerGetUrl: '/api/v1/pain001/checker/get',
     checkerActionUrl: '/api/v1/pain001/checker/action',
+    amountMismatchUrl: '/api/v1/pain001/checker/amount-mismatch',
   };
 
   fieldConfig: FormFieldConfig[] = [
+
     { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false },
     { fieldName: 'instructedAmountCurrencyCode', label: 'Currency', hidden: false },
     { fieldName: 'instructedAmount', label: 'Transaction Amount', hidden: false },
@@ -44,7 +61,7 @@ export class AppComponent {
     { fieldName: 'debtorCountrySubDivision', label: 'Debtor State', hidden: false },
     { fieldName: 'debtorCountryCode', label: 'Debtor Country', hidden: false },
     { fieldName: 'debtorSortCodeUK', label: 'Debtor Sort Code', hidden: false },
-    { fieldName: 'debtorSortCodeUS', label: 'Debtor Sort Code (US)', hidden: false },
+    { fieldName: 'debtorSortCodeUS', label: 'Debtor Sort Code (US)', hidden: true },
     { fieldName: 'firstIntermediaryBankBIC', label: '1st Intermediary Bank SWIFT Code', hidden: false },
     { fieldName: 'firstIntermediaryBankRoutingCode', label: '1st Intermediary Bank Routing Code', hidden: false },
     { fieldName: 'firstIntermediaryBankName', label: '1st Intermediary Bank Name', hidden: false },
@@ -68,13 +85,17 @@ export class AppComponent {
     { fieldName: 'creditorCountrySubDivision', label: 'Creditor State', hidden: false },
     { fieldName: 'creditorCountryCode', label: 'Creditor Country', hidden: false },
     { fieldName: 'creditorSortCodeUK', label: 'Creditor Sort Code', hidden: false },
-    { fieldName: 'creditorSortCodeUS', label: 'Creditor Sort Code (US)', hidden: false },
+    { fieldName: 'creditorSortCodeUS', label: 'Creditor Sort Code (US)', hidden: true },
     { fieldName: 'ustrdPaymentDetails', label: 'Remittance Information', hidden: false },
     { fieldName: 'painPaymentMethodType', label: 'Payment Type (CBT, BKT, DFT)', hidden: false },
     { fieldName: 'chargeBearer', label: 'Charge Information', hidden: false },
     { fieldName: 'chargesAmount', label: 'Charges Amount', hidden: false },
     { fieldName: 'chargesAgentBIC', label: 'Charges Agent BIC', hidden: false },
   ];
+
+  triggerChecker(): void {
+    this.showChecker = true;
+  }
 
   onActionCompleted(response: CheckerActionResponse): void {
     console.log('[App]', response.action, '— TXN:', response.transactionId);

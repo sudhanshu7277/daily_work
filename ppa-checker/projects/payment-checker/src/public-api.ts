@@ -5,6 +5,8 @@ export {
   CheckerGetResponse,
   CheckerActionRequest,
   CheckerActionResponse,
+  CheckerAmountMismatchRequest,
+  CheckerAmountMismatchResponse,
   CheckerComponentInput,
   FormFieldConfig,
   ALWAYS_REQUIRED_FIELDS,

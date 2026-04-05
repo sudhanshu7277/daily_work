@@ -1,14 +1,15 @@
+// checker-api.service.spec.ts
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CheckerApiService } from './checker-api.service';
 import { CheckerComponentInput } from '../models/pain001.model';
 
 const mockInput: CheckerComponentInput = {
-  applicationName: 'ADR',
+  applicationName:   'ADR',
   applicationModule: 'ADR',
-  region: 'US',
-  checkerGetUrl: '/api/v1/pain001/checker/get',
-  checkerActionUrl: '/api/v1/pain001/checker/action'
+  region:            'US',
+  checkerGetUrl:     '/api/v1/pain001/checker/get',
+  checkerActionUrl:  '/api/v1/pain001/checker/action'
 };
 
 describe('CheckerApiService (Mock Mode)', () => {
