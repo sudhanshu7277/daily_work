@@ -1,0 +1,40 @@
+<div class="entity-grid-container">
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="grid-state-overlay">
+    <div class="spinner"></div>
+    <span>Loading entities...</span>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="loadError && !isLoading" class="grid-state-overlay grid-state-error">
+    <span>Failed to load data. Please try again.</span>
+    <button (click)="ngOnInit()">Retry</button>
+  </div>
+
+  <!-- Grid -->
+  <ag-grid-angular
+    *ngIf="!isLoading && !loadError"
+    class="ag-theme-alpine bmo-grid"
+    style="width: 100%; height: 100%;"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [getRowId]="getRowId"
+    rowSelection="multiple"
+    [pagination]="true"
+    [paginationPageSize]="pageSize"
+    [suppressPaginationPanel]="true"
+    [suppressRowClickSelection]="true"
+    [rowHeight]="52"
+    [headerHeight]="44"
+    [suppressCellFocus]="true"
+    [animateRows]="false"
+    [getRowClass]="getRowClass"
+    (gridReady)="onGridReady($event)"
+    (selectionChanged)="onSelectionChanged()"
+    (cellClicked)="onCellClicked($event)"
+    (paginationChanged)="onPaginationChanged()">
+  </ag-grid-angular>
+
+</div>

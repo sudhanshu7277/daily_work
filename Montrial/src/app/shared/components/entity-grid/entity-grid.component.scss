@@ -1,0 +1,296 @@
+// ── Container ──────────────────────────────────────────────────────────────
+.entity-grid-container {
+  width: 100%;
+  height: calc(100vh - 250px);
+  border: 1px solid #c8d4df;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+// ── Loading / Error overlay ────────────────────────────────────────────────
+.grid-state-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  color: #3a3f51;
+  z-index: 10;
+
+  &.grid-state-error { color: #b91c1c; }
+
+  button {
+    margin-top: 4px;
+    padding: 6px 16px;
+    border: 1px solid #c8d4df;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #1a4fa0;
+    &:hover { background: #f0f4ff; }
+  }
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #dde4ef;
+  border-top-color: #1a4fa0;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── AG Grid overrides — all scoped to .bmo-grid ────────────────────────────
+::ng-deep .ag-theme-alpine.bmo-grid {
+
+  // ── Kill AG Grid defaults ─────────────────────────────────────────────────
+  .ag-root-wrapper          { border: none !important; }
+  .ag-cell-focus            { outline: none !important; border: none !important; }
+  .ag-row-even, .ag-row-odd { background-color: inherit !important; }
+  .ag-cell                  { border-right: none !important; }
+
+  // ── Header ─────────────────────────────────────────────────────────────────
+  .ag-header {
+    background-color: #ffffff !important;
+    border-bottom: 2px solid #1a2e5a !important;
+    min-height: 44px !important;
+  }
+
+  .ag-header-row { height: 44px !important; }
+
+  .ag-header-cell {
+    background-color: #ffffff !important;
+    border-right: 1px solid #dde4ef !important;
+    padding: 0 12px !important;
+    &:last-child { border-right: none !important; }
+  }
+
+  .ag-header-cell-text {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #1c2033 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ag-icon-asc::before,
+  .ag-icon-desc::before { color: #1a4fa0 !important; }
+
+  // ── All rows ───────────────────────────────────────────────────────────────
+  .ag-row {
+    border-top: none !important;
+
+    .ag-cell {
+      display: flex !important;
+      align-items: center !important;
+      font-size: 13px;
+      color: #1c2033;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: 1.45;
+    }
+  }
+
+  // ── ROOT rows (level 0) ────────────────────────────────────────────────────
+  // Figma images: very subtle blue-grey tint #edf1f7, bold blue name
+  // Cluster separator: 2px solid #1a2e5a navy top-border on every root row
+  .row-root {
+    background-color: #edf1f7 !important;
+    border-bottom: 1px solid #d5dce9 !important;
+    border-top: 2px solid #1a2e5a !important;
+
+    .ag-cell { font-weight: 700; }
+  }
+
+  .ag-row-first.row-root { border-top: none !important; }
+
+  .row-root:hover { background-color: #e4eaf4 !important; }
+
+  // ROOT selected — medium teal (Figma entity-grid selected state)
+  .ag-row-selected.row-root {
+    background-color: #4bacc6 !important;
+    border-bottom: 1px solid #3d9db8 !important;
+
+    .ag-cell    { color: #ffffff !important; font-weight: 700; }
+    .pn-parent  { color: #ffffff !important; }
+    .pn-chevron { color: #ffffff !important; }
+    .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+    .lh-na      { color: rgba(255,255,255,0.75) !important; }
+  }
+
+  .ag-row-selected.row-root:hover { background-color: #3fa1bc !important; }
+
+  // ── CHILD rows (level 1+) ─────────────────────────────────────────────────
+  // Figma images: light blue-grey #eaf0f8, thin grey bottom border
+  // Each deeper level gets a slightly richer blue tint — fully dynamic via class
+  .row-child {
+    background-color: #eaf0f8 !important;
+    border-bottom: 1px solid #d0daea !important;
+    border-top: none !important;
+
+    .ag-cell { font-weight: 400; }
+  }
+
+  .row-child:hover { background-color: #dde7f5 !important; }
+
+  // Level-specific tints (level 1–5, capped via Math.min in getRowClass)
+  .row-child-l1 { background-color: #eaf0f8 !important; }
+  .row-child-l2 { background-color: #e2eaf5 !important; }
+  .row-child-l3 { background-color: #dae4f2 !important; }
+  .row-child-l4 { background-color: #d2ddef !important; }
+  .row-child-l5 { background-color: #cad7ec !important; }
+
+  // CHILD selected — medium blue (Figma entity-grid selected child rows)
+  .ag-row-selected.row-child {
+    background-color: #5aabdc !important;
+    border-bottom: 1px solid #4a9bcc !important;
+
+    .ag-cell    { color: #ffffff !important; }
+    .pn-parent  { color: #ffffff !important; }
+    .pn-child   { color: #ffffff !important; }
+    .pn-chevron { color: #ffffff !important; }
+    .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+    .lh-na      { color: rgba(255,255,255,0.75) !important; }
+  }
+
+  .ag-row-selected.row-child:hover { background-color: #4e9fd4 !important; }
+
+  // ── Profile Name cell ───────────────────────────────────────────────────────
+  // padding-left is set per-row dynamically by cellStyle (8 + level * 28 px)
+  .ag-cell[col-id="profileName"] {
+    overflow: visible !important;
+
+    .ag-cell-wrapper {
+      display: flex !important;
+      align-items: center !important;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .ag-selection-checkbox {
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+  }
+
+  // Name renderer spans
+  .pn-parent,
+  .pn-child {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    max-width: 100%;
+  }
+
+  .pn-parent {
+    color: #1a4fa0;
+    font-weight: 700;
+    cursor: pointer;
+    gap: 5px;
+  }
+
+  .pn-child {
+    color: #1a4fa0;
+    font-weight: 400;
+    cursor: default;
+  }
+
+  .pn-chevron {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 5px;
+    color: #1a4fa0; // currentColor for SVG stroke
+  }
+
+  // ── Checkboxes ──────────────────────────────────────────────────────────────
+  .ag-checkbox-input-wrapper {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    border-radius: 3px !important;
+    border: 1.5px solid #9aaabe !important;
+    background: #ffffff !important;
+    flex-shrink: 0;
+
+    &.ag-checked {
+      background: #1a4fa0 !important;
+      border-color: #1a4fa0 !important;
+      &::after { color: #ffffff !important; font-size: 13px !important; }
+    }
+
+    &:hover:not(.ag-checked) { border-color: #1a4fa0 !important; }
+
+    input[type='checkbox'] {
+      width: 20px !important;
+      height: 20px !important;
+      opacity: 0;
+      cursor: pointer;
+    }
+  }
+
+  // Checkbox on selected rows: unchecked → white translucent border
+  // checked → white bg with blue tick (so it pops on the coloured row)
+  .ag-row-selected .ag-checkbox-input-wrapper:not(.ag-checked) {
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  .ag-row-selected .ag-checkbox-input-wrapper.ag-checked {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: #ffffff !important;
+    &::after { color: #1a4fa0 !important; }
+  }
+
+  .ag-header-select-all .ag-checkbox-input-wrapper {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  // ── LEGAL HOLD pill ─────────────────────────────────────────────────────────
+  .lh-pill {
+    display: inline-block;
+    background: #111827;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .lh-na {
+    color: #6b7280;
+    font-size: 13px;
+  }
+
+  // ── Pagination ──────────────────────────────────────────────────────────────
+  .ag-paging-panel {
+    border-top: 1px solid #c8d4df !important;
+    background: #f5f6f8 !important;
+    height: 42px !important;
+    font-size: 12px !important;
+    color: #3a3f51 !important;
+    padding: 0 16px !important;
+  }
+
+  // ── Scrollbars ──────────────────────────────────────────────────────────────
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: #eef2f7; }
+  ::-webkit-scrollbar-thumb  { background: #b0c0d4; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #90a8c0; }
+}
