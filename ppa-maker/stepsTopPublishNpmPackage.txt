@@ -64,3 +64,39 @@ legacy-peer-deps=true
   [fieldConfig]="fieldConfig"
   (actionCompleted)="onActionCompleted($event)">
 </pc-checker-form>
+
+
+# Step 1 — Set your token
+$env:NPM_AUTH_TOKEN = "eyJ..."   # your Citi token
+
+# Step 2 — Log in (only needed once per session / token expiry)
+pnpm login --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+# Step 3 — Verify
+pnpm whoami --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+# Step 4 — Build
+cd ppa-maker
+pnpm run build:lib
+
+# Step 5 — Publish (no --registry flag needed — publishConfig handles it)
+cd dist/payment-maker
+pnpm publish --no-git-checks
+
+
+
+
+
+# Step 2 — Log in (only needed once per session / token expiry)
+pnpm login --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+# Step 3 — Verify
+pnpm whoami --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+# Step 4 — Build
+cd ppa-maker
+pnpm run build:lib
+
+# Step 5 — Publish (no --registry flag needed — publishConfig handles it)
+cd dist/payment-maker
+pnpm publish --no-git-checks
