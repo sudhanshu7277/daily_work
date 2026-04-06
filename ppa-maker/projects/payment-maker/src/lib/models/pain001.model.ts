@@ -107,6 +107,7 @@ export interface PaymentComponentInput {
   makerSubmitUrl: string;
   hardcapCheckUrl: string;
   headers?: Record<string, string>;
+  useMockApi?: boolean;
 }
 
 export interface HardcapCheckRequest {

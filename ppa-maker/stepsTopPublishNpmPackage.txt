@@ -1,0 +1,66 @@
+# Maker
+cd ppa-maker
+pnpm run build:lib
+cd dist/payment-maker
+pnpm publish --no-git-checks
+
+# Checker
+cd ppa-checker
+pnpm run build:lib
+cd dist/payment-checker
+pnpm publish --no-git-checks
+
+maker package json
+
+{
+  "name": "@citi-icg-169779/payment-maker",
+  "version": "1.0.0",
+  "publishConfig": {
+    "registry": "https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/"
+  }
+}
+
+
+Checker package json
+{
+  "name": "@citi-icg-169779/payment-checker",
+  "version": "1.0.0",
+  "publishConfig": {
+    "registry": "https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/"
+  }
+}
+
+
+maker .npmrc
+
+# For installing packages (virtual registry — read only)
+registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/:_authToken=${NPM_AUTH_TOKEN}
+
+# For publishing (local registry — writable)
+@citi-icg-169779:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/:_authToken=${NPM_AUTH_TOKEN}
+
+strict-ssl=false
+email=sj81534@citi.com
+always-auth=true
+cafile=C:\Users\sj81534\cacerts.jks
+save-exact=true
+legacy-peer-deps=true
+
+
+<!--usage below ------->
+<!-- Maker — no change -->
+<pm-maker-form
+  [paymentInput]="paymentInput"
+  [fieldConfig]="fieldConfig"
+  (submitted)="onSubmitted($event)">
+</pm-maker-form>
+
+<!-- Checker — no change -->
+<pc-checker-form
+  [visible]="showChecker"
+  [checkerInput]="checkerInput"
+  [fieldConfig]="fieldConfig"
+  (actionCompleted)="onActionCompleted($event)">
+</pc-checker-form>
