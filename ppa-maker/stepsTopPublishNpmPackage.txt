@@ -88,7 +88,7 @@ pnpm publish --no-git-checks
 
 
 # Step 2 — Log in (only needed once per session / token expiry)
-pnpm login --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+npm adduser --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/ --auth-type=legacy
 
 # Step 3 — Verify
 pnpm whoami --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
