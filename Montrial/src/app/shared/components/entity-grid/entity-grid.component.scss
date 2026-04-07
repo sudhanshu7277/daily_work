@@ -1,13 +1,23 @@
 // =============================================================================
-// DESIGN TOKENS — from zoomed Figma close-up images (definitive)
+// DESIGN TOKENS — verified by direct comparison of claude-generated vs figma
 //
-// ROOT rows (Corp 2, Corp 3, Corp 4)  L0:  #dce8ec  medium pale teal
-// Child parent rows  (Corp 5)         L1:  #e4eff2  lighter teal
-// Leaf rows  (Role Players)           L2:  #edf6f8  soft light blue
-// Deeper levels step lighter each time
+// ROOT ROWS (Corp 2, Corp 3, Corp 4, Corp 5):
+//   Background: #dce9ec  — very pale teal-grey, barely tinted, NOT saturated
+//   Font: 700 bold, #1a4fa0 blue
+//   Top border: 2px solid #1a2e5a  (cluster opener)
+//   Bottom border: 1px solid #c2d0d3
 //
-// All child rows: 1px solid #d4e0e3 thin bottom border
-// Cluster borders: 2px solid #1a2e5a navy top (open) + bottom (close)
+// CHILD ROWS (Role Players and all indented children):
+//   Background: #e8f4f7  — light blue (from zoomed Figma images)
+//   Font: 400 regular, #1a4fa0 blue
+//   Bottom border: 1px solid #d0dce0  (thin light grey)
+//
+// CLUSTER END: last row of each cluster gets 2px solid #1a2e5a bottom border
+//
+// HEADER:
+//   White bg, bold #1c2333 text
+//   1px solid #dde3e8 vertical dividers between EVERY column
+//   2px solid #1a2e5a bottom border
 // =============================================================================
 
 
@@ -121,23 +131,17 @@
 
 
   // ── ROOT rows (level 0) ──────────────────────────────────────────────────
-  //
-  // Corp 2, Corp 3, Corp 4 — medium pale teal #dce8ec
-  // 2px navy top (cluster opener), 1px teal-grey bottom
-  //
   .row-root {
-    background-color: #dce8ec !important;
+    background-color: #dce9ec !important;
     border-top:    2px solid #1a2e5a !important;
-    border-bottom: 1px solid #c5d2d5 !important;
+    border-bottom: 1px solid #c2d0d3 !important;
 
     .ag-cell { font-weight: 700 !important; }
   }
 
   .ag-row-first.row-root { border-top: none !important; }
+  .row-root:hover { background-color: #d0e2e6 !important; }
 
-  .row-root:hover { background-color: #d0dfe3 !important; }
-
-  // ROOT selected
   .ag-row-selected.row-root {
     background-color: #3d9eb8 !important;
     border-top:    2px solid #1a2e5a !important;
@@ -149,57 +153,39 @@
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-root:hover      { background-color: #3090aa !important; }
-  .ag-row-first.ag-row-selected.row-root { border-top: none !important; }
+  .ag-row-selected.row-root:hover         { background-color: #3090aa !important; }
+  .ag-row-first.ag-row-selected.row-root  { border-top: none !important; }
 
 
   // ── CHILD rows (level 1+) ────────────────────────────────────────────────
   //
-  // DEFINITIVE from 3 zoomed Figma close-up images:
+  // From Figma: Corp 5 (a parent at level 1) = same pale teal as root rows.
+  //             Role Players (leaf nodes)     = light blue #e8f4f7
   //
-  // The background lightens progressively with each nesting level.
-  // Every level is a slightly lighter/more-blue step of the same teal family.
-  //
-  //   L1  Corp 5          #e4eff2   lighter teal (clearly lighter than root)
-  //   L2  Role Players    #edf6f8   soft light blue (clearly lighter than L1)
-  //   L3+                 progressively lighter still
-  //
-  // All child rows share the same thin teal-grey bottom border.
-  // Parent/leaf distinction doesn't matter — level drives the colour.
+  // Rule: _isParent=true  → row-is-parent → pale teal  #dce9ec
+  //       _isParent=false → row-is-leaf   → light blue #e8f4f7
   //
   .row-child {
-    border-bottom: 1px solid #d4e0e3 !important;
+    border-bottom: 1px solid #d0dce0 !important;
     border-top:    none !important;
-
     .ag-cell { font-weight: 400 !important; }
   }
 
-  // L1 — Corp 5 level (lighter teal)
-  .row-child-l1 {
-    background-color: #e4eff2 !important;
-    .ag-cell { font-weight: 700 !important; }   // Corp 5 is a parent — bold
+  // Parent at any depth: same pale teal as root, bold text
+  .row-child.row-is-parent {
+    background-color: #dce9ec !important;
+    border-bottom:    1px solid #c2d0d3 !important;
+    .ag-cell { font-weight: 700 !important; }
   }
+  .row-child.row-is-parent:hover { background-color: #d0e2e6 !important; }
 
-  // L2 — Role Players level (soft light blue — the "light blue" you asked for)
-  .row-child-l2  { background-color: #edf6f8 !important; }
-
-  // L3 — even lighter
-  .row-child-l3  { background-color: #f0f8fa !important; }
-
-  // L4–L10 — continue lightening toward near-white
-  .row-child-l4  { background-color: #f3fafb !important; }
-  .row-child-l5  { background-color: #f5fbfc !important; }
-  .row-child-l6  { background-color: #f7fcfd !important; }
-  .row-child-l7  { background-color: #f8fdfd !important; }
-  .row-child-l8  { background-color: #fafefe !important; }
-  .row-child-l9  { background-color: #fbfefe !important; }
-  .row-child-l10 { background-color: #fcfefe !important; }
-
-  // Override font-weight for non-parent children at L1
-  // (row-child.row-is-leaf at L1 should be 400)
-  .row-child-l1.row-is-leaf { .ag-cell { font-weight: 400 !important; } }
-
-  .row-child:hover { filter: brightness(0.97); }
+  // Leaf at any depth: light blue, regular text
+  .row-child.row-is-leaf {
+    background-color: #e8f4f7 !important;
+    border-bottom:    1px solid #d0dce0 !important;
+    .ag-cell { font-weight: 400 !important; }
+  }
+  .row-child.row-is-leaf:hover { background-color: #daeef3 !important; }
 
 
   // ── Cluster closing border ───────────────────────────────────────────────
@@ -209,22 +195,32 @@
 
 
   // ── CHILD selected ───────────────────────────────────────────────────────
-  .ag-row-selected.row-child {
-    background-color: #5aabdc !important;
-    border-bottom: 1px solid #4a9bcc !important;
-
-    .ag-cell    { color: #fff !important; }
+  // Parent-child selected → teal (matches root selected)
+  .ag-row-selected.row-child.row-is-parent {
+    background-color: #3d9eb8 !important;
+    border-bottom:    1px solid #2e8da8 !important;
+    .ag-cell    { color: #fff !important; font-weight: 700 !important; }
     .pn-parent  { color: #fff !important; }
+    .pn-chevron { color: #fff !important; }
+    .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+    .lh-na      { color: rgba(255,255,255,0.75) !important; }
+  }
+  .ag-row-selected.row-child.row-is-parent:hover { background-color: #3090aa !important; }
+
+  // Leaf-child selected → blue
+  .ag-row-selected.row-child.row-is-leaf {
+    background-color: #5aabdc !important;
+    border-bottom:    1px solid #4a9bcc !important;
+    .ag-cell    { color: #fff !important; }
     .pn-child   { color: #fff !important; }
     .pn-chevron { color: #fff !important; }
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-child:hover { background-color: #4e9fd4 !important; }
+  .ag-row-selected.row-child.row-is-leaf:hover { background-color: #4e9fd4 !important; }
 
 
   // ── Profile Name cell ────────────────────────────────────────────────────
-  // cellStyle in TS: padding-left = 8 + (level × 20)px
   .ag-cell[col-id="profileName"] {
     .ag-cell-wrapper {
       display:     flex !important;
