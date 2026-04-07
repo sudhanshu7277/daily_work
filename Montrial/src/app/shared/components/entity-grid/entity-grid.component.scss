@@ -22,8 +22,15 @@
   font-size: 13px;
   color: #3a4155;
   z-index: 10;
+  transition: opacity 0.15s;
 
-  &--error { color: #b91c1c; }
+  // Hide overlay once loading is done
+  &--hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__error { color: #b91c1c; }
 
   button {
     padding: 6px 18px;
@@ -35,6 +42,12 @@
     cursor: pointer;
     &:hover { background: #f0f5ff; }
   }
+}
+
+// Hide grid while loading (keeps it mounted so AG Grid initialises correctly)
+.grid--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .spinner {

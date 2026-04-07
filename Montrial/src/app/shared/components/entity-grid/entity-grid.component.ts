@@ -161,7 +161,9 @@ export class EntityGridComponent implements OnInit, OnDestroy {
       n._uid      = uid;
       n._level    = level;
       n._isParent = !!(n.children?.length);
-      n._expanded = n._isParent ? (n.isExpanded ?? true) : false;
+      // Always start fully expanded so every row is visible on initial load.
+      // Users can collapse clusters by clicking the chevron.
+      n._expanded = n._isParent ? true : false;
       n._selected = false;
       if (n.children?.length) this.stampTree(n.children, level + 1, uid);
     });

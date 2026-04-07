@@ -7,61 +7,74 @@ import { EntityGridResponse, EntityNode } from './entity-grid.model';
 /**
  * EntityGridService
  *
- * Calls GET /api/v1/entity-grid in production.
- * In development, useMock = true returns data that exactly mirrors
- * the Figma designs including multi-level indentation.
+ * In production set useMock = false — the service will call GET /api/v1/entity-grid.
+ * In development useMock = true returns data matching the Figma designs exactly.
  *
- * Data structure read from Figma image 3 (clearest view):
- *   Level 0: Corp 2, Corp 3, Corp 4, ABC Ltd.  (root clusters)
- *   Level 1: Corp 5  (child of Corp 4)
- *   Level 2: Role Player F, G, D, E, A, B, C  (children of Corp 5)
- *   Level 3+: further nesting shown in Corp 5 / ABC Ltd sub-trees
+ * Tree structure (from Figma image 3 — clearest indentation view):
+ *
+ *   Corp 2       (L0)  ← root cluster, 1 child
+ *   Corp 3       (L0)  ← root cluster, LEGAL HOLD, 1 child
+ *   Corp 4       (L0)  ← root cluster, LEGAL HOLD
+ *     └─ Corp 5        (L1)  ← child of Corp 4
+ *          ├─ Role Player F  (L2)
+ *          ├─ Role Player G  (L2)
+ *          ├─ Role Player D  (L2)
+ *          ├─ Role Player E  (L2)
+ *          ├─ Role Player A  (L2)
+ *          ├─ Role Player B  (L2)
+ *          └─ Role Player C  (L2)
+ *   ABC Ltd.     (L0)  ← root cluster, deep nesting demo
+ *     └─ ABC Sub Ltd.  (L1)
+ *          ├─ ABC Sub-Sub 1  (L2)
+ *          └─ ABC Sub-Sub 2  (L2)
+ *               └─ Deep L3   (L3)
+ *                    └─ Deepest L4  (L4)
  */
 @Injectable({ providedIn: 'root' })
 export class EntityGridService {
 
   private readonly apiUrl = '/api/v1/entity-grid';
-
-  /** Flip to false to hit the real REST endpoint */
   private readonly useMock = true;
 
   constructor(private readonly http: HttpClient) {}
 
   getEntityGrid(): Observable<EntityGridResponse> {
     if (this.useMock) {
-      return of(this.buildMockResponse()).pipe(delay(200));
+      return of(this.buildMockResponse()).pipe(delay(150));
     }
     return this.http.get<EntityGridResponse>(this.apiUrl);
   }
 
-  // ── Mock Data ──────────────────────────────────────────────────────────────
-  // Structure is taken directly from Figma image 3:
-  //   Corp 2  (L0, expanded, no children shown → leaf cluster)
-  //   Corp 3  (L0, expanded, no children shown → leaf cluster)
-  //   Corp 4  (L0, expanded)
-  //     └─ Corp 5           (L1, expanded)
-  //          ├─ Role Player F  (L2)
-  //          ├─ Role Player G  (L2)
-  //          ├─ Role Player D  (L2)
-  //          ├─ Role Player E  (L2)
-  //          ├─ Role Player A  (L2)
-  //          ├─ Role Player B  (L2)
-  //          └─ Role Player C  (L2)
-  //   ABC Ltd. (L0, collapsed)
-  //     └─ ABC Sub Ltd.     (L1)
-  //          ├─ ABC Sub-Sub 1  (L2)
-  //          └─ ABC Sub-Sub 2  (L2)
-  //                └─ Deep Entity  (L3)
-  //                      └─ Deepest Entity (L4)
+  // ── Mock data ──────────────────────────────────────────────────────────────
 
   private buildMockResponse(): EntityGridResponse {
     const addr = '33 Dundas St W, Toronto, ON M5G 2C3';
 
+    // Helper to build a leaf node quickly
+    const leaf = (
+      id: string,
+      name: string,
+      status: 'LEGAL HOLD' | 'N/A',
+      holdName: string,
+      role: string
+    ): EntityNode => ({
+      ocifId: id,
+      profileName: name,
+      legalHoldStatus: status,
+      holdName,
+      lifecycle: 'Active Customer',
+      role,
+      address: addr,
+      isParent: false,
+      isExpanded: false,
+      children: [],
+    });
+
     const data: EntityNode[] = [
 
-      // ── Corp 2 ────────────────────────────────────────────────────────────
+      // ── Corp 2 ─────────────────────────────────────────────────────────────
       {
-        ocifId: '1000-12345',
+        ocifId: 'C2-0001',
         profileName: 'Corp 2',
         legalHoldStatus: 'N/A',
         holdName: '',
@@ -71,24 +84,13 @@ export class EntityGridService {
         isParent: true,
         isExpanded: true,
         children: [
-          {
-            ocifId: '1000-12345',
-            profileName: 'Role Player X1',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory',
-            address: addr,
-            isParent: false,
-            isExpanded: false,
-            children: []
-          }
-        ]
+          leaf('C2-0002', 'Role Player X1', 'N/A', '', 'Authorized Signatory'),
+        ],
       },
 
-      // ── Corp 3 ────────────────────────────────────────────────────────────
+      // ── Corp 3 ─────────────────────────────────────────────────────────────
       {
-        ocifId: '1000-12345',
+        ocifId: 'C3-0001',
         profileName: 'Corp 3',
         legalHoldStatus: 'LEGAL HOLD',
         holdName: 'legalhold_name_123',
@@ -98,24 +100,13 @@ export class EntityGridService {
         isParent: true,
         isExpanded: true,
         children: [
-          {
-            ocifId: '1000-12345',
-            profileName: 'Role Player Y1',
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Authorized Signatory',
-            address: addr,
-            isParent: false,
-            isExpanded: false,
-            children: []
-          }
-        ]
+          leaf('C3-0002', 'Role Player Y1', 'N/A', '', 'Authorized Signatory'),
+        ],
       },
 
-      // ── Corp 4 (multi-level cluster from Figma image 3) ───────────────────
+      // ── Corp 4 → Corp 5 → Role Players ────────────────────────────────────
       {
-        ocifId: '1000-12345',
+        ocifId: 'C4-0001',
         profileName: 'Corp 4',
         legalHoldStatus: 'LEGAL HOLD',
         holdName: 'legalhold_name_123',
@@ -123,111 +114,34 @@ export class EntityGridService {
         role: 'Owner',
         address: addr,
         isParent: true,
-        isExpanded: true,      // expanded — Corp 5 visible
+        isExpanded: true,       // Corp 5 visible immediately
         children: [
           {
-            ocifId: '1000-12345',
-            profileName: 'Corp 5',               // Level 1 — child of Corp 4
+            ocifId: 'C4-0002',
+            profileName: 'Corp 5',
             legalHoldStatus: 'LEGAL HOLD',
             holdName: 'legalhold_name_123',
             lifecycle: 'Active Customer',
             role: 'Owner',
             address: addr,
             isParent: true,
-            isExpanded: true,   // expanded — Role Players visible
+            isExpanded: true,   // Role Players visible immediately
             children: [
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player F',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player G',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player D',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player E',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player A',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Owner of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player B',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12345',
-                profileName: 'Role Player C',    // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory of ABC Ltd.',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              }
-            ]
-          }
-        ]
+              leaf('C4-0003', 'Role Player F', 'N/A', '', 'Authorized Signatory of ABC Ltd.'),
+              leaf('C4-0004', 'Role Player G', 'N/A', '', 'Authorized Signatory of ABC Ltd.'),
+              leaf('C4-0005', 'Role Player D', 'N/A', '', 'Authorized Signatory of ABC Ltd.'),
+              leaf('C4-0006', 'Role Player E', 'N/A', '', 'Authorized Signatory of ABC Ltd.'),
+              leaf('C4-0007', 'Role Player A', 'N/A', '', 'Owner of ABC Ltd.'),
+              leaf('C4-0008', 'Role Player B', 'N/A', '', 'Authorized Signatory of ABC Ltd.'),
+              leaf('C4-0009', 'Role Player C', 'N/A', '', 'Authorized Signatory of ABC Ltd.'),
+            ],
+          },
+        ],
       },
 
-      // ── ABC Ltd. (deep nesting demo — up to L4) ───────────────────────────
+      // ── ABC Ltd. (deep nesting demo — L0 → L4) ────────────────────────────
       {
-        ocifId: '1000-12345',
+        ocifId: 'ABC-0001',
         profileName: 'ABC Ltd.',
         legalHoldStatus: 'N/A',
         holdName: '',
@@ -235,86 +149,52 @@ export class EntityGridService {
         role: 'Owner',
         address: addr,
         isParent: true,
-        isExpanded: false,     // collapsed by default
+        isExpanded: true,       // visible on load — was false before (caused search miss)
         children: [
           {
-            ocifId: '1000-12350',
-            profileName: 'ABC Sub Ltd.',          // Level 1
+            ocifId: 'ABC-0002',
+            profileName: 'ABC Sub Ltd.',
             legalHoldStatus: 'LEGAL HOLD',
             holdName: 'legalhold_name_123',
             lifecycle: 'Active Customer',
             role: 'Authorized Signatory',
             address: addr,
             isParent: true,
-            isExpanded: false,
+            isExpanded: true,
             children: [
+              leaf('ABC-0003', 'ABC Sub-Sub 1', 'N/A', '', 'Authorized Signatory'),
               {
-                ocifId: '1000-12351',
-                profileName: 'ABC Sub-Sub 1',     // Level 2
-                legalHoldStatus: 'N/A',
-                holdName: '',
-                lifecycle: 'Active Customer',
-                role: 'Authorized Signatory',
-                address: addr,
-                isParent: false,
-                isExpanded: false,
-                children: []
-              },
-              {
-                ocifId: '1000-12352',
-                profileName: 'ABC Sub-Sub 2',     // Level 2
+                ocifId: 'ABC-0004',
+                profileName: 'ABC Sub-Sub 2',
                 legalHoldStatus: 'LEGAL HOLD',
                 holdName: 'legalhold_name_123',
                 lifecycle: 'Active Customer',
                 role: 'Owner',
                 address: addr,
                 isParent: true,
-                isExpanded: false,
+                isExpanded: true,
                 children: [
                   {
-                    ocifId: '1000-12353',
-                    profileName: 'Deep Entity L3',  // Level 3
+                    ocifId: 'ABC-0005',
+                    profileName: 'Deep Entity L3',
                     legalHoldStatus: 'N/A',
                     holdName: '',
                     lifecycle: 'Active Customer',
                     role: 'Authorized Signatory',
                     address: addr,
                     isParent: true,
-                    isExpanded: false,
+                    isExpanded: true,
                     children: [
-                      {
-                        ocifId: '1000-12354',
-                        profileName: 'Deepest Entity L4',  // Level 4
-                        legalHoldStatus: 'N/A',
-                        holdName: '',
-                        lifecycle: 'Active Customer',
-                        role: 'Authorized Signatory',
-                        address: addr,
-                        isParent: false,
-                        isExpanded: false,
-                        children: []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
+                      leaf('ABC-0006', 'Deepest Entity L4', 'N/A', '', 'Authorized Signatory'),
+                    ],
+                  },
+                ],
+              },
+            ],
           },
-          {
-            ocifId: '1000-12355',
-            profileName: 'ABC Partner Ltd.',      // Level 1
-            legalHoldStatus: 'N/A',
-            holdName: '',
-            lifecycle: 'Active Customer',
-            role: 'Owner',
-            address: addr,
-            isParent: false,
-            isExpanded: false,
-            children: []
-          }
-        ]
-      }
-
+          leaf('ABC-0007', 'ABC Partner Ltd.', 'N/A', '', 'Owner'),
+        ],
+      },
     ];
 
     return { data, totalCount: this.countAll(data) };
