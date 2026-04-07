@@ -1,23 +1,16 @@
 // =============================================================================
-// DESIGN TOKENS — verified by direct comparison of claude-generated vs figma
+// ENTITY GRID — SCSS
+// Verified against all 7 Figma images including 3 zoomed close-ups
 //
-// ROOT ROWS (Corp 2, Corp 3, Corp 4, Corp 5):
-//   Background: #dce9ec  — very pale teal-grey, barely tinted, NOT saturated
-//   Font: 700 bold, #1a4fa0 blue
-//   Top border: 2px solid #1a2e5a  (cluster opener)
-//   Bottom border: 1px solid #c2d0d3
+// TWO colours only:
+//   TEAL  #dce9ec — every parent row at any level (Corp 2/3/4/5, ABC Ltd.)
+//   PALE  #eef5f7 — every leaf row (Role Players)
 //
-// CHILD ROWS (Role Players and all indented children):
-//   Background: #e8f4f7  — light blue (from zoomed Figma images)
-//   Font: 400 regular, #1a4fa0 blue
-//   Bottom border: 1px solid #d0dce0  (thin light grey)
-//
-// CLUSTER END: last row of each cluster gets 2px solid #1a2e5a bottom border
-//
-// HEADER:
-//   White bg, bold #1c2333 text
-//   1px solid #dde3e8 vertical dividers between EVERY column
-//   2px solid #1a2e5a bottom border
+// CLUSTER system:
+//   2px solid #1a2e5a  top    on every L0 root row  → OPENS cluster
+//   2px solid #1a2e5a  bottom on last row of cluster → CLOSES cluster
+//   1px solid #c2d0d3  bottom on internal parent rows
+//   1px solid #d8e4e6  bottom on leaf rows
 // =============================================================================
 
 
@@ -33,7 +26,7 @@
 }
 
 
-// ── Loading / Error overlay ───────────────────────────────────────────────────
+// ── Overlay ───────────────────────────────────────────────────────────────────
 .grid-overlay {
   position: absolute;
   inset: 0;
@@ -59,15 +52,16 @@
     font-size: 13px;
     color: #1a4fa0;
     cursor: pointer;
-    &:hover { background: #f0f7f8; }
+    &:hover { background: #eef5f7; }
   }
 }
 
 .grid--hidden { visibility: hidden; pointer-events: none; }
 
 .spinner {
-  width: 28px; height: 28px;
-  border: 3px solid #d8e5e8;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #d4e6ea;
   border-top-color: #1a4fa0;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -78,12 +72,14 @@
 // ── AG Grid overrides ─────────────────────────────────────────────────────────
 ::ng-deep .ag-theme-alpine.bmo-grid {
 
-  // ── Reset AG Grid defaults ───────────────────────────────────────────────
+  // ── Reset ────────────────────────────────────────────────────────────────
   .ag-root-wrapper          { border: none !important; }
   .ag-cell-focus            { outline: none !important; border: none !important; }
   .ag-row-even, .ag-row-odd { background-color: inherit !important; }
 
-  // ── Header ──────────────────────────────────────────────────────────────
+
+  // ── Header ───────────────────────────────────────────────────────────────
+  // White, bold labels, 1px grey column dividers, 2px navy bottom
   .ag-header {
     background-color: #ffffff !important;
     border-bottom: 2px solid #1a2e5a !important;
@@ -112,7 +108,7 @@
   .ag-icon-desc::before { color: #1a4fa0 !important; }
 
 
-  // ── Row base ────────────────────────────────────────────────────────────
+  // ── Row base — strip all AG Grid default borders ──────────────────────────
   .ag-row {
     border-top:    none !important;
     border-bottom: none !important;
@@ -130,7 +126,9 @@
   }
 
 
-  // ── ROOT rows (level 0) ──────────────────────────────────────────────────
+  // ── PARENT rows — root (L0) ───────────────────────────────────────────────
+  // Corp 2, Corp 3, Corp 4, ABC Ltd.
+  // Background #dce9ec teal, 2px navy top (cluster opener), 1px teal bottom
   .row-root {
     background-color: #dce9ec !important;
     border-top:    2px solid #1a2e5a !important;
@@ -139,9 +137,51 @@
     .ag-cell { font-weight: 700 !important; }
   }
 
+  // No opening border on the very first row in the grid
   .ag-row-first.row-root { border-top: none !important; }
-  .row-root:hover { background-color: #d0e2e6 !important; }
 
+  .row-root:hover { background-color: #d2e4e8 !important; }
+
+
+  // ── PARENT rows — child level (L1+, _isParent=true) ─────────────────────
+  // Corp 5 — same teal as root, same bold weight, same bottom border
+  // The ONLY visual difference from root is the indentation (padding-left in TS)
+  .row-child.row-is-parent {
+    background-color: #dce9ec !important;
+    border-top:    none !important;
+    border-bottom: 1px solid #c2d0d3 !important;
+
+    .ag-cell { font-weight: 700 !important; }
+  }
+
+  .row-child.row-is-parent:hover { background-color: #d2e4e8 !important; }
+
+
+  // ── LEAF rows — all levels (_isParent=false) ──────────────────────────────
+  // Role Player F, G, D, E, A, B, C
+  // Very pale cold-white #eef5f7 — barely visible tint, almost white
+  // Thin 1px light grey-teal bottom border
+  .row-child.row-is-leaf {
+    background-color: #eef5f7 !important;
+    border-top:    none !important;
+    border-bottom: 1px solid #d8e4e6 !important;
+
+    .ag-cell { font-weight: 400 !important; }
+  }
+
+  .row-child.row-is-leaf:hover { background-color: #e6f0f3 !important; }
+
+
+  // ── Cluster closing border ────────────────────────────────────────────────
+  // Applied to the last visible row of every cluster (set by buildFlat in TS)
+  // This 2px navy line CLOSES the cluster, matching the opening line on root
+  .row-cluster-end {
+    border-bottom: 2px solid #1a2e5a !important;
+  }
+
+
+  // ── Selected states ───────────────────────────────────────────────────────
+  // Root selected
   .ag-row-selected.row-root {
     background-color: #3d9eb8 !important;
     border-top:    2px solid #1a2e5a !important;
@@ -153,52 +193,14 @@
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-root:hover         { background-color: #3090aa !important; }
-  .ag-row-first.ag-row-selected.row-root  { border-top: none !important; }
+  .ag-row-selected.row-root:hover       { background-color: #3090aa !important; }
+  .ag-row-first.ag-row-selected.row-root { border-top: none !important; }
 
-
-  // ── CHILD rows (level 1+) ────────────────────────────────────────────────
-  //
-  // From Figma: Corp 5 (a parent at level 1) = same pale teal as root rows.
-  //             Role Players (leaf nodes)     = light blue #e8f4f7
-  //
-  // Rule: _isParent=true  → row-is-parent → pale teal  #dce9ec
-  //       _isParent=false → row-is-leaf   → light blue #e8f4f7
-  //
-  .row-child {
-    border-bottom: 1px solid #d0dce0 !important;
-    border-top:    none !important;
-    .ag-cell { font-weight: 400 !important; }
-  }
-
-  // Parent at any depth: same pale teal as root, bold text
-  .row-child.row-is-parent {
-    background-color: #dce9ec !important;
-    border-bottom:    1px solid #c2d0d3 !important;
-    .ag-cell { font-weight: 700 !important; }
-  }
-  .row-child.row-is-parent:hover { background-color: #d0e2e6 !important; }
-
-  // Leaf at any depth: light blue, regular text
-  .row-child.row-is-leaf {
-    background-color: #e8f4f7 !important;
-    border-bottom:    1px solid #d0dce0 !important;
-    .ag-cell { font-weight: 400 !important; }
-  }
-  .row-child.row-is-leaf:hover { background-color: #daeef3 !important; }
-
-
-  // ── Cluster closing border ───────────────────────────────────────────────
-  .row-cluster-end                           { border-bottom: 2px solid #1a2e5a !important; }
-  .ag-row-selected.row-cluster-end           { border-bottom: 2px solid #1a2e5a !important; }
-  .ag-row-selected.row-child.row-cluster-end { border-bottom: 2px solid #1a2e5a !important; }
-
-
-  // ── CHILD selected ───────────────────────────────────────────────────────
-  // Parent-child selected → teal (matches root selected)
+  // Parent-child selected — same teal family
   .ag-row-selected.row-child.row-is-parent {
     background-color: #3d9eb8 !important;
-    border-bottom:    1px solid #2e8da8 !important;
+    border-bottom: 1px solid #2e8da8 !important;
+
     .ag-cell    { color: #fff !important; font-weight: 700 !important; }
     .pn-parent  { color: #fff !important; }
     .pn-chevron { color: #fff !important; }
@@ -207,10 +209,11 @@
   }
   .ag-row-selected.row-child.row-is-parent:hover { background-color: #3090aa !important; }
 
-  // Leaf-child selected → blue
+  // Leaf selected — medium blue
   .ag-row-selected.row-child.row-is-leaf {
     background-color: #5aabdc !important;
-    border-bottom:    1px solid #4a9bcc !important;
+    border-bottom: 1px solid #4a9bcc !important;
+
     .ag-cell    { color: #fff !important; }
     .pn-child   { color: #fff !important; }
     .pn-chevron { color: #fff !important; }
@@ -219,14 +222,18 @@
   }
   .ag-row-selected.row-child.row-is-leaf:hover { background-color: #4e9fd4 !important; }
 
+  // Always keep cluster-end border visible even when selected
+  .ag-row-selected.row-cluster-end { border-bottom: 2px solid #1a2e5a !important; }
 
-  // ── Profile Name cell ────────────────────────────────────────────────────
+
+  // ── Profile Name cell ─────────────────────────────────────────────────────
+  // TS cellStyle injects: padding-left = 8 + (level × 20)px
+  // This shifts the full cell — checkbox AND text — per nesting depth
   .ag-cell[col-id="profileName"] {
     .ag-cell-wrapper {
       display:     flex !important;
       align-items: center !important;
       width:       100%;
-      gap:         0;
       overflow:    hidden;
     }
     .ag-selection-checkbox {
@@ -236,17 +243,17 @@
   }
 
 
-  // ── Profile name text ────────────────────────────────────────────────────
+  // ── Profile name text ─────────────────────────────────────────────────────
   .pn-parent,
   .pn-child {
-    display:     inline-flex;
-    align-items: center;
-    white-space: nowrap;
-    overflow:    hidden;
+    display:       inline-flex;
+    align-items:   center;
+    white-space:   nowrap;
+    overflow:      hidden;
     text-overflow: ellipsis;
-    font-size:   13px;
-    max-width:   100%;
-    color:       #1a4fa0;
+    font-size:     13px;
+    max-width:     100%;
+    color:         #1a4fa0;
   }
 
   .pn-parent {
@@ -269,15 +276,15 @@
   }
 
 
-  // ── Checkboxes ──────────────────────────────────────────────────────────
+  // ── Checkboxes ───────────────────────────────────────────────────────────
   .ag-checkbox-input-wrapper {
-    width:     18px !important;
-    height:    18px !important;
-    min-width: 18px !important;
+    width:         18px !important;
+    height:        18px !important;
+    min-width:     18px !important;
     border-radius: 3px !important;
-    border:    1.5px solid #96a6b4 !important;
-    background: #ffffff !important;
-    flex-shrink: 0;
+    border:        1.5px solid #96a6b4 !important;
+    background:    #ffffff !important;
+    flex-shrink:   0;
 
     &.ag-checked {
       background:   #1a4fa0 !important;
@@ -308,17 +315,17 @@
   }
 
 
-  // ── LEGAL HOLD pill ──────────────────────────────────────────────────────
+  // ── LEGAL HOLD pill ───────────────────────────────────────────────────────
   .lh-pill {
-    display:       inline-block;
-    background:    #111827;
-    color:         #ffffff;
-    font-size:     11px;
-    font-weight:   700;
-    padding:       3px 9px;
-    border-radius: 4px;
+    display:        inline-block;
+    background:     #111827;
+    color:          #ffffff;
+    font-size:      11px;
+    font-weight:    700;
+    padding:        3px 9px;
+    border-radius:  4px;
     letter-spacing: 0.04em;
-    white-space:   nowrap;
+    white-space:    nowrap;
   }
 
   .lh-na {
@@ -327,7 +334,7 @@
   }
 
 
-  // ── Pagination ──────────────────────────────────────────────────────────
+  // ── Pagination ────────────────────────────────────────────────────────────
   .ag-paging-panel {
     border-top: 1px solid #c5d0d3 !important;
     background: #f5f9fa !important;
@@ -338,7 +345,7 @@
   }
 
 
-  // ── Scrollbars ──────────────────────────────────────────────────────────
+  // ── Scrollbars ────────────────────────────────────────────────────────────
   ::-webkit-scrollbar        { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track  { background: #f0f5f6; }
   ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
