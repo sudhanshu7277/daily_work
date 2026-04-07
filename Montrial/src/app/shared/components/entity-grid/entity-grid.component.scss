@@ -1,4 +1,45 @@
-// ── Container ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Design tokens — extracted from all 4 Figma images at pixel level
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Cluster border: thick dark navy line that opens & closes each cluster group
+$cluster-border: 2px solid #1a2e5a;
+
+// Root row (Corp 2/3/4/5): clear light teal/cyan wash visible in every image
+$root-bg:         #d6ecee;
+$root-bg-hover:   #c8e4e7;
+$root-border-bottom: 1px solid #a8cdd2;
+
+// Child row base: white background, thin light-grey separator
+$child-bg-base:   #ffffff;
+$child-border:    1px solid #d0d8e4;   // thin light grey bottom — matches Figma
+
+// Child background tint per level — starts pure white at L1, steps into
+// progressively deeper light-blue at each level. Each step is ~8% more blue.
+// This is what creates the "staircase" visual depth effect in the Figma images.
+// Fully dynamic — supports up to 10 levels via the mixin below.
+$child-level-colors: (
+  1:  #ffffff,    // L1 — pure white, nearly invisible tint
+  2:  #f4f8fc,    // L2 — just barely blue
+  3:  #eaf2f8,    // L3 — light blue
+  4:  #dfedf6,    // L4 — medium-light blue
+  5:  #d5e7f3,    // L5 — medium blue
+  6:  #cae2f1,    // L6
+  7:  #bfdbee,    // L7
+  8:  #b4d5eb,    // L8
+  9:  #a9cee8,    // L9
+  10: #9ec8e5,    // L10 — deepest supported level
+);
+
+// Selected colours (from entity-grid selected state screenshots)
+$selected-root-bg:  #4bacc6;   // medium teal
+$selected-child-bg: #5aabdc;   // medium blue
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Container
+// ─────────────────────────────────────────────────────────────────────────────
+
 .entity-grid-container {
   width: 100%;
   height: calc(100vh - 250px);
@@ -9,7 +50,11 @@
   position: relative;
 }
 
-// ── Loading / Error overlay ────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading / Error overlay
+// ─────────────────────────────────────────────────────────────────────────────
+
 .grid-overlay {
   position: absolute;
   inset: 0;
@@ -24,7 +69,6 @@
   z-index: 10;
   transition: opacity 0.15s;
 
-  // Hide overlay once loading is done
   &--hidden {
     opacity: 0;
     pointer-events: none;
@@ -44,7 +88,6 @@
   }
 }
 
-// Hide grid while loading (keeps it mounted so AG Grid initialises correctly)
 .grid--hidden {
   visibility: hidden;
   pointer-events: none;
@@ -60,20 +103,25 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-// ── AG Grid overrides ──────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AG Grid overrides — scoped to .bmo-grid to avoid leaking
+// ─────────────────────────────────────────────────────────────────────────────
+
 ::ng-deep .ag-theme-alpine.bmo-grid {
 
-  // ── Kill AG Grid defaults ─────────────────────────────────────────────────
+  // ── Reset AG Grid defaults ───────────────────────────────────────────────
   .ag-root-wrapper          { border: none !important; }
   .ag-cell-focus            { outline: none !important; border: none !important; }
-  .ag-row-even, .ag-row-odd { background-color: inherit !important; }
-  .ag-cell                  { border-right: none !important; }
+  .ag-row-even, .ag-row-odd { background-color: inherit !important; } // kill zebra
+  .ag-cell                  { border-right: none !important; }         // no vertical dividers
 
-  // ── Header ─────────────────────────────────────────────────────────────────
-  // Figma: white bg, bold dark text, subtle col dividers, thick navy bottom line
+
+  // ── Header ───────────────────────────────────────────────────────────────
+  // Figma: white bg, bold dark labels, faint col dividers, 2px navy bottom
   .ag-header {
     background-color: #ffffff !important;
-    border-bottom: 2px solid #1a2e5a !important;
+    border-bottom: $cluster-border !important;
     min-height: 44px !important;
   }
   .ag-header-row { height: 44px !important; }
@@ -97,164 +145,209 @@
   .ag-icon-asc::before,
   .ag-icon-desc::before { color: #1a4fa0 !important; }
 
-  // ── Rows — shared base ─────────────────────────────────────────────────────
+
+  // ── Row base ─────────────────────────────────────────────────────────────
   .ag-row {
-    border-top: none !important;
+    // Cluster border system: individual rows override border-top/bottom
+    border-top:    none !important;
+    border-bottom: none !important;
+
     .ag-cell {
-      display: flex !important;
+      display:     flex !important;
       align-items: center !important;
-      font-size: 13px;
-      color: #1a1e2e;
-      padding-top: 0 !important;
+      font-size:   13px;
+      color:       #1a1e2e;
+      padding-top:    0 !important;
       padding-bottom: 0 !important;
       line-height: 1.45;
     }
   }
 
-  // ── ROOT rows (level 0) ────────────────────────────────────────────────────
-  // Figma images 1 & 2: Corp 2/3/4 have a clear MINT-TEAL wash
-  // Measured from Figma: approximately #d8eee9 / #dff0ed
-  // Cluster separator = bold 2px navy top-border between every root row
+
+  // ── ROOT rows (level 0) ───────────────────────────────────────────────────
+  //
+  // Figma design spec:
+  //   • Background: light teal/cyan #d6ecee — clear teal wash, distinct from white
+  //   • Top border: 2px solid #1a2e5a navy — OPENS the cluster group
+  //   • Bottom border: 1px solid #a8cdd2 — separates root from its first child
+  //   • Font: bold 700, #1a4fa0 blue
+  //
   .row-root {
-    background-color: #dff0ed !important;
-    border-bottom: 1px solid #b8d4cf !important;
-    border-top: 2px solid #1a2e5a !important;
+    background-color: $root-bg !important;
+    border-top:    $cluster-border !important;    // opens the cluster
+    border-bottom: $root-border-bottom !important;
 
     .ag-cell { font-weight: 700; }
   }
 
-  // First root row has no separator above it
-  .ag-row-first.row-root { border-top: none !important; }
+  // No opening border above the very first cluster
+  .ag-row-first.row-root {
+    border-top: none !important;
+  }
 
-  .row-root:hover { background-color: #d3ebe6 !important; }
+  .row-root:hover {
+    background-color: $root-bg-hover !important;
+  }
 
-  // ROOT — selected state (teal blue from entity-grid selected screenshot)
+  // ROOT selected
   .ag-row-selected.row-root {
-    background-color: #4bacc6 !important;
-    border-bottom: 1px solid #3d9cb8 !important;
+    background-color: $selected-root-bg !important;
+    border-bottom:    1px solid darken(#4bacc6, 8%) !important;
 
     .ag-cell    { color: #ffffff !important; font-weight: 700; }
     .pn-parent  { color: #ffffff !important; }
     .pn-chevron { color: #ffffff !important; }
     .lh-pill    { background: rgba(255,255,255,0.18) !important; color: #fff !important; }
-    .lh-na      { color: rgba(255,255,255,0.75) !important; }
+    .lh-na      { color: rgba(255,255,255,0.7) !important; }
   }
-  .ag-row-selected.row-root:hover { background-color: #3fa1be !important; }
+  .ag-row-selected.row-root:hover {
+    background-color: darken($selected-root-bg, 5%) !important;
+  }
 
-  // ── CHILD rows ─────────────────────────────────────────────────────────────
+
+  // ── CHILD rows (level 1+) ─────────────────────────────────────────────────
   //
-  // Figma image 3 (clearest) shows:
-  //   Level 1 (Corp 5):        slightly grey-white bg — just barely off-white
-  //   Level 2 (Role Players):  slightly more grey-blue than L1
+  // Figma design spec:
+  //   • Background: white (L1), stepping into light-blue per level — see $child-level-colors
+  //   • Bottom border: 1px solid #d0d8e4 — thin light grey separator
+  //   • No top border (the grey bottom of the row above acts as separator)
+  //   • Left border accent: coloured stripe showing nesting depth
   //
-  // The visual differentiation is subtle — enough to show hierarchy,
-  // not enough to be jarring. Each level steps ~6% more saturated/darker.
-  //
-  // Base child class sets the border — level classes override background.
   .row-child {
-    border-bottom: 1px solid #cdd6e4 !important;
-    border-top: none !important;
+    background-color: $child-bg-base !important;
+    border-bottom:    $child-border !important;
+    border-top:       none !important;
 
     .ag-cell { font-weight: 400; }
   }
 
-  .row-child:hover { filter: brightness(0.96); }
+  .row-child:hover {
+    filter: brightness(0.97);
+  }
 
-  // Per-level backgrounds — read from Figma image 3
-  // L1: very light — barely distinguishable from white, slight grey-blue tint
-  .row-child-l1 { background-color: #f2f5fa !important; }
-  // L2: clearly blue-grey — Role Players in image 3
-  .row-child-l2 { background-color: #e8eef7 !important; }
-  // L3–L5: progressively deeper
-  .row-child-l3 { background-color: #dee7f4 !important; }
-  .row-child-l4 { background-color: #d4dff1 !important; }
-  .row-child-l5 { background-color: #cad8ee !important; }
+  // ── Dynamic per-level background + left accent border ─────────────────────
+  //
+  // Each nesting level gets:
+  //   1. A progressively deeper blue background (from $child-level-colors map)
+  //   2. A coloured left-border accent (3px) — intensity increases with depth
+  //      This is the visual "stripe" that shows hierarchy in the Figma designs
+  //
+  // Levels 1–10 are generated from the SCSS map. Any level beyond 10 falls
+  // back to the L10 values. This makes indentation fully dynamic.
+  //
+  @each $level, $bg in $child-level-colors {
+    $accent-opacity: calc(0.12 + #{$level} * 0.06); // gets stronger per level
+    .row-child-l#{$level} {
+      background-color: $bg !important;
+      border-left: 3px solid rgba(26, 79, 160, #{$accent-opacity}) !important;
+    }
+  }
 
-  // CHILD — selected (medium blue, same family as root selected teal)
+  // ── Cluster closing border ────────────────────────────────────────────────
+  //
+  // The last visible row of each cluster (root or child) gets a thick navy
+  // bottom border — this CLOSES the cluster group visually, matching Figma.
+  // Applied via the _isClusterEnd flag stamped in buildFlat().
+  //
+  .row-cluster-end {
+    border-bottom: $cluster-border !important;
+  }
+
+
+  // ── CHILD selected ────────────────────────────────────────────────────────
   .ag-row-selected.row-child {
-    background-color: #5aabdc !important;
-    border-bottom: 1px solid #4a9bcc !important;
+    background-color: $selected-child-bg !important;
+    border-bottom:    1px solid darken(#5aabdc, 8%) !important;
+    border-left:      3px solid rgba(255,255,255,0.4) !important; // reset accent
 
     .ag-cell    { color: #ffffff !important; }
     .pn-parent  { color: #ffffff !important; }
     .pn-child   { color: #ffffff !important; }
     .pn-chevron { color: #ffffff !important; }
     .lh-pill    { background: rgba(255,255,255,0.18) !important; color: #fff !important; }
-    .lh-na      { color: rgba(255,255,255,0.75) !important; }
+    .lh-na      { color: rgba(255,255,255,0.7) !important; }
   }
-  .ag-row-selected.row-child:hover { background-color: #4e9fd4 !important; }
+  .ag-row-selected.row-child:hover {
+    background-color: darken($selected-child-bg, 5%) !important;
+  }
 
-  // ── Profile Name cell ───────────────────────────────────────────────────────
-  // cellStyle sets padding-left dynamically per _level.
-  // This cell must overflow: visible so deeper levels don't get clipped.
+  // Cluster-end on a selected child — keep the closing border visible
+  .ag-row-selected.row-cluster-end {
+    border-bottom: $cluster-border !important;
+  }
+
+
+  // ── Profile Name cell ─────────────────────────────────────────────────────
+  //
+  // padding-left is set per-row in cellStyle: 8 + (_level × 20)px
+  // This shifts the WHOLE cell — checkbox AND text — rightward per level.
+  //
   .ag-cell[col-id="profileName"] {
     overflow: visible !important;
 
     .ag-cell-wrapper {
-      display: flex !important;
+      display:     flex !important;
       align-items: center !important;
-      width: 100%;
-      overflow: hidden;
-      gap: 0;
+      width:       100%;
+      overflow:    hidden;
+      gap:         0;
     }
 
-    // Checkbox sits at the left of the cell, shifted by padding-left
     .ag-selection-checkbox {
-      flex-shrink: 0;
+      flex-shrink:  0;
       margin-right: 8px;
     }
   }
 
-  // ── Profile name text elements ──────────────────────────────────────────────
+
+  // ── Profile name renderer elements ────────────────────────────────────────
   .pn-parent,
   .pn-child {
-    display: inline-flex;
+    display:     inline-flex;
     align-items: center;
     white-space: nowrap;
-    overflow: hidden;
+    overflow:    hidden;
     text-overflow: ellipsis;
-    font-size: 13px;
-    max-width: 100%;
+    font-size:   13px;
+    max-width:   100%;
   }
 
-  // Parent (cluster root + intermediate parents like Corp 5): bold blue, pointer
   .pn-parent {
-    color: #1a4fa0;
+    color:       #1a4fa0;
     font-weight: 700;
-    cursor: pointer;
-    gap: 5px;
+    cursor:      pointer;
+    gap:         5px;
   }
 
-  // Leaf children: regular weight blue, default cursor
   .pn-child {
-    color: #1a4fa0;
+    color:       #1a4fa0;
     font-weight: 400;
-    cursor: default;
+    cursor:      default;
   }
 
-  // Chevron icon — uses currentColor, so it inherits from .pn-parent
-  // and turns white automatically on selected rows
+  // Chevron: uses currentColor so it inherits parent/white on selected rows
   .pn-chevron {
-    display: inline-flex;
+    display:     inline-flex;
     align-items: center;
     flex-shrink: 0;
     margin-left: 4px;
-    color: #1a4fa0;
+    color:       #1a4fa0;
   }
 
-  // ── Checkboxes ──────────────────────────────────────────────────────────────
-  // Figma: square ~18×18, rounded 3px, grey border unselected, solid #1a4fa0 checked
+
+  // ── Checkboxes ────────────────────────────────────────────────────────────
+  // Figma: ~18×18 square, 3px radius, #96a4b8 border unselected, solid blue checked
   .ag-checkbox-input-wrapper {
-    width: 18px !important;
-    height: 18px !important;
+    width:     18px !important;
+    height:    18px !important;
     min-width: 18px !important;
     border-radius: 3px !important;
-    border: 1.5px solid #96a4b8 !important;
+    border:    1.5px solid #96a4b8 !important;
     background: #ffffff !important;
     flex-shrink: 0;
 
     &.ag-checked {
-      background: #1a4fa0 !important;
+      background:   #1a4fa0 !important;
       border-color: #1a4fa0 !important;
       &::after { color: #ffffff !important; font-size: 11px !important; }
     }
@@ -262,59 +355,62 @@
     &:hover:not(.ag-checked) { border-color: #1a4fa0 !important; }
 
     input[type='checkbox'] {
-      width: 18px !important;
-      height: 18px !important;
+      width:   18px !important;
+      height:  18px !important;
       opacity: 0;
-      cursor: pointer;
+      cursor:  pointer;
     }
   }
 
-  // On selected rows: unchecked = white outline; checked = white bg + blue tick
+  // Checkboxes on selected rows
   .ag-row-selected .ag-checkbox-input-wrapper:not(.ag-checked) {
-    border-color: rgba(255, 255, 255, 0.55) !important;
-    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255,255,255,0.55) !important;
+    background:   rgba(255,255,255,0.12) !important;
   }
   .ag-row-selected .ag-checkbox-input-wrapper.ag-checked {
-    background: rgba(255, 255, 255, 0.9) !important;
+    background:   rgba(255,255,255,0.9) !important;
     border-color: #ffffff !important;
     &::after { color: #1a4fa0 !important; }
   }
 
   .ag-header-select-all .ag-checkbox-input-wrapper {
-    width: 18px !important;
+    width:  18px !important;
     height: 18px !important;
   }
 
-  // ── LEGAL HOLD pill ─────────────────────────────────────────────────────────
-  // Figma: near-black bg, white bold text, tight pill, ~4px radius
+
+  // ── LEGAL HOLD pill ───────────────────────────────────────────────────────
+  // Figma: near-black #111827, white 700-weight text, 4px radius
   .lh-pill {
-    display: inline-block;
-    background: #111827;
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
+    display:       inline-block;
+    background:    #111827;
+    color:         #ffffff;
+    font-size:     11px;
+    font-weight:   700;
+    padding:       3px 10px;
     border-radius: 4px;
     letter-spacing: 0.04em;
-    white-space: nowrap;
+    white-space:   nowrap;
   }
 
   .lh-na {
-    color: #6b7280;
+    color:     #6b7280;
     font-size: 13px;
   }
 
-  // ── Pagination ──────────────────────────────────────────────────────────────
+
+  // ── Pagination ────────────────────────────────────────────────────────────
   .ag-paging-panel {
     border-top: 1px solid #c5d0dc !important;
     background: #f4f6f9 !important;
-    height: 42px !important;
-    font-size: 12px !important;
-    color: #3a4155 !important;
-    padding: 0 16px !important;
+    height:     42px !important;
+    font-size:  12px !important;
+    color:      #3a4155 !important;
+    padding:    0 16px !important;
   }
 
-  // ── Scrollbars ──────────────────────────────────────────────────────────────
+
+  // ── Scrollbars ────────────────────────────────────────────────────────────
   ::-webkit-scrollbar        { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track  { background: #edf1f7; }
   ::-webkit-scrollbar-thumb  { background: #b0bdd0; border-radius: 3px; }

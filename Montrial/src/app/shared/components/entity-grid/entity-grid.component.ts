@@ -66,7 +66,7 @@ export class EntityGridComponent implements OnInit, OnDestroy {
        * receives the padding.
        */
       cellStyle: (p: any) => ({
-        'padding-left': `${8 + ((p.data as any)?._level ?? 0) * 24}px`,
+        'padding-left': `${8 + ((p.data as any)?._level ?? 0) * 20}px`,
       }),
       cellRenderer: (p: any) => {
         if (!p.data) return '';
@@ -169,10 +169,18 @@ export class EntityGridComponent implements OnInit, OnDestroy {
     });
   }
 
-  private buildFlat(nodes: any[], out: any[] = []): any[] {
+  private buildFlat(nodes: any[], out: any[] = [], isRoot = true): any[] {
     for (const n of nodes) {
+      n._isClusterEnd = false;
       out.push(n);
-      if (n._isParent && n._expanded) this.buildFlat(n.children, out);
+      if (n._isParent && n._expanded) this.buildFlat(n.children, out, false);
+    }
+    if (isRoot) {
+      for (let i = 0; i < out.length; i++) {
+        const nextIsRoot = i < out.length - 1 && (out[i + 1] as any)._level === 0;
+        const isLast     = i === out.length - 1;
+        if (nextIsRoot || isLast) (out[i] as any)._isClusterEnd = true;
+      }
     }
     return out;
   }
@@ -210,10 +218,12 @@ export class EntityGridComponent implements OnInit, OnDestroy {
    * …up to l5 cap
    */
   readonly getRowClass = (p: any): string => {
-    const lvl: number = (p.data as any)?._level ?? 0;
+    const node = p.data as any;
+    const lvl: number = node?._level ?? 0;
+    const end = node?._isClusterEnd ? ' row-cluster-end' : '';
     return lvl === 0
-      ? 'row-root'
-      : `row-child row-child-l${Math.min(lvl, 5)}`;
+      ? `row-root${end}`
+      : `row-child row-child-l${Math.min(lvl, 10)}${end}`;
   };
 
   // ── Selection ──────────────────────────────────────────────────────────────
