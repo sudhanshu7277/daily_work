@@ -240,11 +240,15 @@ export class EntityGridComponent implements OnInit, OnDestroy {
   }
 
   readonly getRowClass = (p: any): string => {
-    const node = p.data as any;
-    const lvl  = node?._level ?? 0;
-    const end  = node?._isClusterEnd ? ' row-cluster-end' : '';
+    const node    = p.data as any;
+    const lvl     = node?._level ?? 0;
+    const end     = node?._isClusterEnd ? ' row-cluster-end' : '';
+    const isParent = node?._isParent ? ' row-is-parent' : ' row-is-leaf';
+    // Level 0 roots always use row-root (pale teal)
     if (lvl === 0) return `row-root${end}`;
-    return `row-child row-child-l${Math.min(lvl, 10)}${end}`;
+    // Deeper parent rows (Corp 5, Corp 6 etc): same pale teal as root
+    // Leaf rows (Role Players): light blue
+    return `row-child row-child-l${Math.min(lvl, 10)}${isParent}${end}`;
   };
 
   // ── Selection logic ────────────────────────────────────────────────────────

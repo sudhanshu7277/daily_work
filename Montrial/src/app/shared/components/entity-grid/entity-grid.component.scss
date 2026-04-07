@@ -169,33 +169,46 @@
 
   // ── CHILD rows (level 1+) ────────────────────────────────────────────────
   //
-  // CRITICAL: Figma shows pure WHITE #ffffff for ALL child rows.
-  // Role Player F, G, D, E, A, Corp 5, Corp 6 — all pure white.
-  // The only visual difference per level is the indentation (padding-left).
-  // There is NO background colour change between levels.
+  // From zoomed Figma close-up images (definitive):
+  //
+  //   PARENT child rows (Corp 5, Corp 6 etc — _isParent=true, level>0):
+  //     Same pale teal #dce9ec as root rows — they are expandable parents
+  //     regardless of nesting level.
+  //
+  //   LEAF child rows (Role Players — _isParent=false):
+  //     Light blue #e8f4f7 — clearly different from both white AND the teal
+  //     1px solid #d0dce0 thin light grey bottom border
   //
   .row-child {
-    background-color: #ffffff !important;
-    border-bottom: 1px solid #e0e5ea !important;
+    border-bottom: 1px solid #d0dce0 !important;
     border-top:    none !important;
 
     .ag-cell { font-weight: 400 !important; }
   }
 
-  .row-child:hover { background-color: #f5f9fa !important; }
+  // Parent rows at any depth: same pale teal as root rows
+  .row-child.row-is-parent {
+    background-color: #dce9ec !important;
+    border-bottom: 1px solid #c2d0d3 !important;
 
-  // All levels share the same white background — indentation handles hierarchy
-  .row-child-l1,
-  .row-child-l2,
-  .row-child-l3,
-  .row-child-l4,
-  .row-child-l5,
-  .row-child-l6,
-  .row-child-l7,
-  .row-child-l8,
-  .row-child-l9,
-  .row-child-l10 {
-    background-color: #ffffff !important;
+    .ag-cell { font-weight: 700 !important; }
+  }
+  .row-child.row-is-parent:hover { background-color: #d0e2e6 !important; }
+
+  // Leaf rows: light blue background — the definitive Figma colour
+  .row-child.row-is-leaf {
+    background-color: #e8f4f7 !important;
+    border-bottom: 1px solid #d0dce0 !important;
+
+    .ag-cell { font-weight: 400 !important; }
+  }
+  .row-child.row-is-leaf:hover { background-color: #daeef3 !important; }
+
+  // Level-specific overrides not needed — parent/leaf distinction handles it.
+  // These are kept as no-ops to avoid any specificity issues.
+  .row-child-l1, .row-child-l2, .row-child-l3, .row-child-l4, .row-child-l5,
+  .row-child-l6, .row-child-l7, .row-child-l8, .row-child-l9, .row-child-l10 {
+    // background set by row-is-parent or row-is-leaf above
   }
 
 
@@ -213,18 +226,32 @@
 
 
   // ── CHILD selected ───────────────────────────────────────────────────────
-  .ag-row-selected.row-child {
+  // Parent-child selected: slightly darker teal
+  .ag-row-selected.row-child.row-is-parent {
+    background-color: #3d9eb8 !important;
+    border-bottom: 1px solid #2e8da8 !important;
+
+    .ag-cell    { color: #fff !important; font-weight: 700 !important; }
+    .pn-parent  { color: #fff !important; }
+    .pn-chevron { color: #fff !important; }
+    .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+    .lh-na      { color: rgba(255,255,255,0.75) !important; }
+  }
+  .ag-row-selected.row-child.row-is-parent:hover { background-color: #3090aa !important; }
+
+  // Leaf-child selected: medium blue
+  .ag-row-selected.row-child.row-is-leaf {
     background-color: #5aabdc !important;
     border-bottom: 1px solid #4a9bcc !important;
 
     .ag-cell    { color: #fff !important; }
-    .pn-parent  { color: #fff !important; }
     .pn-child   { color: #fff !important; }
     .pn-chevron { color: #fff !important; }
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-child:hover { background-color: #4e9fd4 !important; }
+  .ag-row-selected.row-child.row-is-leaf:hover { background-color: #4e9fd4 !important; }
+
   .ag-row-selected.row-child.row-cluster-end {
     border-bottom: 2px solid #1a2e5a !important;
   }
