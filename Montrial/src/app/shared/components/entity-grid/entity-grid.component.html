@@ -1,15 +1,15 @@
 <div class="entity-grid-container">
 
-  <!-- Loading state -->
-  <div *ngIf="isLoading" class="grid-state-overlay">
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="grid-overlay">
     <div class="spinner"></div>
     <span>Loading entities...</span>
   </div>
 
-  <!-- Error state -->
-  <div *ngIf="loadError && !isLoading" class="grid-state-overlay grid-state-error">
-    <span>Failed to load data. Please try again.</span>
-    <button (click)="ngOnInit()">Retry</button>
+  <!-- Error -->
+  <div *ngIf="loadError && !isLoading" class="grid-overlay grid-overlay--error">
+    <span>Failed to load data.</span>
+    <button (click)="loadData()">Retry</button>
   </div>
 
   <!-- Grid -->

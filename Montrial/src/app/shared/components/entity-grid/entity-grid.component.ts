@@ -5,6 +5,7 @@ import {
   OnInit,
   OnDestroy,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   ColDef,
@@ -21,7 +22,7 @@ import { EntityNode } from './entity-grid.model';
 @Component({
   selector: 'app-entity-grid',
   standalone: true,
-  imports: [AgGridAngular],
+  imports: [CommonModule, AgGridAngular],  // CommonModule for *ngIf
   templateUrl: './entity-grid.component.html',
   styleUrls: ['./entity-grid.component.scss'],
 })
@@ -29,23 +30,17 @@ export class EntityGridComponent implements OnInit, OnDestroy {
   @Output() selectionChanged = new EventEmitter<EntityNode[]>();
 
   private gridApi!: GridApi;
-  rowData: EntityNode[] = [];
-  private tree: EntityNode[] = [];
+  rowData: any[] = [];
+  private tree: any[] = [];
 
   isLoading = true;
-  loadError = false;
+  loadError  = false;
 
   private readonly destroy$ = new Subject<void>();
-
-  /**
-   * Guard: set TRUE while we push state programmatically to the grid,
-   * so the resulting selectionChanged AG Grid event is ignored.
-   */
   private updating = false;
 
-  readonly pageSize = 15;
+  readonly pageSize = 20;
 
-  // ── Stable row identity ────────────────────────────────────────────────────
   readonly getRowId = (p: GetRowIdParams) => (p.data as any)._uid;
 
   // ── Column Definitions ─────────────────────────────────────────────────────
@@ -56,27 +51,35 @@ export class EntityGridComponent implements OnInit, OnDestroy {
       sortable: true,
       checkboxSelection: true,
       headerCheckboxSelection: true,
-      minWidth: 280,
+      minWidth: 260,
       flex: 2,
       /**
-       * DYNAMIC INDENTATION — works for any nesting depth.
-       * padding-left = 8px + (_level × 28px)
-       * Shifts the whole cell: checkbox + renderer text together.
+       * DYNAMIC INDENTATION
+       * Formula: padding-left = 8px + (_level × 24px)
+       *   Level 0 (root)  → 8px   (checkbox flush left)
+       *   Level 1         → 32px  (Corp 5 in Figma)
+       *   Level 2         → 56px  (Role Players in Figma)
+       *   Level 3         → 80px  etc.
+       *
+       * This shifts the ENTIRE cell content — checkbox AND text — together,
+       * because the checkbox lives inside the AG Grid cell wrapper which
+       * receives the padding.
        */
       cellStyle: (p: any) => ({
-        'padding-left': `${8 + ((p.data as any)?._level ?? 0) * 28}px`,
+        'padding-left': `${8 + ((p.data as any)?._level ?? 0) * 24}px`,
       }),
       cellRenderer: (p: any) => {
         if (!p.data) return '';
         const node = p.data as any;
         const name: string = p.value ?? '';
+
         if (node._isParent) {
-          const chevronUp = `<svg width="11" height="7" viewBox="0 0 11 7" fill="none">
-            <path d="M1 6L5.5 1.5L10 6" stroke="currentColor" stroke-width="2"
+          const chevronUp = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 5.5L5 1L9 5.5" stroke="currentColor" stroke-width="1.8"
               stroke-linecap="round" stroke-linejoin="round"/>
           </svg>`;
-          const chevronDown = `<svg width="11" height="7" viewBox="0 0 11 7" fill="none">
-            <path d="M1 1.5L5.5 6L10 1.5" stroke="currentColor" stroke-width="2"
+          const chevronDown = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 0.5L5 5L9 0.5" stroke="currentColor" stroke-width="1.8"
               stroke-linecap="round" stroke-linejoin="round"/>
           </svg>`;
           const icon = node._expanded ? chevronUp : chevronDown;
@@ -85,20 +88,20 @@ export class EntityGridComponent implements OnInit, OnDestroy {
         return `<span class="pn-child">${name}</span>`;
       },
     },
-    { headerName: 'Proxy OCIF ID',             field: 'ocifId',    sortable: false, width: 148 },
+    { headerName: 'Proxy OCIF ID',             field: 'ocifId',    sortable: false, width: 140 },
     {
       headerName: 'Legal Hold Status',
       field: 'legalHoldStatus',
       sortable: true,
-      width: 172,
+      width: 160,
       cellRenderer: (p: any) =>
         p.value === 'LEGAL HOLD'
           ? `<span class="lh-pill">LEGAL HOLD</span>`
           : `<span class="lh-na">N/A</span>`,
     },
-    { headerName: 'Legal Hold Name',           field: 'holdName',  width: 168, cellRenderer: (p: any) => p.value || '' },
-    { headerName: 'Customer Lifecycle Status', field: 'lifecycle', width: 196 },
-    { headerName: 'Role Type',                 field: 'role',      width: 148 },
+    { headerName: 'Legal Hold Name',           field: 'holdName',  width: 160, cellRenderer: (p: any) => p.value || '' },
+    { headerName: 'Customer Lifecycle Status', field: 'lifecycle', width: 190 },
+    { headerName: 'Role Type',                 field: 'role',      width: 175 },
     { headerName: 'Address',                   field: 'address',   flex: 1, minWidth: 180 },
   ];
 
@@ -108,10 +111,9 @@ export class EntityGridComponent implements OnInit, OnDestroy {
     cellStyle: { display: 'flex', alignItems: 'center' },
   };
 
-  constructor(private readonly entityGridSvc: EntityGridService) {}
+  constructor(private readonly svc: EntityGridService) {}
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
-
   ngOnInit(): void {
     this.loadData();
   }
@@ -121,41 +123,37 @@ export class EntityGridComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  /**
-   * Calls the service GET method. Stamps tree metadata on response,
-   * then builds the initial flat visible row list.
-   */
-  private loadData(): void {
+  loadData(): void {
     this.isLoading = true;
-    this.loadError = false;
+    this.loadError  = false;
 
-    this.entityGridSvc.getEntityGrid()
+    this.svc.getEntityGrid()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          this.tree = response.data;
+        next: (res) => {
+          this.tree   = res.data;
           this.stampTree(this.tree, 0, '');
           this.rowData = this.buildFlat(this.tree);
           this.isLoading = false;
         },
         error: (err) => {
-          console.error('[EntityGrid] Failed to load data', err);
-          this.loadError = true;
-          this.isLoading = false;
-        }
+          console.error('[EntityGrid] load error', err);
+          this.loadError  = true;
+          this.isLoading  = false;
+        },
       });
   }
 
   /**
-   * Stamps private runtime fields (_uid, _level, _isParent, _expanded, _selected)
-   * on every node recursively. These are prefixed _ to avoid collisions with
-   * the real data fields. Called once after data loads.
+   * Stamps runtime metadata on every node (runs once after data loads).
    *
-   * _level    drives the dynamic padding-left indentation formula
-   * _uid      is the stable key used by getRowId (AG Grid identity)
-   * _isParent is true when node.children.length > 0
-   * _expanded tracks current open/closed state (seed from isExpanded flag)
-   * _selected is our selection model — we never trust AG Grid's checkbox directly
+   * _uid      → stable string key, fed to getRowId so AG Grid never loses
+   *             node references across applyTransaction calls
+   * _level    → 0 for roots, increments per nesting depth;
+   *             drives the padding-left formula in cellStyle
+   * _isParent → true when node.children.length > 0
+   * _expanded → initial open/closed (reads isExpanded, defaults true for parents)
+   * _selected → our authoritative selection state
    */
   private stampTree(nodes: any[], level: number, parentUid: string): void {
     nodes.forEach((n, i) => {
@@ -178,12 +176,10 @@ export class EntityGridComponent implements OnInit, OnDestroy {
   }
 
   // ── Grid Events ────────────────────────────────────────────────────────────
-
   onGridReady(e: GridReadyEvent): void {
     this.gridApi = e.api;
   }
 
-  /** Toggle expand / collapse on Profile Name cell click. Guards checkbox clicks. */
   onCellClicked(e: CellClickedEvent): void {
     if (e.colDef.field !== 'profileName' || !(e.data as any)?._isParent) return;
 
@@ -201,9 +197,16 @@ export class EntityGridComponent implements OnInit, OnDestroy {
 
     this.rowData = next;
     this.gridApi.applyTransaction({ add, remove });
-    this.syncModelToGrid(); // restore checkboxes silently
+    this.syncModelToGrid();
   }
 
+  /**
+   * getRowClass drives row background colour.
+   * Level 0       → row-root  (mint-teal)
+   * Level 1       → row-child row-child-l1  (lightest blue-grey)
+   * Level 2       → row-child row-child-l2  (slightly deeper)
+   * …up to l5 cap
+   */
   readonly getRowClass = (p: any): string => {
     const lvl: number = (p.data as any)?._level ?? 0;
     return lvl === 0
@@ -211,54 +214,50 @@ export class EntityGridComponent implements OnInit, OnDestroy {
       : `row-child row-child-l${Math.min(lvl, 5)}`;
   };
 
-  // ── Selection Logic ────────────────────────────────────────────────────────
-
+  // ── Selection ──────────────────────────────────────────────────────────────
   onSelectionChanged(): void {
     if (this.updating) return;
     this.updating = true;
 
     try {
-      // ① Snapshot previous selection state (UIDs of selected nodes)
-      const prevSelected = new Set<string>();
-      this.collectSelected(this.tree, prevSelected);
+      // ① Snapshot before
+      const prev = new Set<string>();
+      this.collectSelected(this.tree, prev);
 
-      // ② Read current UI state into model
+      // ② Read grid → model
       this.gridApi.forEachNode(node => {
         const n = this.findByUid(this.tree, (node.data as any)._uid);
         if (n) n._selected = node.isSelected();
       });
 
-      // ③ Diff: which nodes changed state this event?
-      const nowSelected = new Set<string>();
-      this.collectSelected(this.tree, nowSelected);
+      // ③ Diff
+      const now = new Set<string>();
+      this.collectSelected(this.tree, now);
+      const justSel   = [...now].filter(u => !prev.has(u));
+      const justDesel = [...prev].filter(u => !now.has(u));
 
-      const justSelected   = [...nowSelected].filter(uid => !prevSelected.has(uid));
-      const justDeselected = [...prevSelected].filter(uid => !nowSelected.has(uid));
-
-      // ④ Cascade TRUE down for each newly selected parent
-      for (const uid of justSelected) {
-        const node = this.findByUid(this.tree, uid);
-        if (node?._isParent) this.setAllDescendants(node.children, true);
+      // ④ Cascade selected parents down
+      for (const uid of justSel) {
+        const n = this.findByUid(this.tree, uid);
+        if (n?._isParent) this.setAllDescendants(n.children, true);
       }
 
-      // ⑤ Cascade FALSE down for each newly deselected parent
-      for (const uid of justDeselected) {
-        const node = this.findByUid(this.tree, uid);
-        if (node?._isParent) this.setAllDescendants(node.children, false);
+      // ⑤ Cascade deselected parents down
+      for (const uid of justDesel) {
+        const n = this.findByUid(this.tree, uid);
+        if (n?._isParent) this.setAllDescendants(n.children, false);
       }
 
-      // ⑥ Recompute all parents bottom-up
-      //    parent = selected only when EVERY child is selected
+      // ⑥ Recompute parents bottom-up
       this.recomputeParents(this.tree);
 
-      // ⑦ Push model → grid (silent, no event)
+      // ⑦ Push model → grid silently
       this.syncModelToGrid();
 
     } finally {
       this.updating = false;
     }
 
-    // ⑧ Emit and log
     this.logAndEmit();
   }
 
@@ -269,13 +268,14 @@ export class EntityGridComponent implements OnInit, OnDestroy {
     }
   }
 
-  private setAllDescendants(nodes: any[], selected: boolean): void {
+  private setAllDescendants(nodes: any[], sel: boolean): void {
     for (const n of nodes) {
-      n._selected = selected;
-      if (n.children?.length) this.setAllDescendants(n.children, selected);
+      n._selected = sel;
+      if (n.children?.length) this.setAllDescendants(n.children, sel);
     }
   }
 
+  /** Post-order: parent is selected iff ALL children selected */
   private recomputeParents(nodes: any[]): boolean {
     if (!nodes.length) return true;
     let allSel = true;
@@ -296,7 +296,6 @@ export class EntityGridComponent implements OnInit, OnDestroy {
   }
 
   // ── Logging & Emit ─────────────────────────────────────────────────────────
-
   private logAndEmit(): void {
     const selected: any[] = this.gridApi.getSelectedRows();
 
@@ -321,29 +320,26 @@ export class EntityGridComponent implements OnInit, OnDestroy {
 
     console.groupCollapsed(`[EntityGrid] ${selected.length} row(s) selected`);
     clusterMap.forEach(({ root, rows }) => {
-      const allInCluster = this.flattenNode(root);
-      console.groupCollapsed(
-        `Cluster "${root.profileName}" (${root.ocifId}) — ${rows.length}/${allInCluster.length} selected`
-      );
+      const all = this.flattenNode(root);
+      console.groupCollapsed(`Cluster "${root.profileName}" — ${rows.length}/${all.length} selected`);
       console.log('Selected rows:', rows);
-      console.log('Full cluster:', allInCluster);
+      console.log('Full cluster:', all);
       console.groupEnd();
     });
-    if (standalone.length) console.log('Standalone (no cluster):', standalone);
-    console.log('All selected (flat):', selected);
+    if (standalone.length) console.log('Standalone:', standalone);
+    console.log('All selected:', selected);
     console.groupEnd();
 
     this.selectionChanged.emit(selected as EntityNode[]);
   }
 
   // ── Tree Utilities ─────────────────────────────────────────────────────────
-
   private findByUid(nodes: any[], uid: string): any | null {
     for (const n of nodes) {
       if (n._uid === uid) return n;
       if (n.children?.length) {
-        const found = this.findByUid(n.children, uid);
-        if (found) return found;
+        const f = this.findByUid(n.children, uid);
+        if (f) return f;
       }
     }
     return null;
