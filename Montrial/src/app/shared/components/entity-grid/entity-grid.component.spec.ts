@@ -7,10 +7,7 @@ import { EntityGridComponent } from './entity-grid.component';
 import { EntityGridService } from './entity-grid.service';
 import { EntityGridResponse, EntityNode } from './entity-grid.model';
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 const addr = '33 Dundas St W, Toronto, ON M5G 2C3';
-
 function makeLeaf(id: string, name: string): EntityNode {
   return {
     ocifId: id, profileName: name, legalHoldStatus: 'N/A', holdName: '',
