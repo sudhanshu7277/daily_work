@@ -1,24 +1,31 @@
 // =============================================================================
-// DESIGN TOKENS — extracted pixel-by-pixel from all 4 Figma images
-// =============================================================================
+// DESIGN TOKENS — verified by direct comparison of claude-generated vs figma
 //
-// Cluster border: 2px solid #1a2e5a  (dark navy)
-//   → tops every root row  (OPENS the cluster group)
-//   → bottoms the last row of each cluster  (CLOSES the cluster group)
+// ROOT ROWS (Corp 2, Corp 3, Corp 4, Corp 5):
+//   Background: #dce9ec  — very pale teal-grey, barely tinted, NOT saturated
+//   Font: 700 bold, #1a4fa0 blue
+//   Top border: 2px solid #1a2e5a  (cluster opener)
+//   Bottom border: 1px solid #c2d0d3
 //
-// Root rows: #cce8ec  teal/cyan wash — clearly coloured, not subtle
-// Child rows: teal family, progressively lighter per level
-//   L1: #e4f2f4   L2: #eaf5f6   L3: #f0f8f9   L4: #f4fafa   L5+: near-white
+// CHILD ROWS (Role Players, Corp 5 children):
+//   Background: #ffffff  — PURE WHITE. No tint whatsoever.
+//   Font: 400 regular, #1a4fa0 blue
+//   Bottom border: 1px solid #e0e5ea  (very light grey)
 //
-// All child rows have 1px #ccd8da thin teal-grey bottom border
+// CLUSTER END: last row of each cluster gets 2px solid #1a2e5a bottom border
+//
+// HEADER:
+//   White bg, bold #1c2333 text
+//   1px solid #dde3e8 vertical dividers between EVERY column
+//   2px solid #1a2e5a bottom border
 // =============================================================================
 
 
-// ── Container ────────────────────────────────────────────────────────────────
+// ── Container ─────────────────────────────────────────────────────────────────
 .entity-grid-container {
   width: 100%;
   height: calc(100vh - 250px);
-  border: 1px solid #b8cdd0;
+  border: 1px solid #c5d0d3;
   border-radius: 4px;
   background: #fff;
   overflow: hidden;
@@ -46,13 +53,13 @@
 
   button {
     padding: 6px 18px;
-    border: 1px solid #b8cdd0;
+    border: 1px solid #c5d0d3;
     border-radius: 4px;
     background: #fff;
     font-size: 13px;
     color: #1a4fa0;
     cursor: pointer;
-    &:hover { background: #f0f8f9; }
+    &:hover { background: #f0f7f8; }
   }
 }
 
@@ -60,7 +67,7 @@
 
 .spinner {
   width: 28px; height: 28px;
-  border: 3px solid #d0e8ec;
+  border: 3px solid #d8e5e8;
   border-top-color: #1a4fa0;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -68,18 +75,15 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 
-// ── AG Grid overrides — all scoped to .bmo-grid ───────────────────────────────
+// ── AG Grid overrides ─────────────────────────────────────────────────────────
 ::ng-deep .ag-theme-alpine.bmo-grid {
 
-  // ── Reset AG Grid defaults ────────────────────────────────────────────────
+  // ── Reset AG Grid defaults ───────────────────────────────────────────────
   .ag-root-wrapper          { border: none !important; }
   .ag-cell-focus            { outline: none !important; border: none !important; }
-  .ag-row-even, .ag-row-odd { background-color: inherit !important; } // kill zebra
-  .ag-cell                  { border-right: none !important; }         // no vertical dividers between cells
+  .ag-row-even, .ag-row-odd { background-color: inherit !important; }
 
-
-  // ── Header ───────────────────────────────────────────────────────────────
-  // White bg, bold dark labels, 2px navy bottom — same navy as cluster borders
+  // ── Header ──────────────────────────────────────────────────────────────
   .ag-header {
     background-color: #ffffff !important;
     border-bottom: 2px solid #1a2e5a !important;
@@ -89,172 +93,160 @@
 
   .ag-header-cell {
     background-color: #ffffff !important;
-    border-right: none !important;   // no vertical dividers in header
+    // Figma clearly shows 1px grey vertical dividers between every column
+    border-right: 1px solid #dde3e8 !important;
     padding: 0 14px !important;
+    &:last-child { border-right: none !important; }
   }
 
   .ag-header-cell-text {
     font-size: 13px !important;
     font-weight: 700 !important;
     color: #1c2333 !important;
-    letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  // Sort icons
-  .ag-sort-indicator-icon .ag-icon { color: #1a4fa0 !important; }
+  .ag-sort-indicator-icon .ag-icon,
   .ag-icon-asc::before,
-  .ag-icon-desc::before             { color: #1a4fa0 !important; }
+  .ag-icon-desc::before { color: #1a4fa0 !important; }
 
 
-  // ── Row base ─────────────────────────────────────────────────────────────
-  // Remove all default borders — individual rows manage their own borders
+  // ── Row base ────────────────────────────────────────────────────────────
   .ag-row {
     border-top:    none !important;
     border-bottom: none !important;
 
     .ag-cell {
-      display:     flex !important;
-      align-items: center !important;
-      font-size:   13px !important;
-      color:       #1c2333;
+      display:        flex !important;
+      align-items:    center !important;
+      font-size:      13px !important;
+      color:          #1c2333;
       padding-top:    0 !important;
       padding-bottom: 0 !important;
-      line-height: 1.5;
+      line-height:    1.5;
+      // NO border-right override here — let column defs handle it
+      border-right:   none !important;
     }
   }
 
 
-  // ── ROOT rows — level 0 ──────────────────────────────────────────────────
+  // ── ROOT rows (level 0) ──────────────────────────────────────────────────
   //
-  // From Figma: Corp 2, Corp 3, Corp 4, Corp 5 all have the same
-  // medium teal-cyan background #cce8ec.  It is clearly coloured —
-  // not a subtle tint. Font is bold, profile name is blue #1a4fa0.
-  //
-  // Cluster OPEN:  2px solid #1a2e5a navy top-border
-  // Cluster CLOSE: 2px solid #1a2e5a navy bottom-border on the last child
-  //                (handled by .row-cluster-end below)
+  // Figma: Corp 2, Corp 3, Corp 4 — very pale teal-grey #dce9ec
+  // Barely tinted — almost white but with a faint teal cast
+  // Bold profile name text
   //
   .row-root {
-    background-color: #cce8ec !important;
-    border-top:    2px solid #1a2e5a !important;   // cluster opening line
-    border-bottom: 1px solid #9ec4c8 !important;   // separates root from first child
+    background-color: #dce9ec !important;
+    border-top:    2px solid #1a2e5a !important;   // cluster opener
+    border-bottom: 1px solid #c2d0d3 !important;
 
     .ag-cell { font-weight: 700 !important; }
   }
 
-  // First root row in the grid: no opening border above it
+  // No opening border on the very first row
   .ag-row-first.row-root { border-top: none !important; }
 
-  .row-root:hover { background-color: #bde0e4 !important; }
+  .row-root:hover { background-color: #d0e2e6 !important; }
 
-  // ROOT — selected (medium teal, same family, saturated)
+  // ROOT selected
   .ag-row-selected.row-root {
     background-color: #3d9eb8 !important;
+    border-top:    2px solid #1a2e5a !important;
     border-bottom: 1px solid #2e8da8 !important;
 
-    .ag-cell    { color: #ffffff !important; font-weight: 700 !important; }
-    .pn-parent  { color: #ffffff !important; }
-    .pn-chevron { color: #ffffff !important; }
+    .ag-cell    { color: #fff !important; font-weight: 700 !important; }
+    .pn-parent  { color: #fff !important; }
+    .pn-chevron { color: #fff !important; }
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-root:hover { background-color: #2f93ae !important; }
+  .ag-row-selected.row-root:hover { background-color: #3090aa !important; }
+  .ag-row-first.ag-row-selected.row-root { border-top: none !important; }
 
 
-  // ── CHILD rows — level 1+ ────────────────────────────────────────────────
+  // ── CHILD rows (level 1+) ────────────────────────────────────────────────
   //
-  // From Figma images 1, 2, 4 studied closely:
-  //
-  //   All child row backgrounds are from the TEAL/CYAN family — NOT blue.
-  //   They get progressively lighter as the level increases.
-  //   The lightest levels are nearly white but still have a faint teal cast.
-  //
-  //   Every child row has:
-  //     • 1px solid #ccd8da  thin teal-grey bottom separator
-  //     • NO top border (the previous row's bottom line serves as separator)
-  //     • font-weight: 400
-  //
-  //   Level depths from Figma:
-  //     L1 (#e4f2f4): Corp 5 children group background — clearly teal-tinted
-  //     L2 (#eaf5f6): Corp 6, Role Players F/G/D/E/A — lighter teal
-  //     L3 (#f0f8f9): Role Player H, I — very light, nearly white with teal cast
-  //     L4 (#f5fafa): even lighter
-  //     L5+ (#f9fcfc): near-white teal
+  // CRITICAL: Figma shows pure WHITE #ffffff for ALL child rows.
+  // Role Player F, G, D, E, A, Corp 5, Corp 6 — all pure white.
+  // The only visual difference per level is the indentation (padding-left).
+  // There is NO background colour change between levels.
   //
   .row-child {
-    border-bottom: 1px solid #ccd8da !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e0e5ea !important;
     border-top:    none !important;
 
     .ag-cell { font-weight: 400 !important; }
   }
 
-  .row-child:hover { filter: brightness(0.97); }
+  .row-child:hover { background-color: #f5f9fa !important; }
 
-  // Per-level teal backgrounds — fully dynamic, supports L1 through L10
-  // Generated individually so SCSS compiles cleanly without interpolation issues
-  .row-child-l1  { background-color: #ddf0f2 !important; }
-  .row-child-l2  { background-color: #e5f3f5 !important; }
-  .row-child-l3  { background-color: #edf7f8 !important; }
-  .row-child-l4  { background-color: #f1f9fa !important; }
-  .row-child-l5  { background-color: #f5fbfc !important; }
-  .row-child-l6  { background-color: #f7fcfc !important; }
-  .row-child-l7  { background-color: #f9fdfd !important; }
-  .row-child-l8  { background-color: #fbfdfe !important; }
-  .row-child-l9  { background-color: #fcfefe !important; }
-  .row-child-l10 { background-color: #fefefe !important; }
+  // All levels share the same white background — indentation handles hierarchy
+  .row-child-l1,
+  .row-child-l2,
+  .row-child-l3,
+  .row-child-l4,
+  .row-child-l5,
+  .row-child-l6,
+  .row-child-l7,
+  .row-child-l8,
+  .row-child-l9,
+  .row-child-l10 {
+    background-color: #ffffff !important;
+  }
 
 
-  // ── Cluster closing border ────────────────────────────────────────────────
+  // ── Cluster closing border ───────────────────────────────────────────────
   //
-  // The last visible row of each cluster gets .row-cluster-end.
-  // This draws the 2px navy bottom line that CLOSES the cluster group,
-  // mirroring the opening line on the root row.
+  // The last visible row of each cluster (marked by buildFlat in TS)
+  // gets a 2px navy bottom border — this CLOSES the cluster group.
   //
   .row-cluster-end {
     border-bottom: 2px solid #1a2e5a !important;
   }
-
-  // Preserve the closing border on selected rows too
   .ag-row-selected.row-cluster-end {
     border-bottom: 2px solid #1a2e5a !important;
   }
 
 
-  // ── CHILD — selected ─────────────────────────────────────────────────────
+  // ── CHILD selected ───────────────────────────────────────────────────────
   .ag-row-selected.row-child {
     background-color: #5aabdc !important;
     border-bottom: 1px solid #4a9bcc !important;
 
-    .ag-cell    { color: #ffffff !important; }
-    .pn-parent  { color: #ffffff !important; }
-    .pn-child   { color: #ffffff !important; }
-    .pn-chevron { color: #ffffff !important; }
+    .ag-cell    { color: #fff !important; }
+    .pn-parent  { color: #fff !important; }
+    .pn-child   { color: #fff !important; }
+    .pn-chevron { color: #fff !important; }
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
   .ag-row-selected.row-child:hover { background-color: #4e9fd4 !important; }
-
   .ag-row-selected.row-child.row-cluster-end {
     border-bottom: 2px solid #1a2e5a !important;
   }
 
 
-  // ── Profile Name cell ─────────────────────────────────────────────────────
+  // ── Profile Name cell ────────────────────────────────────────────────────
   //
-  // cellStyle in TS sets:  padding-left = 8 + (level × 20)px
-  // This shifts the ENTIRE cell — checkbox AND text — together.
-  // L0 = 8px,  L1 = 28px,  L2 = 48px,  L3 = 68px ...
+  // The cellStyle in TS injects:  padding-left = 8 + (level × 20)px
+  // This shifts the ENTIRE cell — checkbox AND renderer text — together.
+  //
+  // CRITICAL: We must NOT set overflow:hidden on the cell itself, and
+  // the .ag-cell-wrapper must be display:flex so the checkbox and the
+  // cellRenderer span sit inline.
   //
   .ag-cell[col-id="profileName"] {
-    overflow: visible !important;
-
+    // Let AG Grid manage overflow — do not override with visible
+    // as that breaks cell measurement and indentation rendering
     .ag-cell-wrapper {
       display:     flex !important;
       align-items: center !important;
       width:       100%;
+      gap:         0;
       overflow:    hidden;
     }
 
@@ -265,8 +257,9 @@
   }
 
 
-  // ── Profile name text ─────────────────────────────────────────────────────
-  .pn-parent, .pn-child {
+  // ── Profile name text ────────────────────────────────────────────────────
+  .pn-parent,
+  .pn-child {
     display:     inline-flex;
     align-items: center;
     white-space: nowrap;
@@ -274,7 +267,7 @@
     text-overflow: ellipsis;
     font-size:   13px;
     max-width:   100%;
-    color:       #1a4fa0;   // same blue for all levels
+    color:       #1a4fa0;
   }
 
   .pn-parent {
@@ -288,30 +281,22 @@
     cursor:      default;
   }
 
-  // Chevron uses currentColor → inherits blue from .pn-parent,
-  // turns white automatically on selected rows
   .pn-chevron {
     display:     inline-flex;
     align-items: center;
     flex-shrink: 0;
     margin-left: 4px;
-    line-height: 1;
-    color: inherit;
+    color:       inherit;   // inherits from pn-parent (#1a4fa0), turns white on selected
   }
 
 
-  // ── Checkboxes ────────────────────────────────────────────────────────────
-  //
-  // Figma: square ~18×18, border-radius 3px
-  // Unselected: white fill, 1.5px #9baab8 grey border
-  // Checked:    solid #1a4fa0 blue, white tick
-  //
+  // ── Checkboxes ──────────────────────────────────────────────────────────
   .ag-checkbox-input-wrapper {
-    width:      18px !important;
-    height:     18px !important;
-    min-width:  18px !important;
+    width:     18px !important;
+    height:    18px !important;
+    min-width: 18px !important;
     border-radius: 3px !important;
-    border:     1.5px solid #9baab8 !important;
+    border:    1.5px solid #96a6b4 !important;
     background: #ffffff !important;
     flex-shrink: 0;
 
@@ -329,9 +314,8 @@
     }
   }
 
-  // On selected (coloured) rows
   .ag-row-selected .ag-checkbox-input-wrapper:not(.ag-checked) {
-    border-color: rgba(255,255,255,0.55) !important;
+    border-color: rgba(255,255,255,0.6) !important;
     background:   rgba(255,255,255,0.15) !important;
   }
   .ag-row-selected .ag-checkbox-input-wrapper.ag-checked {
@@ -345,15 +329,14 @@
   }
 
 
-  // ── LEGAL HOLD pill ───────────────────────────────────────────────────────
-  // Figma: near-black #111827 bg, white 700 text, 4px radius, tight padding
+  // ── LEGAL HOLD pill ──────────────────────────────────────────────────────
   .lh-pill {
     display:       inline-block;
     background:    #111827;
     color:         #ffffff;
     font-size:     11px;
     font-weight:   700;
-    padding:       2px 8px;
+    padding:       3px 9px;
     border-radius: 4px;
     letter-spacing: 0.04em;
     white-space:   nowrap;
@@ -365,10 +348,10 @@
   }
 
 
-  // ── Pagination bar ────────────────────────────────────────────────────────
+  // ── Pagination ──────────────────────────────────────────────────────────
   .ag-paging-panel {
-    border-top: 1px solid #b8cdd0 !important;
-    background: #f0f8f9 !important;
+    border-top: 1px solid #c5d0d3 !important;
+    background: #f5f9fa !important;
     height:     42px !important;
     font-size:  12px !important;
     color:      #3a4155 !important;
@@ -376,9 +359,9 @@
   }
 
 
-  // ── Scrollbars ────────────────────────────────────────────────────────────
+  // ── Scrollbars ──────────────────────────────────────────────────────────
   ::-webkit-scrollbar        { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track  { background: #e8f4f5; }
-  ::-webkit-scrollbar-thumb  { background: #9ec8cc; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #7bb0b5; }
+  ::-webkit-scrollbar-track  { background: #f0f5f6; }
+  ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #88a4aa; }
 }
