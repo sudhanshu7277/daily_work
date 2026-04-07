@@ -1,23 +1,13 @@
 // =============================================================================
-// DESIGN TOKENS — verified by direct comparison of claude-generated vs figma
+// DESIGN TOKENS — from zoomed Figma close-up images (definitive)
 //
-// ROOT ROWS (Corp 2, Corp 3, Corp 4, Corp 5):
-//   Background: #dce9ec  — very pale teal-grey, barely tinted, NOT saturated
-//   Font: 700 bold, #1a4fa0 blue
-//   Top border: 2px solid #1a2e5a  (cluster opener)
-//   Bottom border: 1px solid #c2d0d3
+// ROOT rows (Corp 2, Corp 3, Corp 4)  L0:  #dce8ec  medium pale teal
+// Child parent rows  (Corp 5)         L1:  #e4eff2  lighter teal
+// Leaf rows  (Role Players)           L2:  #edf6f8  soft light blue
+// Deeper levels step lighter each time
 //
-// CHILD ROWS (Role Players, Corp 5 children):
-//   Background: #ffffff  — PURE WHITE. No tint whatsoever.
-//   Font: 400 regular, #1a4fa0 blue
-//   Bottom border: 1px solid #e0e5ea  (very light grey)
-//
-// CLUSTER END: last row of each cluster gets 2px solid #1a2e5a bottom border
-//
-// HEADER:
-//   White bg, bold #1c2333 text
-//   1px solid #dde3e8 vertical dividers between EVERY column
-//   2px solid #1a2e5a bottom border
+// All child rows: 1px solid #d4e0e3 thin bottom border
+// Cluster borders: 2px solid #1a2e5a navy top (open) + bottom (close)
 // =============================================================================
 
 
@@ -93,7 +83,6 @@
 
   .ag-header-cell {
     background-color: #ffffff !important;
-    // Figma clearly shows 1px grey vertical dividers between every column
     border-right: 1px solid #dde3e8 !important;
     padding: 0 14px !important;
     &:last-child { border-right: none !important; }
@@ -126,7 +115,6 @@
       padding-top:    0 !important;
       padding-bottom: 0 !important;
       line-height:    1.5;
-      // NO border-right override here — let column defs handle it
       border-right:   none !important;
     }
   }
@@ -134,22 +122,20 @@
 
   // ── ROOT rows (level 0) ──────────────────────────────────────────────────
   //
-  // Figma: Corp 2, Corp 3, Corp 4 — very pale teal-grey #dce9ec
-  // Barely tinted — almost white but with a faint teal cast
-  // Bold profile name text
+  // Corp 2, Corp 3, Corp 4 — medium pale teal #dce8ec
+  // 2px navy top (cluster opener), 1px teal-grey bottom
   //
   .row-root {
-    background-color: #dce9ec !important;
-    border-top:    2px solid #1a2e5a !important;   // cluster opener
-    border-bottom: 1px solid #c2d0d3 !important;
+    background-color: #dce8ec !important;
+    border-top:    2px solid #1a2e5a !important;
+    border-bottom: 1px solid #c5d2d5 !important;
 
     .ag-cell { font-weight: 700 !important; }
   }
 
-  // No opening border on the very first row
   .ag-row-first.row-root { border-top: none !important; }
 
-  .row-root:hover { background-color: #d0e2e6 !important; }
+  .row-root:hover { background-color: #d0dfe3 !important; }
 
   // ROOT selected
   .ag-row-selected.row-root {
@@ -163,112 +149,83 @@
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-root:hover { background-color: #3090aa !important; }
+  .ag-row-selected.row-root:hover      { background-color: #3090aa !important; }
   .ag-row-first.ag-row-selected.row-root { border-top: none !important; }
 
 
   // ── CHILD rows (level 1+) ────────────────────────────────────────────────
   //
-  // From zoomed Figma close-up images (definitive):
+  // DEFINITIVE from 3 zoomed Figma close-up images:
   //
-  //   PARENT child rows (Corp 5, Corp 6 etc — _isParent=true, level>0):
-  //     Same pale teal #dce9ec as root rows — they are expandable parents
-  //     regardless of nesting level.
+  // The background lightens progressively with each nesting level.
+  // Every level is a slightly lighter/more-blue step of the same teal family.
   //
-  //   LEAF child rows (Role Players — _isParent=false):
-  //     Light blue #e8f4f7 — clearly different from both white AND the teal
-  //     1px solid #d0dce0 thin light grey bottom border
+  //   L1  Corp 5          #e4eff2   lighter teal (clearly lighter than root)
+  //   L2  Role Players    #edf6f8   soft light blue (clearly lighter than L1)
+  //   L3+                 progressively lighter still
+  //
+  // All child rows share the same thin teal-grey bottom border.
+  // Parent/leaf distinction doesn't matter — level drives the colour.
   //
   .row-child {
-    border-bottom: 1px solid #d0dce0 !important;
+    border-bottom: 1px solid #d4e0e3 !important;
     border-top:    none !important;
 
     .ag-cell { font-weight: 400 !important; }
   }
 
-  // Parent rows at any depth: same pale teal as root rows
-  .row-child.row-is-parent {
-    background-color: #dce9ec !important;
-    border-bottom: 1px solid #c2d0d3 !important;
-
-    .ag-cell { font-weight: 700 !important; }
+  // L1 — Corp 5 level (lighter teal)
+  .row-child-l1 {
+    background-color: #e4eff2 !important;
+    .ag-cell { font-weight: 700 !important; }   // Corp 5 is a parent — bold
   }
-  .row-child.row-is-parent:hover { background-color: #d0e2e6 !important; }
 
-  // Leaf rows: light blue background — the definitive Figma colour
-  .row-child.row-is-leaf {
-    background-color: #e8f4f7 !important;
-    border-bottom: 1px solid #d0dce0 !important;
+  // L2 — Role Players level (soft light blue — the "light blue" you asked for)
+  .row-child-l2  { background-color: #edf6f8 !important; }
 
-    .ag-cell { font-weight: 400 !important; }
-  }
-  .row-child.row-is-leaf:hover { background-color: #daeef3 !important; }
+  // L3 — even lighter
+  .row-child-l3  { background-color: #f0f8fa !important; }
 
-  // Level-specific overrides not needed — parent/leaf distinction handles it.
-  // These are kept as no-ops to avoid any specificity issues.
-  .row-child-l1, .row-child-l2, .row-child-l3, .row-child-l4, .row-child-l5,
-  .row-child-l6, .row-child-l7, .row-child-l8, .row-child-l9, .row-child-l10 {
-    // background set by row-is-parent or row-is-leaf above
-  }
+  // L4–L10 — continue lightening toward near-white
+  .row-child-l4  { background-color: #f3fafb !important; }
+  .row-child-l5  { background-color: #f5fbfc !important; }
+  .row-child-l6  { background-color: #f7fcfd !important; }
+  .row-child-l7  { background-color: #f8fdfd !important; }
+  .row-child-l8  { background-color: #fafefe !important; }
+  .row-child-l9  { background-color: #fbfefe !important; }
+  .row-child-l10 { background-color: #fcfefe !important; }
+
+  // Override font-weight for non-parent children at L1
+  // (row-child.row-is-leaf at L1 should be 400)
+  .row-child-l1.row-is-leaf { .ag-cell { font-weight: 400 !important; } }
+
+  .row-child:hover { filter: brightness(0.97); }
 
 
   // ── Cluster closing border ───────────────────────────────────────────────
-  //
-  // The last visible row of each cluster (marked by buildFlat in TS)
-  // gets a 2px navy bottom border — this CLOSES the cluster group.
-  //
-  .row-cluster-end {
-    border-bottom: 2px solid #1a2e5a !important;
-  }
-  .ag-row-selected.row-cluster-end {
-    border-bottom: 2px solid #1a2e5a !important;
-  }
+  .row-cluster-end                           { border-bottom: 2px solid #1a2e5a !important; }
+  .ag-row-selected.row-cluster-end           { border-bottom: 2px solid #1a2e5a !important; }
+  .ag-row-selected.row-child.row-cluster-end { border-bottom: 2px solid #1a2e5a !important; }
 
 
   // ── CHILD selected ───────────────────────────────────────────────────────
-  // Parent-child selected: slightly darker teal
-  .ag-row-selected.row-child.row-is-parent {
-    background-color: #3d9eb8 !important;
-    border-bottom: 1px solid #2e8da8 !important;
-
-    .ag-cell    { color: #fff !important; font-weight: 700 !important; }
-    .pn-parent  { color: #fff !important; }
-    .pn-chevron { color: #fff !important; }
-    .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
-    .lh-na      { color: rgba(255,255,255,0.75) !important; }
-  }
-  .ag-row-selected.row-child.row-is-parent:hover { background-color: #3090aa !important; }
-
-  // Leaf-child selected: medium blue
-  .ag-row-selected.row-child.row-is-leaf {
+  .ag-row-selected.row-child {
     background-color: #5aabdc !important;
     border-bottom: 1px solid #4a9bcc !important;
 
     .ag-cell    { color: #fff !important; }
+    .pn-parent  { color: #fff !important; }
     .pn-child   { color: #fff !important; }
     .pn-chevron { color: #fff !important; }
     .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
     .lh-na      { color: rgba(255,255,255,0.75) !important; }
   }
-  .ag-row-selected.row-child.row-is-leaf:hover { background-color: #4e9fd4 !important; }
-
-  .ag-row-selected.row-child.row-cluster-end {
-    border-bottom: 2px solid #1a2e5a !important;
-  }
+  .ag-row-selected.row-child:hover { background-color: #4e9fd4 !important; }
 
 
   // ── Profile Name cell ────────────────────────────────────────────────────
-  //
-  // The cellStyle in TS injects:  padding-left = 8 + (level × 20)px
-  // This shifts the ENTIRE cell — checkbox AND renderer text — together.
-  //
-  // CRITICAL: We must NOT set overflow:hidden on the cell itself, and
-  // the .ag-cell-wrapper must be display:flex so the checkbox and the
-  // cellRenderer span sit inline.
-  //
+  // cellStyle in TS: padding-left = 8 + (level × 20)px
   .ag-cell[col-id="profileName"] {
-    // Let AG Grid manage overflow — do not override with visible
-    // as that breaks cell measurement and indentation rendering
     .ag-cell-wrapper {
       display:     flex !important;
       align-items: center !important;
@@ -276,7 +233,6 @@
       gap:         0;
       overflow:    hidden;
     }
-
     .ag-selection-checkbox {
       flex-shrink:  0;
       margin-right: 8px;
@@ -313,7 +269,7 @@
     align-items: center;
     flex-shrink: 0;
     margin-left: 4px;
-    color:       inherit;   // inherits from pn-parent (#1a4fa0), turns white on selected
+    color:       inherit;
   }
 
 
