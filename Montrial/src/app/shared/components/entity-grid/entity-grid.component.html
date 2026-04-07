@@ -1,10 +1,10 @@
 <div class="entity-grid-container">
 
-  <!-- Loading overlay — sits on top of grid -->
+  <!-- Overlay: shown while loading or on error -->
   <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
     <ng-container *ngIf="isLoading">
       <div class="spinner"></div>
-      <span>Loading entities...</span>
+      <span>Loading...</span>
     </ng-container>
     <ng-container *ngIf="loadError && !isLoading">
       <span class="grid-overlay__error">Failed to load data.</span>
@@ -12,7 +12,9 @@
     </ng-container>
   </div>
 
-  <!-- Grid always mounted — hidden via CSS while loading to avoid *ngIf issues -->
+  <!-- Grid is ALWAYS mounted — never conditionally removed.
+       We hide it with CSS until data is ready. This avoids all *ngIf
+       timing issues with AG Grid initialisation. -->
   <ag-grid-angular
     class="ag-theme-alpine bmo-grid"
     [class.grid--hidden]="isLoading || loadError"
