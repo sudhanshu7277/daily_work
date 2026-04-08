@@ -1,0 +1,367 @@
+// =============================================================================
+// ENTITY GRID — SCSS
+// Verified against all 7 Figma images including 3 zoomed close-ups
+//
+// TWO colours only:
+//   TEAL  #dce9ec — every parent row at any level (Corp 2/3/4/5, ABC Ltd.)
+//   PALE  #eef5f7 — every leaf row (Role Players)
+//
+// CLUSTER system:
+//   2px solid #1a2e5a  top    on every L0 root row  → OPENS cluster
+//   2px solid #1a2e5a  bottom on last row of cluster → CLOSES cluster
+//   1px solid #c2d0d3  bottom on internal parent rows
+//   1px solid #d8e4e6  bottom on leaf rows
+// =============================================================================
+
+
+// ── Container ─────────────────────────────────────────────────────────────────
+.entity-grid-container {
+    width: 100%;
+    height: calc(100vh - 250px);
+    border: 1px solid #c5d0d3;
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  
+  // ── Overlay ───────────────────────────────────────────────────────────────────
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    font-size: 13px;
+    color: #3a4155;
+    transition: opacity 0.2s;
+  
+    &--hidden { opacity: 0; pointer-events: none; }
+    &__error  { color: #b91c1c; }
+  
+    button {
+      padding: 6px 18px;
+      border: 1px solid #c5d0d3;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 13px;
+      color: #1a4fa0;
+      cursor: pointer;
+      &:hover { background: #eef5f7; }
+    }
+  }
+  
+  .grid--hidden { visibility: hidden; pointer-events: none; }
+  
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #d4e6ea;
+    border-top-color: #1a4fa0;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  
+  // ── AG Grid overrides ─────────────────────────────────────────────────────────
+  ::ng-deep .ag-theme-alpine.bmo-grid {
+  
+    // ── Reset ────────────────────────────────────────────────────────────────
+    .ag-root-wrapper          { border: none !important; }
+    .ag-cell-focus            { outline: none !important; border: none !important; }
+    .ag-row-even, .ag-row-odd { background-color: inherit !important; }
+  
+  
+    // ── Header ───────────────────────────────────────────────────────────────
+    // White, bold labels, 1px grey column dividers, 2px navy bottom
+    .ag-header {
+      background-color: #ffffff !important;
+      border-bottom: 2px solid #1a2e5a !important;
+      min-height: 46px !important;
+    }
+    .ag-header-row { height: 46px !important; }
+  
+    .ag-header-cell {
+      background-color: #ffffff !important;
+      border-right: 1px solid #dde3e8 !important;
+      padding: 0 14px !important;
+      &:last-child { border-right: none !important; }
+    }
+  
+    .ag-header-cell-text {
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      color: #1c2333 !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  
+    .ag-sort-indicator-icon .ag-icon,
+    .ag-icon-asc::before,
+    .ag-icon-desc::before { color: #1a4fa0 !important; }
+  
+  
+    // ── Row base — strip all AG Grid default borders ──────────────────────────
+    .ag-row {
+      border-top:    none !important;
+      border-bottom: none !important;
+  
+      .ag-cell {
+        display:        flex !important;
+        align-items:    center !important;
+        font-size:      13px !important;
+        color:          #1c2333;
+        padding-top:    0 !important;
+        padding-bottom: 0 !important;
+        line-height:    1.5;
+        border-right:   none !important;
+      }
+    }
+  
+  
+    // ── PARENT rows — root (L0) ───────────────────────────────────────────────
+    // All root rows: white bg, bold text, 2px navy top border
+    // When EXPANDED → light blue #dce9ec
+    // When COLLAPSED → white #ffffff
+    .row-root {
+      background-color: #ffffff !important;
+      border-top:    2px solid #1a2e5a !important;
+      border-bottom: 1px solid #d8e4e6 !important;
+  
+      .ag-cell { font-weight: 700 !important; }
+    }
+  
+    .row-root.row-expanded {
+      background-color: #dce9ec !important;
+      border-bottom: 1px solid #c2d0d3 !important;
+    }
+  
+    // No opening border on the very first row in the grid
+    .ag-row-first.row-root { border-top: none !important; }
+  
+    .row-root:hover               { background-color: #f0f7f9 !important; }
+    .row-root.row-expanded:hover  { background-color: #d2e4e8 !important; }
+  
+  
+    // ── PARENT rows — child level (L1+, _isParent=true) ─────────────────────
+    // Corp 5, Corp 6 etc — same rule as root:
+    // Expanded → light blue #dce9ec, Collapsed → white
+    .row-child.row-is-parent {
+      background-color: #ffffff !important;
+      border-top:    none !important;
+      border-bottom: 1px solid #d8e4e6 !important;
+  
+      .ag-cell { font-weight: 700 !important; }
+    }
+  
+    .row-child.row-is-parent.row-expanded {
+      background-color: #dce9ec !important;
+      border-bottom: 1px solid #c2d0d3 !important;
+    }
+  
+    .row-child.row-is-parent:hover              { background-color: #f0f7f9 !important; }
+    .row-child.row-is-parent.row-expanded:hover { background-color: #d2e4e8 !important; }
+  
+  
+    // ── LEAF rows — all levels (_isParent=false) ──────────────────────────────
+    // Role Player F, G, D, E, A, B, C
+    // Very pale cold-white #eef5f7 — barely visible tint, almost white
+    // Thin 1px light grey-teal bottom border
+    .row-child.row-is-leaf {
+      background-color: #eef5f7 !important;
+      border-top:    none !important;
+      border-bottom: 1px solid #d8e4e6 !important;
+  
+      .ag-cell { font-weight: 400 !important; }
+    }
+  
+    .row-child.row-is-leaf:hover { background-color: #e6f0f3 !important; }
+  
+  
+    // ── Cluster closing border ────────────────────────────────────────────────
+    // Applied to the last visible row of every cluster (set by buildFlat in TS)
+    // This 2px navy line CLOSES the cluster, matching the opening line on root
+    .row-cluster-end {
+      border-bottom: 2px solid #1a2e5a !important;
+    }
+  
+  
+    // ── Selected states ───────────────────────────────────────────────────────
+    // Root selected
+    .ag-row-selected.row-root {
+      background-color: #3d9eb8 !important;
+      border-top:    2px solid #1a2e5a !important;
+      border-bottom: 1px solid #2e8da8 !important;
+  
+      .ag-cell    { color: #fff !important; font-weight: 700 !important; }
+      .pn-parent  { color: #fff !important; }
+      .pn-chevron { color: #fff !important; }
+      .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+      .lh-na      { color: rgba(255,255,255,0.75) !important; }
+    }
+    .ag-row-selected.row-root:hover       { background-color: #3090aa !important; }
+    .ag-row-first.ag-row-selected.row-root { border-top: none !important; }
+  
+    // Parent-child selected — same teal family
+    .ag-row-selected.row-child.row-is-parent {
+      background-color: #3d9eb8 !important;
+      border-bottom: 1px solid #2e8da8 !important;
+  
+      .ag-cell    { color: #fff !important; font-weight: 700 !important; }
+      .pn-parent  { color: #fff !important; }
+      .pn-chevron { color: #fff !important; }
+      .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+      .lh-na      { color: rgba(255,255,255,0.75) !important; }
+    }
+    .ag-row-selected.row-child.row-is-parent:hover { background-color: #3090aa !important; }
+  
+    // Leaf selected — medium blue
+    .ag-row-selected.row-child.row-is-leaf {
+      background-color: #5aabdc !important;
+      border-bottom: 1px solid #4a9bcc !important;
+  
+      .ag-cell    { color: #fff !important; }
+      .pn-child   { color: #fff !important; }
+      .pn-chevron { color: #fff !important; }
+      .lh-pill    { background: rgba(255,255,255,0.2) !important; color: #fff !important; }
+      .lh-na      { color: rgba(255,255,255,0.75) !important; }
+    }
+    .ag-row-selected.row-child.row-is-leaf:hover { background-color: #4e9fd4 !important; }
+  
+    // Always keep cluster-end border visible even when selected
+    .ag-row-selected.row-cluster-end { border-bottom: 2px solid #1a2e5a !important; }
+  
+  
+    // ── Profile Name cell ─────────────────────────────────────────────────────
+    // TS cellStyle injects: padding-left = 8 + (level × 20)px
+    // This shifts the full cell — checkbox AND text — per nesting depth
+    .ag-cell[col-id="profileName"] {
+      .ag-cell-wrapper {
+        display:     flex !important;
+        align-items: center !important;
+        width:       100%;
+        overflow:    hidden;
+      }
+      .ag-selection-checkbox {
+        flex-shrink:  0;
+        margin-right: 8px;
+      }
+    }
+  
+  
+    // ── Profile name text ─────────────────────────────────────────────────────
+    .pn-parent,
+    .pn-child {
+      display:       inline-flex;
+      align-items:   center;
+      white-space:   nowrap;
+      overflow:      hidden;
+      text-overflow: ellipsis;
+      font-size:     13px;
+      max-width:     100%;
+      color:         #1a4fa0;
+    }
+  
+    .pn-parent {
+      font-weight: 700;
+      cursor:      pointer;
+      gap:         5px;
+    }
+  
+    .pn-child {
+      font-weight: 400;
+      cursor:      default;
+    }
+  
+    .pn-chevron {
+      display:     inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      margin-left: 4px;
+      color:       inherit;
+    }
+  
+  
+    // ── Checkboxes ───────────────────────────────────────────────────────────
+    .ag-checkbox-input-wrapper {
+      width:         18px !important;
+      height:        18px !important;
+      min-width:     18px !important;
+      border-radius: 3px !important;
+      border:        1.5px solid #96a6b4 !important;
+      background:    #ffffff !important;
+      flex-shrink:   0;
+  
+      &.ag-checked {
+        background:   #1a4fa0 !important;
+        border-color: #1a4fa0 !important;
+        &::after { color: #ffffff !important; font-size: 11px !important; }
+      }
+  
+      &:hover:not(.ag-checked) { border-color: #1a4fa0 !important; }
+  
+      input[type='checkbox'] {
+        width: 18px !important; height: 18px !important;
+        opacity: 0; cursor: pointer;
+      }
+    }
+  
+    .ag-row-selected .ag-checkbox-input-wrapper:not(.ag-checked) {
+      border-color: rgba(255,255,255,0.6) !important;
+      background:   rgba(255,255,255,0.15) !important;
+    }
+    .ag-row-selected .ag-checkbox-input-wrapper.ag-checked {
+      background:   rgba(255,255,255,0.92) !important;
+      border-color: #ffffff !important;
+      &::after { color: #1a4fa0 !important; }
+    }
+  
+    .ag-header-select-all .ag-checkbox-input-wrapper {
+      width: 18px !important; height: 18px !important;
+    }
+  
+  
+    // ── LEGAL HOLD pill ───────────────────────────────────────────────────────
+    .lh-pill {
+      display:        inline-block;
+      background:     #111827;
+      color:          #ffffff;
+      font-size:      11px;
+      font-weight:    700;
+      padding:        3px 9px;
+      border-radius:  4px;
+      letter-spacing: 0.04em;
+      white-space:    nowrap;
+    }
+  
+    .lh-na {
+      color:     #6b7a8a;
+      font-size: 13px;
+    }
+  
+  
+    // ── Pagination ────────────────────────────────────────────────────────────
+    .ag-paging-panel {
+      border-top: 1px solid #c5d0d3 !important;
+      background: #f5f9fa !important;
+      height:     42px !important;
+      font-size:  12px !important;
+      color:      #3a4155 !important;
+      padding:    0 16px !important;
+    }
+  
+  
+    // ── Scrollbars ────────────────────────────────────────────────────────────
+    ::-webkit-scrollbar        { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track  { background: #f0f5f6; }
+    ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #88a4aa; }
+  }
+  
