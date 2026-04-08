@@ -131,7 +131,7 @@
     // When EXPANDED → light blue #dce9ec
     // When COLLAPSED → white #ffffff
     .row-root {
-      background-color: #ffffff !important;
+      background-color: #ffffff !important; ///// add this line to make root rows white by default
       border-top:    2px solid #1a2e5a !important;
       border-bottom: 1px solid #d8e4e6 !important;
   
@@ -139,7 +139,7 @@
     }
   
     .row-root.row-expanded {
-      background-color: #dce9ec !important;
+      background-color: #dce9ec !important; // light blue when expanded, this is the change
       border-bottom: 1px solid #c2d0d3 !important;
     }
   

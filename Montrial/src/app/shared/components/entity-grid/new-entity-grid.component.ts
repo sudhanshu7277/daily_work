@@ -237,6 +237,7 @@ import {
       this.rowData = next; // new reference
       this.gridApi.applyTransaction({ add, remove });
       // Redraw the clicked row so getRowClass re-evaluates row-expanded
+      // this line is modified. 
       this.gridApi.redrawRows({ rowNodes: [this.gridApi.getRowNode(String(node._uid))!] });
       this.syncModelToGrid();
     }
@@ -245,6 +246,8 @@ import {
       const node     = p.data as any;
       const lvl      = node?._level ?? 0;
       const end      = node?._isClusterEnd ? ' row-cluster-end' : '';
+      // Expanded parents get a special class for styling (e.g. bold + darker bg)
+      // change
       const expanded = node?._isParent && node?._expanded ? ' row-expanded' : '';
   
       if (lvl === 0) return `row-root${expanded}${end}`;
