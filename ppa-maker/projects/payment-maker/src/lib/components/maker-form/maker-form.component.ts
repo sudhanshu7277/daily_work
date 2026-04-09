@@ -288,7 +288,9 @@ export class MakerFormComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.isSubmitting   = false;
-        this.errorMessage   = err.message || 'Submission failed. Please try again.';
+        if(err.message || err.error || err.error.error) {
+          this.errorMessage = err.message || err.error.error || JSON.stringify(err.error) || 'Submission failed. Please try again.';
+        }
         this.showErrorModal = true;
         this.cdr.markForCheck();
       }
