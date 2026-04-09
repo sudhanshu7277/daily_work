@@ -223,3 +223,67 @@ payment-checker/
 ## License
 
 Internal — © Your Organisation. Not for public distribution.
+
+
+Maker package usage steps:
+
+1) Add the scoped registry to the consuming project's .npmrc
+
+@citi-icg-169779:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+2) Install the package
+
+pnpm install @citi-icg-169779/payment-maker
+
+3) Add Bootstrap to angular.json
+
+"styles": [
+  "node_modules/bootstrap/dist/css/bootstrap.min.css",
+  "src/styles.scss"
+]
+
+4) Add provideHttpClient to main.ts
+
+import { provideHttpClient } from '@angular/common/http';
+
+bootstrapApplication(AppComponent, {
+  providers: [provideHttpClient()]
+});
+
+5) Use in your component
+
+import {
+  MakerFormComponent,
+  PaymentComponentInput,
+  MakerSubmitResponse,
+  FormFieldConfig,
+  DEFAULT_FIELD_CONFIG
+} from '@citi-icg-169779/payment-maker';
+
+@Component({ standalone: true, imports: [MakerFormComponent] })
+export class YourComponent {
+
+  paymentInput: PaymentComponentInput = {
+    applicationName:   'YOUR_APP',
+    applicationModule: 'YOUR_MODULE',
+    region:            'US',
+    useMockApi:        true,   // false when real APIs ready
+    makerSubmitUrl:    'https://your-api.com/api/v1/pain001/maker/submit',
+    hardcapCheckUrl:   'https://your-api.com/api/v1/pain001/hardcap/check',
+  };
+
+  fieldConfig: FormFieldConfig[] = DEFAULT_FIELD_CONFIG;
+
+  onSubmitted(res: MakerSubmitResponse): void {
+    console.log('TXN:', res.transactionId);
+    // trigger checker here when ready
+  }
+}
+
+6) Add to template
+
+<pm-maker-form
+  [paymentInput]="paymentInput"
+  [fieldConfig]="fieldConfig"
+  (submitted)="onSubmitted($event)">
+</pm-maker-form>
