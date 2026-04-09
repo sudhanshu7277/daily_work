@@ -86,7 +86,7 @@ pnpm publish --no-git-checks
 
 
 
-
+// BELOW WORKED.
 # Step 2 — Log in (only needed once per session / token expiry)
 npm adduser --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/ --auth-type=legacy
 
