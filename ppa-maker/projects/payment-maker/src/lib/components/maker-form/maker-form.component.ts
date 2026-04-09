@@ -280,14 +280,13 @@ export class MakerFormComponent implements OnInit, OnDestroy {
     const payload: Pain001Model = this.form.getRawValue();
 
     this.apiService.submitMakerForm(payload, this.paymentInput).subscribe({
-      next: res => {
-        this.isSubmitting     = false;
-        this.submitResponse   = res;
+      next: (res: any) => {
+        this.submitResponse = res;
         this.showSuccessModal = true;
         this.submitted.emit(res);
         this.cdr.markForCheck();
       },
-      error: err => {
+      error: (err: any) => {
         this.isSubmitting   = false;
         this.errorMessage   = err.message || 'Submission failed. Please try again.';
         this.showErrorModal = true;

@@ -422,7 +422,8 @@
     <div class="pm-modal" (click)="$event.stopPropagation()">
       <div class="pm-modal-icon ok">✓</div>
       <h3>Payment Submitted</h3>
-      <p>Your payment instruction has been submitted and is pending checker approval.</p>
+      <!--CHANGE HERE.-->
+      <p *ngIf="submitResponse?.message">{{ submitResponse.message }}</p>
       <div class="pm-modal-txn" *ngIf="submitResponse">{{ submitResponse.transactionId }}</div>
       <p class="pm-modal-ts" *ngIf="submitResponse">{{ submitResponse.timestamp | date:'medium' }}</p>
       <button class="pm-modal-btn" (click)="closeModal()">Close</button>
