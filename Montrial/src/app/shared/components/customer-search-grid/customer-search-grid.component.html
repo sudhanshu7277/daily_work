@@ -1,6 +1,6 @@
 <div class="customer-search-container">
 
-  <!-- Overlay: loading / error -->
+  <!-- Loading / error overlay -->
   <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
     <ng-container *ngIf="isLoading">
       <div class="spinner"></div>
@@ -12,7 +12,11 @@
     </ng-container>
   </div>
 
-  <!-- AG Grid -->
+  <!-- AG Grid
+       - pagination / rowSelection deliberately omitted — we own both ourselves
+       - suppressRowClickSelection stops AG Grid reacting to row clicks
+       - suppressMultiRangeSelection removes range-selection chrome
+  -->
   <ag-grid-angular
     class="ag-theme-alpine cs-grid"
     [class.grid--hidden]="isLoading || loadError"
@@ -31,20 +35,25 @@
     (gridReady)="onGridReady($event)">
   </ag-grid-angular>
 
-  <!-- Custom Pagination Bar -->
+  <!-- Custom pagination bar -->
   <div class="cs-pagination" [class.grid--hidden]="isLoading || loadError">
 
+    <!-- Left: count + items-per-page selector -->
     <div class="cs-pagination__left">
       <span class="cs-pg-count">{{ paginationFrom }}-{{ paginationTo }} of {{ totalRows }}</span>
       <span class="cs-pg-label">Items per page</span>
+      <!-- [ngValue] preserves the number type; plain [value] would coerce to string -->
       <select class="cs-pg-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
         <option *ngFor="let opt of pageSizeOpts" [ngValue]="opt">{{ opt }}</option>
       </select>
     </div>
 
+    <!-- Right: Previous · page numbers · Next -->
     <div class="cs-pagination__right">
 
-      <button class="cs-pg-nav" [disabled]="currentPage === 1" (click)="goPage(currentPage - 1)">
+      <button class="cs-pg-nav"
+              [attr.disabled]="currentPage === 1 ? true : null"
+              (click)="goPage(currentPage - 1)">
         <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
           <path d="M5 1L1 5l4 4" stroke="currentColor" stroke-width="1.5"
                 stroke-linecap="round" stroke-linejoin="round"/>
@@ -54,11 +63,14 @@
 
       <ng-container *ngFor="let p of pageNumbers">
         <span   *ngIf="p !== '…' && +p === currentPage" class="cs-pg-active">{{ p }}</span>
-        <button *ngIf="p !== '…' && +p !== currentPage" class="cs-pg-num" (click)="goPage(+p)">{{ p }}</button>
+        <button *ngIf="p !== '…' && +p !== currentPage" class="cs-pg-num"
+                (click)="goPage(+p)">{{ p }}</button>
         <span   *ngIf="p === '…'" class="cs-pg-dots">...</span>
       </ng-container>
 
-      <button class="cs-pg-nav" [disabled]="currentPage === totalPages" (click)="goPage(currentPage + 1)">
+      <button class="cs-pg-nav"
+              [attr.disabled]="currentPage === totalPages ? true : null"
+              (click)="goPage(currentPage + 1)">
         Next
         <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
           <path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5"

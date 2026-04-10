@@ -1,7 +1,11 @@
 // =============================================================================
 // CUSTOMER SEARCH GRID
+// ViewEncapsulation.None is set on the host component, so these styles are
+// global — no ::ng-deep needed, but we keep it for explicitness and to scope
+// overrides to .ag-theme-alpine.cs-grid only.
 // =============================================================================
 
+// Thin #0079C1 scrollbars throughout the component
 :host {
   ::-webkit-scrollbar        { width: 3px !important; height: 3px !important; }
   ::-webkit-scrollbar-track  { background: transparent !important; }
@@ -9,20 +13,21 @@
   ::-webkit-scrollbar-thumb:hover { background: #005fa3 !important; }
 }
 
+// ── Container ─────────────────────────────────────────────────────────────────
 .customer-search-container {
   width:          100%;
   height:         calc(100vh - 250px);
   border:         1px solid #c5d0d3;
   border-radius:  4px;
-  background:     #ffffff !important;
+  background:     #ffffff;
   overflow:       hidden;
   position:       relative;
   display:        flex;
   flex-direction: column;
-  color-scheme:   light;
+  color-scheme:   light; // prevent OS dark-mode from inverting child elements
 }
 
-// ── Overlay ───────────────────────────────────────────────────────────────────
+// ── Loading / error overlay ───────────────────────────────────────────────────
 .grid-overlay {
   position:        absolute;
   inset:           0;
@@ -41,13 +46,8 @@
   &__error  { color: #b91c1c; }
 
   button {
-    padding:       6px 18px;
-    border:        1px solid #c5d0d3;
-    border-radius: 4px;
-    background:    #fff;
-    font-size:     13px;
-    color:         #0079C1;
-    cursor:        pointer;
+    padding: 6px 18px; border: 1px solid #c5d0d3; border-radius: 4px;
+    background: #fff; font-size: 13px; color: #0079C1; cursor: pointer;
     &:hover { background: #E8F4FD; }
   }
 }
@@ -55,17 +55,13 @@
 .grid--hidden { visibility: hidden; pointer-events: none; }
 
 .spinner {
-  width:            28px;
-  height:           28px;
-  border:           3px solid #d4e6ea;
-  border-top-color: #0079C1;
-  border-radius:    50%;
-  animation:        spin 0.7s linear infinite;
+  width: 28px; height: 28px;
+  border: 3px solid #d4e6ea; border-top-color: #0079C1;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-
-// ── Pagination Bar ────────────────────────────────────────────────────────────
+// ── Pagination bar ────────────────────────────────────────────────────────────
 .cs-pagination {
   display:         flex;
   align-items:     center;
@@ -74,87 +70,63 @@
   height:          52px;
   padding:         0 20px;
   border-top:      1px solid #d8e4e6;
-  background:      #ffffff !important;
-  color-scheme:    light;
-  color:           #1c2333 !important;
+  background:      #ffffff;
+  color-scheme:    light;  // force white bg on <select> even in OS dark mode
 
   &__left  { display: flex; align-items: center; gap: 10px; }
   &__right { display: flex; align-items: center; gap: 6px; }
 }
 
-.cs-pg-count  { font-size: 13px; font-weight: 600; color: #1c2333; white-space: nowrap; }
-.cs-pg-label  { font-size: 13px; color: #6b7a8a; white-space: nowrap; }
+.cs-pg-count { font-size: 13px; font-weight: 600; color: #1c2333; white-space: nowrap; }
+.cs-pg-label { font-size: 13px; color: #6b7a8a; white-space: nowrap; }
 
 .cs-pg-select {
   height:              32px;
   padding:             0 26px 0 10px;
   border:              1px solid #c5d0d3;
   border-radius:       4px;
-  background-color:    #ffffff !important;
+  background-color:    #ffffff;
   background-image:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230079C1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
   background-repeat:   no-repeat;
   background-position: right 8px center;
   -webkit-appearance:  none;
   appearance:          none;
   font-size:           13px;
-  color:               #1c2333 !important;
+  color:               #1c2333;
   cursor:              pointer;
-  color-scheme:        light;
+  color-scheme:        light; // fixes black bg in OS dark mode
   &:focus { outline: 2px solid #0079C1; outline-offset: 1px; }
 }
 
-// Previous / Next — no border, no bg
+// Previous / Next — borderless text links
 .cs-pg-nav {
-  display:     inline-flex;
-  align-items: center;
-  gap:         5px;
-  height:      32px;
-  padding:     0 4px;
-  border:      none !important;
-  background:  transparent !important;
-  font-size:   13px;
-  color:       #1c2333 !important;
-  cursor:      pointer;
-  white-space: nowrap;
-  transition:  color .12s;
-  outline:     none;
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 32px; padding: 0 4px;
+  border: none; background: transparent;
+  font-size: 13px; color: #1c2333;
+  cursor: pointer; white-space: nowrap;
+  transition: color .12s; outline: none;
 
-  &:hover:not(:disabled) { color: #0079C1 !important; }
-  &:disabled { color: #b0bec5 !important; cursor: default; }
+  &:hover:not([disabled]) { color: #0079C1; }
+  &[disabled]             { color: #b0bec5; cursor: default; pointer-events: none; }
 }
 
 // Active page — filled blue circle
 .cs-pg-active {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  width:           32px;
-  height:          32px;
-  border-radius:   50%;
-  background:      #0079C1;
-  color:           #fff !important;
-  font-size:       13px;
-  font-weight:     700;
-  flex-shrink:     0;
-  user-select:     none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #0079C1; color: #fff;
+  font-size: 13px; font-weight: 700; flex-shrink: 0; user-select: none;
 }
 
-// Inactive page numbers — plain text
+// Inactive page numbers — plain text, circle on hover
 .cs-pg-num {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  min-width:       28px;
-  height:          32px;
-  padding:         0 4px;
-  border:          none !important;
-  background:      transparent !important;
-  font-size:       13px;
-  color:           #1c2333 !important;
-  cursor:          pointer;
-  border-radius:   50%;
-  outline:         none;
-  &:hover { background: #E8F4FD !important; color: #0079C1 !important; }
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 32px; padding: 0 4px;
+  border: none; background: transparent;
+  font-size: 13px; color: #1c2333;
+  cursor: pointer; border-radius: 50%; outline: none;
+  &:hover { background: #E8F4FD; color: #0079C1; }
 }
 
 .cs-pg-dots {
@@ -162,10 +134,11 @@
   min-width: 24px; height: 32px; font-size: 13px; color: #6b7a8a;
 }
 
-
 // ── AG Grid overrides ─────────────────────────────────────────────────────────
+// Scoped to .ag-theme-alpine.cs-grid to avoid leaking into other grids.
 ::ng-deep .ag-theme-alpine.cs-grid {
 
+  // Override Alpine CSS variables so row backgrounds are fully controlled by us
   --ag-background-color:                 #ffffff;
   --ag-odd-row-background-color:         #ffffff;
   --ag-even-row-background-color:        #ffffff;
@@ -177,11 +150,11 @@
   .ag-root-wrapper { border: none !important; }
   .ag-cell-focus   { outline: none !important; border: none !important; }
 
-  // Cells transparent — row bg shows through full width
-  .ag-row .ag-cell { background: transparent !important; }
+  // All cells are transparent so the full-width .ag-row background shows through
+  .ag-row .ag-cell              { background: transparent !important; }
   .ag-center-cols-container,
   .ag-center-cols-viewport,
-  .ag-body-viewport { background: transparent !important; }
+  .ag-body-viewport             { background: transparent !important; }
 
   // ── Header ─────────────────────────────────────────────────────────────────
   .ag-header {
@@ -190,43 +163,47 @@
     min-height:       44px !important;
   }
   .ag-header-row { height: 44px !important; }
+
   .ag-header-cell {
     background-color: #ffffff !important;
     border-right:     1px solid #dde3e8 !important;
     padding:          0 14px !important;
-    // No first-child override — Profile Name col includes checkbox in its own renderer
     &:last-child { border-right: none !important; }
   }
+
   .ag-header-cell-text {
     font-size: 13px !important; font-weight: 700 !important;
     color: #1c2333 !important; white-space: nowrap;
   }
+
   .ag-sort-indicator-icon .ag-icon,
   .ag-icon-asc::before,
   .ag-icon-desc::before { color: #0079C1 !important; }
 
-  // ── Rows ───────────────────────────────────────────────────────────────────
+  // ── Row base ───────────────────────────────────────────────────────────────
   .ag-row {
-    border-top: none !important; border-bottom: 1px solid #d8e4e6 !important;
+    border-top: none !important;
+    border-bottom: 1px solid #d8e4e6 !important;
+
     .ag-cell {
       display: flex !important; align-items: center !important;
-      font-size: 13px !important; color: #1c2333; line-height: 1.5;
+      font-size: 13px !important; color: #1c2333;
       border-right: none !important; background: transparent !important;
-      padding-top: 0 !important; padding-bottom: 0 !important;
+      padding-top: 0 !important; padding-bottom: 0 !important; line-height: 1.5;
     }
   }
 
-  // Parent expanded — full-width #E8F4FD
+  // ── Parent — expanded (#E8F4FD, #0079C1 borders, full-width) ──────────────
   .ag-row.row-parent-expanded {
     background-color: #E8F4FD !important;
     border-top:       2px solid #0079C1 !important;
     border-bottom:    1px solid #b8d9f0 !important;
     .ag-cell { font-weight: 700 !important; }
   }
-  .ag-row.row-parent-expanded:hover  { background-color: #d6ecf9 !important; }
-  .ag-row-first.row-parent-expanded  { border-top: none !important; }
+  .ag-row.row-parent-expanded:hover { background-color: #d6ecf9 !important; }
+  .ag-row-first.row-parent-expanded { border-top: none !important; }
 
-  // Parent collapsed — full-width white
+  // ── Parent — collapsed (white, #0079C1 borders, full-width) ───────────────
   .ag-row.row-parent-collapsed {
     background-color: #ffffff !important;
     border-top:       2px solid #0079C1 !important;
@@ -236,7 +213,7 @@
   .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
   .ag-row-first.row-parent-collapsed { border-top: none !important; }
 
-  // Child — white
+  // ── Child row (white) ──────────────────────────────────────────────────────
   .ag-row.row-child {
     background-color: #ffffff !important;
     border-bottom:    1px solid #d8e4e6 !important;
@@ -244,22 +221,23 @@
   }
   .ag-row.row-child:hover { background-color: #f5f9fa !important; }
 
-  // Cluster closing border
+  // ── Cluster closing border ─────────────────────────────────────────────────
   .ag-row.row-cluster-end { border-bottom: 2px solid #0079C1 !important; }
 
-  // Pills
+  // ── Legal Hold Status pills ────────────────────────────────────────────────
   .cs-lh-pill {
     display: inline-block; background: #0079C1; color: #fff;
     font-size: 11px; font-weight: 700; padding: 3px 9px;
     border-radius: 4px; letter-spacing: .04em; white-space: nowrap;
   }
+
   .cs-lh-na {
     display: inline-block; background: #E8F4FD; color: #0079C1;
     font-size: 11px; font-weight: 600; padding: 3px 9px;
     border-radius: 4px; white-space: nowrap;
   }
 
-  // Scrollbars
+  // ── Scrollbars (inside AG Grid viewport) ───────────────────────────────────
   ::-webkit-scrollbar        { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track  { background: transparent; }
   ::-webkit-scrollbar-thumb  { background: #0079C1; border-radius: 3px; }
