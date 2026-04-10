@@ -331,7 +331,9 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
         sortable:   true,
         minWidth:   260,
         flex:       2,
-        // No checkboxSelection here — our NameCellComponent IS the checkbox
+        // Explicitly false — prevents AG Grid injecting .ag-selection-checkbox into this cell
+        checkboxSelection:       false,
+        headerCheckboxSelection: false,
         cellRenderer:       NameCellComponent,
         cellRendererParams: {
           onCheck:  (uid: string) => this.onCheckboxClick(uid),

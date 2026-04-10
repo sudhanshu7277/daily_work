@@ -101,6 +101,7 @@
 }
 
 // Previous / Next — no border, no background, plain text link
+// Uses a CSS class for disabled state (not the HTML disabled attr which hides the element)
 .cs-pg-nav {
   display:     inline-flex;
   align-items: center;
@@ -116,8 +117,8 @@
   transition:  color 0.12s;
   outline:     none;
 
-  &:hover:not([disabled]) { color: #0079C1; }
-  &[disabled] { color: #b0bec5; cursor: default; pointer-events: none; }
+  &:hover:not(.cs-pg-nav--disabled) { color: #0079C1; }
+  &--disabled { color: #b0bec5; cursor: default; pointer-events: none; }
 }
 
 // Active page — filled blue circle
@@ -175,6 +176,12 @@
 
   .ag-root-wrapper { border: none !important; }
   .ag-cell-focus   { outline: none !important; border: none !important; }
+
+  // Nuclear fix: hide AG Grid's own selection-checkbox DOM element.
+  // We render our own checkbox inside NameCellComponent — AG Grid's native
+  // .ag-selection-checkbox must never appear.
+  .ag-selection-checkbox { display: none !important; }
+  .ag-header-select-all  { display: none !important; }
 
   // Cells are transparent so .ag-row background fills the full row width
   .ag-row .ag-cell { background: transparent !important; }

@@ -54,7 +54,7 @@
     <div class="cs-pagination__right">
 
       <button class="cs-pg-nav"
-              [attr.disabled]="currentPage === 1 ? true : null"
+              [class.cs-pg-nav--disabled]="currentPage === 1"
               (click)="goPage(currentPage - 1)">
         <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
           <path d="M5 1L1 5l4 4" stroke="currentColor" stroke-width="1.5"
@@ -74,7 +74,7 @@
       </ng-container>
 
       <button class="cs-pg-nav"
-              [attr.disabled]="currentPage === totalPages ? true : null"
+              [class.cs-pg-nav--disabled]="currentPage === totalPages"
               (click)="goPage(currentPage + 1)">
         Next
         <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
