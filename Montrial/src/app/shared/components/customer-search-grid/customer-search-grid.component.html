@@ -13,11 +13,16 @@
   </div>
 
   <!--
-    AG Grid
-    IMPORTANT — deliberately no `rowSelection` binding.
-    When rowSelection is bound AG Grid activates its built-in selection model
-    which injects its own checkbox column. We own selection 100% ourselves
-    through NameCellComponent, so rowSelection must be absent entirely.
+    AG Grid v32.
+    NO rowSelection binding — omitting it entirely prevents AG Grid from
+    activating its selection model and rendering any selection column.
+    We own selection 100% via NameCellComponent's custom checkbox.
+
+    Deprecated props removed (v32 warnings):
+      checkboxSelection       → removed (was on defaultColDef)
+      headerCheckboxSelection → removed (was on defaultColDef)
+      suppressRowClickSelection  → replaced by rowSelection.enableClickSelection (not needed)
+      suppressMultiRangeSelection → replaced by cellSelection.suppressMultiRanges (not needed)
   -->
   <ag-grid-angular
     class="ag-theme-alpine cs-grid"
@@ -30,8 +35,6 @@
     [rowHeight]="52"
     [headerHeight]="44"
     [suppressCellFocus]="true"
-    [suppressRowClickSelection]="true"
-    [suppressMultiRangeSelection]="true"
     [animateRows]="false"
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)">
@@ -43,7 +46,6 @@
     <div class="cs-pagination__left">
       <span class="cs-pg-count">{{ paginationFrom }}-{{ paginationTo }} of {{ totalRows }}</span>
       <span class="cs-pg-label">Items per page</span>
-      <!-- [ngValue] preserves number type; [value] would coerce to string -->
       <select class="cs-pg-select"
               [(ngModel)]="pageSize"
               (ngModelChange)="onPageSizeChange()">
@@ -64,13 +66,10 @@
       </button>
 
       <ng-container *ngFor="let p of pageNumbers">
-        <span   *ngIf="p !== '…' && +p === currentPage"
-                class="cs-pg-active">{{ p }}</span>
-        <button *ngIf="p !== '…' && +p !== currentPage"
-                class="cs-pg-num"
+        <span   *ngIf="p !== '…' && +p === currentPage" class="cs-pg-active">{{ p }}</span>
+        <button *ngIf="p !== '…' && +p !== currentPage" class="cs-pg-num"
                 (click)="goPage(+p)">{{ p }}</button>
-        <span   *ngIf="p === '…'"
-                class="cs-pg-dots">...</span>
+        <span   *ngIf="p === '…'" class="cs-pg-dots">...</span>
       </ng-container>
 
       <button class="cs-pg-nav"
