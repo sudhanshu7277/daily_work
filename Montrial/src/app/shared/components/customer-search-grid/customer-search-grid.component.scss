@@ -1,11 +1,12 @@
 // =============================================================================
 // CUSTOMER SEARCH GRID
-// ViewEncapsulation.None is set on the host component, so these styles are
-// global — no ::ng-deep needed, but we keep it for explicitness and to scope
-// overrides to .ag-theme-alpine.cs-grid only.
+// Encapsulation is Emulated (Angular default).
+// ::ng-deep is used to reach into AG Grid's internal DOM.
+// Do NOT set ViewEncapsulation.None on the host — it would break the scoped
+// styles inside NameCellComponent and NameHeaderComponent.
 // =============================================================================
 
-// Thin #0079C1 scrollbars throughout the component
+// Thin #0079C1 scrollbars everywhere in this component
 :host {
   ::-webkit-scrollbar        { width: 3px !important; height: 3px !important; }
   ::-webkit-scrollbar-track  { background: transparent !important; }
@@ -24,7 +25,7 @@
   position:       relative;
   display:        flex;
   flex-direction: column;
-  color-scheme:   light; // prevent OS dark-mode from inverting child elements
+  color-scheme:   light; // prevent OS dark-mode inverting child colours
 }
 
 // ── Loading / error overlay ───────────────────────────────────────────────────
@@ -57,7 +58,8 @@
 .spinner {
   width: 28px; height: 28px;
   border: 3px solid #d4e6ea; border-top-color: #0079C1;
-  border-radius: 50%; animation: spin 0.7s linear infinite;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -71,7 +73,7 @@
   padding:         0 20px;
   border-top:      1px solid #d8e4e6;
   background:      #ffffff;
-  color-scheme:    light;  // force white bg on <select> even in OS dark mode
+  color-scheme:    light;
 
   &__left  { display: flex; align-items: center; gap: 10px; }
   &__right { display: flex; align-items: center; gap: 6px; }
@@ -94,38 +96,61 @@
   font-size:           13px;
   color:               #1c2333;
   cursor:              pointer;
-  color-scheme:        light; // fixes black bg in OS dark mode
+  color-scheme:        light; // force white bg even in OS dark mode
   &:focus { outline: 2px solid #0079C1; outline-offset: 1px; }
 }
 
-// Previous / Next — borderless text links
+// Previous / Next — no border, no background, plain text link
 .cs-pg-nav {
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 32px; padding: 0 4px;
-  border: none; background: transparent;
-  font-size: 13px; color: #1c2333;
-  cursor: pointer; white-space: nowrap;
-  transition: color .12s; outline: none;
+  display:     inline-flex;
+  align-items: center;
+  gap:         5px;
+  height:      32px;
+  padding:     0 4px;
+  border:      none;
+  background:  transparent;
+  font-size:   13px;
+  color:       #1c2333;
+  cursor:      pointer;
+  white-space: nowrap;
+  transition:  color 0.12s;
+  outline:     none;
 
   &:hover:not([disabled]) { color: #0079C1; }
-  &[disabled]             { color: #b0bec5; cursor: default; pointer-events: none; }
+  &[disabled] { color: #b0bec5; cursor: default; pointer-events: none; }
 }
 
 // Active page — filled blue circle
 .cs-pg-active {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
-  background: #0079C1; color: #fff;
-  font-size: 13px; font-weight: 700; flex-shrink: 0; user-select: none;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  width:           32px;
+  height:          32px;
+  border-radius:   50%;
+  background:      #0079C1;
+  color:           #ffffff;
+  font-size:       13px;
+  font-weight:     700;
+  flex-shrink:     0;
+  user-select:     none;
 }
 
-// Inactive page numbers — plain text, circle on hover
+// Inactive page numbers — plain text, subtle circle on hover
 .cs-pg-num {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 28px; height: 32px; padding: 0 4px;
-  border: none; background: transparent;
-  font-size: 13px; color: #1c2333;
-  cursor: pointer; border-radius: 50%; outline: none;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-width:       28px;
+  height:          32px;
+  padding:         0 4px;
+  border:          none;
+  background:      transparent;
+  font-size:       13px;
+  color:           #1c2333;
+  cursor:          pointer;
+  border-radius:   50%;
+  outline:         none;
   &:hover { background: #E8F4FD; color: #0079C1; }
 }
 
@@ -135,10 +160,11 @@
 }
 
 // ── AG Grid overrides ─────────────────────────────────────────────────────────
-// Scoped to .ag-theme-alpine.cs-grid to avoid leaking into other grids.
+// Scoped to .ag-theme-alpine.cs-grid to avoid leaking into other grids on the page.
 ::ng-deep .ag-theme-alpine.cs-grid {
 
-  // Override Alpine CSS variables so row backgrounds are fully controlled by us
+  // Override Alpine CSS variables — prevents the theme's own backgrounds
+  // from showing through on the virtual filler column area
   --ag-background-color:                 #ffffff;
   --ag-odd-row-background-color:         #ffffff;
   --ag-even-row-background-color:        #ffffff;
@@ -150,11 +176,11 @@
   .ag-root-wrapper { border: none !important; }
   .ag-cell-focus   { outline: none !important; border: none !important; }
 
-  // All cells are transparent so the full-width .ag-row background shows through
-  .ag-row .ag-cell              { background: transparent !important; }
+  // Cells are transparent so .ag-row background fills the full row width
+  .ag-row .ag-cell { background: transparent !important; }
   .ag-center-cols-container,
   .ag-center-cols-viewport,
-  .ag-body-viewport             { background: transparent !important; }
+  .ag-body-viewport { background: transparent !important; }
 
   // ── Header ─────────────────────────────────────────────────────────────────
   .ag-header {
@@ -182,18 +208,23 @@
 
   // ── Row base ───────────────────────────────────────────────────────────────
   .ag-row {
-    border-top: none !important;
+    border-top:    none !important;
     border-bottom: 1px solid #d8e4e6 !important;
 
     .ag-cell {
-      display: flex !important; align-items: center !important;
-      font-size: 13px !important; color: #1c2333;
-      border-right: none !important; background: transparent !important;
-      padding-top: 0 !important; padding-bottom: 0 !important; line-height: 1.5;
+      display:        flex !important;
+      align-items:    center !important;
+      font-size:      13px !important;
+      color:          #1c2333;
+      border-right:   none !important;
+      background:     transparent !important;
+      padding-top:    0 !important;
+      padding-bottom: 0 !important;
+      line-height:    1.5;
     }
   }
 
-  // ── Parent — expanded (#E8F4FD, #0079C1 borders, full-width) ──────────────
+  // ── Parent expanded: full-width #E8F4FD, #0079C1 top/bottom borders ────────
   .ag-row.row-parent-expanded {
     background-color: #E8F4FD !important;
     border-top:       2px solid #0079C1 !important;
@@ -203,7 +234,7 @@
   .ag-row.row-parent-expanded:hover { background-color: #d6ecf9 !important; }
   .ag-row-first.row-parent-expanded { border-top: none !important; }
 
-  // ── Parent — collapsed (white, #0079C1 borders, full-width) ───────────────
+  // ── Parent collapsed: full-width white, #0079C1 top/bottom borders ─────────
   .ag-row.row-parent-collapsed {
     background-color: #ffffff !important;
     border-top:       2px solid #0079C1 !important;
@@ -213,7 +244,7 @@
   .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
   .ag-row-first.row-parent-collapsed { border-top: none !important; }
 
-  // ── Child row (white) ──────────────────────────────────────────────────────
+  // ── Child row: white ───────────────────────────────────────────────────────
   .ag-row.row-child {
     background-color: #ffffff !important;
     border-bottom:    1px solid #d8e4e6 !important;
@@ -226,18 +257,17 @@
 
   // ── Legal Hold Status pills ────────────────────────────────────────────────
   .cs-lh-pill {
-    display: inline-block; background: #0079C1; color: #fff;
+    display: inline-block; background: #0079C1; color: #ffffff;
     font-size: 11px; font-weight: 700; padding: 3px 9px;
-    border-radius: 4px; letter-spacing: .04em; white-space: nowrap;
+    border-radius: 4px; letter-spacing: 0.04em; white-space: nowrap;
   }
-
   .cs-lh-na {
     display: inline-block; background: #E8F4FD; color: #0079C1;
     font-size: 11px; font-weight: 600; padding: 3px 9px;
     border-radius: 4px; white-space: nowrap;
   }
 
-  // ── Scrollbars (inside AG Grid viewport) ───────────────────────────────────
+  // ── Scrollbars inside AG Grid viewport ────────────────────────────────────
   ::-webkit-scrollbar        { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track  { background: transparent; }
   ::-webkit-scrollbar-thumb  { background: #0079C1; border-radius: 3px; }
