@@ -12,25 +12,75 @@
     </ng-container>
   </div>
 
+  <!-- AG Grid — suppressPaginationPanel so we draw our own below -->
   <ag-grid-angular
     class="ag-theme-alpine cs-grid"
     [class.grid--hidden]="isLoading || loadError"
-    style="width: 100%; height: 100%;"
+    style="width: 100%; height: calc(100% - 52px);"
     [rowData]="rowData"
     [columnDefs]="columnDefs"
     [defaultColDef]="defaultColDef"
     [getRowId]="getRowId"
     [suppressRowClickSelection]="true"
-    [pagination]="true"
-    [paginationPageSize]="pageSize"
     [suppressPaginationPanel]="true"
+    [pagination]="false"
     [rowHeight]="52"
     [headerHeight]="44"
     [suppressCellFocus]="true"
     [animateRows]="false"
     [getRowClass]="getRowClass"
-    (gridReady)="onGridReady($event)"
-    (paginationChanged)="onPaginationChanged()">
+    (gridReady)="onGridReady($event)">
   </ag-grid-angular>
+
+  <!-- ── Custom Pagination Bar — exact Figma layout ── -->
+  <div class="cs-pagination" [class.grid--hidden]="isLoading || loadError">
+
+    <!-- Left: "1-10 of 100  Items per page  [10 ▾]" -->
+    <div class="cs-pagination__left">
+      <span class="cs-pg-count">{{ paginationFrom }}-{{ paginationTo }} of {{ totalRows }}</span>
+      <span class="cs-pg-label">Items per page</span>
+      <select class="cs-pg-select"
+              [(ngModel)]="pageSize"
+              (ngModelChange)="onPageSizeChange()">
+        <option *ngFor="let opt of pageSizeOpts" [value]="opt">{{ opt }}</option>
+      </select>
+    </div>
+
+    <!-- Right: "‹ Previous  1  2  3  4  5  ...  10  Next ›" -->
+    <div class="cs-pagination__right">
+
+      <!-- Previous link -->
+      <button class="cs-pg-nav" [disabled]="currentPage === 1"
+              (click)="goPage(currentPage - 1)">
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M5 1L1 5l4 4" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Previous
+      </button>
+
+      <!-- Page numbers: active = filled blue circle, inactive = plain text -->
+      <ng-container *ngFor="let p of pageNumbers">
+        <!-- Active page — blue circle -->
+        <span *ngIf="p !== '…' && +p === currentPage" class="cs-pg-active">{{ p }}</span>
+        <!-- Inactive page — plain clickable number -->
+        <button *ngIf="p !== '…' && +p !== currentPage"
+                class="cs-pg-num" (click)="goPage(+p)">{{ p }}</button>
+        <!-- Ellipsis -->
+        <span *ngIf="p === '…'" class="cs-pg-dots">...</span>
+      </ng-container>
+
+      <!-- Next link -->
+      <button class="cs-pg-nav" [disabled]="currentPage === totalPages"
+              (click)="goPage(currentPage + 1)">
+        Next
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+    </div>
+  </div>
 
 </div>

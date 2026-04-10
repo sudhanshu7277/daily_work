@@ -1,7 +1,5 @@
 // =============================================================================
-// CUSTOMER SEARCH — AG Grid overrides  (ag-theme-alpine)
-// Selection is 100% owned by the component model.
-// AG Grid's built-in row selection is NOT used.
+// CUSTOMER SEARCH — AG Grid + Custom Pagination
 // =============================================================================
 
 .customer-search-container {
@@ -9,9 +7,21 @@
   height:        calc(100vh - 250px);
   border:        1px solid #c5d0d3;
   border-radius: 4px;
-  background:    #fff;
+  background:    #ffffff !important;
   overflow:      hidden;
   position:      relative;
+  display:       flex;
+  flex-direction:column;
+  color-scheme:  light;   // prevent OS dark-mode from inverting child elements
+}
+
+// Global scrollbar override for the component (horizontal + vertical)
+// Applied outside ::ng-deep so it catches the AG Grid horizontal scrollbar too
+:host {
+  ::-webkit-scrollbar        { width: 3px !important; height: 3px !important; }
+  ::-webkit-scrollbar-track  { background: transparent !important; }
+  ::-webkit-scrollbar-thumb  { background: #0079C1 !important; border-radius: 3px !important; }
+  ::-webkit-scrollbar-thumb:hover { background: #005fa3 !important; }
 }
 
 .grid-overlay {
@@ -23,43 +33,170 @@
   align-items:     center;
   justify-content: center;
   gap:             12px;
-  background:      rgba(255, 255, 255, 0.94);
+  background:      rgba(255,255,255,0.94);
   font-size:       13px;
   color:           #3a4155;
   transition:      opacity 0.2s;
-
-  &--hidden { opacity: 0; pointer-events: none; }
-  &__error  { color: #b91c1c; }
-
+  &--hidden { opacity:0; pointer-events:none; }
+  &__error  { color:#b91c1c; }
   button {
-    padding:       6px 18px;
-    border:        1px solid #c5d0d3;
-    border-radius: 4px;
-    background:    #fff;
-    font-size:     13px;
-    color:         #0079C1;
-    cursor:        pointer;
-    &:hover { background: #E8F4FD; }
+    padding:6px 18px; border:1px solid #c5d0d3; border-radius:4px;
+    background:#fff; font-size:13px; color:#0079C1; cursor:pointer;
+    &:hover { background:#E8F4FD; }
   }
 }
 
-.grid--hidden { visibility: hidden; pointer-events: none; }
+.grid--hidden { visibility:hidden; pointer-events:none; }
 
 .spinner {
-  width:            28px;
-  height:           28px;
-  border:           3px solid #d4e6ea;
-  border-top-color: #0079C1;
-  border-radius:    50%;
-  animation:        spin 0.7s linear infinite;
+  width:28px; height:28px;
+  border:3px solid #d4e6ea; border-top-color:#0079C1;
+  border-radius:50%; animation:spin 0.7s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+
+// ── Custom Pagination Bar ─────────────────────────────────────────────────────
+// ── Custom Pagination Bar — exact Figma design ──────────────────────────────
+.cs-pagination {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  flex-shrink:     0;
+  height:          52px;
+  padding:         0 20px;
+  border-top:      1px solid #d8e4e6;
+  background:      #ffffff !important;
+  font-size:       13px;
+  color-scheme:    light;   // force light mode on whole bar
+  color:           #1c2333 !important;
+
+  // ── Left side ──────────────────────────────────────────────────────────────
+  &__left {
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+  }
+
+  // ── Right side ─────────────────────────────────────────────────────────────
+  &__right {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+  }
+}
+
+// "1-10 of 100"
+.cs-pg-count {
+  font-size:   13px;
+  font-weight: 600;
+  color:       #1c2333;
+  white-space: nowrap;
+}
+
+// "Items per page"
+.cs-pg-label {
+  font-size:   13px;
+  color:       #6b7a8a;
+  white-space: nowrap;
+}
+
+// [10 ▾] bordered select
+// color-scheme:light forces white bg regardless of OS dark-mode (fixes black bg bug)
+.cs-pg-select {
+  height:              32px;
+  padding:             0 26px 0 10px;
+  border:              1px solid #c5d0d3;
+  border-radius:       4px;
+  background-color:    #ffffff !important;
+  background-image:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230079C1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat:   no-repeat;
+  background-position: right 8px center;
+  -webkit-appearance:  none;
+  appearance:          none;
+  font-size:           13px;
+  color:               #1c2333 !important;
+  cursor:              pointer;
+  color-scheme:        light;
+  &:focus { outline: 2px solid #0079C1; outline-offset: 1px; }
+}
+
+// "‹ Previous" and "Next ›" — NO border, NO background, plain text link
+.cs-pg-nav {
+  display:     inline-flex;
+  align-items: center;
+  gap:         5px;
+  height:      32px;
+  padding:     0 4px;
+  border:      none !important;
+  background:  transparent !important;
+  font-size:   13px;
+  color:       #1c2333 !important;
+  cursor:      pointer;
+  white-space: nowrap;
+  transition:  color .12s;
+  outline:     none;
+
+  &:hover:not(:disabled) { color: #0079C1 !important; background: transparent !important; }
+  &:disabled { color: #b0bec5 !important; cursor: default; }
+}
+
+// Active page — filled BLUE CIRCLE (not a rectangle)
+.cs-pg-active {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  width:           32px;
+  height:          32px;
+  border-radius:   50%;           // ← circle
+  background:      #0079C1;
+  color:           #ffffff;
+  font-size:       13px;
+  font-weight:     700;
+  flex-shrink:     0;
+  user-select:     none;
+}
+
+// Inactive page numbers — plain text, no box, no border
+.cs-pg-num {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-width:       28px;
+  height:          32px;
+  padding:         0 4px;
+  border:          none !important;
+  background:      transparent !important;
+  font-size:       13px;
+  color:           #1c2333 !important;
+  cursor:          pointer;
+  border-radius:   50%;
+  transition:      background .12s, color .12s;
+  outline:         none;
+
+  &:hover {
+    background: #E8F4FD !important;
+    color:      #0079C1 !important;
+  }
+}
+
+// "..." ellipsis — plain text
+.cs-pg-dots {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-width:       28px;
+  height:          32px;
+  font-size:       13px;
+  color:           #6b7a8a;
+  letter-spacing:  .05em;
+  user-select:     none;
+}
 
 
 // ── AG Grid ───────────────────────────────────────────────────────────────────
 ::ng-deep .ag-theme-alpine.cs-grid {
 
-  // ── Kill ALL AG Grid background variables ──────────────────────────────────
   --ag-background-color:                 #ffffff;
   --ag-odd-row-background-color:         #ffffff;
   --ag-even-row-background-color:        #ffffff;
@@ -70,174 +207,94 @@
   --ag-checkbox-checked-color:           #0079C1;
   --ag-checkbox-unchecked-color:         #96a6b4;
 
-  .ag-root-wrapper { border: none !important; }
-  .ag-cell-focus   { outline: none !important; border: none !important; }
+  .ag-root-wrapper { border:none !important; }
+  .ag-cell-focus   { outline:none !important; border:none !important; }
 
-  // All cells transparent — row bg bleeds through full width
-  .ag-row .ag-cell { background: transparent !important; }
-
+  .ag-row .ag-cell { background:transparent !important; }
   .ag-center-cols-container,
   .ag-center-cols-viewport,
-  .ag-body-viewport { background: transparent !important; }
-
+  .ag-body-viewport { background:transparent !important; }
 
   // ── Header ─────────────────────────────────────────────────────────────────
   .ag-header {
-    background-color: #ffffff !important;
-    border-bottom:    2px solid #1a2e5a !important;
-    min-height:       44px !important;
+    background-color:#ffffff !important;
+    border-bottom:2px solid #1a2e5a !important;
+    min-height:44px !important;
   }
-  .ag-header-row { height: 44px !important; }
-
+  .ag-header-row { height:44px !important; }
   .ag-header-cell {
-    background-color: #ffffff !important;
-    border-right:     1px solid #dde3e8 !important;
-    padding:          0 14px !important;
-    &:first-child { padding: 0 !important; border-right: none !important; }
-    &:last-child  { border-right: none !important; }
+    background-color:#ffffff !important;
+    border-right:1px solid #dde3e8 !important;
+    padding:0 14px !important;
+    &:first-child { padding:0 !important; border-right:none !important; }
+    &:last-child  { border-right:none !important; }
   }
-
   .ag-header-cell-text {
-    font-size:     13px !important;
-    font-weight:   700 !important;
-    color:         #1c2333 !important;
-    white-space:   nowrap;
-    overflow:      hidden;
-    text-overflow: ellipsis;
+    font-size:13px !important; font-weight:700 !important;
+    color:#1c2333 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-
   .ag-sort-indicator-icon .ag-icon,
   .ag-icon-asc::before,
-  .ag-icon-desc::before { color: #0079C1 !important; }
-
+  .ag-icon-desc::before { color:#0079C1 !important; }
 
   // ── Row base ───────────────────────────────────────────────────────────────
   .ag-row {
-    border-top:    none !important;
-    border-bottom: 1px solid #d8e4e6 !important;
-
+    border-top:none !important;
+    border-bottom:1px solid #d8e4e6 !important;
     .ag-cell {
-      display:        flex !important;
-      align-items:    center !important;
-      font-size:      13px !important;
-      color:          #1c2333;
-      line-height:    1.5;
-      border-right:   none !important;
-      padding-top:    0 !important;
-      padding-bottom: 0 !important;
-      background:     transparent !important;
+      display:flex !important; align-items:center !important;
+      font-size:13px !important; color:#1c2333; line-height:1.5;
+      border-right:none !important; padding-top:0 !important; padding-bottom:0 !important;
+      background:transparent !important;
     }
   }
 
-
-  // ── PARENT — EXPANDED  →  #E8F4FD bg, #0079C1 borders (FULL width) ─────────
+  // ── Parent expanded — #E8F4FD full-width teal bg ───────────────────────────
   .ag-row.row-parent-expanded {
-    background-color: #E8F4FD !important;
-    border-top:       2px solid #0079C1 !important;
-    border-bottom:    1px solid #b8d9f0 !important;
-    .ag-cell { font-weight: 700 !important; }
+    background-color:#E8F4FD !important;
+    border-top:2px solid #0079C1 !important;
+    border-bottom:1px solid #b8d9f0 !important;
+    .ag-cell { font-weight:700 !important; }
   }
-  .ag-row.row-parent-expanded:hover   { background-color: #d6ecf9 !important; }
-  .ag-row-first.row-parent-expanded   { border-top: none !important; }
+  .ag-row.row-parent-expanded:hover   { background-color:#d6ecf9 !important; }
+  .ag-row-first.row-parent-expanded   { border-top:none !important; }
 
-
-  // ── PARENT — COLLAPSED  →  white bg, #0079C1 borders ──────────────────────
+  // ── Parent collapsed — white full-width ────────────────────────────────────
   .ag-row.row-parent-collapsed {
-    background-color: #ffffff !important;
-    border-top:       2px solid #0079C1 !important;
-    border-bottom:    1px solid #b8d9f0 !important;
-    .ag-cell { font-weight: 700 !important; }
+    background-color:#ffffff !important;
+    border-top:2px solid #0079C1 !important;
+    border-bottom:1px solid #b8d9f0 !important;
+    .ag-cell { font-weight:700 !important; }
   }
-  .ag-row.row-parent-collapsed:hover  { background-color: #f5f9fa !important; }
-  .ag-row-first.row-parent-collapsed  { border-top: none !important; }
+  .ag-row.row-parent-collapsed:hover  { background-color:#f5f9fa !important; }
+  .ag-row-first.row-parent-collapsed  { border-top:none !important; }
 
-
-  // ── CHILD  →  white bg ─────────────────────────────────────────────────────
+  // ── Child — white ──────────────────────────────────────────────────────────
   .ag-row.row-child {
-    background-color: #ffffff !important;
-    border-top:       none !important;
-    border-bottom:    1px solid #d8e4e6 !important;
-    .ag-cell { font-weight: 400 !important; }
+    background-color:#ffffff !important;
+    border-top:none !important; border-bottom:1px solid #d8e4e6 !important;
+    .ag-cell { font-weight:400 !important; }
   }
-  .ag-row.row-child:hover { background-color: #f5f9fa !important; }
+  .ag-row.row-child:hover { background-color:#f5f9fa !important; }
 
+  // ── Cluster closing border ─────────────────────────────────────────────────
+  .ag-row.row-cluster-end { border-bottom:2px solid #0079C1 !important; }
 
-  // ── Cluster closing border — #0079C1 ───────────────────────────────────────
-  .ag-row.row-cluster-end { border-bottom: 2px solid #0079C1 !important; }
-
-
-  // ── LEGAL HOLD pill — #0079C1 bg ───────────────────────────────────────────
+  // ── Pills ──────────────────────────────────────────────────────────────────
   .cs-lh-pill {
-    display:        inline-block;
-    background:     #0079C1;
-    color:          #ffffff;
-    font-size:      11px;
-    font-weight:    700;
-    padding:        3px 9px;
-    border-radius:  4px;
-    letter-spacing: 0.04em;
-    white-space:    nowrap;
+    display:inline-block; background:#0079C1; color:#fff;
+    font-size:11px; font-weight:700; padding:3px 9px;
+    border-radius:4px; letter-spacing:.04em; white-space:nowrap;
   }
-
-  // N/A — #E8F4FD bg, #0079C1 text
   .cs-lh-na {
-    display:       inline-block;
-    background:    #E8F4FD;
-    color:         #0079C1;
-    font-size:     11px;
-    font-weight:   600;
-    padding:       3px 9px;
-    border-radius: 4px;
-    white-space:   nowrap;
+    display:inline-block; background:#E8F4FD; color:#0079C1;
+    font-size:11px; font-weight:600; padding:3px 9px;
+    border-radius:4px; white-space:nowrap;
   }
 
-
-  // ── AG Grid's own checkbox — hide it (we use our own renderer) ─────────────
-  // The checkbox column is fully custom so AG Grid's checkbox widgets
-  // should not appear. This is a safety fallback.
-  .ag-checkbox-input-wrapper {
-    width:         18px !important;
-    height:        18px !important;
-    min-width:     18px !important;
-    border-radius: 3px !important;
-    border:        1.5px solid #96a6b4 !important;
-    background:    #ffffff !important;
-    font-size:     18px !important;
-    flex-shrink:   0;
-
-    &.ag-checked {
-      background:   #0079C1 !important;
-      border-color: #0079C1 !important;
-      &::after {
-        color:       #ffffff !important;
-        font-size:   18px !important;
-        font-weight: 900 !important;
-        line-height: 18px !important;
-      }
-    }
-    &.ag-indeterminate {
-      background:   #0079C1 !important;
-      border-color: #0079C1 !important;
-      &::after { color: #ffffff !important; }
-    }
-    &:hover:not(.ag-checked) { border-color: #0079C1 !important; }
-  }
-
-
-  // ── Pagination ──────────────────────────────────────────────────────────────
-  .ag-paging-panel {
-    border-top: 1px solid #c5d0d3 !important;
-    background: #f5f9fa !important;
-    height:     42px !important;
-    font-size:  12px !important;
-    color:      #3a4155 !important;
-    padding:    0 16px !important;
-  }
-
-
-  // ── Scrollbars ──────────────────────────────────────────────────────────────
-  ::-webkit-scrollbar        { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track  { background: #f0f5f6; }
-  ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #88a4aa; }
+  // ── Scrollbars — 3px, #0079C1 thumb ────────────────────────────────────────
+  ::-webkit-scrollbar        { width:3px; height:3px; }
+  ::-webkit-scrollbar-track  { background:transparent; }
+  ::-webkit-scrollbar-thumb  { background:#0079C1; border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:#005fa3; }
 }
