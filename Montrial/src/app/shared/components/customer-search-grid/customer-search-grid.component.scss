@@ -1,25 +1,9 @@
 // =============================================================================
 // CUSTOMER SEARCH — AG Grid overrides  (ag-theme-alpine)
-//
-// THE ROOT CAUSE of the partial-background bug:
-//   AG Grid Alpine sets background on .ag-row via its own CSS variables
-//   (--ag-background-color, --ag-odd-row-background-color, etc.)
-//   and renders a "center cols" wrapper + a "full-width" filler column.
-//   Overriding background only on .ag-row class selectors isn't enough —
-//   the Alpine theme injects inline styles and variable-driven backgrounds
-//   that win over class-based rules.
-//
-// REAL FIX:
-//   1. Override all AG Grid background CSS variables to 'transparent' on
-//      the .ag-theme-alpine root so no inline variable wins.
-//   2. Set background on .ag-row.row-* with !important — this paints the
-//      entire row element including the virtual filler area.
-//   3. Explicitly set .ag-cell background to 'transparent' so cells
-//      don't block the row's background.
+// Selection is 100% owned by the component model.
+// AG Grid's built-in row selection is NOT used.
 // =============================================================================
 
-
-// ── Container ─────────────────────────────────────────────────────────────────
 .customer-search-container {
   width:         100%;
   height:        calc(100vh - 250px);
@@ -30,8 +14,6 @@
   position:      relative;
 }
 
-
-// ── Overlay ───────────────────────────────────────────────────────────────────
 .grid-overlay {
   position:        absolute;
   inset:           0;
@@ -55,9 +37,9 @@
     border-radius: 4px;
     background:    #fff;
     font-size:     13px;
-    color:         #1a4fa0;
+    color:         #0079C1;
     cursor:        pointer;
-    &:hover { background: #eef5f7; }
+    &:hover { background: #E8F4FD; }
   }
 }
 
@@ -67,7 +49,7 @@
   width:            28px;
   height:           28px;
   border:           3px solid #d4e6ea;
-  border-top-color: #1a4fa0;
+  border-top-color: #0079C1;
   border-radius:    50%;
   animation:        spin 0.7s linear infinite;
 }
@@ -77,32 +59,26 @@
 // ── AG Grid ───────────────────────────────────────────────────────────────────
 ::ng-deep .ag-theme-alpine.cs-grid {
 
-  // ── Step 1: Nuke ALL AG Grid background CSS variables ──────────────────────
-  // This prevents Alpine's variable-driven backgrounds from bleeding through
-  // on any part of the row (including the virtual filler column).
-  --ag-background-color:              #ffffff;
-  --ag-odd-row-background-color:      #ffffff;
-  --ag-even-row-background-color:     #ffffff;
-  --ag-row-hover-color:               transparent;
-  --ag-selected-row-background-color: transparent;
+  // ── Kill ALL AG Grid background variables ──────────────────────────────────
+  --ag-background-color:                 #ffffff;
+  --ag-odd-row-background-color:         #ffffff;
+  --ag-even-row-background-color:        #ffffff;
+  --ag-row-hover-color:                  transparent;
+  --ag-selected-row-background-color:    transparent;
   --ag-range-selection-background-color: transparent;
-  --ag-alpine-active-color:           #1a4fa0;
+  --ag-alpine-active-color:              #0079C1;
+  --ag-checkbox-checked-color:           #0079C1;
+  --ag-checkbox-unchecked-color:         #96a6b4;
 
-  // ── Root ───────────────────────────────────────────────────────────────────
   .ag-root-wrapper { border: none !important; }
   .ag-cell-focus   { outline: none !important; border: none !important; }
 
-  // ── Step 2: Make ALL cells transparent so the ROW bg shows through ─────────
-  .ag-row .ag-cell {
-    background: transparent !important;
-  }
+  // All cells transparent — row bg bleeds through full width
+  .ag-row .ag-cell { background: transparent !important; }
 
-  // Also reset the center-cols and pinned col containers
   .ag-center-cols-container,
   .ag-center-cols-viewport,
-  .ag-body-viewport,
-  .ag-body-horizontal-scroll-viewport,
-  .ag-floating-bottom-container { background: transparent !important; }
+  .ag-body-viewport { background: transparent !important; }
 
 
   // ── Header ─────────────────────────────────────────────────────────────────
@@ -117,7 +93,8 @@
     background-color: #ffffff !important;
     border-right:     1px solid #dde3e8 !important;
     padding:          0 14px !important;
-    &:last-child { border-right: none !important; }
+    &:first-child { padding: 0 !important; border-right: none !important; }
+    &:last-child  { border-right: none !important; }
   }
 
   .ag-header-cell-text {
@@ -131,7 +108,7 @@
 
   .ag-sort-indicator-icon .ag-icon,
   .ag-icon-asc::before,
-  .ag-icon-desc::before { color: #1a4fa0 !important; }
+  .ag-icon-desc::before { color: #0079C1 !important; }
 
 
   // ── Row base ───────────────────────────────────────────────────────────────
@@ -153,29 +130,29 @@
   }
 
 
-  // ── PARENT — EXPANDED  →  #E8F4FD full width, #0079C1 cluster borders ───────
+  // ── PARENT — EXPANDED  →  #E8F4FD bg, #0079C1 borders (FULL width) ─────────
   .ag-row.row-parent-expanded {
     background-color: #E8F4FD !important;
     border-top:       2px solid #0079C1 !important;
     border-bottom:    1px solid #b8d9f0 !important;
     .ag-cell { font-weight: 700 !important; }
   }
-  .ag-row.row-parent-expanded:hover { background-color: #d6ecf9 !important; }
-  .ag-row-first.row-parent-expanded { border-top: none !important; }
+  .ag-row.row-parent-expanded:hover   { background-color: #d6ecf9 !important; }
+  .ag-row-first.row-parent-expanded   { border-top: none !important; }
 
 
-  // ── PARENT — COLLAPSED  →  white full width, #0079C1 cluster borders ──────────
+  // ── PARENT — COLLAPSED  →  white bg, #0079C1 borders ──────────────────────
   .ag-row.row-parent-collapsed {
     background-color: #ffffff !important;
     border-top:       2px solid #0079C1 !important;
     border-bottom:    1px solid #b8d9f0 !important;
     .ag-cell { font-weight: 700 !important; }
   }
-  .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
-  .ag-row-first.row-parent-collapsed { border-top: none !important; }
+  .ag-row.row-parent-collapsed:hover  { background-color: #f5f9fa !important; }
+  .ag-row-first.row-parent-collapsed  { border-top: none !important; }
 
 
-  // ── CHILD  →  white full width ───────────────────────────────────────────────
+  // ── CHILD  →  white bg ─────────────────────────────────────────────────────
   .ag-row.row-child {
     background-color: #ffffff !important;
     border-top:       none !important;
@@ -185,18 +162,39 @@
   .ag-row.row-child:hover { background-color: #f5f9fa !important; }
 
 
-  // ── Cluster closing border — #0079C1 ──────────────────────────────────────
+  // ── Cluster closing border — #0079C1 ───────────────────────────────────────
   .ag-row.row-cluster-end { border-bottom: 2px solid #0079C1 !important; }
 
 
-  // ── Selected — preserve row background ─────────────────────────────────────
-  .ag-row-selected.row-parent-expanded  { background-color: #E8F4FD !important; }
-  .ag-row-selected.row-parent-collapsed { background-color: #ffffff !important; }
-  .ag-row-selected.row-child            { background-color: #ffffff !important; }
-  .ag-row-selected.row-cluster-end      { border-bottom: 2px solid #0079C1 !important; }
+  // ── LEGAL HOLD pill — #0079C1 bg ───────────────────────────────────────────
+  .cs-lh-pill {
+    display:        inline-block;
+    background:     #0079C1;
+    color:          #ffffff;
+    font-size:      11px;
+    font-weight:    700;
+    padding:        3px 9px;
+    border-radius:  4px;
+    letter-spacing: 0.04em;
+    white-space:    nowrap;
+  }
+
+  // N/A — #E8F4FD bg, #0079C1 text
+  .cs-lh-na {
+    display:       inline-block;
+    background:    #E8F4FD;
+    color:         #0079C1;
+    font-size:     11px;
+    font-weight:   600;
+    padding:       3px 9px;
+    border-radius: 4px;
+    white-space:   nowrap;
+  }
 
 
-  // ── Checkboxes — blue fill, white tick, 18 px ──────────────────────────────
+  // ── AG Grid's own checkbox — hide it (we use our own renderer) ─────────────
+  // The checkbox column is fully custom so AG Grid's checkbox widgets
+  // should not appear. This is a safety fallback.
   .ag-checkbox-input-wrapper {
     width:         18px !important;
     height:        18px !important;
@@ -217,53 +215,12 @@
         line-height: 18px !important;
       }
     }
-
     &.ag-indeterminate {
       background:   #0079C1 !important;
       border-color: #0079C1 !important;
-      &::after {
-        color:       #ffffff !important;
-        font-size:   14px !important;
-        line-height: 18px !important;
-      }
+      &::after { color: #ffffff !important; }
     }
-
     &:hover:not(.ag-checked) { border-color: #0079C1 !important; }
-
-    input[type='checkbox'] {
-      width: 18px !important; height: 18px !important;
-      opacity: 0; cursor: pointer;
-    }
-  }
-
-  .ag-header-select-all .ag-checkbox-input-wrapper {
-    width: 18px !important; height: 18px !important;
-  }
-
-
-  // ── LEGAL HOLD pill — #0079C1 ──────────────────────────────────────────────
-  .cs-lh-pill {
-    display:        inline-block;
-    background:     #0079C1;
-    color:          #ffffff;
-    font-size:      11px;
-    font-weight:    700;
-    padding:        3px 9px;
-    border-radius:  4px;
-    letter-spacing: 0.04em;
-    white-space:    nowrap;
-  }
-
-  // N/A — #E8F4FD bg, white text
-  .cs-lh-na {
-    display:       inline-block;
-    background:    #E8F4FD;
-    color:         #0079C1;
-    font-size:     11px;
-    font-weight:   600;
-    padding:       3px 9px;
-    border-radius: 4px;
-    white-space:   nowrap;
   }
 
 

@@ -12,7 +12,6 @@
     </ng-container>
   </div>
 
-  <!-- AG Grid — default horizontal scroll -->
   <ag-grid-angular
     class="ag-theme-alpine cs-grid"
     [class.grid--hidden]="isLoading || loadError"
@@ -21,18 +20,16 @@
     [columnDefs]="columnDefs"
     [defaultColDef]="defaultColDef"
     [getRowId]="getRowId"
-    rowSelection="multiple"
+    [suppressRowClickSelection]="true"
     [pagination]="true"
     [paginationPageSize]="pageSize"
     [suppressPaginationPanel]="true"
-    [suppressRowClickSelection]="true"
     [rowHeight]="52"
     [headerHeight]="44"
     [suppressCellFocus]="true"
     [animateRows]="false"
     [getRowClass]="getRowClass"
     (gridReady)="onGridReady($event)"
-    (selectionChanged)="onSelectionChanged()"
     (paginationChanged)="onPaginationChanged()">
   </ag-grid-angular>
 
