@@ -338,37 +338,21 @@ export class EntityGridComponent implements OnInit, OnDestroy {
       return;
     }
   
-    console.groupCollapsed(`[EntityGrid] ${selected.length} row(s) selected`);
-  
     for (const row of selected) {
       const root = this.findRootOf(this.tree, row._uid);
   
-      if (root && root._isParent && root._uid === row._uid) {
-        // User selected the root/parent row itself — log the full cluster
-        const allInCluster = this.flattenNode(root);
-        console.groupCollapsed(`Cluster selected — "${row.profileName}"`);
-        console.log('Parent:', row);
-        console.log('All children:', allInCluster.slice(1));
-        console.log('Full cluster:', allInCluster);
-        console.groupEnd();
-  
-      } else if (root && root._isParent && root._uid !== row._uid) {
-        // User selected an individual child row within a cluster
-        console.groupCollapsed(`Individual row selected — "${row.profileName}" (child of "${root.profileName}")`);
-        console.log('Selected row:', row);
-        console.log('Parent cluster:', root.profileName);
-        console.groupEnd();
-  
+      if (root?._uid === row._uid) {
+        // Whole cluster selected — log full array
+        const cluster = this.flattenNode(root);
+        console.log('[EntityGrid] Cluster selected:', cluster);
       } else {
-        // Standalone row — no parent
-        console.groupCollapsed(`Standalone row selected — "${row.profileName}"`);
-        console.log('Selected row:', row);
-        console.groupEnd();
+        // Individual row — log record + its cluster reference
+        console.log('[EntityGrid] Individual row selected:', {
+          record: row,
+          cluster: root?.profileName ?? null,
+        });
       }
     }
-  
-    console.log('All selected:', selected);
-    console.groupEnd();
   
     this.selectionChanged.emit(selected as EntityNode[]);
   }

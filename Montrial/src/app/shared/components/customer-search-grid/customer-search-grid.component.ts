@@ -341,11 +341,11 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  private emitSelected(): void {
-    const selected = this.gridApi.getSelectedRows() as CustomerNode[];
-    console.log('[CustomerSearch] Selected rows:', selected);
-    this.selectionChanged.emit(selected);
-  }
+private emitSelected(): void {
+  const selected: any[] = this.gridApi.getSelectedRows();
+  console.log('[CustomerSearch] Selected:', selected);
+  this.selectionChanged.emit(selected as CustomerNode[]);
+}
 
   onGridReady(e: GridReadyEvent): void { this.gridApi = e.api; }
   onPaginationChanged(): void {}
