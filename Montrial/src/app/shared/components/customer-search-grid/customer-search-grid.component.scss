@@ -153,22 +153,22 @@
   }
 
 
-  // ── PARENT — EXPANDED  →  teal #dce9ec full width ──────────────────────────
+  // ── PARENT — EXPANDED  →  #E8F4FD full width, #0079C1 cluster borders ───────
   .ag-row.row-parent-expanded {
-    background-color: #dce9ec !important;
-    border-top:       2px solid #dce9ec !important;
-    border-bottom:    1px solid #c2d0d3 !important;
+    background-color: #E8F4FD !important;
+    border-top:       2px solid #0079C1 !important;
+    border-bottom:    1px solid #b8d9f0 !important;
     .ag-cell { font-weight: 700 !important; }
   }
-  .ag-row.row-parent-expanded:hover { background-color: #d2e4e8 !important; }
+  .ag-row.row-parent-expanded:hover { background-color: #d6ecf9 !important; }
   .ag-row-first.row-parent-expanded { border-top: none !important; }
 
 
-  // ── PARENT — COLLAPSED  →  white full width ─────────────────────────────────
+  // ── PARENT — COLLAPSED  →  white full width, #0079C1 cluster borders ──────────
   .ag-row.row-parent-collapsed {
     background-color: #ffffff !important;
-    border-top:       2px solid #dce9ec !important;
-    border-bottom:    1px solid #c2d0d3 !important;
+    border-top:       2px solid #0079C1 !important;
+    border-bottom:    1px solid #b8d9f0 !important;
     .ag-cell { font-weight: 700 !important; }
   }
   .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
@@ -185,15 +185,15 @@
   .ag-row.row-child:hover { background-color: #f5f9fa !important; }
 
 
-  // ── Cluster closing border ─────────────────────────────────────────────────
-  .ag-row.row-cluster-end { border-bottom: 2px solid #1a2e5a !important; }
+  // ── Cluster closing border — #0079C1 ──────────────────────────────────────
+  .ag-row.row-cluster-end { border-bottom: 2px solid #0079C1 !important; }
 
 
   // ── Selected — preserve row background ─────────────────────────────────────
-  .ag-row-selected.row-parent-expanded  { background-color: #dce9ec !important; }
+  .ag-row-selected.row-parent-expanded  { background-color: #E8F4FD !important; }
   .ag-row-selected.row-parent-collapsed { background-color: #ffffff !important; }
   .ag-row-selected.row-child            { background-color: #ffffff !important; }
-  .ag-row-selected.row-cluster-end      { border-bottom: 2px solid #1a2e5a !important; }
+  .ag-row-selected.row-cluster-end      { border-bottom: 2px solid #0079C1 !important; }
 
 
   // ── Checkboxes — blue fill, white tick, 18 px ──────────────────────────────
@@ -208,8 +208,8 @@
     flex-shrink:   0;
 
     &.ag-checked {
-      background:   #1a4fa0 !important;
-      border-color: #1a4fa0 !important;
+      background:   #0079C1 !important;
+      border-color: #0079C1 !important;
       &::after {
         color:       #ffffff !important;
         font-size:   18px !important;
@@ -219,8 +219,8 @@
     }
 
     &.ag-indeterminate {
-      background:   #1a4fa0 !important;
-      border-color: #1a4fa0 !important;
+      background:   #0079C1 !important;
+      border-color: #0079C1 !important;
       &::after {
         color:       #ffffff !important;
         font-size:   14px !important;
@@ -228,7 +228,7 @@
       }
     }
 
-    &:hover:not(.ag-checked) { border-color: #1a4fa0 !important; }
+    &:hover:not(.ag-checked) { border-color: #0079C1 !important; }
 
     input[type='checkbox'] {
       width: 18px !important; height: 18px !important;
@@ -241,10 +241,10 @@
   }
 
 
-  // ── LEGAL HOLD pill — dark navy ─────────────────────────────────────────────
+  // ── LEGAL HOLD pill — #0079C1 ──────────────────────────────────────────────
   .cs-lh-pill {
     display:        inline-block;
-    background:     #1a2e5a;
+    background:     #0079C1;
     color:          #ffffff;
     font-size:      11px;
     font-weight:    700;
@@ -254,11 +254,11 @@
     white-space:    nowrap;
   }
 
-  // N/A — teal bg + blue text
+  // N/A — #E8F4FD bg, white text
   .cs-lh-na {
     display:       inline-block;
-    background:    #dce9ec;
-    color:         #1a4fa0;
+    background:    #E8F4FD;
+    color:         #0079C1;
     font-size:     11px;
     font-weight:   600;
     padding:       3px 9px;
