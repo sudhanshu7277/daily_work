@@ -1,259 +1,286 @@
 // =============================================================================
-// CUSTOMER SEARCH GRID
-// Same look & feel as entity-grid.
-// No indentation — one level of children only, flat display.
+// CUSTOMER SEARCH — AG Grid overrides  (ag-theme-alpine)
 //
-// PARENT rows  : #dce9ec teal  — cluster header
-// CHILD rows   : #eef5f7 pale  — cluster children
-// Cluster borders: 2px solid #dce9ec top (opens) + bottom (closes)
+// THE ROOT CAUSE of the partial-background bug:
+//   AG Grid Alpine sets background on .ag-row via its own CSS variables
+//   (--ag-background-color, --ag-odd-row-background-color, etc.)
+//   and renders a "center cols" wrapper + a "full-width" filler column.
+//   Overriding background only on .ag-row class selectors isn't enough —
+//   the Alpine theme injects inline styles and variable-driven backgrounds
+//   that win over class-based rules.
+//
+// REAL FIX:
+//   1. Override all AG Grid background CSS variables to 'transparent' on
+//      the .ag-theme-alpine root so no inline variable wins.
+//   2. Set background on .ag-row.row-* with !important — this paints the
+//      entire row element including the virtual filler area.
+//   3. Explicitly set .ag-cell background to 'transparent' so cells
+//      don't block the row's background.
 // =============================================================================
 
 
 // ── Container ─────────────────────────────────────────────────────────────────
 .customer-search-container {
-    width: 100%;
-    height: calc(100vh - 250px);
-    border: 1px solid #c5d0d3;
+  width:         100%;
+  height:        calc(100vh - 250px);
+  border:        1px solid #c5d0d3;
+  border-radius: 4px;
+  background:    #fff;
+  overflow:      hidden;
+  position:      relative;
+}
+
+
+// ── Overlay ───────────────────────────────────────────────────────────────────
+.grid-overlay {
+  position:        absolute;
+  inset:           0;
+  z-index:         10;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             12px;
+  background:      rgba(255, 255, 255, 0.94);
+  font-size:       13px;
+  color:           #3a4155;
+  transition:      opacity 0.2s;
+
+  &--hidden { opacity: 0; pointer-events: none; }
+  &__error  { color: #b91c1c; }
+
+  button {
+    padding:       6px 18px;
+    border:        1px solid #c5d0d3;
     border-radius: 4px;
-    background: #fff;
-    overflow: hidden;
-    position: relative;
+    background:    #fff;
+    font-size:     13px;
+    color:         #1a4fa0;
+    cursor:        pointer;
+    &:hover { background: #eef5f7; }
   }
-  
-  
-  // ── Overlay ───────────────────────────────────────────────────────────────────
-  .grid-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.94);
-    font-size: 13px;
-    color: #3a4155;
-    transition: opacity 0.2s;
-  
-    &--hidden { opacity: 0; pointer-events: none; }
-    &__error  { color: #b91c1c; }
-  
-    button {
-      padding: 6px 18px;
-      border: 1px solid #c5d0d3;
-      border-radius: 4px;
-      background: #fff;
-      font-size: 13px;
-      color: #1a4fa0;
-      cursor: pointer;
-      &:hover { background: #eef5f7; }
+}
+
+.grid--hidden { visibility: hidden; pointer-events: none; }
+
+.spinner {
+  width:            28px;
+  height:           28px;
+  border:           3px solid #d4e6ea;
+  border-top-color: #1a4fa0;
+  border-radius:    50%;
+  animation:        spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+// ── AG Grid ───────────────────────────────────────────────────────────────────
+::ng-deep .ag-theme-alpine.cs-grid {
+
+  // ── Step 1: Nuke ALL AG Grid background CSS variables ──────────────────────
+  // This prevents Alpine's variable-driven backgrounds from bleeding through
+  // on any part of the row (including the virtual filler column).
+  --ag-background-color:              #ffffff;
+  --ag-odd-row-background-color:      #ffffff;
+  --ag-even-row-background-color:     #ffffff;
+  --ag-row-hover-color:               transparent;
+  --ag-selected-row-background-color: transparent;
+  --ag-range-selection-background-color: transparent;
+  --ag-alpine-active-color:           #1a4fa0;
+
+  // ── Root ───────────────────────────────────────────────────────────────────
+  .ag-root-wrapper { border: none !important; }
+  .ag-cell-focus   { outline: none !important; border: none !important; }
+
+  // ── Step 2: Make ALL cells transparent so the ROW bg shows through ─────────
+  .ag-row .ag-cell {
+    background: transparent !important;
+  }
+
+  // Also reset the center-cols and pinned col containers
+  .ag-center-cols-container,
+  .ag-center-cols-viewport,
+  .ag-body-viewport,
+  .ag-body-horizontal-scroll-viewport,
+  .ag-floating-bottom-container { background: transparent !important; }
+
+
+  // ── Header ─────────────────────────────────────────────────────────────────
+  .ag-header {
+    background-color: #ffffff !important;
+    border-bottom:    2px solid #1a2e5a !important;
+    min-height:       44px !important;
+  }
+  .ag-header-row { height: 44px !important; }
+
+  .ag-header-cell {
+    background-color: #ffffff !important;
+    border-right:     1px solid #dde3e8 !important;
+    padding:          0 14px !important;
+    &:last-child { border-right: none !important; }
+  }
+
+  .ag-header-cell-text {
+    font-size:     13px !important;
+    font-weight:   700 !important;
+    color:         #1c2333 !important;
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ag-sort-indicator-icon .ag-icon,
+  .ag-icon-asc::before,
+  .ag-icon-desc::before { color: #1a4fa0 !important; }
+
+
+  // ── Row base ───────────────────────────────────────────────────────────────
+  .ag-row {
+    border-top:    none !important;
+    border-bottom: 1px solid #d8e4e6 !important;
+
+    .ag-cell {
+      display:        flex !important;
+      align-items:    center !important;
+      font-size:      13px !important;
+      color:          #1c2333;
+      line-height:    1.5;
+      border-right:   none !important;
+      padding-top:    0 !important;
+      padding-bottom: 0 !important;
+      background:     transparent !important;
     }
   }
-  
-  .grid--hidden { visibility: hidden; pointer-events: none; }
-  
-  .spinner {
-    width: 28px;
-    height: 28px;
-    border: 3px solid #d4e6ea;
-    border-top-color: #1a4fa0;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
+
+
+  // ── PARENT — EXPANDED  →  teal #dce9ec full width ──────────────────────────
+  .ag-row.row-parent-expanded {
+    background-color: #dce9ec !important;
+    border-top:       2px solid #dce9ec !important;
+    border-bottom:    1px solid #c2d0d3 !important;
+    .ag-cell { font-weight: 700 !important; }
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  
-  
-  // ── AG Grid overrides ─────────────────────────────────────────────────────────
-  ::ng-deep .ag-theme-alpine.cs-grid {
-  
-    // Kill default AG Grid row colours and selected highlight
-    .ag-root-wrapper          { border: none !important; }
-    .ag-cell-focus            { outline: none !important; border: none !important; }
-    .ag-row-even, .ag-row-odd { background-color: inherit !important; }
-    --ag-selected-row-background-color: transparent;
-  
-  
-    // ── Header ───────────────────────────────────────────────────────────────
-    .ag-header {
-      background-color: #ffffff !important;
-      border-bottom: 2px solid #1a2e5a !important;
-      min-height: 44px !important;
-    }
-    .ag-header-row { height: 44px !important; }
-  
-    .ag-header-cell {
-      background-color: #ffffff !important;
-      border-right: 1px solid #dde3e8 !important;
-      padding: 0 14px !important;
-      &:last-child { border-right: none !important; }
-    }
-  
-    .ag-header-cell-text {
-      font-size: 13px !important;
-      font-weight: 700 !important;
-      color: #1c2333 !important;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  
-    .ag-sort-indicator-icon .ag-icon,
-    .ag-icon-asc::before,
-    .ag-icon-desc::before { color: #1a4fa0 !important; }
-  
-  
-    // ── Row base ─────────────────────────────────────────────────────────────
-    .ag-row {
-      border-top:    none !important;
-      border-bottom: 1px solid #d8e4e6 !important;
-  
-      .ag-cell {
-        display:        flex !important;
-        align-items:    center !important;
-        font-size:      13px !important;
-        color:          #1c2333;
-        padding-top:    0 !important;
-        padding-bottom: 0 !important;
-        line-height:    1.5;
-        border-right:   none !important;
+  .ag-row.row-parent-expanded:hover { background-color: #d2e4e8 !important; }
+  .ag-row-first.row-parent-expanded { border-top: none !important; }
+
+
+  // ── PARENT — COLLAPSED  →  white full width ─────────────────────────────────
+  .ag-row.row-parent-collapsed {
+    background-color: #ffffff !important;
+    border-top:       2px solid #dce9ec !important;
+    border-bottom:    1px solid #c2d0d3 !important;
+    .ag-cell { font-weight: 700 !important; }
+  }
+  .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
+  .ag-row-first.row-parent-collapsed { border-top: none !important; }
+
+
+  // ── CHILD  →  white full width ───────────────────────────────────────────────
+  .ag-row.row-child {
+    background-color: #ffffff !important;
+    border-top:       none !important;
+    border-bottom:    1px solid #d8e4e6 !important;
+    .ag-cell { font-weight: 400 !important; }
+  }
+  .ag-row.row-child:hover { background-color: #f5f9fa !important; }
+
+
+  // ── Cluster closing border ─────────────────────────────────────────────────
+  .ag-row.row-cluster-end { border-bottom: 2px solid #1a2e5a !important; }
+
+
+  // ── Selected — preserve row background ─────────────────────────────────────
+  .ag-row-selected.row-parent-expanded  { background-color: #dce9ec !important; }
+  .ag-row-selected.row-parent-collapsed { background-color: #ffffff !important; }
+  .ag-row-selected.row-child            { background-color: #ffffff !important; }
+  .ag-row-selected.row-cluster-end      { border-bottom: 2px solid #1a2e5a !important; }
+
+
+  // ── Checkboxes — blue fill, white tick, 18 px ──────────────────────────────
+  .ag-checkbox-input-wrapper {
+    width:         18px !important;
+    height:        18px !important;
+    min-width:     18px !important;
+    border-radius: 3px !important;
+    border:        1.5px solid #96a6b4 !important;
+    background:    #ffffff !important;
+    font-size:     18px !important;
+    flex-shrink:   0;
+
+    &.ag-checked {
+      background:   #1a4fa0 !important;
+      border-color: #1a4fa0 !important;
+      &::after {
+        color:       #ffffff !important;
+        font-size:   18px !important;
+        font-weight: 900 !important;
+        line-height: 18px !important;
       }
     }
-  
-  
-    // ── PARENT row — cluster header ───────────────────────────────────────────
-    // Teal background, bold text
-    // 2px light-blue top border OPENS the cluster
-    .row-parent {
-      background-color: #dce9ec !important;
-      border-top:    2px solid #dce9ec !important;
-      border-bottom: 1px solid #c2d0d3 !important;
-  
-      .ag-cell { font-weight: 700 !important; }
-    }
-  
-    .row-parent:hover { background-color: #d2e4e8 !important; }
-  
-    // First parent row — no top border
-    .ag-row-first.row-parent { border-top: none !important; }
-  
-  
-    // ── CHILD rows ───────────────────────────────────────────────────────────
-    // Pale background, regular weight, NO indentation
-    .row-child-item {
-      background-color: #eef5f7 !important;
-      border-top:    none !important;
-      border-bottom: 1px solid #d8e4e6 !important;
-  
-      .ag-cell { font-weight: 400 !important; }
-    }
-  
-    .row-child-item:hover { background-color: #e6f0f3 !important; }
-  
-  
-    // ── Cluster closing border ────────────────────────────────────────────────
-    // Last child of each cluster gets 2px light-blue bottom border — CLOSES cluster
-    .row-cluster-end {
-      border-bottom: 2px solid #dce9ec !important;
-    }
-  
-  
-    // ── Selected states — no background change ────────────────────────────────
-    .ag-row-selected.row-parent     { background-color: #dce9ec !important; }
-    .ag-row-selected.row-child-item { background-color: #eef5f7 !important; }
-    .ag-row-selected.row-cluster-end { border-bottom: 2px solid #dce9ec !important; }
-  
-  
-    // ── Profile name text ─────────────────────────────────────────────────────
-    .pn-parent,
-    .pn-child {
-      display:       inline-flex;
-      align-items:   center;
-      white-space:   nowrap;
-      overflow:      hidden;
-      text-overflow: ellipsis;
-      font-size:     13px;
-      color:         #1a4fa0;
-    }
-  
-    .pn-parent {
-      font-weight: 700;
-      cursor:      default;
-    }
-  
-    .pn-child {
-      font-weight: 400;
-      cursor:      default;
-    }
-  
-  
-    // ── Checkboxes ───────────────────────────────────────────────────────────
-    .ag-checkbox-input-wrapper {
-      width:         18px !important;
-      height:        18px !important;
-      min-width:     18px !important;
-      border-radius: 3px !important;
-      border:        1.5px solid #96a6b4 !important;
-      background:    #ffffff !important;
-      flex-shrink:   0;
-  
-      &.ag-checked {
-        background:   #1a4fa0 !important;
-        border-color: #1a4fa0 !important;
-        &::after {
-          color:       #ffffff !important;
-          font-size:   16px !important;
-          font-weight: 900 !important;
-          line-height: 18px !important;
-        }
-      }
-  
-      &:hover:not(.ag-checked) { border-color: #1a4fa0 !important; }
-  
-      input[type='checkbox'] {
-        width: 18px !important; height: 18px !important;
-        opacity: 0; cursor: pointer;
+
+    &.ag-indeterminate {
+      background:   #1a4fa0 !important;
+      border-color: #1a4fa0 !important;
+      &::after {
+        color:       #ffffff !important;
+        font-size:   14px !important;
+        line-height: 18px !important;
       }
     }
-  
-    .ag-header-select-all .ag-checkbox-input-wrapper {
+
+    &:hover:not(.ag-checked) { border-color: #1a4fa0 !important; }
+
+    input[type='checkbox'] {
       width: 18px !important; height: 18px !important;
+      opacity: 0; cursor: pointer;
     }
-  
-  
-    // ── LEGAL HOLD pill ───────────────────────────────────────────────────────
-    .lh-pill {
-      display:        inline-block;
-      background:     #111827;
-      color:          #ffffff;
-      font-size:      11px;
-      font-weight:    700;
-      padding:        3px 9px;
-      border-radius:  4px;
-      letter-spacing: 0.04em;
-      white-space:    nowrap;
-    }
-  
-    .lh-na {
-      color:     #6b7a8a;
-      font-size: 13px;
-    }
-  
-  
-    // ── Pagination ────────────────────────────────────────────────────────────
-    .ag-paging-panel {
-      border-top: 1px solid #c5d0d3 !important;
-      background: #f5f9fa !important;
-      height:     42px !important;
-      font-size:  12px !important;
-      color:      #3a4155 !important;
-      padding:    0 16px !important;
-    }
-  
-  
-    // ── Scrollbars ────────────────────────────────────────────────────────────
-    ::-webkit-scrollbar        { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track  { background: #f0f5f6; }
-    ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #88a4aa; }
   }
+
+  .ag-header-select-all .ag-checkbox-input-wrapper {
+    width: 18px !important; height: 18px !important;
+  }
+
+
+  // ── LEGAL HOLD pill — dark navy ─────────────────────────────────────────────
+  .cs-lh-pill {
+    display:        inline-block;
+    background:     #1a2e5a;
+    color:          #ffffff;
+    font-size:      11px;
+    font-weight:    700;
+    padding:        3px 9px;
+    border-radius:  4px;
+    letter-spacing: 0.04em;
+    white-space:    nowrap;
+  }
+
+  // N/A — teal bg + blue text
+  .cs-lh-na {
+    display:       inline-block;
+    background:    #dce9ec;
+    color:         #1a4fa0;
+    font-size:     11px;
+    font-weight:   600;
+    padding:       3px 9px;
+    border-radius: 4px;
+    white-space:   nowrap;
+  }
+
+
+  // ── Pagination ──────────────────────────────────────────────────────────────
+  .ag-paging-panel {
+    border-top: 1px solid #c5d0d3 !important;
+    background: #f5f9fa !important;
+    height:     42px !important;
+    font-size:  12px !important;
+    color:      #3a4155 !important;
+    padding:    0 16px !important;
+  }
+
+
+  // ── Scrollbars ──────────────────────────────────────────────────────────────
+  ::-webkit-scrollbar        { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track  { background: #f0f5f6; }
+  ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #88a4aa; }
+}

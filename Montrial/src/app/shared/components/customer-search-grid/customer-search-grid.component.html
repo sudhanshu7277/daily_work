@@ -1,39 +1,39 @@
 <div class="customer-search-container">
 
-    <!-- Overlay: loading / error -->
-    <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
-      <ng-container *ngIf="isLoading">
-        <div class="spinner"></div>
-        <span>Loading...</span>
-      </ng-container>
-      <ng-container *ngIf="loadError && !isLoading">
-        <span class="grid-overlay__error">Failed to load data.</span>
-        <button (click)="loadData()">Retry</button>
-      </ng-container>
-    </div>
-  
-    <!-- Grid always mounted -->
-    <ag-grid-angular
-      class="ag-theme-alpine cs-grid"
-      [class.grid--hidden]="isLoading || loadError"
-      style="width: 100%; height: 100%;"
-      [rowData]="rowData"
-      [columnDefs]="columnDefs"
-      [defaultColDef]="defaultColDef"
-      [getRowId]="getRowId"
-      rowSelection="multiple"
-      [pagination]="true"
-      [paginationPageSize]="pageSize"
-      [suppressPaginationPanel]="true"
-      [suppressRowClickSelection]="true"
-      [rowHeight]="52"
-      [headerHeight]="44"
-      [suppressCellFocus]="true"
-      [animateRows]="false"
-      [getRowClass]="getRowClass"
-      (gridReady)="onGridReady($event)"
-      (selectionChanged)="onSelectionChanged()"
-      (paginationChanged)="onPaginationChanged()">
-    </ag-grid-angular>
-  
+  <!-- Overlay: loading / error -->
+  <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
+    <ng-container *ngIf="isLoading">
+      <div class="spinner"></div>
+      <span>Loading...</span>
+    </ng-container>
+    <ng-container *ngIf="loadError && !isLoading">
+      <span class="grid-overlay__error">Failed to load data.</span>
+      <button (click)="loadData()">Retry</button>
+    </ng-container>
   </div>
+
+  <!-- AG Grid — default horizontal scroll -->
+  <ag-grid-angular
+    class="ag-theme-alpine cs-grid"
+    [class.grid--hidden]="isLoading || loadError"
+    style="width: 100%; height: 100%;"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [getRowId]="getRowId"
+    rowSelection="multiple"
+    [pagination]="true"
+    [paginationPageSize]="pageSize"
+    [suppressPaginationPanel]="true"
+    [suppressRowClickSelection]="true"
+    [rowHeight]="52"
+    [headerHeight]="44"
+    [suppressCellFocus]="true"
+    [animateRows]="false"
+    [getRowClass]="getRowClass"
+    (gridReady)="onGridReady($event)"
+    (selectionChanged)="onSelectionChanged()"
+    (paginationChanged)="onPaginationChanged()">
+  </ag-grid-angular>
+
+</div>
