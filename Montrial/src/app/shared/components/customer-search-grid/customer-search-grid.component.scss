@@ -1,22 +1,7 @@
 // =============================================================================
-// CUSTOMER SEARCH — AG Grid + Custom Pagination
+// CUSTOMER SEARCH GRID
 // =============================================================================
 
-.customer-search-container {
-  width:         100%;
-  height:        calc(100vh - 250px);
-  border:        1px solid #c5d0d3;
-  border-radius: 4px;
-  background:    #ffffff !important;
-  overflow:      hidden;
-  position:      relative;
-  display:       flex;
-  flex-direction:column;
-  color-scheme:  light;   // prevent OS dark-mode from inverting child elements
-}
-
-// Global scrollbar override for the component (horizontal + vertical)
-// Applied outside ::ng-deep so it catches the AG Grid horizontal scrollbar too
 :host {
   ::-webkit-scrollbar        { width: 3px !important; height: 3px !important; }
   ::-webkit-scrollbar-track  { background: transparent !important; }
@@ -24,6 +9,20 @@
   ::-webkit-scrollbar-thumb:hover { background: #005fa3 !important; }
 }
 
+.customer-search-container {
+  width:          100%;
+  height:         calc(100vh - 250px);
+  border:         1px solid #c5d0d3;
+  border-radius:  4px;
+  background:     #ffffff !important;
+  overflow:       hidden;
+  position:       relative;
+  display:        flex;
+  flex-direction: column;
+  color-scheme:   light;
+}
+
+// ── Overlay ───────────────────────────────────────────────────────────────────
 .grid-overlay {
   position:        absolute;
   inset:           0;
@@ -33,31 +32,40 @@
   align-items:     center;
   justify-content: center;
   gap:             12px;
-  background:      rgba(255,255,255,0.94);
+  background:      rgba(255, 255, 255, 0.94);
   font-size:       13px;
   color:           #3a4155;
   transition:      opacity 0.2s;
-  &--hidden { opacity:0; pointer-events:none; }
-  &__error  { color:#b91c1c; }
+
+  &--hidden { opacity: 0; pointer-events: none; }
+  &__error  { color: #b91c1c; }
+
   button {
-    padding:6px 18px; border:1px solid #c5d0d3; border-radius:4px;
-    background:#fff; font-size:13px; color:#0079C1; cursor:pointer;
-    &:hover { background:#E8F4FD; }
+    padding:       6px 18px;
+    border:        1px solid #c5d0d3;
+    border-radius: 4px;
+    background:    #fff;
+    font-size:     13px;
+    color:         #0079C1;
+    cursor:        pointer;
+    &:hover { background: #E8F4FD; }
   }
 }
 
-.grid--hidden { visibility:hidden; pointer-events:none; }
+.grid--hidden { visibility: hidden; pointer-events: none; }
 
 .spinner {
-  width:28px; height:28px;
-  border:3px solid #d4e6ea; border-top-color:#0079C1;
-  border-radius:50%; animation:spin 0.7s linear infinite;
+  width:            28px;
+  height:           28px;
+  border:           3px solid #d4e6ea;
+  border-top-color: #0079C1;
+  border-radius:    50%;
+  animation:        spin 0.7s linear infinite;
 }
-@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 
-// ── Custom Pagination Bar ─────────────────────────────────────────────────────
-// ── Custom Pagination Bar — exact Figma design ──────────────────────────────
+// ── Pagination Bar ────────────────────────────────────────────────────────────
 .cs-pagination {
   display:         flex;
   align-items:     center;
@@ -67,42 +75,16 @@
   padding:         0 20px;
   border-top:      1px solid #d8e4e6;
   background:      #ffffff !important;
-  font-size:       13px;
-  color-scheme:    light;   // force light mode on whole bar
+  color-scheme:    light;
   color:           #1c2333 !important;
 
-  // ── Left side ──────────────────────────────────────────────────────────────
-  &__left {
-    display:     flex;
-    align-items: center;
-    gap:         10px;
-  }
-
-  // ── Right side ─────────────────────────────────────────────────────────────
-  &__right {
-    display:     flex;
-    align-items: center;
-    gap:         6px;
-  }
+  &__left  { display: flex; align-items: center; gap: 10px; }
+  &__right { display: flex; align-items: center; gap: 6px; }
 }
 
-// "1-10 of 100"
-.cs-pg-count {
-  font-size:   13px;
-  font-weight: 600;
-  color:       #1c2333;
-  white-space: nowrap;
-}
+.cs-pg-count  { font-size: 13px; font-weight: 600; color: #1c2333; white-space: nowrap; }
+.cs-pg-label  { font-size: 13px; color: #6b7a8a; white-space: nowrap; }
 
-// "Items per page"
-.cs-pg-label {
-  font-size:   13px;
-  color:       #6b7a8a;
-  white-space: nowrap;
-}
-
-// [10 ▾] bordered select
-// color-scheme:light forces white bg regardless of OS dark-mode (fixes black bg bug)
 .cs-pg-select {
   height:              32px;
   padding:             0 26px 0 10px;
@@ -121,7 +103,7 @@
   &:focus { outline: 2px solid #0079C1; outline-offset: 1px; }
 }
 
-// "‹ Previous" and "Next ›" — NO border, NO background, plain text link
+// Previous / Next — no border, no bg
 .cs-pg-nav {
   display:     inline-flex;
   align-items: center;
@@ -137,27 +119,27 @@
   transition:  color .12s;
   outline:     none;
 
-  &:hover:not(:disabled) { color: #0079C1 !important; background: transparent !important; }
+  &:hover:not(:disabled) { color: #0079C1 !important; }
   &:disabled { color: #b0bec5 !important; cursor: default; }
 }
 
-// Active page — filled BLUE CIRCLE (not a rectangle)
+// Active page — filled blue circle
 .cs-pg-active {
   display:         inline-flex;
   align-items:     center;
   justify-content: center;
   width:           32px;
   height:          32px;
-  border-radius:   50%;           // ← circle
+  border-radius:   50%;
   background:      #0079C1;
-  color:           #ffffff;
+  color:           #fff !important;
   font-size:       13px;
   font-weight:     700;
   flex-shrink:     0;
   user-select:     none;
 }
 
-// Inactive page numbers — plain text, no box, no border
+// Inactive page numbers — plain text
 .cs-pg-num {
   display:         inline-flex;
   align-items:     center;
@@ -171,30 +153,17 @@
   color:           #1c2333 !important;
   cursor:          pointer;
   border-radius:   50%;
-  transition:      background .12s, color .12s;
   outline:         none;
-
-  &:hover {
-    background: #E8F4FD !important;
-    color:      #0079C1 !important;
-  }
+  &:hover { background: #E8F4FD !important; color: #0079C1 !important; }
 }
 
-// "..." ellipsis — plain text
 .cs-pg-dots {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  min-width:       28px;
-  height:          32px;
-  font-size:       13px;
-  color:           #6b7a8a;
-  letter-spacing:  .05em;
-  user-select:     none;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 32px; font-size: 13px; color: #6b7a8a;
 }
 
 
-// ── AG Grid ───────────────────────────────────────────────────────────────────
+// ── AG Grid overrides ─────────────────────────────────────────────────────────
 ::ng-deep .ag-theme-alpine.cs-grid {
 
   --ag-background-color:                 #ffffff;
@@ -204,97 +173,95 @@
   --ag-selected-row-background-color:    transparent;
   --ag-range-selection-background-color: transparent;
   --ag-alpine-active-color:              #0079C1;
-  --ag-checkbox-checked-color:           #0079C1;
-  --ag-checkbox-unchecked-color:         #96a6b4;
 
-  .ag-root-wrapper { border:none !important; }
-  .ag-cell-focus   { outline:none !important; border:none !important; }
+  .ag-root-wrapper { border: none !important; }
+  .ag-cell-focus   { outline: none !important; border: none !important; }
 
-  .ag-row .ag-cell { background:transparent !important; }
+  // Cells transparent — row bg shows through full width
+  .ag-row .ag-cell { background: transparent !important; }
   .ag-center-cols-container,
   .ag-center-cols-viewport,
-  .ag-body-viewport { background:transparent !important; }
+  .ag-body-viewport { background: transparent !important; }
 
   // ── Header ─────────────────────────────────────────────────────────────────
   .ag-header {
-    background-color:#ffffff !important;
-    border-bottom:2px solid #1a2e5a !important;
-    min-height:44px !important;
+    background-color: #ffffff !important;
+    border-bottom:    2px solid #1a2e5a !important;
+    min-height:       44px !important;
   }
-  .ag-header-row { height:44px !important; }
+  .ag-header-row { height: 44px !important; }
   .ag-header-cell {
-    background-color:#ffffff !important;
-    border-right:1px solid #dde3e8 !important;
-    padding:0 14px !important;
-    &:first-child { padding:0 !important; border-right:none !important; }
-    &:last-child  { border-right:none !important; }
+    background-color: #ffffff !important;
+    border-right:     1px solid #dde3e8 !important;
+    padding:          0 14px !important;
+    // No first-child override — Profile Name col includes checkbox in its own renderer
+    &:last-child { border-right: none !important; }
   }
   .ag-header-cell-text {
-    font-size:13px !important; font-weight:700 !important;
-    color:#1c2333 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-size: 13px !important; font-weight: 700 !important;
+    color: #1c2333 !important; white-space: nowrap;
   }
   .ag-sort-indicator-icon .ag-icon,
   .ag-icon-asc::before,
-  .ag-icon-desc::before { color:#0079C1 !important; }
+  .ag-icon-desc::before { color: #0079C1 !important; }
 
-  // ── Row base ───────────────────────────────────────────────────────────────
+  // ── Rows ───────────────────────────────────────────────────────────────────
   .ag-row {
-    border-top:none !important;
-    border-bottom:1px solid #d8e4e6 !important;
+    border-top: none !important; border-bottom: 1px solid #d8e4e6 !important;
     .ag-cell {
-      display:flex !important; align-items:center !important;
-      font-size:13px !important; color:#1c2333; line-height:1.5;
-      border-right:none !important; padding-top:0 !important; padding-bottom:0 !important;
-      background:transparent !important;
+      display: flex !important; align-items: center !important;
+      font-size: 13px !important; color: #1c2333; line-height: 1.5;
+      border-right: none !important; background: transparent !important;
+      padding-top: 0 !important; padding-bottom: 0 !important;
     }
   }
 
-  // ── Parent expanded — #E8F4FD full-width teal bg ───────────────────────────
+  // Parent expanded — full-width #E8F4FD
   .ag-row.row-parent-expanded {
-    background-color:#E8F4FD !important;
-    border-top:2px solid #0079C1 !important;
-    border-bottom:1px solid #b8d9f0 !important;
-    .ag-cell { font-weight:700 !important; }
+    background-color: #E8F4FD !important;
+    border-top:       2px solid #0079C1 !important;
+    border-bottom:    1px solid #b8d9f0 !important;
+    .ag-cell { font-weight: 700 !important; }
   }
-  .ag-row.row-parent-expanded:hover   { background-color:#d6ecf9 !important; }
-  .ag-row-first.row-parent-expanded   { border-top:none !important; }
+  .ag-row.row-parent-expanded:hover  { background-color: #d6ecf9 !important; }
+  .ag-row-first.row-parent-expanded  { border-top: none !important; }
 
-  // ── Parent collapsed — white full-width ────────────────────────────────────
+  // Parent collapsed — full-width white
   .ag-row.row-parent-collapsed {
-    background-color:#ffffff !important;
-    border-top:2px solid #0079C1 !important;
-    border-bottom:1px solid #b8d9f0 !important;
-    .ag-cell { font-weight:700 !important; }
+    background-color: #ffffff !important;
+    border-top:       2px solid #0079C1 !important;
+    border-bottom:    1px solid #b8d9f0 !important;
+    .ag-cell { font-weight: 700 !important; }
   }
-  .ag-row.row-parent-collapsed:hover  { background-color:#f5f9fa !important; }
-  .ag-row-first.row-parent-collapsed  { border-top:none !important; }
+  .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
+  .ag-row-first.row-parent-collapsed { border-top: none !important; }
 
-  // ── Child — white ──────────────────────────────────────────────────────────
+  // Child — white
   .ag-row.row-child {
-    background-color:#ffffff !important;
-    border-top:none !important; border-bottom:1px solid #d8e4e6 !important;
-    .ag-cell { font-weight:400 !important; }
+    background-color: #ffffff !important;
+    border-bottom:    1px solid #d8e4e6 !important;
+    .ag-cell { font-weight: 400 !important; }
   }
-  .ag-row.row-child:hover { background-color:#f5f9fa !important; }
+  .ag-row.row-child:hover { background-color: #f5f9fa !important; }
 
-  // ── Cluster closing border ─────────────────────────────────────────────────
-  .ag-row.row-cluster-end { border-bottom:2px solid #0079C1 !important; }
+  // Cluster closing border
+  .ag-row.row-cluster-end { border-bottom: 2px solid #0079C1 !important; }
 
-  // ── Pills ──────────────────────────────────────────────────────────────────
+  // Pills
   .cs-lh-pill {
-    display:inline-block; background:#0079C1; color:#fff;
-    font-size:11px; font-weight:700; padding:3px 9px;
-    border-radius:4px; letter-spacing:.04em; white-space:nowrap;
+    display: inline-block; background: #0079C1; color: #fff;
+    font-size: 11px; font-weight: 700; padding: 3px 9px;
+    border-radius: 4px; letter-spacing: .04em; white-space: nowrap;
   }
   .cs-lh-na {
-    display:inline-block; background:#E8F4FD; color:#0079C1;
-    font-size:11px; font-weight:600; padding:3px 9px;
-    border-radius:4px; white-space:nowrap;
+    display: inline-block; background: #E8F4FD; color: #0079C1;
+    font-size: 11px; font-weight: 600; padding: 3px 9px;
+    border-radius: 4px; white-space: nowrap;
   }
 
-  // ── Scrollbars — 3px, #0079C1 thumb ────────────────────────────────────────
-  ::-webkit-scrollbar        { width:3px; height:3px; }
-  ::-webkit-scrollbar-track  { background:transparent; }
-  ::-webkit-scrollbar-thumb  { background:#0079C1; border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:#005fa3; }
+  // Scrollbars
+  ::-webkit-scrollbar        { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: #0079C1; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #005fa3; }
 }
