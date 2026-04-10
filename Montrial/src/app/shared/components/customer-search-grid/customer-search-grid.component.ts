@@ -170,8 +170,13 @@ export class ProfileNameCellComponent {
   selector: 'app-customer-search',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, AgGridAngular,
-    CheckboxCellComponent, HeaderCheckboxComponent, ProfileNameCellComponent,
+    CommonModule,
+    FormsModule,
+    AgGridAngular,
+    // CheckboxCellComponent, HeaderCheckboxComponent, ProfileNameCellComponent are
+    // NOT declared here. AG Grid resolves them at runtime via cellRenderer /
+    // headerComponent in the column definitions — Angular's compiler does not
+    // need them in the imports array for that to work.
   ],
   templateUrl: './customer-search.component.html',
   styleUrls:  ['./customer-search.component.scss'],
@@ -208,9 +213,12 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
   columnDefs: ColDef[] = [];
 
   readonly defaultColDef: ColDef = {
-    resizable:       true,
-    suppressMovable: true,
-    cellStyle:       { display: 'flex', alignItems: 'center' },
+    resizable:        true,
+    suppressMovable:  true,
+    cellStyle:        { display: 'flex', alignItems: 'center' },
+    // Ensure AG Grid never adds its own checkbox to any column
+    checkboxSelection:       false,
+    headerCheckboxSelection: false,
   };
 
   constructor(
