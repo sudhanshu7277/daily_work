@@ -331,37 +331,63 @@ export class EntityGridComponent implements OnInit, OnDestroy {
 
   private logAndEmit(): void {
     const selected: any[] = this.gridApi.getSelectedRows();
+  
     if (!selected.length) {
       console.log('[EntityGrid] Selection cleared');
       this.selectionChanged.emit([]);
       return;
     }
-
+  
     const clusters = new Map<string, { root: any; rows: any[] }>();
     const standalone: any[] = [];
-
+  
     for (const row of selected) {
       const root = this.findRootOf(this.tree, row._uid);
-      if (root?._isParent) {
-        if (!clusters.has(root._uid)) clusters.set(root._uid, { root, rows: [] });
+  
+      if (root && root._isParent) {
+        // Row belongs to a cluster (either the root itself or one of its children)
+        if (!clusters.has(root._uid)) {
+          clusters.set(root._uid, { root, rows: [] });
+        }
         clusters.get(root._uid)!.rows.push(row);
       } else {
+        // Standalone row — not part of any cluster
         standalone.push(row);
       }
     }
-
+  
     console.groupCollapsed(`[EntityGrid] ${selected.length} row(s) selected`);
+  
     clusters.forEach(({ root, rows }) => {
-      const all = this.flattenNode(root);
-      console.groupCollapsed(`Cluster "${root.profileName}" — ${rows.length}/${all.length} selected`);
-      console.log('Selected:', rows);
-      console.log('Full cluster:', all);
+      const allInCluster = this.flattenNode(root);
+      const isFullCluster = rows.length === allInCluster.length;
+  
+      if (isFullCluster) {
+        // Entire cluster selected
+        console.groupCollapsed(
+          `✅ Full cluster selected — "${root.profileName}" (${rows.length} rows)`
+        );
+      } else {
+        // Partial — individual records from within a cluster
+        console.groupCollapsed(
+          `🔹 Partial cluster — "${root.profileName}" (${rows.length}/${allInCluster.length} selected)`
+        );
+      }
+  
+      console.log('Selected rows:', rows.map((r: any) => r.profileName));
+      console.log('Full cluster rows:', allInCluster.map((r: any) => r.profileName));
       console.groupEnd();
     });
-    if (standalone.length) console.log('Standalone:', standalone);
-    console.log('All selected:', selected);
+  
+    if (standalone.length) {
+      console.groupCollapsed(`🔸 Standalone (${standalone.length} row(s))`);
+      console.log(standalone.map((r: any) => r.profileName));
+      console.groupEnd();
+    }
+  
+    console.log('All selected (flat):', selected.map((r: any) => r.profileName));
     console.groupEnd();
-
+  
     this.selectionChanged.emit(selected as EntityNode[]);
   }
 
