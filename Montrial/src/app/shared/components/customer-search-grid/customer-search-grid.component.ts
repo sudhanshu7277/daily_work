@@ -1,5 +1,6 @@
 import {
   Component,
+  Input,
   Output,
   EventEmitter,
   OnInit,
@@ -18,11 +19,14 @@ import {
 } from 'ag-grid-community';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { CustomerSearchService } from './customer-search.service';
-import { CustomerNode } from './customer-search.model';
+import { CustomerSearchGridService } from './customer-search-grid.service';
+import {
+  CustomerNode,
+  CustomerSearchRequest,
+} from './customer-search.model';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GridRow — runtime shape stamped on every node at load time
+// GridRow — internal runtime shape stamped on every tree node
 // ─────────────────────────────────────────────────────────────────────────────
 export interface GridRow {
   _uid:          string;
@@ -35,10 +39,16 @@ export interface GridRow {
 }
 
 // =============================================================================
-// NameCellComponent — [checkbox] + [name] + [chevron]
-// This is the ONLY checkbox in the grid.
-// ChangeDetectionStrategy.Default + explicit cdr.detectChanges() in agInit/refresh
-// guarantees the checkbox renders correctly regardless of Angular zone context.
+// NameCellComponent
+// Renders: [checkbox] + [profile name] + [chevron for parent rows]
+//
+// Chevron direction:
+//   expanded  → rotate(180deg) = pointing UP   ▲
+//   collapsed → rotate(0deg)   = pointing DOWN  ▼
+//
+// ChangeDetectionStrategy.Default + explicit cdr.detectChanges() in
+// agInit / refresh guarantees the checkbox fills blue regardless of
+// whether AG Grid calls these inside or outside Angular's zone.
 // =============================================================================
 @Component({
   selector: 'app-cs-name-cell',
@@ -48,6 +58,7 @@ export interface GridRow {
   template: `
     <div class="name-cell">
 
+      <!-- Custom checkbox -->
       <span class="cb-wrap" (click)="onCheckClick($event)">
         <span class="cb-box" [class.cb-box--checked]="selected">
           <svg *ngIf="selected" viewBox="0 0 12 10" fill="none" width="12" height="10">
@@ -58,13 +69,14 @@ export interface GridRow {
         </span>
       </span>
 
+      <!-- Profile name -->
       <span class="name-text" [class.name-text--parent]="isParent">{{ name }}</span>
 
-      <!-- Chevron: ▼ expanded (0°)  |  ▶ collapsed (−90°) -->
+      <!-- Chevron: ▼ collapsed (0°) → ▲ expanded (180°) -->
       <button *ngIf="isParent" class="chevron-btn" (click)="onChevronClick($event)">
         <svg viewBox="0 0 18 18" fill="none" width="18" height="18"
-             [style.transform]="expanded ? 'rotate(0deg)' : 'rotate(-90deg)'"
-             style="transition:transform .2s ease;display:block;">
+             [style.transform]="expanded ? 'rotate(180deg)' : 'rotate(0deg)'"
+             style="transition: transform 0.2s ease; display: block;">
           <path d="M4.5 7.5l4.5 4.5 4.5-4.5"
                 stroke="#0079C1" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round"/>
@@ -73,29 +85,37 @@ export interface GridRow {
 
     </div>`,
   styles: [`
-    :host { display:flex; align-items:center; width:100%; overflow:hidden; }
-    .name-cell { display:flex; align-items:center; gap:8px; width:100%; overflow:hidden; }
-    .cb-wrap { display:inline-flex; align-items:center; cursor:pointer; flex-shrink:0; padding:2px; }
+    :host { display: flex; align-items: center; width: 100%; overflow: hidden; }
+    .name-cell {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; overflow: hidden;
+    }
+    .cb-wrap {
+      display: inline-flex; align-items: center;
+      cursor: pointer; flex-shrink: 0; padding: 2px;
+    }
     .cb-box {
-      width:18px; height:18px; border-radius:3px;
-      border:1.5px solid #96a6b4; background:#ffffff;
-      display:flex; align-items:center; justify-content:center;
-      transition:background .12s, border-color .12s; flex-shrink:0;
+      width: 18px; height: 18px; border-radius: 3px;
+      border: 1.5px solid #96a6b4; background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s, border-color 0.12s; flex-shrink: 0;
     }
-    .cb-wrap:hover .cb-box { border-color:#0079C1; }
-    .cb-box--checked { background:#0079C1 !important; border-color:#0079C1 !important; }
+    .cb-wrap:hover .cb-box { border-color: #0079C1; }
+    .cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
     .name-text {
-      color:#0079C1; font-size:13px; font-weight:400;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;
+      color: #0079C1; font-size: 13px; font-weight: 400;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 1; min-width: 0;
     }
-    .name-text--parent { font-weight:700; }
+    .name-text--parent { font-weight: 700; }
     .chevron-btn {
-      background:none !important; border:none; padding:2px; cursor:pointer;
-      display:inline-flex; align-items:center; flex-shrink:0; outline:none; margin-left:auto;
+      background: none !important; border: none; padding: 2px;
+      cursor: pointer; display: inline-flex; align-items: center;
+      flex-shrink: 0; outline: none; margin-left: auto;
     }
     .chevron-btn:hover,
     .chevron-btn:focus,
-    .chevron-btn:active { background:none !important; }
+    .chevron-btn:active { background: none !important; }
   `],
 })
 export class NameCellComponent {
@@ -162,18 +182,21 @@ export class NameCellComponent {
       <span class="hdr-label">Profile Name</span>
     </div>`,
   styles: [`
-    :host { display:flex; align-items:center; width:100%; }
-    .hdr-cell { display:flex; align-items:center; gap:8px; width:100%; }
-    .cb-wrap { display:inline-flex; align-items:center; cursor:pointer; flex-shrink:0; padding:2px; }
-    .cb-box {
-      width:18px; height:18px; border-radius:3px;
-      border:1.5px solid #96a6b4; background:#ffffff;
-      display:flex; align-items:center; justify-content:center;
-      transition:background .12s, border-color .12s; flex-shrink:0;
+    :host { display: flex; align-items: center; width: 100%; }
+    .hdr-cell { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .cb-wrap {
+      display: inline-flex; align-items: center;
+      cursor: pointer; flex-shrink: 0; padding: 2px;
     }
-    .cb-wrap:hover .cb-box { border-color:#0079C1; }
-    .cb-box--checked { background:#0079C1 !important; border-color:#0079C1 !important; }
-    .hdr-label { font-size:13px; font-weight:700; color:#1c2333; white-space:nowrap; }
+    .cb-box {
+      width: 18px; height: 18px; border-radius: 3px;
+      border: 1.5px solid #96a6b4; background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s, border-color 0.12s; flex-shrink: 0;
+    }
+    .cb-wrap:hover .cb-box { border-color: #0079C1; }
+    .cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
+    .hdr-label { font-size: 13px; font-weight: 700; color: #1c2333; white-space: nowrap; }
   `],
 })
 export class NameHeaderComponent {
@@ -201,17 +224,23 @@ export class NameHeaderComponent {
 }
 
 // =============================================================================
-// CustomerSearchComponent
+// CustomerSearchGridComponent — main grid component
 // =============================================================================
 @Component({
-  selector: 'app-customer-search',
+  selector: 'app-customer-search-grid',
   standalone: true,
   imports: [CommonModule, FormsModule, AgGridAngular],
-  templateUrl: './customer-search.component.html',
-  styleUrls:   ['./customer-search.component.scss'],
+  templateUrl: './customer-search-grid.component.html',
+  styleUrls:   ['./customer-search-grid.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
 })
-export class CustomerSearchComponent implements OnInit, OnDestroy {
+export class CustomerSearchGridComponent implements OnInit, OnDestroy {
+
+  /** Inputs: firstName and lastName passed from the parent search form */
+  @Input() firstName = '';
+  @Input() lastName  = '';
+
+  /** Emits the currently selected CustomerNode array to the parent */
   @Output() selectionChanged = new EventEmitter<CustomerNode[]>();
 
   private gridApi!: GridApi;
@@ -223,6 +252,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
+  // ── Pagination ──────────────────────────────────────────────────────────────
   currentPage  = 1;
   pageSize     = 10;
   totalRows    = 0;
@@ -237,6 +267,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return Math.min(this.currentPage * this.pageSize, this.totalRows);
   }
 
+  // Column defs built in constructor so arrow-fn callbacks close over `this`
   columnDefs: ColDef[] = [];
 
   readonly defaultColDef: ColDef = {
@@ -246,11 +277,13 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
   };
 
   constructor(
-    private readonly svc: CustomerSearchService,
+    private readonly svc: CustomerSearchGridService,
     private readonly cdr: ChangeDetectorRef,
   ) {
     this.columnDefs = [
       {
+        // Profile Name: checkbox + name + chevron via NameCellComponent
+        // headerName intentionally empty — NameHeaderComponent renders its own label
         headerName:            '',
         field:                 'legalName',
         sortable:              true,
@@ -298,33 +331,54 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     ];
   }
 
-  ngOnInit():    void { this.loadData(); }
+  ngOnInit(): void { this.loadData(); }
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
-  // ── Load ──────────────────────────────────────────────────────────────────
+  // ── Initial load (GET) ─────────────────────────────────────────────────────
   loadData(): void {
     this.isLoading = true;
     this.loadError = false;
     this.svc.getCustomers()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: res => {
-          this.tree        = res.data as GridRow[];
-          this.stampTree(this.tree, '');
-          this.currentPage = 1;
-          this.isLoading   = false;
-          this.refresh();
-        },
-        error: err => {
-          console.error('[CustomerSearch] load error', err);
-          this.loadError = true;
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        },
+        next:  res => this.handleResponse(res),
+        error: err => this.handleError(err),
       });
   }
 
-  // ── Stamp metadata on every node once at load ─────────────────────────────
+  // ── Search by firstName + lastName (POST) ──────────────────────────────────
+  // Called by the parent component or internally whenever search params change.
+  search(): void {
+    const request: CustomerSearchRequest = {
+      firstName: this.firstName.trim(),
+      lastName:  this.lastName.trim(),
+    };
+    this.isLoading = true;
+    this.loadError = false;
+    this.svc.searchCustomers(request)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next:  res => this.handleResponse(res),
+        error: err => this.handleError(err),
+      });
+  }
+
+  private handleResponse(res: any): void {
+    this.tree        = res.data as GridRow[];
+    this.stampTree(this.tree, '');
+    this.currentPage = 1;
+    this.isLoading   = false;
+    this.refresh();
+  }
+
+  private handleError(err: any): void {
+    console.error('[CustomerSearchGrid] load error', err);
+    this.loadError = true;
+    this.isLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  // ── Stamp runtime metadata on every node (once at load) ───────────────────
   private stampTree(nodes: GridRow[], parentUid: string): void {
     nodes.forEach((n, i) => {
       n._uid          = parentUid ? `${parentUid}-${i}` : `r${i}`;
@@ -336,7 +390,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Flatten tree → visible rows ───────────────────────────────────────────
+  // ── Flatten tree → visible row list ───────────────────────────────────────
   private flattenTree(): GridRow[] {
     const rows: GridRow[] = [];
     for (const n of this.tree) {
@@ -349,8 +403,8 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
             rows.push({ ...c });
           });
         } else {
-          // Collapsed: stamp _isClusterEnd on the parent (used for data only,
-          // getRowClass does NOT use it for collapsed parents)
+          // Collapsed parent carries _isClusterEnd flag (used in data only —
+          // getRowClass does NOT apply cluster-end styling to collapsed parents)
           rows[rows.length - 1]._isClusterEnd = true;
         }
       }
@@ -358,7 +412,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return rows;
   }
 
-  // ── Central refresh — flattens, paginates, syncs header ──────────────────
+  // ── Central refresh: flatten → paginate → sync header ─────────────────────
   private refresh(): void {
     const all        = this.flattenTree();
     this.totalRows   = all.length;
@@ -367,15 +421,15 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     this.pageNumbers = this.buildPageNumbers();
 
     const start  = (this.currentPage - 1) * this.pageSize;
-    // New array reference forces AG Grid to fully re-render all rows,
-    // ensuring cell renderers receive fresh _selected / _expanded values.
+    // New array reference → AG Grid fully re-renders all rows, guaranteeing
+    // cell renderers receive fresh _selected / _expanded values
     this.rowData = [...all.slice(start, start + this.pageSize)];
 
     this.syncHeaderCheckbox();
     this.cdr.detectChanges();
   }
 
-  // ── Sync header checkbox state ────────────────────────────────────────────
+  // ── Sync header checkbox state (none / some / all) ─────────────────────────
   private syncHeaderCheckbox(): void {
     const nodes = this.allNodes();
     const sel   = nodes.filter(n => n._selected).length;
@@ -383,7 +437,6 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
       sel === 0            ? 'none' :
       sel === nodes.length ? 'all'  : 'some';
 
-    // Spread into new object so AG Grid detects the param change
     this.columnDefs[0] = {
       ...this.columnDefs[0],
       headerComponentParams: { ...this.columnDefs[0].headerComponentParams, state },
@@ -404,7 +457,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  // ── Expand / collapse ─────────────────────────────────────────────────────
+  // ── Expand / collapse ──────────────────────────────────────────────────────
   toggleExpand(uid: string): void {
     const found = this.findNode(uid);
     if (!found) return;
@@ -421,10 +474,8 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     node._selected = !node._selected;
 
     if (node._isParent) {
-      // Cascade: all children mirror parent state
       (node.children ?? []).forEach(c => c._selected = node._selected);
     } else if (parent) {
-      // Bubble up: parent checked only when ALL children are checked
       parent._selected = (parent.children ?? []).every(c => c._selected);
     }
 
@@ -432,7 +483,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     this.emitSelected();
   }
 
-  // ── Select / deselect all ─────────────────────────────────────────────────
+  // ── Select / deselect all ──────────────────────────────────────────────────
   onSelectAll(select: boolean): void {
     this.tree.forEach(n => {
       n._selected = select;
@@ -445,7 +496,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
   private emitSelected(): void {
     const selected = this.allNodes()
       .filter(n => n._selected) as unknown as CustomerNode[];
-    console.log('[CustomerSearch] Selected rows:', selected);
+    console.log('[CustomerSearchGrid] Selected rows:', selected);
     this.selectionChanged.emit(selected);
   }
 
@@ -473,10 +524,10 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return pages;
   }
 
-  // ── Row class ─────────────────────────────────────────────────────────────
-  // Expanded parent  → row-parent-expanded  (blue top border — sandwich open)
-  // Collapsed parent → row-parent-collapsed (plain border — no sandwich)
-  // Child            → row-child [row-cluster-end on last child]
+  // ── Row class ──────────────────────────────────────────────────────────────
+  // Expanded parent  → row-parent-expanded   (blue top border)
+  // Collapsed parent → row-parent-collapsed  (plain border, no blue)
+  // Child            → row-child [+ row-cluster-end on last child]
   readonly getRowClass = (p: any): string => {
     const d = p.data as GridRow;
     if (d?._isParent) {
@@ -485,6 +536,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return d?._isClusterEnd ? 'row-child row-cluster-end' : 'row-child';
   };
 
+  // ── Grid ready ─────────────────────────────────────────────────────────────
   onGridReady(e: GridReadyEvent): void {
     this.gridApi = e.api;
   }

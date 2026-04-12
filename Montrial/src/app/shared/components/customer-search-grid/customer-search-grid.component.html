@@ -1,4 +1,4 @@
-<div class="customer-search-container">
+<div class="csg-container">
 
   <!-- Loading / error overlay -->
   <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
@@ -13,14 +13,15 @@
   </div>
 
   <!--
-    AG Grid v32.
-    No rowSelection binding — omitting it entirely means AG Grid never
-    activates its selection system or renders any selection column.
-    All deprecated v28 props (checkboxSelection, suppressRowClickSelection,
-    suppressMultiRangeSelection) are intentionally absent.
+    AG Grid v32
+    ▸ No rowSelection binding — omitting it entirely prevents AG Grid from
+      activating its internal selection model or rendering a selection column.
+    ▸ All deprecated v28 props (checkboxSelection, suppressRowClickSelection,
+      suppressMultiRangeSelection) are intentionally absent — they are ignored
+      in v32 and were causing the phantom empty column.
   -->
   <ag-grid-angular
-    class="ag-theme-alpine cs-grid"
+    class="ag-theme-alpine csg-grid"
     [class.grid--hidden]="isLoading || loadError"
     style="width: 100%; height: calc(100% - 52px);"
     [rowData]="rowData"
