@@ -6,7 +6,6 @@ import {
   OnDestroy,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
-  NgZone,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +14,6 @@ import {
   ColDef,
   GridApi,
   GridReadyEvent,
-  GetRowIdParams,
   ICellRendererParams,
 } from 'ag-grid-community';
 import { Subject } from 'rxjs';
@@ -37,19 +35,19 @@ export interface GridRow {
 }
 
 // =============================================================================
-// NameCellComponent
-// Single cell renders: [checkbox] + [name] + [chevron if parent]
+// NameCellComponent — [checkbox] + [name] + [chevron]
 // This is the ONLY checkbox in the grid.
+// ChangeDetectionStrategy.Default + explicit cdr.detectChanges() in agInit/refresh
+// guarantees the checkbox renders correctly regardless of Angular zone context.
 // =============================================================================
 @Component({
   selector: 'app-cs-name-cell',
   standalone: true,
   imports: [CommonModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   template: `
     <div class="name-cell">
 
-      <!-- Checkbox -->
       <span class="cb-wrap" (click)="onCheckClick($event)">
         <span class="cb-box" [class.cb-box--checked]="selected">
           <svg *ngIf="selected" viewBox="0 0 12 10" fill="none" width="12" height="10">
@@ -60,10 +58,9 @@ export interface GridRow {
         </span>
       </span>
 
-      <!-- Name -->
       <span class="name-text" [class.name-text--parent]="isParent">{{ name }}</span>
 
-      <!-- Chevron: ▼ expanded (0°) | ▶ collapsed (-90°) -->
+      <!-- Chevron: ▼ expanded (0°)  |  ▶ collapsed (−90°) -->
       <button *ngIf="isParent" class="chevron-btn" (click)="onChevronClick($event)">
         <svg viewBox="0 0 18 18" fill="none" width="18" height="18"
              [style.transform]="expanded ? 'rotate(0deg)' : 'rotate(-90deg)'"
@@ -78,10 +75,7 @@ export interface GridRow {
   styles: [`
     :host { display:flex; align-items:center; width:100%; overflow:hidden; }
     .name-cell { display:flex; align-items:center; gap:8px; width:100%; overflow:hidden; }
-    .cb-wrap {
-      display:inline-flex; align-items:center;
-      cursor:pointer; flex-shrink:0; padding:2px;
-    }
+    .cb-wrap { display:inline-flex; align-items:center; cursor:pointer; flex-shrink:0; padding:2px; }
     .cb-box {
       width:18px; height:18px; border-radius:3px;
       border:1.5px solid #96a6b4; background:#ffffff;
@@ -89,20 +83,15 @@ export interface GridRow {
       transition:background .12s, border-color .12s; flex-shrink:0;
     }
     .cb-wrap:hover .cb-box { border-color:#0079C1; }
-    .cb-box--checked {
-      background:#0079C1 !important;
-      border-color:#0079C1 !important;
-    }
+    .cb-box--checked { background:#0079C1 !important; border-color:#0079C1 !important; }
     .name-text {
       color:#0079C1; font-size:13px; font-weight:400;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      flex:1; min-width:0;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;
     }
     .name-text--parent { font-weight:700; }
     .chevron-btn {
-      background:none !important; border:none; padding:2px;
-      cursor:pointer; display:inline-flex; align-items:center;
-      flex-shrink:0; outline:none; margin-left:auto;
+      background:none !important; border:none; padding:2px; cursor:pointer;
+      display:inline-flex; align-items:center; flex-shrink:0; outline:none; margin-left:auto;
     }
     .chevron-btn:hover,
     .chevron-btn:focus,
@@ -119,24 +108,18 @@ export class NameCellComponent {
   private onCheck!:  (uid: string) => void;
   private onToggle!: (uid: string) => void;
 
-  // NgZone ensures that when AG Grid calls refresh() outside Angular's zone,
-  // detectChanges() still triggers a proper CD cycle for OnPush components.
-  constructor(
-    private readonly cdr:  ChangeDetectorRef,
-    private readonly zone: NgZone,
-  ) {}
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   agInit(p: ICellRendererParams): void {
     this.onCheck  = (p as any).onCheck;
     this.onToggle = (p as any).onToggle;
     this.sync(p);
+    this.cdr.detectChanges();
   }
 
-  /** Called by AG Grid when row data changes. Must return true to reuse instance. */
   refresh(p: ICellRendererParams): boolean {
     this.sync(p);
-    // Run inside Angular zone so OnPush change detection actually fires
-    this.zone.run(() => this.cdr.detectChanges());
+    this.cdr.detectChanges();
     return true;
   }
 
@@ -160,7 +143,7 @@ export class NameCellComponent {
   selector: 'app-cs-name-header',
   standalone: true,
   imports: [CommonModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   template: `
     <div class="hdr-cell">
       <span class="cb-wrap" (click)="onClick($event)">
@@ -181,10 +164,7 @@ export class NameCellComponent {
   styles: [`
     :host { display:flex; align-items:center; width:100%; }
     .hdr-cell { display:flex; align-items:center; gap:8px; width:100%; }
-    .cb-wrap {
-      display:inline-flex; align-items:center;
-      cursor:pointer; flex-shrink:0; padding:2px;
-    }
+    .cb-wrap { display:inline-flex; align-items:center; cursor:pointer; flex-shrink:0; padding:2px; }
     .cb-box {
       width:18px; height:18px; border-radius:3px;
       border:1.5px solid #96a6b4; background:#ffffff;
@@ -192,10 +172,7 @@ export class NameCellComponent {
       transition:background .12s, border-color .12s; flex-shrink:0;
     }
     .cb-wrap:hover .cb-box { border-color:#0079C1; }
-    .cb-box--checked {
-      background:#0079C1 !important;
-      border-color:#0079C1 !important;
-    }
+    .cb-box--checked { background:#0079C1 !important; border-color:#0079C1 !important; }
     .hdr-label { font-size:13px; font-weight:700; color:#1c2333; white-space:nowrap; }
   `],
 })
@@ -203,19 +180,17 @@ export class NameHeaderComponent {
   state: 'none' | 'some' | 'all' = 'none';
   private onSelectAll!: (v: boolean) => void;
 
-  constructor(
-    private readonly cdr:  ChangeDetectorRef,
-    private readonly zone: NgZone,
-  ) {}
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   agInit(p: any): void {
     this.state       = p.state ?? 'none';
     this.onSelectAll = p.onSelectAll;
+    this.cdr.detectChanges();
   }
 
   refresh(p: any): boolean {
     this.state = p.state ?? 'none';
-    this.zone.run(() => this.cdr.detectChanges());
+    this.cdr.detectChanges();
     return true;
   }
 
@@ -248,7 +223,6 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
   currentPage  = 1;
   pageSize     = 10;
   totalRows    = 0;
@@ -263,11 +237,8 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return Math.min(this.currentPage * this.pageSize, this.totalRows);
   }
 
-  readonly getRowId = (p: GetRowIdParams) => String(p.data._uid);
-
   columnDefs: ColDef[] = [];
 
-  // defaultColDef — no checkboxSelection props (deprecated in v32, use rowSelection object)
   readonly defaultColDef: ColDef = {
     resizable:       true,
     suppressMovable: true,
@@ -280,13 +251,13 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
   ) {
     this.columnDefs = [
       {
-        headerName: '',      // NameHeaderComponent renders "Profile Name" + checkbox
-        field:      'legalName',
-        sortable:   true,
-        minWidth:   260,
-        flex:       2,
-        cellRenderer:       NameCellComponent,
-        cellRendererParams: {
+        headerName:            '',
+        field:                 'legalName',
+        sortable:              true,
+        minWidth:              260,
+        flex:                  2,
+        cellRenderer:          NameCellComponent,
+        cellRendererParams:    {
           onCheck:  (uid: string) => this.onCheckboxClick(uid),
           onToggle: (uid: string) => this.toggleExpand(uid),
         },
@@ -365,7 +336,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Flatten tree into visible rows ────────────────────────────────────────
+  // ── Flatten tree → visible rows ───────────────────────────────────────────
   private flattenTree(): GridRow[] {
     const rows: GridRow[] = [];
     for (const n of this.tree) {
@@ -378,6 +349,8 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
             rows.push({ ...c });
           });
         } else {
+          // Collapsed: stamp _isClusterEnd on the parent (used for data only,
+          // getRowClass does NOT use it for collapsed parents)
           rows[rows.length - 1]._isClusterEnd = true;
         }
       }
@@ -385,7 +358,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return rows;
   }
 
-  // ── Central refresh: flatten → paginate → sync header ────────────────────
+  // ── Central refresh — flattens, paginates, syncs header ──────────────────
   private refresh(): void {
     const all        = this.flattenTree();
     this.totalRows   = all.length;
@@ -394,13 +367,15 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     this.pageNumbers = this.buildPageNumbers();
 
     const start  = (this.currentPage - 1) * this.pageSize;
-    this.rowData = all.slice(start, start + this.pageSize);
+    // New array reference forces AG Grid to fully re-render all rows,
+    // ensuring cell renderers receive fresh _selected / _expanded values.
+    this.rowData = [...all.slice(start, start + this.pageSize)];
 
     this.syncHeaderCheckbox();
     this.cdr.detectChanges();
   }
 
-  // ── Update header checkbox state ──────────────────────────────────────────
+  // ── Sync header checkbox state ────────────────────────────────────────────
   private syncHeaderCheckbox(): void {
     const nodes = this.allNodes();
     const sel   = nodes.filter(n => n._selected).length;
@@ -408,6 +383,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
       sel === 0            ? 'none' :
       sel === nodes.length ? 'all'  : 'some';
 
+    // Spread into new object so AG Grid detects the param change
     this.columnDefs[0] = {
       ...this.columnDefs[0],
       headerComponentParams: { ...this.columnDefs[0].headerComponentParams, state },
@@ -436,7 +412,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     this.refresh();
   }
 
-  // ── Checkbox click: cascade down, bubble up ───────────────────────────────
+  // ── Checkbox: cascade down, bubble up ─────────────────────────────────────
   onCheckboxClick(uid: string): void {
     const found = this.findNode(uid);
     if (!found) return;
@@ -445,8 +421,10 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     node._selected = !node._selected;
 
     if (node._isParent) {
+      // Cascade: all children mirror parent state
       (node.children ?? []).forEach(c => c._selected = node._selected);
     } else if (parent) {
+      // Bubble up: parent checked only when ALL children are checked
       parent._selected = (parent.children ?? []).every(c => c._selected);
     }
 
@@ -454,6 +432,7 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     this.emitSelected();
   }
 
+  // ── Select / deselect all ─────────────────────────────────────────────────
   onSelectAll(select: boolean): void {
     this.tree.forEach(n => {
       n._selected = select;
@@ -494,16 +473,19 @@ export class CustomerSearchComponent implements OnInit, OnDestroy {
     return pages;
   }
 
+  // ── Row class ─────────────────────────────────────────────────────────────
+  // Expanded parent  → row-parent-expanded  (blue top border — sandwich open)
+  // Collapsed parent → row-parent-collapsed (plain border — no sandwich)
+  // Child            → row-child [row-cluster-end on last child]
   readonly getRowClass = (p: any): string => {
-    const d   = p.data as GridRow;
-    const end = d?._isClusterEnd ? ' row-cluster-end' : '';
+    const d = p.data as GridRow;
     if (d?._isParent) {
-      return d._expanded
-        ? `row-parent-expanded${end}`
-        : `row-parent-collapsed${end}`;
+      return d._expanded ? 'row-parent-expanded' : 'row-parent-collapsed';
     }
-    return `row-child${end}`;
+    return d?._isClusterEnd ? 'row-child row-cluster-end' : 'row-child';
   };
 
-  onGridReady(e: GridReadyEvent): void { this.gridApi = e.api; }
+  onGridReady(e: GridReadyEvent): void {
+    this.gridApi = e.api;
+  }
 }

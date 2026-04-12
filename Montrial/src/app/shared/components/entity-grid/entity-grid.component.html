@@ -40,3 +40,94 @@
   </ag-grid-angular>
 
 </div>
+
+<!--complete html with pagination below-->
+
+<div class="entity-grid-container">
+
+  <!-- Overlay: loading / error -->
+  <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
+    <ng-container *ngIf="isLoading">
+      <div class="spinner"></div>
+      <span>Loading...</span>
+    </ng-container>
+    <ng-container *ngIf="loadError && !isLoading">
+      <span class="grid-overlay__error">Failed to load data.</span>
+      <button (click)="loadData()">Retry</button>
+    </ng-container>
+  </div>
+
+  <!-- Grid — always mounted, hidden via CSS while loading -->
+  <ag-grid-angular
+    class="ag-theme-alpine bmo-grid"
+    [class.grid--hidden]="isLoading || loadError"
+    style="width: 100%; height: calc(100% - 52px);"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [getRowId]="getRowId"
+    rowSelection="multiple"
+    [pagination]="true"
+    [paginationPageSize]="pageSize"
+    [suppressPaginationPanel]="true"
+    [suppressRowClickSelection]="true"
+    [rowHeight]="52"
+    [headerHeight]="44"
+    [suppressCellFocus]="true"
+    [animateRows]="false"
+    [getRowClass]="getRowClass"
+    (gridReady)="onGridReady($event)"
+    (selectionChanged)="onSelectionChanged()"
+    (cellClicked)="onCellClicked($event)"
+    (paginationChanged)="onPaginationChanged()">
+  </ag-grid-angular>
+
+  <!-- Custom pagination bar — matches Figma design exactly -->
+  <div class="pagination-bar" [class.grid--hidden]="isLoading || loadError">
+
+    <!-- Left: range + items per page -->
+    <div class="pagination-left">
+      <span class="pagination-range">{{ rangeLabel }}</span>
+      <span class="pagination-ipp-label">Items per page</span>
+      <select class="pagination-ipp-select" [value]="pageSize" (change)="onPageSizeChange($event)">
+        <option [value]="10">10</option>
+        <option [value]="25">25</option>
+        <option [value]="50">50</option>
+        <option [value]="100">100</option>
+      </select>
+    </div>
+
+    <!-- Right: Previous · page numbers · Next -->
+    <div class="pagination-right">
+      <button class="pagination-btn pagination-prev"
+              [disabled]="currentPage === 1"
+              (click)="goToPage(currentPage - 1)">
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M5 1L1 5L5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Previous
+      </button>
+
+      <ng-container *ngFor="let p of visiblePages">
+        <span *ngIf="p === -1" class="pagination-ellipsis">...</span>
+        <button *ngIf="p !== -1"
+                class="pagination-page"
+                [class.pagination-page--active]="p === currentPage"
+                (click)="goToPage(p)">
+          {{ p }}
+        </button>
+      </ng-container>
+
+      <button class="pagination-btn pagination-next"
+              [disabled]="currentPage === totalPages"
+              (click)="goToPage(currentPage + 1)">
+        Next
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+</div>

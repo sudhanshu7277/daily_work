@@ -351,3 +351,112 @@
   ::-webkit-scrollbar-thumb  { background: #a8bec3; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #88a4aa; }
 }
+
+
+/////////////// ONLY PAGNIATION CODE BELOW
+/// 
+/// // ── Custom Pagination Bar ─────────────────────────────────────────────────────
+.pagination-bar {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  height:          52px;
+  padding:         0 16px;
+  border-top:      1px solid #c5d0d3;
+  background:      #f5f9fa;
+  font-size:       13px;
+  color:           #3a4155;
+  flex-shrink:     0;
+}
+
+.pagination-left {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+.pagination-range {
+  color:       #3a4155;
+  font-size:   13px;
+  white-space: nowrap;
+}
+
+.pagination-ipp-label {
+  color:       #6b7a8a;
+  font-size:   13px;
+  white-space: nowrap;
+}
+
+.pagination-ipp-select {
+  height:        30px;
+  padding:       0 24px 0 8px;
+  border:        1px solid #c5d0d3;
+  border-radius: 4px;
+  background:    #ffffff;
+  font-size:     13px;
+  color:         #1c2333;
+  cursor:        pointer;
+  appearance:    auto;
+
+  &:focus { outline: 2px solid #1a4fa0; outline-offset: 1px; }
+}
+
+.pagination-right {
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+}
+
+.pagination-btn {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           5px;
+  padding:       6px 10px;
+  border:        none;
+  background:    transparent;
+  font-size:     13px;
+  color:         #1a4fa0;
+  cursor:        pointer;
+  border-radius: 4px;
+  white-space:   nowrap;
+
+  &:hover:not(:disabled) { background: #eef5f7; }
+
+  &:disabled {
+    color:  #a0aab4;
+    cursor: default;
+  }
+
+  svg { flex-shrink: 0; stroke: currentColor; }
+}
+
+.pagination-page {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  width:           32px;
+  height:          32px;
+  border:          none;
+  background:      transparent;
+  border-radius:   50%;
+  font-size:       13px;
+  color:           #3a4155;
+  cursor:          pointer;
+
+  &:hover:not(.pagination-page--active) { background: #eef5f7; }
+
+  &--active {
+    background:  #1a2e5a;
+    color:       #ffffff;
+    font-weight: 700;
+  }
+}
+
+.pagination-ellipsis {
+  display:     inline-flex;
+  align-items: center;
+  padding:     0 4px;
+  color:       #6b7a8a;
+  font-size:   13px;
+  user-select: none;
+}

@@ -1,6 +1,5 @@
 // =============================================================================
-// CUSTOMER SEARCH GRID
-// AG Grid v32 — Emulated encapsulation, ::ng-deep for AG Grid internals.
+// CUSTOMER SEARCH GRID — AG Grid v32
 // =============================================================================
 
 :host {
@@ -11,32 +10,19 @@
 }
 
 .customer-search-container {
-  width:          100%;
-  height:         calc(100vh - 250px);
-  border:         1px solid #c5d0d3;
-  border-radius:  4px;
-  background:     #ffffff;
-  overflow:       hidden;
-  position:       relative;
-  display:        flex;
-  flex-direction: column;
-  color-scheme:   light;
+  width: 100%; height: calc(100vh - 250px);
+  border: 1px solid #c5d0d3; border-radius: 4px;
+  background: #ffffff; overflow: hidden; position: relative;
+  display: flex; flex-direction: column; color-scheme: light;
 }
 
 // ── Overlay ───────────────────────────────────────────────────────────────────
 .grid-overlay {
-  position:        absolute;
-  inset:           0;
-  z-index:         10;
-  display:         flex;
-  flex-direction:  column;
-  align-items:     center;
-  justify-content: center;
-  gap:             12px;
-  background:      rgba(255, 255, 255, 0.94);
-  font-size:       13px;
-  color:           #3a4155;
-  transition:      opacity 0.2s;
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; background: rgba(255,255,255,0.94);
+  font-size: 13px; color: #3a4155; transition: opacity 0.2s;
 
   &--hidden { opacity: 0; pointer-events: none; }
   &__error  { color: #b91c1c; }
@@ -57,18 +43,11 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
+// ── Pagination bar ────────────────────────────────────────────────────────────
 .cs-pagination {
-  display:         flex;
-  align-items:     center;
-  justify-content: space-between;
-  flex-shrink:     0;
-  height:          52px;
-  padding:         0 20px;
-  border-top:      1px solid #d8e4e6;
-  background:      #ffffff;
-  color-scheme:    light;
-
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; height: 52px; padding: 0 20px;
+  border-top: 1px solid #d8e4e6; background: #ffffff; color-scheme: light;
   &__left  { display: flex; align-items: center; gap: 10px; }
   &__right { display: flex; align-items: center; gap: 6px; }
 }
@@ -77,20 +56,13 @@
 .cs-pg-label { font-size: 13px; color: #6b7a8a; white-space: nowrap; }
 
 .cs-pg-select {
-  height:              32px;
-  padding:             0 26px 0 10px;
-  border:              1px solid #c5d0d3;
-  border-radius:       4px;
-  background-color:    #ffffff;
-  background-image:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230079C1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-  background-repeat:   no-repeat;
-  background-position: right 8px center;
-  -webkit-appearance:  none;
-  appearance:          none;
-  font-size:           13px;
-  color:               #1c2333;
-  cursor:              pointer;
-  color-scheme:        light;
+  height: 32px; padding: 0 26px 0 10px;
+  border: 1px solid #c5d0d3; border-radius: 4px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230079C1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  -webkit-appearance: none; appearance: none;
+  font-size: 13px; color: #1c2333; cursor: pointer; color-scheme: light;
   &:focus { outline: 2px solid #0079C1; outline-offset: 1px; }
 }
 
@@ -99,9 +71,7 @@
   height: 32px; padding: 0 4px;
   border: none; background: transparent;
   font-size: 13px; color: #1c2333;
-  cursor: pointer; white-space: nowrap;
-  transition: color 0.12s; outline: none;
-
+  cursor: pointer; white-space: nowrap; transition: color 0.12s; outline: none;
   &:hover:not(.cs-pg-nav--disabled) { color: #0079C1; }
   &--disabled { color: #b0bec5; cursor: default; pointer-events: none; }
 }
@@ -130,6 +100,7 @@
 // ── AG Grid overrides ─────────────────────────────────────────────────────────
 ::ng-deep .ag-theme-alpine.cs-grid {
 
+  // Override Alpine CSS variables so row backgrounds are 100% controlled by us
   --ag-background-color:                 #ffffff;
   --ag-odd-row-background-color:         #ffffff;
   --ag-even-row-background-color:        #ffffff;
@@ -141,17 +112,37 @@
   .ag-root-wrapper { border: none !important; }
   .ag-cell-focus   { outline: none !important; border: none !important; }
 
-  // ── NUCLEAR: hide every AG Grid selection UI element ───────────────────────
-  // We own selection via NameCellComponent — AG Grid must render zero selection chrome.
+  // ── Hide every AG Grid selection UI element ─────────────────────────────────
+  // We use our own checkbox inside NameCellComponent.
+  // Targets both the inline checkbox widgets AND the auto-generated selection column.
   .ag-selection-checkbox,
   .ag-header-select-all,
-  .ag-row-checkbox            { display: none !important; width: 0 !important; }
+  .ag-row-checkbox,
+  .ag-column-select {
+    display: none !important;
+  }
 
-  // Hide the entire selection column that AG Grid adds when rowSelection is active.
-  // The column has no headerName and role="gridcell" with aria-colindex="1".
-  .ag-column-select-panel     { display: none !important; }
+  // The selection column AG Grid auto-generates has no col-id or has col-id="0".
+  // Hide its header cell and all its body cells.
+  // We target it by being the FIRST header/body cell with no visible text content.
+  .ag-header-row .ag-header-cell:first-child:not([col-id="legalName"]) {
+    display:   none !important;
+    width:     0   !important;
+    min-width: 0   !important;
+    max-width: 0   !important;
+    padding:   0   !important;
+    border:    none !important;
+  }
+  .ag-row .ag-cell:first-child:not([col-id="legalName"]) {
+    display:   none !important;
+    width:     0   !important;
+    min-width: 0   !important;
+    max-width: 0   !important;
+    padding:   0   !important;
+    border:    none !important;
+  }
 
-  // Cells transparent so .ag-row background bleeds through full width
+  // Cells transparent — .ag-row background fills full width
   .ag-row .ag-cell { background: transparent !important; }
   .ag-center-cols-container,
   .ag-center-cols-viewport,
@@ -164,19 +155,16 @@
     min-height:       44px !important;
   }
   .ag-header-row { height: 44px !important; }
-
   .ag-header-cell {
     background-color: #ffffff !important;
     border-right:     1px solid #dde3e8 !important;
     padding:          0 14px !important;
     &:last-child { border-right: none !important; }
   }
-
   .ag-header-cell-text {
     font-size: 13px !important; font-weight: 700 !important;
     color: #1c2333 !important; white-space: nowrap;
   }
-
   .ag-sort-indicator-icon .ag-icon,
   .ag-icon-asc::before,
   .ag-icon-desc::before { color: #0079C1 !important; }
@@ -185,7 +173,6 @@
   .ag-row {
     border-top:    none !important;
     border-bottom: 1px solid #d8e4e6 !important;
-
     .ag-cell {
       display: flex !important; align-items: center !important;
       font-size: 13px !important; color: #1c2333;
@@ -194,7 +181,7 @@
     }
   }
 
-  // ── Parent expanded: #E8F4FD, #0079C1 borders ──────────────────────────────
+  // ── Parent EXPANDED: #E8F4FD bg + blue top border (sandwich top line) ───────
   .ag-row.row-parent-expanded {
     background-color: #E8F4FD !important;
     border-top:       2px solid #0079C1 !important;
@@ -202,19 +189,20 @@
     .ag-cell { font-weight: 700 !important; }
   }
   .ag-row.row-parent-expanded:hover { background-color: #d6ecf9 !important; }
+  // First row of the grid never needs a top border
   .ag-row-first.row-parent-expanded { border-top: none !important; }
 
-  // ── Parent collapsed: white, #0079C1 borders ───────────────────────────────
+  // ── Parent COLLAPSED: white bg + plain border (NO blue — cluster closed) ────
   .ag-row.row-parent-collapsed {
     background-color: #ffffff !important;
-    border-top:       2px solid #0079C1 !important;
-    border-bottom:    1px solid #b8d9f0 !important;
+    border-top:       1px solid #d8e4e6 !important;
+    border-bottom:    1px solid #d8e4e6 !important;
     .ag-cell { font-weight: 700 !important; }
   }
   .ag-row.row-parent-collapsed:hover { background-color: #f5f9fa !important; }
   .ag-row-first.row-parent-collapsed { border-top: none !important; }
 
-  // ── Child: white ────────────────────────────────────────────────────────────
+  // ── Child row: white ────────────────────────────────────────────────────────
   .ag-row.row-child {
     background-color: #ffffff !important;
     border-bottom:    1px solid #d8e4e6 !important;
@@ -222,10 +210,12 @@
   }
   .ag-row.row-child:hover { background-color: #f5f9fa !important; }
 
-  // ── Cluster closing border ─────────────────────────────────────────────────
-  .ag-row.row-cluster-end { border-bottom: 2px solid #0079C1 !important; }
+  // ── Last child of expanded cluster: blue bottom border (sandwich bottom) ────
+  .ag-row.row-cluster-end {
+    border-bottom: 2px solid #0079C1 !important;
+  }
 
-  // ── Pills ──────────────────────────────────────────────────────────────────
+  // ── Legal Hold Status pills ─────────────────────────────────────────────────
   .cs-lh-pill {
     display: inline-block; background: #0079C1; color: #ffffff;
     font-size: 11px; font-weight: 700; padding: 3px 9px;

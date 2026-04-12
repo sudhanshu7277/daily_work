@@ -14,15 +14,10 @@
 
   <!--
     AG Grid v32.
-    NO rowSelection binding — omitting it entirely prevents AG Grid from
-    activating its selection model and rendering any selection column.
-    We own selection 100% via NameCellComponent's custom checkbox.
-
-    Deprecated props removed (v32 warnings):
-      checkboxSelection       → removed (was on defaultColDef)
-      headerCheckboxSelection → removed (was on defaultColDef)
-      suppressRowClickSelection  → replaced by rowSelection.enableClickSelection (not needed)
-      suppressMultiRangeSelection → replaced by cellSelection.suppressMultiRanges (not needed)
+    No rowSelection binding — omitting it entirely means AG Grid never
+    activates its selection system or renders any selection column.
+    All deprecated v28 props (checkboxSelection, suppressRowClickSelection,
+    suppressMultiRangeSelection) are intentionally absent.
   -->
   <ag-grid-angular
     class="ag-theme-alpine cs-grid"
@@ -31,7 +26,6 @@
     [rowData]="rowData"
     [columnDefs]="columnDefs"
     [defaultColDef]="defaultColDef"
-    [getRowId]="getRowId"
     [rowHeight]="52"
     [headerHeight]="44"
     [suppressCellFocus]="true"

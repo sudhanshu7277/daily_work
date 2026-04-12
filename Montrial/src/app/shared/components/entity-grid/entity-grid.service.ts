@@ -36,18 +36,49 @@ import { EntityGridResponse, EntityNode } from './entity-grid.model';
 @Injectable({ providedIn: 'root' })
 export class EntityGridService {
 
-  private readonly apiUrl = '/api/v1/entity-grid';
+  private readonly apiUrl  = '/api/v1/entity-grid';
   private readonly useMock = true;
 
   constructor(private readonly http: HttpClient) {}
 
+  // ── GET — load full grid ───────────────────────────────────────────────────
+
   getEntityGrid(): Observable<EntityGridResponse> {
     if (this.useMock) {
-      // Synchronous — no delay, no timing issues
       return of(this.buildMockResponse());
     }
     return this.http.get<EntityGridResponse>(this.apiUrl);
   }
+
+  // ── POST — search by profileName ───────────────────────────────────────────
+  //
+  // Sends { profileName } to the API and returns only matching records.
+  // In mock mode, filters the local dataset by profileName (case-insensitive,
+  // partial match) so the grid only shows relevant rows without a backend.
+  //
+  // If a root node matches → its full cluster (all children) is returned.
+  // If a child node matches → its parent root is returned with only
+  //   the matching children, so cluster context is preserved.
+  //
+  // Real API:
+  //   POST /api/v1/entity-grid/search
+  //   Body:     { profileName: 'Corp 4' }
+  //   Response: EntityGridResponse (filtered)
+
+  searchByProfileName(profileName: string): Observable<EntityGridResponse> {
+    if (this.useMock) {
+      const term     = profileName.toLowerCase().trim();
+      const allData  = this.buildMockResponse().data;
+      const filtered = this.filterTree(allData, term);
+      return of({ data: filtered, totalCount: this.countAll(filtered) });
+    }
+    return this.http.post<EntityGridResponse>(
+      `${this.apiUrl}/search`,
+      { profileName }
+    );
+  }
+
+  // ── Mock data ──────────────────────────────────────────────────────────────
 
   private buildMockResponse(): EntityGridResponse {
     const addr = '33 Dundas St W, Toronto, ON M5G 2C3';
@@ -110,7 +141,7 @@ export class EntityGridService {
         ],
       },
 
-      // ── ABC Ltd. ─────────────────────────────────────────────────────────
+      // ── ABC Ltd. ──────────────────────────────────────────────────────────
       {
         ocifId: 'ABC-001', profileName: 'ABC Ltd.', legalHoldStatus: 'N/A',
         holdName: '', lifecycle: 'Active Customer', role: 'Owner', address: addr,
@@ -146,6 +177,35 @@ export class EntityGridService {
     ];
 
     return { data, totalCount: this.countAll(data) };
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /**
+   * Recursively filters the tree by profileName term.
+   *
+   * Rules:
+   *   - If a node's own profileName matches → include it with ALL its children
+   *   - If a node doesn't match but a descendant does → include the node
+   *     with only the matching descendants (preserves cluster context)
+   *   - If neither the node nor any descendant matches → exclude entirely
+   */
+  private filterTree(nodes: EntityNode[], term: string): EntityNode[] {
+    return nodes.reduce<EntityNode[]>((acc, node) => {
+      const selfMatch        = node.profileName.toLowerCase().includes(term);
+      const filteredChildren = this.filterTree(node.children, term);
+      const childMatch       = filteredChildren.length > 0;
+
+      if (selfMatch) {
+        // Self matches — keep node with ALL original children
+        acc.push({ ...node, children: node.children });
+      } else if (childMatch) {
+        // Only a descendant matches — keep node with filtered children only
+        acc.push({ ...node, children: filteredChildren });
+      }
+
+      return acc;
+    }, []);
   }
 
   private countAll(nodes: EntityNode[]): number {
