@@ -111,41 +111,44 @@
   .ag-root-wrapper { border: none !important; }
   .ag-cell-focus   { outline: none !important; border: none !important; }
 
-  // ── Eliminate the AG Grid selection column entirely ─────────────────────────
+  // ── Eliminate AG Grid selection / controls column ──────────────────────────
   //
-  // AG Grid v32 may still render an auto-generated selection column even when
-  // rowSelection is omitted. We kill it at every level:
+  // AG Grid v32 source confirms:
+  //   - Selection column col-id = "ag-Grid-ControlsColumn"
+  //   - Only rendered when rowSelection is an object with checkboxes:true
+  //   - Since we omit rowSelection entirely, isControlsColEnabled() = false
+  //     and the column is never created.
   //
-  // 1. Hide the inline selection widgets wherever they appear
+  // The empty narrow column visible in the browser is the PINNED LEFT
+  // container (ag-pinned-left-header / ag-pinned-left-cols-container).
+  // AG Grid always renders these DOM nodes. When no columns are pinned
+  // they should be zero-width, but Alpine theme may give them a min-width.
+  // We force them to zero width here.
+
+  // 1. Hide inline selection widgets (defensive — should not appear)
   .ag-selection-checkbox,
   .ag-header-select-all,
   .ag-row-checkbox,
   .ag-column-select { display: none !important; }
 
-  // 2. Collapse the selection column header cell to zero width.
-  //    The selection column is always the FIRST header cell and its
-  //    .ag-header-cell-label contains no text (our legalName column
-  //    uses a custom headerComponent, not .ag-header-cell-label).
-  //    Target it by aria-colindex="1" and absence of a col-id we recognise.
-  .ag-header-row .ag-header-cell:not([col-id="legalName"]):not([col-id="ocifId"]):not([col-id="status"]):not([col-id="holdName"]):not([col-id="lifecycle"]):not([col-id="roleType"]):not([col-id="customerStatus"]):not([col-id="address"]) {
+  // 2. Exact col-id for AG Grid v32 controls/selection column
+  [col-id="ag-Grid-ControlsColumn"] {
     display:   none !important;
     width:     0    !important;
     min-width: 0    !important;
     max-width: 0    !important;
     padding:   0    !important;
-    border:    none !important;
     overflow:  hidden !important;
   }
 
-  // 3. Same for body cells in the selection column
-  .ag-row .ag-cell:not([col-id="legalName"]):not([col-id="ocifId"]):not([col-id="status"]):not([col-id="holdName"]):not([col-id="lifecycle"]):not([col-id="roleType"]):not([col-id="customerStatus"]):not([col-id="address"]) {
-    display:   none !important;
-    width:     0    !important;
-    min-width: 0    !important;
-    max-width: 0    !important;
-    padding:   0    !important;
-    border:    none !important;
+  // 3. Collapse the pinned-left containers to zero width (the actual empty column)
+  .ag-pinned-left-header,
+  .ag-pinned-left-cols-container {
+    width:     0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
     overflow:  hidden !important;
+    display:   none !important;
   }
 
   // Cells transparent so .ag-row background fills full width

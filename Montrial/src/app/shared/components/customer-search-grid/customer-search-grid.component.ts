@@ -72,15 +72,15 @@ export interface GridRow {
       <!-- Profile name -->
       <span class="name-text" [class.name-text--parent]="isParent">{{ name }}</span>
 
-      <!-- Chevron: ▼ collapsed (0°) → ▲ expanded (180°) -->
+      <!-- Chevron: ▼ collapsed → ▲ expanded (pointing UP when open) -->
       <button *ngIf="isParent" class="chevron-btn" (click)="onChevronClick($event)">
-        <svg viewBox="0 0 18 18" fill="none" width="18" height="18"
-             [style.transform]="expanded ? 'rotate(180deg)' : 'rotate(0deg)'"
-             style="transition: transform 0.2s ease; display: block;">
-          <path d="M4.5 7.5l4.5 4.5 4.5-4.5"
-                stroke="#0079C1" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <span class="chevron-icon" [class.chevron-icon--up]="expanded">
+          <svg viewBox="0 0 18 18" fill="none" width="18" height="18">
+            <path d="M4.5 7.5l4.5 4.5 4.5-4.5"
+                  stroke="#0079C1" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
       </button>
 
     </div>`,
@@ -116,6 +116,12 @@ export interface GridRow {
     .chevron-btn:hover,
     .chevron-btn:focus,
     .chevron-btn:active { background: none !important; }
+    .chevron-icon {
+      display: inline-flex; align-items: center;
+      transform: rotate(0deg);
+      transition: transform 0.2s ease;
+    }
+    .chevron-icon--up { transform: rotate(180deg); }
   `],
 })
 export class NameCellComponent {
