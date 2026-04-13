@@ -224,6 +224,27 @@ payment-checker/
 
 Internal — © Your Organisation. Not for public distribution.
 
+STEPS TO PACKAGE CHECKER NPM PACKAGE:
+=====================================
+
+1) projects/payment-checker/package.json
+-----------------------------------------
+
+{
+  "name": "@citi-icg-169779/payment-checker",
+  "version": "1.0.0",
+  "publishConfig": {
+    "registry": "https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/"
+  }
+}
+
+
+2) Build the library
+--------------------
+cd ~/Documents/Maker-Checker-NPM-Packages/ppa-checker
+pnpm run build:lib
+
+
 
 Maker package usage steps:
 
