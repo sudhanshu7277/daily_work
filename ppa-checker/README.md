@@ -313,3 +313,153 @@ export class YourComponent {
   [fieldConfig]="fieldConfig"
   (submitted)="onSubmitted($event)">
 </pm-maker-form>
+
+
+End to end checker npm package setup steps
+============================================================================================
+
+Part 1 — Package & Publish
+
+Step 1 — Update projects/payment-checker/package.json
+
+{
+  "name": "@citi-icg-169779/payment-checker",
+  "version": "1.0.0",
+  "publishConfig": {
+    "registry": "https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/"
+  }
+}
+
+Step 2 — Update ppa-checker/.npmrc
+
+@citi-icg-169779:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/:_authToken=${NPM_AUTH_TOKEN}
+
+strict-ssl=false
+email=sj81534@citi.com
+always-auth=true
+cafile=C:\Users\sj81534\cacerts.jks
+save-exact=true
+legacy-peer-deps=true
+
+
+Step 3 — Set auth token
+
+$env:NPM_AUTH_TOKEN = "eyJ..."
+
+
+Step 4 — Build the library
+
+cd ~/Documents/Maker-Checker-NPM-Packages/ppa-checker
+pnpm run build:lib
+
+Step 5 — Verify built output
+
+cat dist/payment-checker/package.json
+# Must show @citi-icg-169779/payment-checker and publishConfig
+
+
+Step 6 — Publish
+
+cd dist/payment-checker
+pnpm publish --no-git-checks
+
+
+Step 7 — Verify published
+
+pnpm info @citi-icg-169779/payment-checker --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+
+Part 2 — Consumer Usage
+
+Step 1 — Add registry to consuming project .npmrc
+
+@citi-icg-169779:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+
+Step 2 — Install
+
+pnpm install @citi-icg-169779/payment-checker
+
+
+Step 3 — Add Bootstrap to angular.json
+
+"styles": [
+  "node_modules/bootstrap/dist/css/bootstrap.min.css",
+  "src/styles.scss"
+]
+
+
+Step 4 — Add provideHttpClient to main.ts
+
+import { provideHttpClient } from '@angular/common/http';
+
+bootstrapApplication(AppComponent, {
+  providers: [provideHttpClient()]
+});
+
+
+Step 5 — Component class
+
+import {
+  CheckerFormComponent,
+  CheckerComponentInput,
+  CheckerActionResponse,
+  FormFieldConfig,
+  DEFAULT_CHECKER_FIELD_CONFIG
+} from '@citi-icg-169779/payment-checker';
+
+@Component({ standalone: true, imports: [CheckerFormComponent] })
+export class YourComponent {
+
+  // false by default — flip to true after maker submits
+  showChecker = false;
+
+  checkerInput: CheckerComponentInput = {
+    applicationName:   'YOUR_APP',
+    applicationModule: 'YOUR_MODULE',
+    region:            'US',
+    useMockApi:        true,   // false when real APIs ready
+    checkerGetUrl:     'https://your-api.com/api/v1/pain001/checker/get',
+    checkerActionUrl:  'https://your-api.com/api/v1/pain001/checker/action',
+    amountMismatchUrl: 'https://your-api.com/api/v1/pain001/checker/amount-mismatch',
+    headers: { 'Authorization': 'Bearer your-token' }
+  };
+
+  fieldConfig: FormFieldConfig[] = DEFAULT_CHECKER_FIELD_CONFIG;
+
+  // Called after maker submits — triggers checker to load
+  onMakerSubmitted(res: MakerSubmitResponse): void {
+    this.showChecker = true;  // ← fires GET and renders checker
+  }
+
+  onActionCompleted(res: CheckerActionResponse): void {
+    console.log(res.action);         // 'APPROVED' | 'REJECTED'
+    console.log(res.transactionId);  // transaction ID
+    console.log(res.message);        // message from API response
+  }
+}
+
+
+Step 6 — Template
+
+<pc-checker-form
+  [visible]="showChecker"
+  [checkerInput]="checkerInput"
+  [fieldConfig]="fieldConfig"
+  (actionCompleted)="onActionCompleted($event)">
+</pc-checker-form>
+
+Step 7 — When real APIs ready (one change only)
+
+checkerInput: CheckerComponentInput = {
+  useMockApi:        false,   // ← only change
+  checkerGetUrl:     'https://your-real-api.com/api/v1/pain001/checker/get',
+  checkerActionUrl:  'https://your-real-api.com/api/v1/pain001/checker/action',
+  amountMismatchUrl: 'https://your-real-api.com/api/v1/pain001/checker/amount-mismatch',
+  // everything else stays the same
+};
+
+
+
+
