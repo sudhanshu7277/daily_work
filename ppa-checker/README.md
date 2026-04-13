@@ -245,6 +245,11 @@ cd ~/Documents/Maker-Checker-NPM-Packages/ppa-checker
 pnpm run build:lib
 
 
+3) Verify if checker npm package is published:
+pnpm info @citi-icg-169779/payment-checker --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+# Should print version 1.0.0 and package details
+
+
 
 Maker package usage steps:
 
