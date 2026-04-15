@@ -851,4 +851,56 @@ export class EntityGridComponent implements OnInit, OnDestroy {
     this.pageSize = size;
     this.gridApi.paginationSetPageSize(size);
   }
+
+  // ENTITY GRID PAGINATION CHANGES
+
+
+  onPaginationChanged(): void {
+    if (!this.gridApi) return;
+    this.currentPage = this.gridApi.paginationGetCurrentPage() + 1;
+    this.totalPages  = this.gridApi.paginationGetTotalPages() || 1;
+    this.totalRows   = this.gridApi.paginationGetRowCount();
+    this.cdr.detectChanges();
+  }
+  
+  get rangeLabel(): string {
+    if (this.totalRows === 0) return '0 of 0';
+    const start = (this.currentPage - 1) * this.pageSize + 1;
+    const end   = Math.min(this.currentPage * this.pageSize, this.totalRows);
+    return `${start}-${end} of ${this.totalRows}`;
+  }
+  
+  get visiblePages(): number[] {
+    const total = this.totalPages;
+    const cur   = this.currentPage;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  
+    const show = new Set<number>();
+    show.add(1);
+    show.add(total);
+    show.add(cur);
+    if (cur - 1 >= 1)     show.add(cur - 1);
+    if (cur + 1 <= total) show.add(cur + 1);
+    if (cur <= 4)         [2, 3, 4, 5].forEach(p => { if (p <= total) show.add(p); });
+    if (cur >= total - 3) [total - 4, total - 3, total - 2, total - 1].forEach(p => { if (p >= 1) show.add(p); });
+  
+    const sorted = [...show].sort((a, b) => a - b);
+    const result: number[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push(-1);
+      result.push(sorted[i]);
+    }
+    return result;
+  }
+  
+  goToPage(page: number): void {
+    if (!this.gridApi || page < 1 || page > this.totalPages) return;
+    this.gridApi.paginationGoToPage(page - 1);
+  }
+  
+  onPageSizeChange(event: Event): void {
+    const size = Number((event.target as HTMLSelectElement).value);
+    this.pageSize = size;
+    this.gridApi.updateGridOptions({ paginationPageSize: size });
+  }
 }
