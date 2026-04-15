@@ -121,30 +121,30 @@ export class EntityGridComponent implements OnInit, OnDestroy {
 @Input() searchTerm = '';
 
 // ── Search ─────────────────────────────────────────────────────────────────
-search(): void {
-  if (!this.searchTerm?.trim()) {
-    this.loadData();
-    return;
-  }
-  this.isLoading = true;
-  this.svc.searchByProfileName(this.searchTerm)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (res) => {
-        this.tree    = res.data;
-        this.stampTree(this.tree, 0, '');
-        this.rowData = this.buildFlat(this.tree);
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('[EntityGrid] search error', err);
-        this.loadError = true;
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-    });
-}
+// search(): void {
+//   if (!this.searchTerm?.trim()) {
+//     this.loadData();
+//     return;
+//   }
+//   this.isLoading = true;
+//   this.svc.searchByProfileName(this.searchTerm)
+//     .pipe(takeUntil(this.destroy$))
+//     .subscribe({
+//       next: (res) => {
+//         this.tree    = res.data;
+//         this.stampTree(this.tree, 0, '');
+//         this.rowData = this.buildFlat(this.tree);
+//         this.isLoading = false;
+//         this.cdr.detectChanges();
+//       },
+//       error: (err) => {
+//         console.error('[EntityGrid] search error', err);
+//         this.loadError = true;
+//         this.isLoading = false;
+//         this.cdr.detectChanges();
+//       },
+//     });
+// }
 
   loadData(): void {
     this.isLoading = true;
@@ -902,5 +902,32 @@ export class EntityGridComponent implements OnInit, OnDestroy {
     const size = Number((event.target as HTMLSelectElement).value);
     this.pageSize = size;
     this.gridApi.updateGridOptions({ paginationPageSize: size });
+  }
+
+  // Entity-grid search function
+
+  searchEntityData(): void {
+    if (!this.searchTerm?.trim()) {
+      this.loadData();
+      return;
+    }
+    this.isLoading = true;
+    this.svc.searchByProfileName(this.searchTerm)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res:any) => {
+          this.tree    = res.data;
+          this.stampTree(this.tree, 0, '');
+          this.rowData = this.buildFlat(this.tree);
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err:any) => {
+          console.error('[EntityGrid] search error', err);
+          this.loadError = true;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+      });
   }
 }

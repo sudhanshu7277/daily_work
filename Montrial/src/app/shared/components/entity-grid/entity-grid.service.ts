@@ -65,18 +65,6 @@ export class EntityGridService {
   //   Body:     { profileName: 'Corp 4' }
   //   Response: EntityGridResponse (filtered)
 
-  searchByProfileName(profileName: string): Observable<EntityGridResponse> {
-    if (this.useMock) {
-      const term     = profileName.toLowerCase().trim();
-      const allData  = this.buildMockResponse().data;
-      const filtered = this.filterTree(allData, term);
-      return of({ data: filtered, totalCount: this.countAll(filtered) });
-    }
-    return this.http.post<EntityGridResponse>(
-      `${this.apiUrl}/search`,
-      { profileName }
-    );
-  }
 
   // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -190,25 +178,39 @@ export class EntityGridService {
    *     with only the matching descendants (preserves cluster context)
    *   - If neither the node nor any descendant matches → exclude entirely
    */
+  // Removed duplicate implementation of filterTree
+
+  private countAll(nodes: EntityNode[]): number {
+    return nodes.reduce((sum, n) => sum + 1 + this.countAll(n.children), 0);
+  }
+
+  searchByProfileName(profileName: string): Observable<EntityGridResponse> {
+    if (this.useMock) {
+      const term     = profileName.toLowerCase().trim();
+      const allData  = this.buildMockResponse().data;
+      const filtered = this.filterTree(allData, term);
+      return of({ data: filtered, totalCount: this.countAll(filtered) });
+    }
+    return this.http.post<EntityGridResponse>(
+      `${this.apiUrl}/search`,
+      { profileName }
+    );
+  }
+  
   private filterTree(nodes: EntityNode[], term: string): EntityNode[] {
     return nodes.reduce<EntityNode[]>((acc, node) => {
       const selfMatch        = node.profileName.toLowerCase().includes(term);
       const filteredChildren = this.filterTree(node.children, term);
       const childMatch       = filteredChildren.length > 0;
-
+  
       if (selfMatch) {
         // Self matches — keep node with ALL original children
         acc.push({ ...node, children: node.children });
       } else if (childMatch) {
-        // Only a descendant matches — keep node with filtered children only
+        // Only a descendant matches — keep node with filtered children
         acc.push({ ...node, children: filteredChildren });
       }
-
       return acc;
     }, []);
-  }
-
-  private countAll(nodes: EntityNode[]): number {
-    return nodes.reduce((sum, n) => sum + 1 + this.countAll(n.children), 0);
   }
 }

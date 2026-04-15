@@ -546,4 +546,67 @@ export class CustomerSearchGridComponent implements OnInit, OnDestroy {
   onGridReady(e: GridReadyEvent): void {
     this.gridApi = e.api;
   }
+
+
+  /////////// CUSTOMER GRID PAGINATION LOGIC BELOW//
+
+  // ── Pagination state ──────────────────────────────────────────────────────────
+currentPage  = 1;
+pageSize     = 10;
+totalRows    = 0;
+totalPages   = 1;
+pageNumbers: (number | '...')[] = [];
+readonly pageSizeOpts = [10, 25, 50, 100];
+
+get paginationFrom(): number {
+  return this.totalRows === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
+}
+get paginationTo(): number {
+  return Math.min(this.currentPage * this.pageSize, this.totalRows);
+}
+
+// ── Pagination methods ────────────────────────────────────────────────────────
+goPage(page: number): void {
+  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+  this.currentPage = page;
+  this.refresh();
+}
+
+onPageSizeChange(): void {
+  this.currentPage = 1;
+  this.refresh();
+}
+
+private buildPageNumbers(): (number | '...')[] {
+  const t = this.totalPages;
+  const c = this.currentPage;
+
+  // 7 or fewer pages — show all
+  if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1);
+
+  // Window of 5 pages centred on current, clamped to [1, t]
+  // Figma: page 1 of 10 → 1  2  3  4  5  ...  10
+  let winS = Math.max(1, c - 2);
+  let winE = Math.min(t, c + 2);
+  if (winE - winS < 4) {
+    if (winS === 1) { winE = Math.min(t, 5); }
+    else            { winS = Math.max(1, winE - 4); }
+  }
+
+  const pages: (number | '...')[] = [];
+
+  if (winS > 1) {
+    pages.push(1);
+    if (winS > 2) pages.push('...');
+  }
+
+  for (let i = winS; i <= winE; i++) pages.push(i);
+
+  if (winE < t) {
+    if (winE < t - 1) pages.push('...');
+    pages.push(t);
+  }
+
+  return pages;
+}
 }

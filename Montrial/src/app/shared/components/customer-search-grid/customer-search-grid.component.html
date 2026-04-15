@@ -80,4 +80,53 @@
     </div>
   </div>
 
+  <!--PAGINATION FOR AG-GRID HTML BELOW  -->
+  <!-- Pagination bar — Figma exact
+     Left:  1-10 of 100  Items per page  [10 ▾]
+     Right: ‹ Previous  1  2  3  4  5  ...  10  Next ›  -->
+<div class="cs-pagination" [class.grid--hidden]="isLoading || loadError">
+
+  <div class="cs-pagination__left">
+    <span class="cs-pg-count">{{ paginationFrom }}-{{ paginationTo }} of {{ totalRows }}</span>
+    <span class="cs-pg-label">Items per page</span>
+    <select class="cs-pg-select"
+            [(ngModel)]="pageSize"
+            (ngModelChange)="onPageSizeChange()">
+      <option *ngFor="let opt of pageSizeOpts" [ngValue]="opt">{{ opt }}</option>
+    </select>
+  </div>
+
+  <div class="cs-pagination__right">
+
+    <button class="cs-pg-nav"
+            [class.cs-pg-nav--disabled]="currentPage === 1"
+            (click)="goPage(currentPage - 1)">
+      <svg class="cs-pg-chevron" viewBox="0 0 8 14" fill="none">
+        <path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Previous
+    </button>
+
+    <ng-container *ngFor="let p of pageNumbers">
+      <span   *ngIf="p !== '...' && +p === currentPage" class="cs-pg-active">{{ p }}</span>
+      <button *ngIf="p !== '...' && +p !== currentPage" class="cs-pg-num"
+              (click)="goPage(+p)">{{ p }}</button>
+      <span   *ngIf="p === '...'" class="cs-pg-dots">...</span>
+    </ng-container>
+
+    <button class="cs-pg-nav"
+            [class.cs-pg-nav--disabled]="currentPage === totalPages"
+            (click)="goPage(currentPage + 1)">
+      Next
+      <svg class="cs-pg-chevron" viewBox="0 0 8 14" fill="none">
+        <path d="M1 1l6 6-6 6" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+  </div>
+</div>
+<!--END OF PAGINATION FOR AG-GRID HTML-->
+
 </div>
