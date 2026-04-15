@@ -584,7 +584,7 @@ Step 1 — Update projects/payment-maker/package.json
 
 {
   "name": "@citi-icg-169779/payment-maker",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "publishConfig": {
     "registry": "https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/"
   }
@@ -704,4 +704,8 @@ paymentInput: PaymentComponentInput = {
   hardcapCheckUrl: 'https://your-real-api.com/api/v1/pain001/hardcap/check',
   // everything else stays the same
 };
+
+// CHECK IF THIS VERSION IS PUBLISHED
+
+pnpm info @citi-icg-169779/payment-maker@1.0.3 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
 
