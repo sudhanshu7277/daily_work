@@ -21,7 +21,6 @@ export interface Pain001Model {
   creditorAccount: string;
   creditorAgentFinancialInstitutionBIC: string;
   creditorAgentFinancialInstitutionName: string;
-  creditorAgentPostalAddress?: string;
   creditorAddressLines?: string;
   creditorStreetName?: string;
   creditorBuildingNumber?: string;
