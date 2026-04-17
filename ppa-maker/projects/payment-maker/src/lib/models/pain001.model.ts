@@ -46,6 +46,7 @@ export interface Pain001Model {
   applicationName?: string;
   applicationModule?: string;
   region?: string;
+  creditorAgentAccountNumber?: string;
 }
 
 export function createEmptyPain001(): Pain001Model {
@@ -72,7 +73,7 @@ export function createEmptyPain001(): Pain001Model {
     creditorAccount: '',
     creditorAgentFinancialInstitutionBIC: '',
     creditorAgentFinancialInstitutionName: '',
-    creditorAgentPostalAddress: '',
+    creditorAgentAccountNumber: '',
     creditorAddressLines: '',
     creditorStreetName: '',
     creditorBuildingNumber: '',
@@ -159,6 +160,9 @@ export interface FormFieldConfig {
 }
 
 export const ALWAYS_REQUIRED_FIELDS: (keyof Pain001Model)[] = [
+  'requestedExecutionDate',
+  'instructedAmountCurrencyCode',
+  'instructedAmount',
   'debtorName',
   'debtorAccountNumber',
   'debtorAgentBIC',
@@ -167,8 +171,10 @@ export const ALWAYS_REQUIRED_FIELDS: (keyof Pain001Model)[] = [
   'creditorAgentFinancialInstitutionBIC',
   'creditorAgentFinancialInstitutionName',
   'painPaymentMethodType',
-  'requestedExecutionDate',
-  'instructedAmountCurrencyCode'
+  'creditorAgentAccountNumber'
+
+  // creditorAgentPostalAddress intentionally excluded —
+  // it maps to creditorAgentAccountNumber in the form (handled below)
 ];
 
 export const DEFAULT_FIELD_CONFIG: FormFieldConfig[] = [
@@ -201,7 +207,7 @@ export const DEFAULT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'creditorAccount', label: 'Creditor Account Number', hidden: false, required: true },
   { fieldName: 'creditorAgentFinancialInstitutionBIC', label: 'Creditor Agent BIC', hidden: false, required: true },
   { fieldName: 'creditorAgentFinancialInstitutionName', label: 'Creditor Agent Bank Name', hidden: false, required: true },
-  { fieldName: 'creditorAgentPostalAddress', label: 'Creditor Agent Account Number', hidden: false, required: true },
+  { fieldName: 'creditorAgentAccountNumber', label: 'Creditor Agent Account Number', hidden: false, required: true },
   { fieldName: 'creditorAddressLines', label: 'Creditor Address Line 1', hidden: false },
   { fieldName: 'creditorStreetName', label: 'Creditor Street', hidden: false },
   { fieldName: 'creditorBuildingNumber', label: 'Creditor Building Number', hidden: false },

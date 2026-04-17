@@ -195,8 +195,15 @@ export class MakerFormComponent implements OnInit, OnDestroy {
 
     // creditorAgentAccountNumber is the UI name for creditorAgentPostalAddress
     // ensure it's present if the parent included creditorAgentPostalAddress
-    if (controls['creditorAgentPostalAddress'] && !controls['creditorAgentAccountNumber']) {
-      controls['creditorAgentAccountNumber'] = controls['creditorAgentPostalAddress'];
+    // if (controls['creditorAgentPostalAddress'] && !controls['creditorAgentAccountNumber']) {
+    //   controls['creditorAgentAccountNumber'] = controls['creditorAgentPostalAddress'];
+    //   delete controls['creditorAgentPostalAddress'];
+    // }
+
+    if (controls['creditorAgentPostalAddress']) {
+      const existing = controls['creditorAgentPostalAddress'];
+      // Create creditorAgentAccountNumber with the value AND Validators.required explicitly
+      controls['creditorAgentAccountNumber'] = [existing[0], [Validators.required]];
       delete controls['creditorAgentPostalAddress'];
     }
 
@@ -244,9 +251,21 @@ export class MakerFormComponent implements OnInit, OnDestroy {
   // ── Submit gate ───────────────────────────────────────────────
   // Blocked if form invalid OR if Transaction Amount is visible and
   // hardcap has not passed
+
+  // get isFormValid(): boolean {
+  //   if (!this.form.valid) return false;
+  //   if (!this.isHidden('instructedAmount') && this.hardcapResponse?.status !== 'PASSED') {return false;}
+  //   return true;
+  // }
+
   get isFormValid(): boolean {
+    // Gate 1 — all required form controls must be filled
+    if (!this.form.valid) return false;
+  
+    // Gate 2 — if Transaction Amount is visible, hardcap must have passed
     if (!this.isHidden('instructedAmount') && this.hardcapResponse?.status !== 'PASSED') return false;
-    return this.form.valid;
+  
+    return true;
   }
 
   get hardcapPassed(): boolean { return this.hardcapResponse?.status === 'PASSED'; }
