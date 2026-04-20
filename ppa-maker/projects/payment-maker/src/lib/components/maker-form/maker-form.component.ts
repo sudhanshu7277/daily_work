@@ -324,114 +324,190 @@ export class MakerFormComponent implements OnInit, OnDestroy {
 }
 
 
-/// CHANGES FOR HARDCAP API CALL TO PARENT COMPONENT
+/// CHANGES FOR HARDCAP API CALL AND FORM DATA TO PARENT COMPONENT
 
-/** Fires on every Transaction Amount input — parent calls checkHardcap and passes result back via hardcapResult */
-@Output() amountChange = new EventEmitter<number>();
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import {
+  MakerFormComponent,
+  PaymentComponentInput,
+  MakerSubmitResponse,
+  MakerApiService,
+  HardcapCheckResponse,
+  FormFieldConfig,
+  DEFAULT_FIELD_CONFIG,
+  Pain001Model
+} from '@citi-icg-169779/payment-maker';
 
-/** Parent passes hardcap API response back in after calling checkHardcap */
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, MakerFormComponent],
+  template: `
+    <pm-maker-form
+      [paymentInput]="paymentInput"
+      [fieldConfig]="fieldConfig"
+      [hardcapResult]="hardcapResult"
+      (amountChange)="onAmountChange($event)"
+      (formSubmit)="onFormSubmit($event)"
+      (formChange)="onFormChange($event)">
+    </pm-maker-form>
+  `
+})
+export class AppComponent {
+
+  hardcapResult: HardcapCheckResponse | null = null;
+
+  paymentInput: PaymentComponentInput = {
+    applicationName:   'YOUR_APP',
+    applicationModule: 'YOUR_MODULE',
+    region:            'US',
+    useMockApi:        true,
+    makerSubmitUrl:    'https://your-api.com/api/v1/pain001/maker/submit',
+    hardcapCheckUrl:   'https://your-api.com/api/v1/pain001/hardcap/check',
+  };
+
+  fieldConfig: FormFieldConfig[] = DEFAULT_FIELD_CONFIG;
+
+  constructor(private apiService: MakerApiService) {}
+
+  // ── Hardcap check ─────────────────────────────────────────────
+  // Fires when component emits debounced amount value
+  onAmountChange(amount: number): void {
+    this.apiService.checkHardcap(
+      {
+        amount,
+        currencyCode:      'USD',
+        applicationName:   this.paymentInput.applicationName,
+        applicationModule: this.paymentInput.applicationModule
+      },
+      this.paymentInput
+    ).subscribe({
+      next: (response: HardcapCheckResponse) => {
+        this.hardcapResult = response; // passed back into component via [hardcapResult]
+      },
+      error: () => {
+        this.hardcapResult = null;
+      }
+    });
+  }
+
+  // ── Maker submit ──────────────────────────────────────────────
+  // Fires when component emits full form payload on submit
+  onFormSubmit(payload: Pain001Model): void {
+    this.apiService.submitMakerForm(payload, this.paymentInput).subscribe({
+      next: (res: MakerSubmitResponse) => {
+        console.log('TXN:', res.transactionId);
+        // trigger checker here if needed
+        this.showChecker = true;
+      },
+      error: (err: any) => {
+        console.error('Submit failed:', err.message);
+      }
+    });
+  }
+
+  onFormChange(formData: Partial<Pain001Model>): void {
+    // optional — react to every field change
+  }
+}
+
+// Parent calls this after submit API responds successfully
+showSuccess(response: MakerSubmitResponse): void {
+  this.isSubmitting     = false;
+  this.submitResponse   = response;
+  this.showSuccessModal = true;
+  this.cdr.markForCheck();
+}
+
+// Parent calls this if submit API fails
+showError(message: string): void {
+  this.isSubmitting   = false;
+  this.errorMessage   = message;
+  this.showErrorModal = true;
+  this.cdr.markForCheck();
+}
+
+// CHANGES TO CHILD COMONENT (maker-form.component.ts):
+
+// ADD these two new outputs
+/** Fires (debounced 400ms) when user types Transaction Amount — parent calls hardcap API */
+@Output() amountChange    = new EventEmitter<number>();
+
+/** Fires on submit — parent receives full Pain001Model and calls maker submit API */
+@Output() formSubmit      = new EventEmitter<Pain001Model>();
+
+// ADD this input — parent passes hardcap response back in
 @Input() set hardcapResult(response: HardcapCheckResponse | null) {
-  if (response) {
+  if (response !== undefined) {
     this.hardcapResponse = response;
     this.hardcapChecking = false;
     this.cdr.markForCheck();
   }
 }
 
-// CALL THIS FUNCTION ON EVERY INPUT CHANGE in Transaction Amount field (in template: (input)="onAmountInput($event)")
-onAmountInput(event: Event): void {
-  const value = parseFloat((event.target as HTMLInputElement).value);
-  if (!isNaN(value) && value > 0) {
-    this.hardcapChecking = true;   // show "Checking..." immediately
-    this.hardcapResponse = null;
-    this.cdr.markForCheck();
-    this.amountChange.emit(value); // parent receives this and calls API
-  } else {
-    this.hardcapResponse = null;
-    this.hardcapChecking = false;
-    this.cdr.markForCheck();
-  }
+// REMOVE this import
+import { MakerApiService } from '../../services/maker-api.service';
+
+// REMOVE from constructor
+constructor(
+  private fb:  FormBuilder,
+  private cdr: ChangeDetectorRef
+) {}
+
+// REMOVE entire subscribeHardcap() method
+// REMOVE subscribeHardcap() call from ngOnInit()
+
+// ADD this new method
+private subscribeAmountChange(): void {
+  const amountCtrl = this.form.get('instructedAmount');
+  if (!amountCtrl) return;
+
+  amountCtrl.valueChanges.pipe(
+    debounceTime(400),
+    distinctUntilChanged(),
+    takeUntil(this.destroy$)
+  ).subscribe(value => {
+    const amount = parseFloat(value);
+    if (!isNaN(amount) && amount > 0) {
+      this.hardcapChecking = true;
+      this.hardcapResponse = null;
+      this.cdr.markForCheck();
+      this.amountChange.emit(amount); // parent receives and calls API
+    } else {
+      this.hardcapChecking = false;
+      this.hardcapResponse = null;
+      this.cdr.markForCheck();
+    }
+  });
 }
 
-// HTML BELOW 
+// ADD call in ngOnInit()
+ngOnInit(): void {
+  this.resolvedConfig = (this.fieldConfig && this.fieldConfig.length > 0)
+    ? this.fieldConfig
+    : DEFAULT_FIELD_CONFIG;
 
-<input type="number" class="pm-input"
-  formControlName="instructedAmount"
-  [class.is-invalid]="isInvalid('instructedAmount') || hardcapFailed"
-  [class.pm-input-passed]="hardcapPassed"
-  min="0" step="0.01" placeholder="0.00"
-  (input)="onAmountInput($event)" />
+  this.configMap.clear();
+  this.resolvedConfig.forEach(cfg => this.configMap.set(cfg.fieldName as string, cfg));
 
-  // TO BE ADDED IN PARENT COMPONENT HTML TO RECEIVE HARDCAP RESPONSE AND PASS TO MAKER FORM
+  this.buildForm();
+  this.subscribeAmountChange(); // ← replaces subscribeHardcap()
 
-  import {
-    MakerFormComponent,
-    PaymentComponentInput,
-    MakerSubmitResponse,
-    FormFieldConfig,
-    DEFAULT_FIELD_CONFIG,
-    HardcapCheckResponse,
-    HardcapCheckRequest
-  } from '@citi-icg-169779/payment-maker';
-  import { MakerApiService } from '@citi-icg-169779/payment-maker';
-  import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
-  import { Subject } from 'rxjs';
-  
-  @Component({
-    standalone: true,
-    imports: [CommonModule, MakerFormComponent],
-    template: `
-      <pm-maker-form
-        [paymentInput]="paymentInput"
-        [fieldConfig]="fieldConfig"
-        [hardcapResult]="hardcapResult"
-        (amountChange)="onAmountChange($event)"
-        (submitted)="onSubmitted($event)">
-      </pm-maker-form>
-    `
-  })
-  export class AppComponent {
-  
-    hardcapResult: HardcapCheckResponse | null = null;
-  
-    private amountSubject = new Subject<number>();
-  
-    paymentInput: PaymentComponentInput = {
-      applicationName:   'YOUR_APP',
-      applicationModule: 'YOUR_MODULE',
-      region:            'US',
-      useMockApi:        true,
-      makerSubmitUrl:    'https://your-api.com/api/v1/pain001/maker/submit',
-      hardcapCheckUrl:   'https://your-api.com/api/v1/pain001/hardcap/check',
-    };
-  
-    fieldConfig: FormFieldConfig[] = DEFAULT_FIELD_CONFIG;
-  
-    constructor(private apiService: MakerApiService) {
-      // Debounce + distinctUntilChanged handled here in parent
-      this.amountSubject.pipe(
-        debounceTime(400),
-        distinctUntilChanged(),
-        switchMap(amount => this.apiService.checkHardcap(
-          {
-            amount,
-            currencyCode:      'USD',   // get from form if needed
-            applicationName:   this.paymentInput.applicationName,
-            applicationModule: this.paymentInput.applicationModule
-          },
-          this.paymentInput
-        ))
-      ).subscribe(response => {
-        this.hardcapResult = response;  // passed back into component via [hardcapResult]
-      });
-    }
-  
-    // Fires on every amount input event from the component
-    onAmountChange(amount: number): void {
-      this.amountSubject.next(amount);
-    }
-  
-    onSubmitted(res: MakerSubmitResponse): void {
-      console.log('TXN:', res.transactionId);
-    }
+  this.form.valueChanges
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(val => this.formChange.emit(val));
+}
+
+onSubmit(): void {
+  if (!this.isFormValid) {
+    this.form.markAllAsTouched();
+    this.cdr.markForCheck();
+    return;
   }
+  // Emit full form data to parent — parent calls submit API
+  const payload: Pain001Model = this.form.getRawValue();
+  this.formSubmit.emit(payload);
+}
