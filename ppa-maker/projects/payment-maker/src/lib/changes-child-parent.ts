@@ -1,9 +1,9 @@
 // child component changes
 
-@Output() submitted          = new EventEmitter<MakerSubmitResponse>();
 @Output() formChange         = new EventEmitter<Partial<Pain001Model>>();
-@Output() amountChange       = new EventEmitter<number>();        // ← ADD
-@Output() formValidityChange = new EventEmitter<boolean>();       // ← ADD
+@Output() amountChange       = new EventEmitter<number>();        // ← hardcap amount to parent
+@Output() formValidityChange = new EventEmitter<boolean>();       // ← validity state to parent
+@Output() formSubmit         = new EventEmitter<Pain001Model>();  // ← full payload to parent
 
 @Input() set hardcapResult(response: HardcapCheckResponse | null) {
     if (response !== undefined) {
@@ -115,6 +115,8 @@ import {
   MakerSubmitResponse,
   MakerApiService,
   HardcapCheckResponse,
+  HardcapCheckRequest,
+  Pain001Model,
   FormFieldConfig,
   DEFAULT_FIELD_CONFIG
 } from '@citi-icg-169779/payment-maker';
@@ -130,10 +132,11 @@ import {
       [hardcapResult]="hardcapResult"
       (amountChange)="onAmountChange($event)"
       (formValidityChange)="onFormValidityChange($event)"
-      (submitted)="onSubmitted($event)">
+      (formSubmit)="onFormSubmit($event)"
+      (formChange)="onFormChange($event)">
     </pm-maker-form>
 
-    <!-- Submit button in parent -->
+    <!-- Submit button lives in parent -->
     <div class="pm-action-bar">
       <button
         [disabled]="!isFormValid || isSubmitting"
@@ -148,8 +151,8 @@ export class AppComponent {
 
   @ViewChild(MakerFormComponent) makerForm!: MakerFormComponent;
 
-  isFormValid  = false;
-  isSubmitting = false;
+  isFormValid   = false;
+  isSubmitting  = false;
   hardcapResult: HardcapCheckResponse | null = null;
 
   paymentInput: PaymentComponentInput = {
@@ -165,24 +168,25 @@ export class AppComponent {
 
   constructor(private apiService: MakerApiService) {}
 
-  // Form validity emitted from child — drives submit button
+  // ── Child emits validity on every form change ─────────────────
+  // Drives the submit button enabled/disabled state
   onFormValidityChange(isValid: boolean): void {
     this.isFormValid = isValid;
   }
 
-  // Amount emitted from child — parent calls hardcap API
+  // ── Child emits debounced amount ──────────────────────────────
+  // Parent makes hardcap API call and passes result back to child
   onAmountChange(amount: number): void {
-    this.apiService.checkHardcap(
-      {
-        amount,
-        currencyCode:      'USD',
-        applicationName:   this.paymentInput.applicationName,
-        applicationModule: this.paymentInput.applicationModule
-      },
-      this.paymentInput
-    ).subscribe({
-      next: (response: HardcapCheckResponse) => {
-        this.hardcapResult = response; // passed back to child via [hardcapResult]
+    const request: HardcapCheckRequest = {
+      amount,
+      currencyCode:      'USD',
+      applicationName:   this.paymentInput.applicationName,
+      applicationModule: this.paymentInput.applicationModule
+    };
+
+    this.apiService.checkHardcap(request, this.paymentInput).subscribe({
+      next: (res: HardcapCheckResponse) => {
+        this.hardcapResult = res; // flows back to child via [hardcapResult]
       },
       error: () => {
         this.hardcapResult = null;
@@ -190,17 +194,35 @@ export class AppComponent {
     });
   }
 
-  // Parent button click — calls submitForm() on child via ViewChild
+  // ── Parent button click ───────────────────────────────────────
+  // Triggers child onSubmit() which validates and emits formSubmit
   onSubmitClick(): void {
-    this.isSubmitting = true;
-    this.makerForm.submitForm();
+    this.makerForm.onSubmit();
   }
 
-  // Submit response emitted from child after API call completes
-  onSubmitted(res: MakerSubmitResponse): void {
-    this.isSubmitting = false;
-    console.log('TXN:', res.transactionId);
-    console.log('Message:', res.message);
+  // ── Child emits full Pain001Model payload ─────────────────────
+  // Parent makes the submit API call
+  onFormSubmit(payload: Pain001Model): void {
+    this.isSubmitting = true;
+
+    this.apiService.submitMakerForm(payload, this.paymentInput).subscribe({
+      next: (res: MakerSubmitResponse) => {
+        this.isSubmitting = false;
+        this.makerForm.onSubmitSuccess(res); // child shows success modal
+        console.log('TXN:', res.transactionId);
+        console.log('Message:', res.message);
+      },
+      error: (err: any) => {
+        this.isSubmitting = false;
+        this.makerForm.onSubmitError(
+          err.message || 'Submission failed. Please try again.'
+        ); // child shows error modal
+      }
+    });
+  }
+
+  // ── Optional — react to every field change ────────────────────
+  onFormChange(formData: Partial<Pain001Model>): void {
+    // use if needed
   }
 }
-
