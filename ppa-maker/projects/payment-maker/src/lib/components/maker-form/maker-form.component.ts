@@ -356,8 +356,53 @@ import {
     </pm-maker-form>
   `
 })
+
+
+import {
+  Component, ViewChild
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  MakerFormComponent,
+  PaymentComponentInput,
+  MakerSubmitResponse,
+  MakerApiService,
+  HardcapCheckResponse,
+  FormFieldConfig,
+  DEFAULT_FIELD_CONFIG
+} from '@citi-icg-169779/payment-maker';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, MakerFormComponent],
+  template: `
+    <pm-maker-form
+      [paymentInput]="paymentInput"
+      [fieldConfig]="fieldConfig"
+      [hardcapResult]="hardcapResult"
+      (amountChange)="onAmountChange($event)"
+      (formValidityChange)="onFormValidityChange($event)"
+      (submitted)="onSubmitted($event)">
+    </pm-maker-form>
+
+    <!-- Submit button lives in parent -->
+    <div class="action-bar">
+      <button
+        [disabled]="!isFormValid || isSubmitting"
+        (click)="onSubmitClick()"
+        class="submit-btn">
+        {{ isSubmitting ? 'Submitting...' : 'Submit Payment' }}
+      </button>
+    </div>
+  `
+})
 export class AppComponent {
 
+  @ViewChild(MakerFormComponent) makerForm!: MakerFormComponent;
+
+  isFormValid  = false;
+  isSubmitting = false;
   hardcapResult: HardcapCheckResponse | null = null;
 
   paymentInput: PaymentComponentInput = {
@@ -373,8 +418,12 @@ export class AppComponent {
 
   constructor(private apiService: MakerApiService) {}
 
-  // ── Hardcap check ─────────────────────────────────────────────
-  // Fires when component emits debounced amount value
+  // ── Form validity — emitted by component on every change ─────
+  onFormValidityChange(isValid: boolean): void {
+    this.isFormValid = isValid;
+  }
+
+  // ── Hardcap — parent makes API call, passes result back ──────
   onAmountChange(amount: number): void {
     this.apiService.checkHardcap(
       {
@@ -386,7 +435,7 @@ export class AppComponent {
       this.paymentInput
     ).subscribe({
       next: (response: HardcapCheckResponse) => {
-        this.hardcapResult = response; // passed back into component via [hardcapResult]
+        this.hardcapResult = response;
       },
       error: () => {
         this.hardcapResult = null;
@@ -394,23 +443,19 @@ export class AppComponent {
     });
   }
 
-  // ── Maker submit ──────────────────────────────────────────────
-  // Fires when component emits full form payload on submit
-  onFormSubmit(payload: Pain001Model): void {
-    this.apiService.submitMakerForm(payload, this.paymentInput).subscribe({
-      next: (res: MakerSubmitResponse) => {
-        console.log('TXN:', res.transactionId);
-        // trigger checker here if needed
-        this.showChecker = true;
-      },
-      error: (err: any) => {
-        console.error('Submit failed:', err.message);
-      }
-    });
+  // ── Parent button click — calls submitForm() on the child ────
+  onSubmitClick(): void {
+    this.isSubmitting = true;
+    this.makerForm.submitForm();
   }
 
-  onFormChange(formData: Partial<Pain001Model>): void {
-    // optional — react to every field change
+  // ── Submit response emitted back from child ──────────────────
+  onSubmitted(res: MakerSubmitResponse): void {
+    this.isSubmitting = false;
+    console.log('TXN:', res.transactionId);
+    console.log('Message:', res.message);
+    // trigger checker
+    this.showChecker = true;
   }
 }
 
@@ -510,4 +555,118 @@ onSubmit(): void {
   // Emit full form data to parent — parent calls submit API
   const payload: Pain001Model = this.form.getRawValue();
   this.formSubmit.emit(payload);
+}
+
+
+// template change to parent to use child component outputs instead of calling API directly from child
+
+  [paymentInput]="paymentInput"
+  [fieldConfig]="fieldConfig"
+  [hardcapResult]="hardcapResult"
+  (amountChange)="onAmountChange($event)"
+  (formSubmit)="onFormSubmit($event)"
+  (formChange)="onFormChange($event)">
+</pm-maker-form>:
+
+// parent component with submit button outside the child component
+
+import {
+  Component, ViewChild
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  MakerFormComponent,
+  PaymentComponentInput,
+  MakerSubmitResponse,
+  MakerApiService,
+  HardcapCheckResponse,
+  FormFieldConfig,
+  DEFAULT_FIELD_CONFIG
+} from '@citi-icg-169779/payment-maker';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, MakerFormComponent],
+  template: `
+    <pm-maker-form
+      [paymentInput]="paymentInput"
+      [fieldConfig]="fieldConfig"
+      [hardcapResult]="hardcapResult"
+      (amountChange)="onAmountChange($event)"
+      (formValidityChange)="onFormValidityChange($event)"
+      (submitted)="onSubmitted($event)">
+    </pm-maker-form>
+
+    <!-- Submit button lives in parent -->
+    <div class="action-bar">
+      <button
+        [disabled]="!isFormValid || isSubmitting"
+        (click)="onSubmitClick()"
+        class="submit-btn">
+        {{ isSubmitting ? 'Submitting...' : 'Submit Payment' }}
+      </button>
+    </div>
+  `
+})
+export class AppComponent {
+
+  @ViewChild(MakerFormComponent) makerForm!: MakerFormComponent;
+
+  isFormValid  = false;
+  isSubmitting = false;
+  hardcapResult: HardcapCheckResponse | null = null;
+
+  paymentInput: PaymentComponentInput = {
+    applicationName:   'YOUR_APP',
+    applicationModule: 'YOUR_MODULE',
+    region:            'US',
+    useMockApi:        true,
+    makerSubmitUrl:    'https://your-api.com/api/v1/pain001/maker/submit',
+    hardcapCheckUrl:   'https://your-api.com/api/v1/pain001/hardcap/check',
+  };
+
+  fieldConfig: FormFieldConfig[] = DEFAULT_FIELD_CONFIG;
+
+  constructor(private apiService: MakerApiService) {}
+
+  // ── Form validity — emitted by component on every change ─────
+  onFormValidityChange(isValid: boolean): void {
+    this.isFormValid = isValid;
+  }
+
+  // ── Hardcap — parent makes API call, passes result back ──────
+  onAmountChange(amount: number): void {
+    this.apiService.checkHardcap(
+      {
+        amount,
+        currencyCode:      'USD',
+        applicationName:   this.paymentInput.applicationName,
+        applicationModule: this.paymentInput.applicationModule
+      },
+      this.paymentInput
+    ).subscribe({
+      next: (response: HardcapCheckResponse) => {
+        this.hardcapResult = response;
+      },
+      error: () => {
+        this.hardcapResult = null;
+      }
+    });
+  }
+
+  // ── Parent button click — calls submitForm() on the child ────
+  onSubmitClick(): void {
+    this.isSubmitting = true;
+    this.makerForm.submitForm();
+  }
+
+  // ── Submit response emitted back from child ──────────────────
+  onSubmitted(res: MakerSubmitResponse): void {
+    this.isSubmitting = false;
+    console.log('TXN:', res.transactionId);
+    console.log('Message:', res.message);
+    // trigger checker
+    this.showChecker = true;
+  }
 }
