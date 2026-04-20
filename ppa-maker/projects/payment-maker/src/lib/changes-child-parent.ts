@@ -9,9 +9,9 @@
     if (response !== undefined) {
       this.hardcapResponse = response;
       this.hardcapChecking = false;
-      const valid = this.form?.valid &&
-        (this.isHidden('instructedAmount') || response?.status === 'PASSED');
-      this.formValidityChange.emit(valid);
+      // Manually re-evaluate validity since hardcap status changed
+      // but form.status did not change
+      this.formValidityChange.emit(this.isFormValid);
       this.cdr.markForCheck();
     }
   }
