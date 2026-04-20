@@ -531,19 +531,32 @@ private subscribeAmountChange(): void {
 
 // ADD call in ngOnInit()
 ngOnInit(): void {
-  this.resolvedConfig = (this.fieldConfig && this.fieldConfig.length > 0)
-    ? this.fieldConfig
-    : DEFAULT_FIELD_CONFIG;
-
-  this.configMap.clear();
-  this.resolvedConfig.forEach(cfg => this.configMap.set(cfg.fieldName as string, cfg));
-
-  this.buildForm();
-  this.subscribeAmountChange(); // ← replaces subscribeHardcap()
-
-  this.form.valueChanges
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(val => this.formChange.emit(val));
+  ngOnInit(): void {
+    this.resolvedConfig = (this.fieldConfig && this.fieldConfig.length > 0)
+      ? this.fieldConfig
+      : DEFAULT_FIELD_CONFIG;
+  
+    this.configMap.clear();
+    this.resolvedConfig.forEach(cfg => this.configMap.set(cfg.fieldName as string, cfg));
+  
+    this.buildForm();
+    this.subscribeAmountChange();
+  
+    // Emit form value changes to parent
+    this.form.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(val => this.formChange.emit(val));
+  
+    // Emit form validity changes to parent — drives the submit button
+    this.form.statusChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        const valid = this.form.valid &&
+          (this.isHidden('instructedAmount') || this.hardcapResponse?.status === 'PASSED');
+        this.formValidityChange.emit(valid);
+        this.cdr.markForCheck();
+      });
+  }
 }
 
 onSubmit(): void {
