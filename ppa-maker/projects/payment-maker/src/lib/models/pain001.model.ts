@@ -169,11 +169,8 @@ export const ALWAYS_REQUIRED_FIELDS: (keyof Pain001Model)[] = [
   'creditorAccount',
   'creditorAgentFinancialInstitutionBIC',
   'creditorAgentFinancialInstitutionName',
-  'painPaymentMethodType',
-  'creditorAgentAccountNumber'
-
-  // creditorAgentPostalAddress intentionally excluded —
-  // it maps to creditorAgentAccountNumber in the form (handled below)
+  'creditorAgentPostalAddress',   // ← correct field name
+  'painPaymentMethodType'
 ];
 
 export const DEFAULT_FIELD_CONFIG: FormFieldConfig[] = [
