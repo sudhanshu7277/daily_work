@@ -226,3 +226,42 @@ export class AppComponent {
     // use if needed
   }
 }
+
+
+// add this to chold for evaluating validation
+
+ngOnInit(): void {
+    this.resolvedConfig = (this.fieldConfig && this.fieldConfig.length > 0)
+      ? this.fieldConfig
+      : DEFAULT_FIELD_CONFIG;
+  
+    this.configMap.clear();
+    this.resolvedConfig.forEach(cfg =>
+      this.configMap.set(cfg.fieldName as string, cfg));
+  
+    this.buildForm();
+    this.subscribeAmountChange();
+  
+    // Single subscription — emits form data AND evaluates validity on every keystroke
+    this.form.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(val => {
+        this.formChange.emit(val);
+        this.evaluateValidity();  // ← called on every field change
+      });
+  }
+
+private evaluateValidity(): void {
+    const valid =
+      this.form.valid &&
+      (this.isHidden('instructedAmount') || this.hardcapResponse?.status === 'PASSED');
+  
+    console.log('[Maker] evaluateValidity called:', {
+      formValid:     this.form.valid,
+      hardcapStatus: this.hardcapResponse?.status,
+      result:        valid
+    });
+  
+    this.formValidityChange.emit(valid);
+    this.cdr.markForCheck();
+  }

@@ -158,20 +158,7 @@ export interface FormFieldConfig {
   value?: any;
 }
 
-export const ALWAYS_REQUIRED_FIELDS: (keyof Pain001Model)[] = [
-  'requestedExecutionDate',
-  'instructedAmountCurrencyCode',
-  'instructedAmount',
-  'debtorName',
-  'debtorAccountNumber',
-  'debtorAgentBIC',
-  'creditorName',
-  'creditorAccount',
-  'creditorAgentFinancialInstitutionBIC',
-  'creditorAgentFinancialInstitutionName',
-  'creditorAgentPostalAddress',   // ← correct field name
-  'painPaymentMethodType'
-];
+
 
 export const DEFAULT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false, required: true },
