@@ -251,3 +251,42 @@ Acceptance Criteria:
 
 [ ] Contextual Accuracy: Use approved banking terminology for specific French translations (e.g., "Proxy OCIF ID").
 
+
+
+
+Customer Search Grid — AG Grid Implementation
+----------------------------------------------
+
+Description
+Implement a Customer Search AG Grid component that mirrors the Entity Grid look and feel. Users search for customer profiles, results are displayed in a clustered grid with parent/child rows, expand/collapse, checkbox selection and pagination. Selected records are passed to the Selected Profiles panel.
+
+Acceptance Criteria
+
+Grid loads on search trigger via POST /api/v1/customer-search with { profileName } payload
+Results displayed in clusters — parent row (teal #dce9ec when expanded, white when collapsed) with child rows (white background) sandwiched between light blue cluster borders
+No deep nesting — one level of children only, no indentation
+Parent row has chevron ∧ / ∨ for expand/collapse
+Selecting parent cascades to all children; selecting all children auto-selects parent
+Deselecting any child auto-deselects the parent
+Selected records emitted via selectionChanged Output to Selected Profiles panel
+Pagination bar shows range (1-10 of 100), items per page (10/25/50/100) and dynamic page buttons with ellipsis
+Look and feel identical to Entity Grid — same colours, borders, checkboxes, LEGAL HOLD pill, typography
+
+
+User Journey
+1. Land
+User navigates to the Customer Search page. Grid is empty. Search input is visible.
+2. Search
+User types a customer name e.g. Jane Doe into the search input. Clicks Search. POST /api/v1/customer-search fires with { profileName: 'Jane Doe' }. Grid populates with matching clusters.
+3. Browse Results
+Each cluster shows a parent row (Jane Doe) with a light blue top and bottom cluster border. Child records are listed directly below — no indentation. All clusters expanded by default.
+4. Expand / Collapse
+User clicks ∨ on a parent row to collapse and hide children. Clicks ∧ to expand and reveal children.
+5. Select Single Record
+User checks a child row checkbox. That record is added to the Selected Profiles panel.
+6. Select Entire Cluster
+User checks the parent row checkbox. All children auto-select. Full cluster appears in Selected Profiles panel.
+7. Deselect
+User unchecks a child. Parent auto-deselects. Record removed from Selected Profiles panel.
+8. Paginate
+User changes items per page to 25 or navigates to page 2. Range label updates to 11-25 of 100. Previous/Next and direct page number navigation available with ellipsis for large datasets.
