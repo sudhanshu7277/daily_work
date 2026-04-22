@@ -135,3 +135,119 @@ Acceptance Criteria:
 
 [ ] Search results persist even after expanding/collapsing nodes in the hierarchy.
 
+
+ENGLISH AND FRENCH
+
+Implementation of Bilingual (EN/FR) Localization Framework
+Summary
+Integrate a robust Internationalization (i18n) framework to support English and French locales across the Legal Hold Dashboard, ensuring regulatory compliance for multi-language banking environments.
+
+Technical Features
+State-Linked Translation: Implemented @ngx-translate to allow instant language toggling without session loss or page refreshes.
+
+Externalized Verbiage: Moved all UI strings to centralized JSON assets (en.json, fr.json) to eliminate hardcoded values.
+
+Dynamic Grid Headers: Utilized AG Grid headerValueGetter to reactively update column titles upon language change.
+
+Adaptive Layout: CSS logic implemented to handle text expansion (French strings often being 20-30% longer) without breaking the "Blue Sandwich" visual clusters.
+
+Implementation Flow
+Selection: User toggles EN/FR in the header.
+
+Broadcast: TranslationService updates the global locale state.
+
+UI Refresh: * Forms: Input labels and validation error messages update via the translate pipe.
+
+Data Grid: Headers and status pills (e.g., "Legal Hold" ↔ "Saisie-arrêt") re-render dynamically.
+
+Footers: Dynamic counts (e.g., "Showing 10 results") update to reflect the new locale.
+
+Acceptance Criteria
+[ ] Zero Hardcoding: All labels, placeholders, and tooltips must be driven by i18n keys.
+
+[ ] Seamless Toggle: Switching languages must not reset search results or form inputs.
+
+[ ] Grid Localization: AG Grid headers, pinned columns, and custom cell renderers must respect the active language.
+
+[ ] Validation Messages: Error messages for mandatory fields must display in the selected language.
+
+[ ] Contextual Accuracy: Use approved banking terminology for specific French translations (e.g., "Proxy OCIF ID").
+
+
+
+
+Customer Search — AG Grid Implementation
+
+Description
+Implement a Customer Search AG Grid that allows users to search for customer profiles by filling out a search form, view results in a clustered hierarchical grid, interact with records via expand/collapse and selection, and pass selected profiles to the Selected Profiles panel.
+
+Acceptance Criteria
+
+Search form has required fields; Search button is disabled until at least one field has a value
+On Search click, grid populates via POST /api/v1/customer-search with form payload
+Grid displays results in clusters — each cluster has a parent row sandwiched between a light blue top and bottom border
+Parent row is expandable/collapsible via chevron ∧ / ∨
+Selecting a parent auto-selects all its children; selecting all children auto-selects the parent
+Selected records are emitted to the Selected Profiles panel on the top right
+Pagination bar shows range, items per page dropdown and dynamic page buttons
+
+
+User Journey
+1. Land on Search Page
+User navigates to the Customer Search page. The search form is visible. The grid is empty. The Search button is disabled.
+2. Fill Search Form
+User fills in one or more fields — e.g. Legal Name: Jane Doe, OCIF ID: 1000-12345. As soon as any field has a value the Search button becomes enabled.
+3. Click Search
+User clicks Search. The form payload is sent via POST /api/v1/customer-search. The grid populates with matching results grouped into clusters.
+4. Browse Grid
+Each cluster shows a parent row (e.g. Jane Doe) sandwiched between light blue top and bottom borders. Children (related records) are nested below. By default all clusters are expanded.
+5. Expand / Collapse
+User clicks the ∨ chevron on a parent row to collapse it — hiding all children. Clicks ∧ to expand and reveal children again.
+6. Select a Single Record
+User checks the checkbox on an individual child record. That record is added to the Selected Profiles panel on the top right.
+7. Select Entire Cluster
+User checks the parent row checkbox. All children auto-select. The full cluster appears in the Selected Profiles panel.
+8. Deselect
+User unchecks a child record. The parent auto-deselects since not all children are selected. That record is removed from the Selected Profiles panel.
+9. Paginate
+Grid shows 1-10 of 100 on the bottom left. User changes items per page to 25 or clicks page 2 / Next. Range label updates dynamically. User can jump to any page via the page number buttons with ellipsis for large datasets.
+
+
+
+
+mplementation of Bilingual (EN/FR) Localization Framework
+==========================================================
+Summary
+Integrate a robust Internationalization (i18n) framework to support English and French locales across the Legal Hold Dashboard, ensuring regulatory compliance for multi-language banking environments.
+
+Technical Features
+State-Linked Translation: Implemented @ngx-translate to allow instant language toggling without session loss or page refreshes.
+
+Externalized Verbiage: Moved all UI strings to centralized JSON assets (en.json, fr.json) to eliminate hardcoded values.
+
+Dynamic Grid Headers: Utilized AG Grid headerValueGetter to reactively update column titles upon language change.
+
+Adaptive Layout: CSS logic implemented to handle text expansion (French strings often being 20-30% longer) without breaking the "Blue Sandwich" visual clusters.
+
+Implementation Flow
+Selection: User toggles EN/FR in the header.
+
+Broadcast: TranslationService updates the global locale state.
+
+UI Refresh: * Forms: Input labels and validation error messages update via the translate pipe.
+
+Data Grid: Headers and status pills (e.g., "Legal Hold" ↔ "Saisie-arrêt") re-render dynamically.
+
+Footers: Dynamic counts (e.g., "Showing 10 results") update to reflect the new locale.
+
+Acceptance Criteria: 
+[ ] Zero Hardcoding: All labels, placeholders, and tooltips must be driven by i18n keys.
+
+[ ] Seamless Toggle: Switching languages must not reset search results or form inputs.
+
+[ ] Grid Localization: AG Grid headers, pinned columns, and custom cell renderers must respect the active language.
+
+[ ] Validation Messages: Error messages for mandatory fields must display in the selected language.
+
+[ ] Contextual Accuracy: Use approved banking terminology for specific French translations (e.g., "Proxy OCIF ID").
+
