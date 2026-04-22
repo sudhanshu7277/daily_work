@@ -606,6 +606,11 @@ Step 3 — Set auth token
 
 $env:NPM_AUTH_TOKEN = "eyJ..."
 
+login into registry: 
+
+pnpm login -- registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+
 Step 4 — Build the library
 
 cd ~/Documents/Maker-Checker-NPM-Packages/ppa-maker
