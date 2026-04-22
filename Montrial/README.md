@@ -58,3 +58,80 @@ Select entire cluster — User checks Corp 4. All children auto-select and the f
 Deselect — User unchecks Role Player H. Corp 4 auto-deselects since not all children are selected.
 Paginate — User clicks page 2 or changes items per page to 25. Range label updates to 11-25 of 100. User can navigate Previous/Next or jump directly to any page number.
 
+
+
+
+Jira 1: Implement Dynamic Customer Search Form
+Summary: Develop a responsive search interface to retrieve individual customer profiles and their associated hierarchical structures.
+
+Description:
+Implementation of the Customer Search module using Angular Reactive Forms. The form must handle real-time validation and state synchronization with the Legal Hold Dashboard results grid.
+
+Features:
+
+Flexible Identifiers: Supports searching via OCIF ID, Primary Phone, or Name.
+
+Smart Validation: Submit button state is programmatically tied to form validity (Minimum 1 valid identifier required).
+
+Grid Sync: On submit, the form triggers a filtered refresh of the AG Grid using the recursive flattening engine.
+
+User Flow:
+
+User enters data into an identifier field.
+
+Form evaluates Validators; the Search button enables and turns "BMO Blue" once criteria are met.
+
+Clicking Search emits the criteria to the LegalHoldDataService.
+
+Acceptance Criteria:
+
+[ ] Submit button is disabled if the form is empty or invalid.
+
+[ ] "Clear" button resets all form fields and empties the AG Grid.
+
+[ ] Pressing "Enter" while focused on an input triggers the search action.
+
+
+
+Jira 2: Implement Dynamic Entity Search Form
+Summary: Develop a specialized search module for corporate entities, subsidiaries, and complex organizational hierarchies.
+
+Description:
+Implementation of the Entity Search module to support high-density corporate data lookup. This form must account for specific entity identifiers that differ from individual customer searches.
+
+Features:
+
+Corporate Identifiers: Fields for Legal Entity Name, Incorporation/Registration Number, and Proxy ID.
+
+Hierarchical Awareness: Integrated logic to ensure search results pull not just the entity, but its parent/child relationship tree.
+
+Masking & Patterns: Regex validation for specific corporate registration number formats.
+
+User Flow:
+
+User enters a Corporate Name or Registration Number.
+
+The form validates the pattern; the Search button enables upon meeting minimum character thresholds.
+
+Search results populate the grid with "Blue Sandwich" visual clustering for expanded hierarchies.
+
+Acceptance Criteria:
+
+[ ] Form supports multi-level recursive unrolling in the results grid upon search.
+
+[ ] Validation prevents submission of incomplete registration numbers.
+
+[ ] Loading spinner displays within the grid container during the API call.
+
+
+
+Jira 3: Implement Legal Hold Search & Monitoring FormSummary: Develop the administrative search interface for managing, monitoring, and filtering existing Legal Holds.Description:Implementation of the Legal Hold Search module to retrieve records based on specific hold metadata rather than customer identifiers.Features:Hold Metadata: Searchable by Legal Hold Name, Case Number, or internal Hold ID.Status Toggles: Dynamic filtering for "Active," "Pending," and "Released" hold statuses.Cascade Highlighting: Results must show all entities currently impacted by the searched Legal Hold across all $n$-levels.User Flow:User inputs a Hold Name or selects a status filter.The UI enables the Search button once a valid case or hold identifier is recognized.Clicking Search updates the grid to show rows mapped to that specific legal action.
+
+Acceptance Criteria:
+
+[ ] Search filters accurately through $n$-level nested data.
+
+[ ] Results maintain correct indentation and vertical guide lines in the grid.
+
+[ ] Search results persist even after expanding/collapsing nodes in the hierarchy.
+
