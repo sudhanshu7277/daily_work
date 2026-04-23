@@ -714,3 +714,20 @@ paymentInput: PaymentComponentInput = {
 
 pnpm info @citi-icg-169779/payment-maker@1.0.3 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
 
+
+Add peer dependencies to package json
+
+
+"peerDependencies": {
+  "@angular/common": ">=17.3.5",
+  "@angular/core":   ">=17.3.5",
+  "@angular/forms":  ">=17.3.5",
+  "rxjs":            ">=7.8.0"
+}
+
+add to .npmrc
+
+legacy-peer-deps=true
+
+
+
