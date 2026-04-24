@@ -731,3 +731,51 @@ legacy-peer-deps=true
 
 
 
+email to Artifactory Admin
+----------------------------
+
+
+
+To: [Artifactory Admin email]
+CC: [Your Manager email]
+Subject: Request — Add npm-icg-teamdev-local as source to npm-teamdev virtual registry
+
+Hi [Admin Name],
+I am reaching out to request a configuration change in the Citi Artifactory NPM registry.
+Background
+As part of the PPA Payment initiative, I have developed and published two reusable Angular npm packages to the npm-icg-teamdev-local repository:
+
+@citi-icg-169779/payment-maker — v1.0.3
+@citi-icg-169779/payment-checker — v1.0.0
+
+These packages provide a standardised PPA Pain001 maker/checker workflow and are being shared with consuming teams across the organisation for integration into their Angular applications.
+The Problem
+Consuming teams are currently facing a 403 Forbidden error when their Lightspeed CI/CD pipelines attempt to install these packages during the build process:
+npm http fetch GET 403 
+https://www.artifactory.citigroup.net/artifactory/api/npm/
+npm-icg-teamdev-local/@citi-icg-169779%2fpayment-maker
+This is happening because the Lightspeed build agent does not have access to npm-icg-teamdev-local. The packages install successfully in local development environments where developers have their own Artifactory credentials configured, but the CI/CD pipeline fails because it uses a service account that only has access to npm-teamdev.
+The Request
+Could you please add npm-icg-teamdev-local as a source repository inside the npm-teamdev virtual registry?
+This is the most straightforward solution because:
+
+Consuming teams already have access to npm-teamdev for all their existing package installs
+Their Lightspeed CI/CD pipelines already use npm-teamdev with existing credentials
+No additional tokens, CMP requests, or pipeline configuration changes would be needed on the consuming team's side
+The packages would be automatically available through the registry they already use
+
+Expected outcome
+Once npm-icg-teamdev-local is added as a source to npm-teamdev, consuming teams will be able to install:
+bashpnpm install @citi-icg-169779/payment-maker
+pnpm install @citi-icg-169779/payment-checker
+through their existing npm-teamdev registry configuration without any additional setup.
+No impact to existing packages or teams — this change only adds a new source to the virtual registry and does not affect any existing packages or configurations.
+Please let me know if you need any additional information or if there is a specific form or process I need to follow to raise this request formally.
+
+Thank you for your help.
+
+Kind regards,
+Sudhanshu
+
+
+
