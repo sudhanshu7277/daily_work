@@ -156,3 +156,75 @@
     }
   }
 }
+
+// ADVANCED SEARCH OPTIONS STYLING BELOW
+
+.search-form-container {
+  padding: 24px;
+  background: #fff;
+
+  .advanced-toggle {
+    color: #004c97; // BMO Blue
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    text-transform: uppercase;
+
+    .chevron {
+      width: 8px; height: 8px;
+      border-right: 2px solid #004c97;
+      border-bottom: 2px solid #004c97;
+      transform: rotate(45deg);
+      margin-right: 8px;
+      transition: 0.2s;
+      &.open { transform: rotate(-135deg); margin-top: 5px; }
+    }
+  }
+
+  .form-row {
+    display: flex; gap: 16px; margin-bottom: 20px;
+    &.three-cols .form-group { flex: 1; }
+  }
+
+  .form-group {
+    display: flex; flex-direction: column;
+    label {
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 6px; color: #333;
+    }
+    input, select {
+      height: 40px; padding: 0 12px;
+      border: 1px solid #999; border-radius: 4px;
+      font-size: 14px; outline: none;
+      &:focus { border-color: #004c97; box-shadow: 0 0 0 1px #004c97; }
+      &::placeholder { color: #aaa; }
+    }
+    .helper-text { font-size: 11px; color: #666; margin-top: 4px; }
+  }
+
+  .date-input-wrapper {
+    position: relative;
+    input { width: 100%; padding-right: 35px; }
+    .calendar-icon {
+      position: absolute; right: 10px; top: 10px;
+      width: 20px; height: 20px;
+      background: url('/assets/icons/calendar.svg') no-repeat center;
+    }
+  }
+
+  .form-actions {
+    display: flex; justify-content: flex-end; gap: 16px; margin-top: 30px;
+    .btn-search {
+      background: #004c97; color: #fff; border: none;
+      padding: 10px 32px; border-radius: 20px; font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-clear {
+      background: transparent; color: #004c97; border: none;
+      font-weight: 700; cursor: pointer;
+    }
+  }
+}

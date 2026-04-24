@@ -167,7 +167,79 @@
 
   <div class="advanced-options">
     <span>ADVANCED SEARCH OPTIONS</span>
-    <mat-icon>expand_more</mat-icon>
+    <div class="search-form-container">
+      <div class="advanced-toggle" (click)="toggleAdvancedSearch()">
+        <span class="chevron" [class.open]="isAdvancedSearchOpen"></span>
+        ADVANCED SEARCH OPTIONS
+      </div>
+    
+      <div class="advanced-section" *ngIf="isAdvancedSearchOpen">
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label>Country</label>
+            <select class="custom-select">
+              <option value="Canada">Canada</option>
+              </select>
+          </div>
+        </div>
+    
+        <div class="form-row three-cols">
+          <div class="form-group">
+            <label>Street Number</label>
+            <input type="text" placeholder="#####" />
+          </div>
+          <div class="form-group">
+            <label>Street Name</label>
+            <input type="text" placeholder="Street Name" />
+          </div>
+          <div class="form-group">
+            <label>Unit Number</label>
+            <input type="text" placeholder="####" />
+          </div>
+        </div>
+    
+        <div class="form-row three-cols">
+          <div class="form-group">
+            <label>Province/Territory</label>
+            <select class="custom-select">
+              <option value="">Select</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>City/Town</label>
+            <input type="text" placeholder="City/Town" />
+          </div>
+          <div class="form-group">
+            <label>Postal Code</label>
+            <input type="text" placeholder="XXX XXX" />
+          </div>
+        </div>
+    
+        <div class="form-row three-cols">
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <div class="date-input-wrapper">
+              <input type="text" placeholder="Select" />
+              <span class="calendar-icon"></span>
+            </div>
+            <small class="helper-text">MM/DD/YYYY</small>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" placeholder="###-###-####" />
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" placeholder="example@123mail.com" />
+          </div>
+        </div>
+      </div>
+    
+      <div class="form-actions">
+        <button type="button" class="btn-clear">CLEAR</button>
+        <button type="button" class="btn-search">SEARCH</button>
+      </div>
+    </div>
   </div>
 
   <div class="form-actions">
