@@ -779,3 +779,25 @@ Sudhanshu
 
 
 
+
+MESSAGE TO VISHAL
+------------------
+
+
+Two reusable Angular npm packages published to Citi Artifactory:
+
+@citi-icg-169779/payment-maker v1.0.3
+@citi-icg-169779/payment-checker v1.0.0
+
+These are already being used successfully by consuming teams in their local development environments.
+The Problem
+When consuming teams push their code to Git and the Lightspeed CI/CD pipeline runs, the build fails with this error:
+npm http fetch GET 403
+https://www.artifactory.citigroup.net/artifactory/api/npm/
+npm-icg-teamdev-local/@citi-icg-169779%2fpayment-maker
+403 Forbidden
+The reason is that our packages are published to npm-icg-teamdev-local — a local writable Artifactory repository. The Lightspeed build agent's service account only has access to npm-teamdev — the virtual read-only registry that all teams use for installing packages. It does not have access to npm-icg-teamdev-local, hence the 403.
+
+Add npm-icg-teamdev-local as a source repository inside the npm-teamdev virtual registry
+
+
