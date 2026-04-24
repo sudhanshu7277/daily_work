@@ -175,11 +175,20 @@
     
       <div class="advanced-section" *ngIf="isAdvancedSearchOpen">
         <div class="form-row">
-          <div class="form-group full-width">
+          <!-- <div class="form-group full-width">
             <label>Country</label>
             <select class="custom-select">
               <option value="Canada">Canada</option>
               </select>
+          </div> -->
+          <div class="form-group">
+            <label>Country</label>
+            <div class="select-wrapper">
+              <select class="custom-select">
+                <option value="Canada">Canada</option>
+                <option value="USA">United States</option>
+              </select>
+            </div>
           </div>
         </div>
     
