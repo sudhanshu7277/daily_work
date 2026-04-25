@@ -296,4 +296,107 @@
   width: 24px; height: 30px; font-size: 13px; color: #6b7a8a; user-select: none;
 }
 
-// END OF CUSTOMER SEARCH AG-GRID PAGINATION SCSS //
+// CUSTMER GRID SELECTION DROPDOWN SCSS //
+
+.column-dropdown-container {
+  width: 280px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 16px 0;
+  font-family: Arial, sans-serif;
+
+  .dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+
+    .close-btn {
+      background: none; border: none; font-size: 20px; cursor: pointer; color: #999;
+    }
+  }
+
+  .options-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .option-item {
+    padding: 8px 20px;
+    
+    &:hover { background-color: #f9f9f9; }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+
+      input {
+        position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0;
+      }
+
+      /* Custom Checkbox Square */
+      .checkmark {
+        height: 18px; width: 18px;
+        background-color: #fff;
+        border: 2px solid #999;
+        border-radius: 3px;
+        margin-right: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.2s;
+
+        &::after {
+          content: "";
+          display: none;
+          width: 5px; height: 10px;
+          border: solid white;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+          margin-bottom: 2px;
+        }
+      }
+
+      /* State: Individual Item Checked (Grey Background) */
+      input:checked ~ .checkmark {
+        background-color: #707070; // Specific Figma grey
+        border-color: #707070;
+        &::after { display: block; }
+      }
+
+      /* State: Select All Indeterminate (Blue Background + White Line) */
+      .checkmark.indeterminate {
+        background-color: #004c97 !important; // BMO Blue
+        border-color: #004c97 !important;
+        
+        &::after {
+          display: block;
+          content: "";
+          width: 10px; height: 2px;
+          background-color: white;
+          border: none;
+          transform: none;
+          margin-bottom: 0;
+        }
+      }
+
+      /* State: Select All Fully Checked (Blue Background + Tick) */
+      .select-all input:checked ~ .checkmark:not(.indeterminate) {
+        background-color: #004c97;
+        border-color: #004c97;
+      }
+
+      .label-text { color: #333; font-weight: 400; }
+    }
+  }
+}

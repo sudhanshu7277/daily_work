@@ -130,3 +130,37 @@
 <!--END OF PAGINATION FOR AG-GRID HTML-->
 
 </div>
+
+<!-- CUSTMER GRID SELECTION DROPDOWN -->
+
+<div class="column-dropdown-container">
+  <div class="dropdown-header">
+    <span>Display Column</span>
+    <button class="close-btn">&times;</button>
+  </div>
+
+  <div class="options-list">
+    <div class="option-item select-all">
+      <label class="checkbox-container">
+        <input 
+          type="checkbox" 
+          [checked]="isAllSelected"
+          [indeterminate]="isIndeterminate"
+          (change)="toggleAll($event)">
+        <span class="checkmark" [class.indeterminate]="isIndeterminate"></span>
+        <span class="label-text">Select All</span>
+      </label>
+    </div>
+
+    <div class="option-item" *ngFor="let option of options; trackBy: option.id">
+      <label class="checkbox-container">
+        <input 
+          type="checkbox" 
+          [checked]="option.isActive" 
+          (change)="toggleOption(option)">
+        <span class="checkmark"></span>
+        <span class="label-text">{{ option.label }}</span>
+      </label>
+    </div>
+  </div>
+</div>
