@@ -334,52 +334,16 @@
   }
 }
 
-/* Custom Chevron Styled like Advanced Search / Country */
-.custom-chevron-icon {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 6px;
-  pointer-events: none;
-  /* Thin blue chevron SVG */
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23004C97' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
-}
 
-/* Dropdown Overlay Styling (White Background and Blue Checkbox) */
-::ng-deep .bmo-custom-dropdown-panel {
-  background-color: #ffffff !important;
-  margin-top: 4px;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+// TAKE THIS SCSS AS A STARTING POINT FOR THE DROPDOWN PANEL CUSTOMIZATION. THE CLASS .bmo-custom-dropdown-panel SHOULD BE APPLIED TO THE mat-mdc-select-panel ELEMENT IN THE COMPONENT TS FILE. ADJUST SELECTORS AS NEEDED BASED ON THE ACTUAL DOM STRUCTURE RENDERED BY ANGULAR MATERIAL v15.2.
 
-  /* Checkbox Color: #0079C1 */
-  .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) .mat-pseudo-checkbox-full {
-    background-color: #0079C1 !important;
-    border-color: #0079C1 !important;
-  }
-
-  .mat-pseudo-checkbox-checked::after {
-    color: white !important;
-  }
-
-  /* Style for the Select All item separator */
-  .select-all-option {
-    border-bottom: 1px solid #E0E0E0;
-    font-weight: 600;
-  }
-}
-
-// BELOW FOR SELECT ALL SCSS
-
-/* Use ::ng-deep to reach the mat-select overlay panel which lives outside the component */
+/* Overriding Angular Material Select Panel */
 ::ng-deep .bmo-custom-dropdown-panel {
   background-color: #ffffff !important;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 
-  /* 1. THE SELECT ALL OPTION */
+  /* 1. SELECT ALL OPTION STYLING */
   .select-all-option {
     border-bottom: 1px solid #e0e0e0;
     font-weight: 600;
@@ -387,13 +351,14 @@
     /* Indeterminate State: Blue Background + White Horizontal Line */
     &.is-indeterminate {
       .mat-pseudo-checkbox {
-        background-color: #0079C1 !important; // Your requested blue
+        background-color: #0079C1 !important; // BMO Blue
         border-color: #0079C1 !important;
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
 
-        /* Create the horizontal minus line */
+        /* Force the 'minus' sign by overriding the Material tick geometry */
         &::after {
           content: "";
           position: absolute;
@@ -401,15 +366,17 @@
           height: 2px;      /* Thickness of line */
           background-color: white !important;
           border: none !important;
-          transform: none !important; /* Remove the tick rotation */
-          top: unset !important;
-          left: unset !important;
+          transform: none !important; /* Kill the rotation of the tick */
+          top: 50% !important;
+          left: 50% !important;
+          margin-top: -1px;  /* Center vertically */
+          margin-left: -5px; /* Center horizontally */
         }
       }
     }
 
-    /* Fully Checked State for Select All */
-    .mat-mdc-option-pseudo-checkbox.mat-pseudo-checkbox-checked {
+    /* Fully Checked State for Select All: Blue + White Tick */
+    .mat-pseudo-checkbox-checked {
       background-color: #0079C1 !important;
       border-color: #0079C1 !important;
     }
@@ -424,14 +391,9 @@
       }
     }
   }
-
-  /* 3. GENERAL CHECKBOX STYLING */
-  .mat-pseudo-checkbox-checked::after {
-    color: white !important;
-  }
 }
 
-/* 4. THE TRIGGER CHEVRON (Matches Country Select) */
+/* 3. THE CUSTOM CHEVRON (Trigger Icon) */
 .custom-chevron-icon {
   position: absolute;
   right: 12px;

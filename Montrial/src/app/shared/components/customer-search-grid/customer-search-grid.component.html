@@ -151,8 +151,14 @@
                     (click)="toggleSelectAll($event)">
            Select All
         </mat-option> -->
-        <mat-option class="select-all-option" 
+        <!-- <mat-option class="select-all-option" 
             [class.is-indeterminate]="selectAllState === 'indeterminate'"
+            (click)="toggleSelectAll($event)">
+   Select All
+</mat-option> -->
+<mat-option class="select-all-option" 
+            [class.is-indeterminate]="selectedFilterIds.length > 0 && selectedFilterIds.length < filterOptions.length"
+            [value]="'SELECT_ALL'"
             (click)="toggleSelectAll($event)">
    Select All
 </mat-option>

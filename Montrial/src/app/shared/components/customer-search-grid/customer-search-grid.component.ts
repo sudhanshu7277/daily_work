@@ -644,4 +644,20 @@ get selectAllState(): 'checked' | 'indeterminate' | 'unchecked' {
   if (count === this.filterOptions.length) return 'checked';
   return 'indeterminate';
 }
+
+toggleSelectAll(event: MouseEvent): void {
+  event.stopPropagation(); // Keep dropdown open
+  
+  const allSelected = this.selectedFilterIds.length === this.filterOptions.length;
+
+  if (allSelected) {
+    // If everything is selected, uncheck all
+    this.selectedFilterIds = [];
+  } else {
+    // If nothing or some items are selected, check all
+    this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
+  }
+  
+  this.onFilterChange();
+}
 }
