@@ -132,35 +132,32 @@
 </div>
 
 <!-- CUSTMER GRID SELECTION DROPDOWN -->
+<div class="filter-dropdown-container">
+  <label class="filter-label">{{ 'RESULTS.FILTER_LABEL' | translate }}</label>
+  
+  <div class="custom-select-wrapper">
+    <mat-form-field appearance="outline" class="bmo-select-field">
+      <mat-select multiple 
+                  [(ngModel)]="selectedFilterIds" 
+                  (selectionChange)="onFilterChange()"
+                  panelClass="bmo-custom-dropdown-panel">
+        
+        <mat-select-trigger>
+          {{ selectedFilterIds?.length ? (selectedFilterIds.length + ' Selected') : 'Select' }}
+        </mat-select-trigger>
 
-<div class="column-dropdown-container">
-  <div class="dropdown-header">
-    <span>Display Column</span>
-    <button class="close-btn">&times;</button>
-  </div>
+        <mat-option class="select-all-option" (click)="toggleSelectAll()">
+           Select All
+        </mat-option>
 
-  <div class="options-list">
-    <div class="option-item select-all">
-      <label class="checkbox-container">
-        <input 
-          type="checkbox" 
-          [checked]="isAllSelected"
-          [indeterminate]="isIndeterminate"
-          (change)="toggleAll($event)">
-        <span class="checkmark" [class.indeterminate]="isIndeterminate"></span>
-        <span class="label-text">Select All</span>
-      </label>
-    </div>
-
-    <div class="option-item" *ngFor="let option of options; trackBy: option.id">
-      <label class="checkbox-container">
-        <input 
-          type="checkbox" 
-          [checked]="option.isActive" 
-          (change)="toggleOption(option)">
-        <span class="checkmark"></span>
-        <span class="label-text">{{ option.label }}</span>
-      </label>
-    </div>
+        @for (opt of filterOptions; track opt.id) {
+          <mat-option [value]="opt.id">
+            {{ opt.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    
+    <span class="custom-chevron"></span>
   </div>
 </div>
