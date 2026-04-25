@@ -63,4 +63,19 @@ export class SelectionPanelComponent {
   onApply() {
     console.log('Apply selected rows:', this.selectedRows);
   }
+
+
+  deleteByIndex(arr, index) {
+  if (index > -1 && index < arr.length) {
+    arr.splice(index, 1);
+  }
+  return arr;
+}
+
+// Example usage:
+const users = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }, { id: 3, name: 'Charlie' }];
+deleteByIndex(users, 1); 
+
+console.log(users); 
+// Output: [{ id: 1, name: 'Alice' }, { id: 3, name: 'Charlie' }]
 }
