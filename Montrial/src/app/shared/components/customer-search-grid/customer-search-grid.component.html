@@ -143,10 +143,12 @@
                   panelClass="bmo-custom-dropdown-panel">
         
         <mat-select-trigger>
-          {{ selectedFilterIds?.length ? (selectedFilterIds.length + ' Selected') : 'Select' }}
+          {{ selectedFilterIds?.length === filterOptions.length ? 'All Columns Selected' : 'Select Options' }}
         </mat-select-trigger>
 
-        <mat-option class="select-all-option" (click)="toggleSelectAll()">
+        <mat-option class="select-all-option" 
+                    [value]="'SELECT_ALL'" 
+                    (click)="toggleSelectAll($event)">
            Select All
         </mat-option>
 
@@ -158,6 +160,6 @@
       </mat-select>
     </mat-form-field>
     
-    <span class="custom-chevron"></span>
+    <span class="custom-chevron-icon"></span>
   </div>
 </div>

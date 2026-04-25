@@ -609,4 +609,31 @@ private buildPageNumbers(): (number | '...')[] {
 
   return pages;
 }
+
+// CUSTOMER SELECT DROPDOWN LOGIC BELOW
+
+// Add to your class properties
+// filterOptions is already defined in your screenshot as the array of 6 items
+
+toggleSelectAll(event: MouseEvent): void {
+  event.stopPropagation(); // Prevents the dropdown from closing
+  
+  if (this.selectedFilterIds.length === this.filterOptions.length) {
+    // If all are selected, uncheck everything
+    this.selectedFilterIds = [];
+  } else {
+    // Otherwise, select everything
+    this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
+  }
+  
+  // Trigger the grid column sync
+  this.onFilterChange();
+}
+
+// Ensure your onFilterChange looks like this to keep the grid in sync
+onFilterChange(): void {
+  // Remove the 'SELECT_ALL' string if it accidentally got into the array
+  this.selectedFilterIds = this.selectedFilterIds.filter(id => id !== 'SELECT_ALL');
+  this.syncColumns();
+}
 }

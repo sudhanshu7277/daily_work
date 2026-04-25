@@ -298,73 +298,75 @@
 
 // CUSTMER GRID SELECTION DROPDOWN SCSS //
 /* Container and Width Fix */
-.custom-select-wrapper {
+..custom-select-wrapper {
   position: relative;
-  width: 300px; /* Fixed width as per design */
+  width: 320px; /* Adjust width to match Search result filter container */
   
   ::ng-deep {
     .bmo-select-field {
       width: 100%;
-      
-      /* Remove default Material arrow */
+
+      /* Hide the default Material triangle */
       .mat-mdc-select-arrow-wrapper {
         display: none !important;
       }
 
       .mat-mdc-text-field-wrapper {
         background-color: white !important;
-        border-radius: 4px;
         height: 40px;
+        border-radius: 4px;
         padding-top: 0;
+        border: 1px solid #999;
       }
-      
+
       .mat-mdc-form-field-flex {
         height: 40px;
         align-items: center;
+      }
+
+      /* Fix the outline border color */
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: transparent !important;
       }
     }
   }
 }
 
-/* Custom Chevron Styling */
-.custom-chevron {
+/* Custom Chevron Styled like Advanced Search / Country */
+.custom-chevron-icon {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 6px;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23004c97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
+  /* Thin blue chevron SVG */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23004C97' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
 }
 
-/* Dropdown Panel Styling (White Background & Checkbox Color) */
+/* Dropdown Overlay Styling (White Background and Blue Checkbox) */
 ::ng-deep .bmo-custom-dropdown-panel {
   background-color: #ffffff !important;
+  margin-top: 4px;
   border-radius: 4px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
-  margin-top: 5px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 
-  /* Change Checkbox Blue to #0079C1 */
-  .mat-pseudo-checkbox-checked.mat-pseudo-checkbox-minimal::after {
-     color: #ffffff !important;
-  }
-  
-  .mat-mdc-option.mat-mdc-option-active, 
-  .mat-mdc-option:hover {
-    background-color: #f5f5f5 !important;
-  }
-
+  /* Checkbox Color: #0079C1 */
   .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) .mat-pseudo-checkbox-full {
-    background-color: #0079C1 !important; /* The requested blue */
+    background-color: #0079C1 !important;
     border-color: #0079C1 !important;
   }
-  
-  /* Select All styling */
+
+  .mat-pseudo-checkbox-checked::after {
+    color: white !important;
+  }
+
+  /* Style for the Select All item separator */
   .select-all-option {
-    border-bottom: 1px solid #eeeeee;
-    font-weight: bold;
+    border-bottom: 1px solid #E0E0E0;
+    font-weight: 600;
   }
 }
