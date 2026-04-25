@@ -146,11 +146,16 @@
           {{ selectedFilterIds?.length === filterOptions.length ? 'All Columns Selected' : 'Select Options' }}
         </mat-select-trigger>
 
-        <mat-option class="select-all-option" 
+        <!-- <mat-option class="select-all-option" 
                     [value]="'SELECT_ALL'" 
                     (click)="toggleSelectAll($event)">
            Select All
-        </mat-option>
+        </mat-option> -->
+        <mat-option class="select-all-option" 
+            [class.is-indeterminate]="selectAllState === 'indeterminate'"
+            (click)="toggleSelectAll($event)">
+   Select All
+</mat-option>
 
         @for (opt of filterOptions; track opt.id) {
           <mat-option [value]="opt.id">

@@ -636,4 +636,12 @@ onFilterChange(): void {
   this.selectedFilterIds = this.selectedFilterIds.filter(id => id !== 'SELECT_ALL');
   this.syncColumns();
 }
+
+// In your .ts file
+get selectAllState(): 'checked' | 'indeterminate' | 'unchecked' {
+  const count = this.selectedFilterIds.length;
+  if (count === 0) return 'unchecked';
+  if (count === this.filterOptions.length) return 'checked';
+  return 'indeterminate';
+}
 }

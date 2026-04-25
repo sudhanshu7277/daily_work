@@ -370,3 +370,75 @@
     font-weight: 600;
   }
 }
+
+// BELOW FOR SELECT ALL SCSS
+
+/* Use ::ng-deep to reach the mat-select overlay panel which lives outside the component */
+::ng-deep .bmo-custom-dropdown-panel {
+  background-color: #ffffff !important;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+
+  /* 1. THE SELECT ALL OPTION */
+  .select-all-option {
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+
+    /* Indeterminate State: Blue Background + White Horizontal Line */
+    &.is-indeterminate {
+      .mat-pseudo-checkbox {
+        background-color: #0079C1 !important; // Your requested blue
+        border-color: #0079C1 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* Create the horizontal minus line */
+        &::after {
+          content: "";
+          position: absolute;
+          width: 10px;      /* Length of line */
+          height: 2px;      /* Thickness of line */
+          background-color: white !important;
+          border: none !important;
+          transform: none !important; /* Remove the tick rotation */
+          top: unset !important;
+          left: unset !important;
+        }
+      }
+    }
+
+    /* Fully Checked State for Select All */
+    .mat-mdc-option-pseudo-checkbox.mat-pseudo-checkbox-checked {
+      background-color: #0079C1 !important;
+      border-color: #0079C1 !important;
+    }
+  }
+
+  /* 2. INDIVIDUAL FILTER OPTIONS (Grey Ticks as per Figma) */
+  .mat-mdc-option:not(.select-all-option) {
+    &.mdc-list-item--selected {
+      .mat-pseudo-checkbox-full {
+        background-color: #707070 !important; // Grey for individual items
+        border-color: #707070 !important;
+      }
+    }
+  }
+
+  /* 3. GENERAL CHECKBOX STYLING */
+  .mat-pseudo-checkbox-checked::after {
+    color: white !important;
+  }
+}
+
+/* 4. THE TRIGGER CHEVRON (Matches Country Select) */
+.custom-chevron-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 6px;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23004C97' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+}
