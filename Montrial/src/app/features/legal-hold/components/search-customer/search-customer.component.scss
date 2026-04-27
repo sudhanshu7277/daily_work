@@ -287,3 +287,66 @@
     pointer-events: none; // Allows clicking the arrow to open the select
   }
 }
+
+
+// DATE INPUT ELEMENT STYLES BELOW
+
+/* Wrapper for relative positioning of the icon */
+.date-input-wrapper {
+  position: relative;
+  width: 100%;
+
+  /* The Styled HTML5 Date Input */
+  .custom-date-input {
+    width: 100%;
+    height: 40px; /* Standard BMO input height */
+    padding: 0 16px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    color: #333;
+    border: 1px solid #999; /* Subtle grey border from Figma */
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+
+    /* 1. Hide the browser's default calendar/arrow icon */
+    &::-webkit-calendar-picker-indicator,
+    &::-webkit-inner-spin-button,
+    &::-webkit-clear-button {
+      appearance: none;
+      -webkit-appearance: none;
+      display: none;
+    }
+
+    /* 2. Style on Focus */
+    &:focus {
+      border-color: #004c97; /* BMO Blue */
+      box-shadow: 0 0 0 1px #004c97;
+    }
+  }
+
+  /* 3. The Figma-perfect Custom Icon */
+  .custom-calendar-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px; /* Size matched to design */
+    height: 18px;
+    pointer-events: none; /* Clicking icon still triggers input */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    
+    /* URI for the precise blue calendar-chevron icon */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none'%3E%3Cpath d='M14 2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm-1 11H5a1 1 0 0 1 0-2h8a1 1 0 0 1 0 2Zm1-5H4V5h10v3Z' fill='%23004C97'/%3E%3C/svg%3E");
+  }
+}
+
+/* Helper Text Styling */
+.helper-text {
+  display: block;
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}

@@ -225,12 +225,27 @@
         </div>
     
         <div class="form-row three-cols">
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label>Date of Birth</label>
             <div class="date-input-wrapper">
               <input type="text" placeholder="Select" />
               <span class="calendar-icon"></span>
             </div>
+            <small class="helper-text">MM/DD/YYYY</small>
+          </div> -->
+          <div class="form-field-group date-picker-group">
+            <label for="dateOfBirth" class="field-label">Date of Birth</label>
+            
+            <div class="date-input-wrapper">
+              <input type="date" 
+                     id="dateOfBirth"
+                     class="custom-date-input"
+                     placeholder="Select"
+                     formControlName="dateOfBirth">
+                     
+              <span class="custom-calendar-icon"></span>
+            </div>
+            
             <small class="helper-text">MM/DD/YYYY</small>
           </div>
           <div class="form-group">
@@ -242,11 +257,6 @@
             <input type="email" placeholder="example@123mail.com" />
           </div>
         </div>
-      </div>
-    
-      <div class="form-actions">
-        <button type="button" class="btn-clear">CLEAR</button>
-        <button type="button" class="btn-search">SEARCH</button>
       </div>
     </div>
   </div>
