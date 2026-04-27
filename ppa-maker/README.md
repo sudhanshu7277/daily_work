@@ -801,3 +801,24 @@ The reason is that our packages are published to npm-icg-teamdev-local — a loc
 Add npm-icg-teamdev-local as a source repository inside the npm-teamdev virtual registry
 
 
+
+EMAIL TO KARTHIK:
+
+Request: Add npm-icg-teamdev-local as a source in npm-teamdev virtual registry
+
+
+
+Hi Team,
+
+We have npm packages published to npm-icg-teamdev-local (scope: @citi-icg-169779) that consuming teams can install locally. However, Lightspeed CI/CD builds are failing with a 403 because the build agent only has access to the npm-teamdev virtual registry, not npm-icg-teamdev-local directly.
+
+Request: Please add npm-icg-teamdev-local as an included source repository inside the npm-teamdev virtual registry.
+
+This requires no changes on the consuming teams' side — the build agent will continue using npm-teamdev and our packages will resolve automatically.
+
+Please let us know if a CMP ticket or additional approval is needed.
+
+Thanks,
+[Your Name] | ICG-169779
+
+
