@@ -39,3 +39,39 @@ spring:
 spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+
+    Instead, create a mock KafkaTemplate bean that only activates locally. Create a new file:
+src/main/java/com/citi/issuer/sharedservices/payment/config/LocalKafkaConfig.java
+
+
+package com.citi.issuer.sharedservices.payment.config;
+
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+@Profile("local")
+public class LocalKafkaConfig {
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
+    }
+}
+
+then run: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
+
+then run: Select-String -Path output.txt -Pattern "Caused by|Started"
