@@ -22,3 +22,5 @@ service:
     Select-String -Path output.txt -Pattern "Caused by|FileNotFoundException|NoSuchFile|getInputStream"
 
     search for : SdkUtils or setupClientSsl   in CitiHttpClientConfig.java
+
+    run cmd: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
