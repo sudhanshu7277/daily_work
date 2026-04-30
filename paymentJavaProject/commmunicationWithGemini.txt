@@ -21,4 +21,4 @@ NEW CHANGES RUN THE BELOW 2 COMMANDS :
 
 mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
 
-Select-String -Path output.txt -Pattern "Caused by|Started"
+Select-String -Path output.txt -Pattern "Caused by|Started|tampered"
