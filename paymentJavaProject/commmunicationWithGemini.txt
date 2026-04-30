@@ -15,3 +15,10 @@ entitlement:
 service:
   retry:
     max-attempts: 3
+
+
+    run the below cmd:
+
+    Select-String -Path output.txt -Pattern "Caused by|FileNotFoundException|NoSuchFile|getInputStream"
+
+    search for : SdkUtils or setupClientSsl   in CitiHttpClientConfig.java
