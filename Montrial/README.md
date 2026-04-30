@@ -290,3 +290,53 @@ User checks the parent row checkbox. All children auto-select. Full cluster appe
 User unchecks a child. Parent auto-deselects. Record removed from Selected Profiles panel.
 8. Paginate
 User changes items per page to 25 or navigates to page 2. Range label updates to 11-25 of 100. Previous/Next and direct page number navigation available with ellipsis for large datasets.
+
+
+
+ADVANCED SEARCH JIRA:
+
+JIRA Ticket: LH-102 | Implement Advanced Search & Results Filter UI
+Description
+Implementation of the advanced search criteria and results grid filtering to align with Figma UX requirements. This includes custom-styled form controls, hierarchical data filtering, and grid column management.
+
+User Flow
+Initiate Search: User navigates to the "Manage Legal Hold" screen and selects "Individual" or "Entity."
+
+Advanced Criteria: User toggles "ADVANCED SEARCH OPTIONS" to reveal extended fields (Country, Address, DOB, etc.).
+
+Execute Search: User enters criteria (e.g., "Corp 4") and clicks "Search."
+
+View Results: The system filters the nested data source, flattens the tree, and renders matching parent nodes and their children in the AG Grid.
+
+Refine View: User opens the "Display Column" dropdown to toggle specific column visibility.
+
+Implementation Steps Covered
+1. Advanced Search Form
+Created a collapsible advanced search section using standard HTML5/SCSS.
+
+Implemented custom-styled select and input fields to match BMO design (removing default browser appearance).
+
+Built a custom Date of Birth input with an anchored calendar icon and showPicker() functionality.
+
+2. Search & Filtering Logic
+Developed a filterByParentProfileName service function to search the master nested data.
+
+Implemented a recursive tree-flattening utility to ensure AG Grid correctly displays parent-child relationships after filtering.
+
+Applied assignLevels logic to maintain hierarchical indentation and expansion states.
+
+3. Grid Column Management ("Display Column")
+Built a custom dropdown (non-Material) for toggling AG Grid column visibility.
+
+Select All Logic:
+
+Implemented a "Master Toggle" with three states: Unchecked, Checked (Blue background + Tick), and Indeterminate (Blue background + White horizontal line).
+
+Syncing: Integrated gridApi.setColumnVisible to show/hide columns dynamically based on selection.
+
+4. Styling & UX Improvements
+Standardized colors: BMO Blue (#004C97) and Checkbox Blue (#0079C1).
+
+Implemented custom SVG-based chevrons for all dropdowns to ensure stability across window resizes.
+
+Optimized layout for Developer Tools visibility using box-sizing: border-box and relative positioning.
