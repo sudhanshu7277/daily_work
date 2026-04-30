@@ -1,2 +1,5 @@
 $env:CONFIG_PATH="C:\Users\SJ81534\Documents\APPIAN-TO-JAVA\179025.shared-services.payment\"
 mvn spring-boot:run -s settings.xml "-Dspring-boot.run.profiles=local,gab"
+
+
+run comd: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -X > output.txt 2>&1
