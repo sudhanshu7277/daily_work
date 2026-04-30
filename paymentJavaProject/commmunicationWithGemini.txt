@@ -22,3 +22,20 @@ NEW CHANGES RUN THE BELOW 2 COMMANDS :
 mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
 
 Select-String -Path output.txt -Pattern "Caused by|Started|tampered"
+
+application-local.yml
+
+
+spring:
+  kafka:
+    security:
+      protocol: PLAINTEXT
+    ssl:
+      key-store-location:
+      key-store-password:
+      trust-store-location:
+      trust-store-password:
+
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
