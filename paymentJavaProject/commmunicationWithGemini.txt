@@ -45,7 +45,11 @@ spring:
 src/main/java/com/citi/issuer/sharedservices/payment/config/LocalKafkaConfig.java
 
 
-package com.citi.issuer.sharedservices.payment.config;
+
+create a file inside configuration folder: LocalKafkaConfig.java
+
+
+package com.citi.issuer.sharedservices.payment.configuration;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -54,7 +58,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,6 +74,9 @@ public class LocalKafkaConfig {
         return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
     }
 }
+
+
+
 
 then run: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
 
