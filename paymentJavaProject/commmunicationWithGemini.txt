@@ -5,3 +5,13 @@ mvn spring-boot:run -s settings.xml "-Dspring-boot.run.profiles=local,gab"
 run comd: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -X > output.txt 2>&1
 
 run this cmd:   mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests
+
+add these to application-local.yml
+
+entitlement:
+  api:
+    url: https://shared-services-entitlement-icg-msst-shared-services-179025.apps.namicggtd48d.ecs.dyn.nsroot.net/api/v1/issuer/entitlement
+
+service:
+  retry:
+    max-attempts: 3
