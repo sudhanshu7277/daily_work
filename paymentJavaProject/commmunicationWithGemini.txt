@@ -35,3 +35,8 @@ service:
     Select-String -Path output.txt -Pattern "Caused by|COMPILATION ERROR|Started|Non-resolvable"
 
     Select-String -Path src\main\resources\*.yml -Pattern "client.jks|NT02981"
+
+
+
+Run to find if NT02981 is present:
+    Select-String -Path src\main\resources\*.yml -Pattern "NT02981|client.jks"
