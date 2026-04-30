@@ -17,19 +17,8 @@ service:
     max-attempts: 3
 
 
-    run the below cmd:
+NEW CHANGES RUN THE BELOW 2 COMMANDS :
 
-    Select-String -Path output.txt -Pattern "Caused by|FileNotFoundException|NoSuchFile|getInputStream"
+mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
 
-    search for : SdkUtils or setupClientSsl   in CitiHttpClientConfig.java
-
-    run cmd: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
-
-
-
-
-    RUN BOTH COMMANDS:
-
-    mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
-
-    Select-String -Path output.txt -Pattern "Caused by|Started"
+Select-String -Path output.txt -Pattern "Caused by|Started"
