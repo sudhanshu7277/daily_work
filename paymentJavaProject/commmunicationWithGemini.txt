@@ -24,3 +24,12 @@ service:
     search for : SdkUtils or setupClientSsl   in CitiHttpClientConfig.java
 
     run cmd: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
+
+
+
+
+    RUN BOTH COMMANDS:
+
+    mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
+
+    Select-String -Path output.txt -Pattern "Caused by|COMPILATION ERROR|Started|Non-resolvable"
