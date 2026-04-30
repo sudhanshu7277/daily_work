@@ -33,3 +33,5 @@ service:
     mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests > output.txt 2>&1
 
     Select-String -Path output.txt -Pattern "Caused by|COMPILATION ERROR|Started|Non-resolvable"
+
+    Select-String -Path src\main\resources\*.yml -Pattern "client.jks|NT02981"
