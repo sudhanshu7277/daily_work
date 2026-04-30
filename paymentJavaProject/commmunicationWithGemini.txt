@@ -3,3 +3,5 @@ mvn spring-boot:run -s settings.xml "-Dspring-boot.run.profiles=local,gab"
 
 
 run comd: mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -X > output.txt 2>&1
+
+run this cmd:   mvn spring-boot:run "-Dspring-boot.run.profiles=local" -s settings.xml -DskipTests
