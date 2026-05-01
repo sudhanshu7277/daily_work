@@ -1,0 +1,93 @@
+@use 'abstracts' as *;
+
+:host { display: contents; }
+
+.gab-modal {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 22, 30, 0.55);
+    backdrop-filter: blur(2px);
+    animation: gab-fade-in $transition-base;
+  }
+
+  &__panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: calc(100vh - #{$space-8});
+    background: $color-neutral-0;
+    border-radius: $radius-xl;
+    box-shadow: $shadow-xl;
+    overflow: hidden;
+    animation: gab-zoom-in $transition-base;
+
+    &[data-size='sm'] { max-width: 420px; }
+    &[data-size='md'] { max-width: 640px; }
+    &[data-size='lg'] { max-width: 880px; }
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-3;
+    padding: $space-4 $space-5;
+    border-bottom: $border-width-thin solid $color-neutral-100;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-neutral-900;
+  }
+
+  &__close {
+    @include flex-center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 0;
+    border-radius: $radius-sm;
+    color: $color-neutral-500;
+    cursor: pointer;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:hover { background: $color-neutral-100; color: $color-neutral-700; }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  &__body {
+    padding: $space-5;
+    overflow-y: auto;
+    @include scrollbar-thin;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $space-2;
+    padding: $space-3 $space-5;
+    border-top: $border-width-thin solid $color-neutral-100;
+    background: $color-neutral-50;
+
+    &:empty { display: none; }
+  }
+}
+
+@keyframes gab-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gab-zoom-in {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}

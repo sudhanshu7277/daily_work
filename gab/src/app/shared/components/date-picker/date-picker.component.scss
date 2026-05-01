@@ -1,0 +1,20 @@
+@use 'abstracts' as *;
+
+:host { display: block; }
+
+.gab-datepicker {
+  position: relative;
+
+  .gab-input {
+    @include input-base;
+    cursor: pointer;
+    padding-right: $space-3;
+
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      filter: invert(0.4);
+    }
+
+    &:hover::-webkit-calendar-picker-indicator { filter: invert(0.2); }
+  }
+}

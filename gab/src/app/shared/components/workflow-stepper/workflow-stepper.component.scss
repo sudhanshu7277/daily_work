@@ -1,0 +1,119 @@
+@use 'abstracts' as *;
+
+:host { display: block; }
+
+$marker-size: 28px;
+$connector-thickness: 2px;
+
+.gab-stepper {
+  display: flex;
+  align-items: stretch;
+  padding: $space-4 0;
+  margin: 0;
+  list-style: none;
+  counter-reset: step;
+  overflow-x: auto;
+  @include scrollbar-thin;
+
+  &[data-orientation='vertical'] {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  &__step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-2;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 $space-2;
+    text-align: center;
+
+    [data-orientation='vertical'] & {
+      flex-direction: row;
+      text-align: left;
+      padding: $space-2 0;
+    }
+  }
+
+  &__marker {
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $marker-size;
+    height: $marker-size;
+    background: $color-neutral-100;
+    color: $color-neutral-500;
+    border: $border-width-thin solid $color-neutral-300;
+    border-radius: $radius-circle;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    transition: background-color $transition-base, border-color $transition-base,
+      color $transition-base;
+  }
+
+  &__index { line-height: 1; }
+
+  &__label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    color: $color-neutral-600;
+    @include truncate;
+    max-width: 100%;
+  }
+
+  // Connector line — drawn between steps using the previous step's pseudo-line
+  &__connector {
+    position: absolute;
+    top: calc(#{$marker-size} / 2);
+    left: -50%;
+    width: 100%;
+    height: $connector-thickness;
+    background: $color-neutral-200;
+    z-index: 0;
+
+    [data-orientation='vertical'] & {
+      top: 0;
+      left: calc(#{$marker-size} / 2 - 1px);
+      width: $connector-thickness;
+      height: 100%;
+    }
+  }
+
+  &__step:first-child .gab-stepper__connector { display: none; }
+
+  // States — match the green checks + blue current from Figs 2 & 3
+  [data-state='completed'] {
+    .gab-stepper__marker {
+      background: $color-success-500;
+      border-color: $color-success-500;
+      color: $color-neutral-0;
+    }
+    .gab-stepper__connector { background: $color-success-500; }
+    .gab-stepper__label { color: $color-neutral-700; }
+  }
+
+  [data-state='current'] {
+    .gab-stepper__marker {
+      background: $color-warning-500;
+      border-color: $color-warning-500;
+      color: $color-neutral-0;
+      box-shadow: 0 0 0 4px rgba(232, 148, 33, 0.18);
+    }
+    .gab-stepper__label {
+      color: $color-neutral-900;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  [data-state='rejected'] {
+    .gab-stepper__marker {
+      background: $color-danger-600;
+      border-color: $color-danger-600;
+      color: $color-neutral-0;
+    }
+  }
+}

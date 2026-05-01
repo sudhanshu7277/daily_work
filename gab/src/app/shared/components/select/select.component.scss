@@ -1,0 +1,27 @@
+@use 'abstracts' as *;
+
+:host { display: block; }
+
+.gab-select {
+  position: relative;
+
+  &__control {
+    @include input-base;
+    padding-right: $space-8;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+    cursor: pointer;
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__caret {
+    position: absolute;
+    right: $space-3;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $color-neutral-500;
+    pointer-events: none;
+  }
+}

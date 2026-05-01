@@ -1,0 +1,48 @@
+@use '../abstracts' as *;
+
+// Initial loader (visible until app bootstraps)
+.gab-app__loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-neutral-50;
+}
+
+.gab-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $color-neutral-200;
+  border-top-color: $color-primary-600;
+  border-radius: $radius-circle;
+  animation: gab-spin 0.8s linear infinite;
+}
+
+@keyframes gab-spin {
+  to { transform: rotate(360deg); }
+}
+
+// Page container — every feature route's outermost element
+.gab-page {
+  padding: $content-padding-y $content-padding-x;
+  max-width: $content-max-width;
+  margin: 0 auto;
+
+  @include breakpoint-down(md) {
+    padding: $space-4 $space-3;
+  }
+}
+
+// Card — used inside pages for grouped content
+.gab-card {
+  @include card-surface;
+  padding: $space-6;
+
+  @include breakpoint-down(md) {
+    padding: $space-4;
+  }
+
+  &--flush { padding: 0; }
+  &--tight { padding: $space-4; }
+}

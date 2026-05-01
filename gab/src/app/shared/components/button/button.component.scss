@@ -1,0 +1,103 @@
+@use 'abstracts' as *;
+
+:host { display: inline-block; }
+
+.gab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: 0 $space-4;
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  border: $border-width-thin solid transparent;
+  border-radius: $radius-pill;
+  cursor: pointer;
+  transition: background-color $transition-fast, border-color $transition-fast,
+    color $transition-fast, box-shadow $transition-fast;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+
+  &:disabled { cursor: not-allowed; opacity: 0.55; }
+  &:focus-visible { @include focus-ring; }
+
+  &__content { display: inline-flex; align-items: center; gap: $space-2; }
+  &__content--hidden { visibility: hidden; }
+
+  &__spinner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: $radius-circle;
+    animation: gab-spin 0.6s linear infinite;
+  }
+
+  // Sizes
+  &--sm { height: $input-height-sm; font-size: $font-size-sm; padding: 0 $space-3; }
+  &--md { height: $input-height-md; }
+  &--lg { height: $input-height-lg; padding: 0 $space-5; }
+  &--block { display: flex; width: 100%; }
+
+  // Primary — solid Citi navy
+  &--primary {
+    background: $color-primary-700;
+    color: $color-neutral-0;
+    border-color: $color-primary-700;
+
+    &:hover:not(:disabled) {
+      background: $color-primary-800;
+      border-color: $color-primary-800;
+    }
+    &:active:not(:disabled) {
+      background: $color-primary-900;
+      border-color: $color-primary-900;
+    }
+  }
+
+  // Secondary — outlined
+  &--secondary {
+    background: transparent;
+    color: $color-primary-700;
+    border-color: $color-primary-300;
+
+    &:hover:not(:disabled) {
+      background: $color-primary-50;
+      border-color: $color-primary-600;
+    }
+    &:active:not(:disabled) { background: $color-primary-100; }
+  }
+
+  // Tertiary — text-only with hover bg
+  &--tertiary {
+    background: transparent;
+    color: $color-primary-700;
+    border-color: transparent;
+
+    &:hover:not(:disabled) { background: $color-primary-50; }
+  }
+
+  // Danger
+  &--danger {
+    background: $color-danger-600;
+    color: $color-neutral-0;
+    border-color: $color-danger-600;
+
+    &:hover:not(:disabled) { background: $color-danger-700; border-color: $color-danger-700; }
+  }
+
+  // Ghost — for header / toolbar buttons on dark backgrounds
+  &--ghost {
+    background: transparent;
+    color: inherit;
+    border-color: transparent;
+
+    &:hover:not(:disabled) { background: rgba(0, 0, 0, 0.05); }
+  }
+}

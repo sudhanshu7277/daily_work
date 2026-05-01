@@ -1,0 +1,123 @@
+@use 'abstracts' as *;
+
+:host { display: contents; }
+
+.gab-header {
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  height: $header-height;
+  padding: 0 $space-4;
+  background: $color-primary-800;
+  color: $color-neutral-0;
+  box-shadow: $shadow-sm;
+
+  &__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    border-radius: $radius-sm;
+    transition: background-color $transition-fast;
+
+    &:hover { background-color: rgba(255, 255, 255, 0.1); }
+    &:focus-visible {
+      outline: 2px solid $color-neutral-0;
+      outline-offset: -2px;
+    }
+  }
+
+  &__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    color: inherit;
+    text-decoration: none;
+    font-weight: $font-weight-semibold;
+
+    &:hover { text-decoration: none; color: inherit; }
+  }
+
+  &__brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0 $space-1;
+    background: $color-neutral-0;
+    color: $color-primary-800;
+    border-radius: $radius-sm;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.04em;
+  }
+
+  &__brand-text {
+    font-size: $font-size-md;
+    letter-spacing: -0.01em;
+
+    @include breakpoint-down(sm) { display: none; }
+  }
+
+  &__spacer { flex: 1 1 auto; }
+
+  &__loading {
+    display: inline-flex;
+    align-items: center;
+    margin-right: $space-2;
+  }
+
+  &__user {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+  }
+
+  &__user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: $color-primary-600;
+    color: $color-neutral-0;
+    border-radius: $radius-circle;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+  }
+
+  &__user-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: $line-height-tight;
+
+    @include breakpoint-down(md) { display: none; }
+  }
+
+  &__user-name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+  }
+
+  &__user-role {
+    font-size: $font-size-xs;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.gab-spinner--sm {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: $color-neutral-0;
+}

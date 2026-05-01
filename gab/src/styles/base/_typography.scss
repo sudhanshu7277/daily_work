@@ -1,0 +1,23 @@
+@use '../abstracts' as *;
+
+.gab-text-xs   { font-size: $font-size-xs; }
+.gab-text-sm   { font-size: $font-size-sm; }
+.gab-text-base { font-size: $font-size-base; }
+.gab-text-lg   { font-size: $font-size-lg; }
+.gab-text-xl   { font-size: $font-size-xl; }
+.gab-text-2xl  { font-size: $font-size-2xl; }
+.gab-text-3xl  { font-size: $font-size-3xl; }
+
+.gab-font-regular  { font-weight: $font-weight-regular; }
+.gab-font-medium   { font-weight: $font-weight-medium; }
+.gab-font-semibold { font-weight: $font-weight-semibold; }
+.gab-font-bold     { font-weight: $font-weight-bold; }
+
+.gab-text-muted   { color: $color-neutral-500; }
+.gab-text-default { color: $color-neutral-800; }
+.gab-text-primary { color: $color-primary-700; }
+.gab-text-success { color: $color-success-600; }
+.gab-text-warning { color: $color-warning-600; }
+.gab-text-danger  { color: $color-danger-600; }
+
+.gab-truncate { @include truncate; }

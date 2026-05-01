@@ -1,0 +1,23 @@
+@use 'abstracts' as *;
+
+:host {
+  display: block;
+  position: relative;
+}
+
+.gab-textarea {
+  @include input-base;
+  height: auto;
+  min-height: 80px;
+  padding: $space-2 $input-padding-x;
+  resize: vertical;
+  line-height: $line-height-base;
+
+  &__count {
+    position: absolute;
+    right: $space-2;
+    bottom: $space-1;
+    font-size: $font-size-xs;
+    color: $color-neutral-400;
+  }
+}

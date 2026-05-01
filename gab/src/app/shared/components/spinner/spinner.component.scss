@@ -1,0 +1,28 @@
+@use 'abstracts' as *;
+
+:host { display: inline-flex; }
+
+.gab-spinner-cmp {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-primary-600;
+
+  &__circle {
+    display: inline-block;
+    border-style: solid;
+    border-color: currentColor;
+    border-right-color: transparent;
+    border-radius: $radius-circle;
+    animation: gab-spin 0.7s linear infinite;
+  }
+
+  &--sm .gab-spinner-cmp__circle { width: 14px; height: 14px; border-width: 2px; }
+  &--md .gab-spinner-cmp__circle { width: 24px; height: 24px; border-width: 2.5px; }
+  &--lg .gab-spinner-cmp__circle { width: 40px; height: 40px; border-width: 3px; }
+
+  &__label {
+    font-size: $font-size-sm;
+    color: $color-neutral-600;
+  }
+}

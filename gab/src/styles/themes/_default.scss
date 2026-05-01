@@ -1,0 +1,44 @@
+@use '../abstracts' as *;
+
+// Expose tokens as CSS variables so JS-driven themes can override at runtime.
+:root {
+  // Brand
+  --gab-color-primary: #{$color-primary-800};
+  --gab-color-primary-hover: #{$color-primary-700};
+  --gab-color-primary-active: #{$color-primary-900};
+  --gab-color-primary-50: #{$color-primary-50};
+  --gab-color-primary-100: #{$color-primary-100};
+
+  // Surfaces
+  --gab-color-surface: #{$color-neutral-0};
+  --gab-color-surface-alt: #{$color-neutral-50};
+  --gab-color-surface-muted: #{$color-neutral-100};
+
+  // Text
+  --gab-color-text: #{$color-neutral-800};
+  --gab-color-text-muted: #{$color-neutral-500};
+  --gab-color-text-on-primary: #{$color-neutral-0};
+
+  // Border
+  --gab-color-border: #{$color-neutral-200};
+  --gab-color-border-strong: #{$color-neutral-300};
+
+  // Status
+  --gab-color-success: #{$color-success-600};
+  --gab-color-warning: #{$color-warning-600};
+  --gab-color-danger: #{$color-danger-600};
+  --gab-color-info: #{$color-info-600};
+
+  // Radius
+  --gab-radius-sm: #{$radius-sm};
+  --gab-radius-md: #{$radius-md};
+  --gab-radius-lg: #{$radius-lg};
+
+  // Shadow
+  --gab-shadow-sm: #{$shadow-sm};
+  --gab-shadow-md: #{$shadow-md};
+
+  // Layout
+  --gab-header-height: #{$header-height};
+  --gab-sidenav-width: #{$sidenav-width};
+}

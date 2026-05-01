@@ -1,0 +1,130 @@
+// Variables for Citi-Professional Theme
+$citi-blue: #002d72;
+$text-main: #333333;
+$text-muted: #666666;
+$border-color: #d1d9e0;
+$bg-card: #f8f9fa;
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal-container {
+  background: #ffffff;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 24px; // Rounded corners as per image
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-header {
+  margin-bottom: 16px;
+  h1 {
+    font-size: 28px;
+    font-weight: 500;
+    color: $text-main;
+    margin: 0;
+  }
+  .close-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: $text-muted;
+    cursor: pointer;
+  }
+}
+
+.modal-body {
+  .warning-text {
+    font-size: 16px;
+    color: $text-main;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .details-card {
+    background: $bg-card;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+
+    .detail-row {
+      display: flex;
+      margin-bottom: 8px;
+      font-size: 16px;
+
+      .label {
+        font-weight: 700;
+        width: 180px;
+        color: $text-main;
+      }
+      .value {
+        color: $text-main;
+      }
+      .status-pending {
+        color: $text-main;
+      }
+    }
+  }
+
+  .confirmation-prompt {
+    font-size: 15px;
+    color: $text-main;
+    margin-bottom: 32px;
+  }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  button {
+    padding: 12px 32px;
+    border-radius: 50px; // Pill shape buttons
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid $citi-blue;
+    color: $citi-blue;
+    &:hover { background: #f0f4f8; }
+  }
+
+  .btn-primary {
+    background: $citi-blue;
+    border: 1px solid $citi-blue;
+    color: #ffffff;
+    &:hover { background: lighten($citi-blue, 5%); }
+  }
+}
+
+// Responsive Adjustments
+@media (max-width: 480px) {
+  .modal-container { padding: 24px; }
+  .modal-footer {
+    flex-direction: column;
+    button { width: 100%; }
+  }
+  .details-card .detail-row {
+    flex-direction: column;
+    .label { width: 100%; margin-bottom: 2px; }
+  }
+}

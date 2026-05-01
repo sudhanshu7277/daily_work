@@ -1,0 +1,59 @@
+@use 'abstracts' as *;
+
+:host { display: inline-block; }
+
+.gab-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  color: $color-neutral-700;
+  user-select: none;
+
+  &__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  &__indicator {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: $color-neutral-0;
+    border: $border-width-thin solid $color-neutral-400;
+    border-radius: $radius-xs;
+    color: transparent;
+    transition: background-color $transition-fast, border-color $transition-fast,
+      color $transition-fast;
+  }
+
+  &__label { line-height: $line-height-snug; }
+
+  &:hover .gab-checkbox__indicator {
+    border-color: $color-primary-600;
+  }
+
+  .gab-checkbox__input:checked + .gab-checkbox__indicator {
+    background: $color-primary-700;
+    border-color: $color-primary-700;
+    color: $color-neutral-0;
+  }
+
+  .gab-checkbox__input:focus-visible + .gab-checkbox__indicator {
+    @include focus-ring;
+  }
+
+  &--disabled {
+    cursor: not-allowed;
+    color: $color-neutral-400;
+
+    .gab-checkbox__indicator { background: $color-neutral-100; }
+  }
+}

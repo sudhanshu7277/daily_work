@@ -1,0 +1,78 @@
+@use '../abstracts' as *;
+
+// Section block — used inside forms (Client Information, Instruction Details, MPP Process)
+.gab-form-section {
+  margin-bottom: $space-8;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    margin-bottom: $space-4;
+    padding-bottom: $space-2;
+    border-bottom: $border-width-thin solid $color-neutral-100;
+  }
+
+  &__title {
+    @include section-heading;
+    margin: 0;
+  }
+
+  &__caret {
+    color: $color-primary-700;
+    font-size: $font-size-sm;
+    transition: transform $transition-fast;
+  }
+
+  &--collapsed .gab-form-section__caret {
+    transform: rotate(-90deg);
+  }
+
+  &--collapsed .gab-form-section__body {
+    display: none;
+  }
+}
+
+// Form grid — responsive 1/2/3-column layout matching Figs 1, 3
+.gab-form-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: $space-4 $space-5;
+
+  @include breakpoint-up(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include breakpoint-up(lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  // Span helpers
+  & > .gab-col-span-2 {
+    @include breakpoint-up(md) { grid-column: span 2; }
+  }
+  & > .gab-col-span-3 {
+    @include breakpoint-up(lg) { grid-column: span 3; }
+  }
+  & > .gab-col-span-full {
+    grid-column: 1 / -1;
+  }
+}
+
+// Form action bar (cancel + save / next)
+.gab-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  margin-top: $space-8;
+  padding-top: $space-5;
+  border-top: $border-width-thin solid $color-neutral-100;
+
+  &__group {
+    display: flex;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+}

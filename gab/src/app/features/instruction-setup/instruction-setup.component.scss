@@ -1,0 +1,299 @@
+@use 'abstracts' as *;
+
+:host { display: block; }
+
+.gab-setup {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: $color-neutral-50;
+
+  // ── Header ─────────────────────────────────────────────────────────────
+  &__header {
+    background: $color-neutral-0;
+    border-bottom: $border-width-thin solid $color-neutral-200;
+    padding: $space-3 $space-6;
+    box-shadow: $shadow-xs;
+  }
+
+  &__breadcrumb {
+    margin-bottom: $space-2;
+  }
+
+  &__back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    font-size: $font-size-xs;
+    color: $color-neutral-500;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover { color: $color-primary-700; text-decoration: none; }
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-4;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    color: $color-neutral-900;
+    letter-spacing: -0.01em;
+  }
+
+  &__header-actions {
+    display: flex;
+    gap: $space-2;
+  }
+
+  // ── Tab navigation ─────────────────────────────────────────────────────
+  &__tabs {
+    display: flex;
+    background: $color-neutral-0;
+    border-bottom: $border-width-medium solid $color-neutral-200;
+    padding: 0 $space-6;
+    gap: 0;
+  }
+
+  &__tab {
+    padding: $space-3 $space-5;
+    background: transparent;
+    border: none;
+    border-bottom: $border-width-medium solid transparent;
+    margin-bottom: -$border-width-medium;
+    font-family: $font-family-base;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-neutral-500;
+    cursor: pointer;
+    transition: color $transition-fast, border-color $transition-fast;
+    white-space: nowrap;
+
+    &:hover { color: $color-primary-700; }
+
+    &--active {
+      color: $color-primary-700;
+      border-bottom-color: $color-primary-700;
+      font-weight: $font-weight-semibold;
+    }
+
+    &:focus-visible { @include focus-ring; border-radius: $radius-sm; }
+  }
+
+  // ── Form body ──────────────────────────────────────────────────────────
+  &__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-bottom: 80px; // clear the sticky footer
+  }
+
+  // ── Sections (collapsible blocks matching Pega design) ─────────────────
+  &__section {
+    background: $color-neutral-0;
+    border-bottom: $border-width-thin solid $color-neutral-200;
+
+    &--collapsed .gab-setup__section-body { display: none; }
+    &--collapsed .gab-setup__section-caret { transform: rotate(-90deg); }
+  }
+
+  &__section-hdr {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    width: 100%;
+    padding: $space-3 $space-6;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-family: $font-family-base;
+    border-bottom: $border-width-thin solid $color-neutral-100;
+    transition: background-color $transition-fast;
+
+    &:hover { background: $color-neutral-50; }
+    &:focus-visible { @include focus-ring; border-radius: 0; }
+  }
+
+  &__section-caret {
+    font-size: $font-size-lg;
+    color: $color-primary-700;
+    line-height: 1;
+    display: inline-block;
+    transition: transform $transition-fast;
+    user-select: none;
+  }
+
+  &__section-title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $color-primary-700;
+    letter-spacing: 0.01em;
+  }
+
+  &__section-body {
+    padding: $space-5 $space-6 $space-6;
+  }
+
+  // ── MPP block ──────────────────────────────────────────────────────────
+  &__mpp-block {
+    background: $color-neutral-50;
+    border: $border-width-thin solid $color-neutral-200;
+    border-radius: $radius-md;
+    padding: $space-3 $space-4;
+    margin-bottom: $space-5;
+  }
+
+  &__mpp-label {
+    margin: 0 0 $space-2 0;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-neutral-700;
+  }
+
+  &__mpp-note {
+    margin: $space-1 0 0;
+    font-size: $font-size-xs;
+    color: $color-neutral-500;
+    font-style: italic;
+  }
+
+  // ── Radio group / Contract Validation ──────────────────────────────────
+  &__radio-group {
+    display: flex;
+    align-items: center;
+    height: $input-height-md; // aligns with neighboring inputs
+  }
+
+  // ── Additional Information table ───────────────────────────────────────
+  &__additional-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  &__additional-table {
+    th, td { padding: $space-2 $space-3; font-size: $font-size-xs; }
+    th { background: $color-neutral-50; font-weight: $font-weight-semibold; text-transform: none; letter-spacing: 0; }
+  }
+
+  &__additional-empty {
+    padding: $space-4 $space-3 !important;
+    text-align: center;
+    color: $color-neutral-400;
+    font-style: italic;
+  }
+
+  &__inline-input {
+    @include input-base;
+    font-size: $font-size-xs;
+    height: 32px;
+    min-width: 100px;
+  }
+
+  &__row-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: $color-danger-50;
+    color: $color-danger-600;
+    border: none;
+    border-radius: $radius-circle;
+    font-size: $font-size-sm;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:hover { background: $color-danger-100; }
+  }
+
+  &__add-row {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-1 $space-3;
+    background: transparent;
+    color: $color-primary-700;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    font-family: $font-family-base;
+    border: $border-width-thin dashed $color-primary-300;
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: background-color $transition-fast, border-color $transition-fast;
+    align-self: flex-start;
+
+    &:hover { background: $color-primary-50; border-color: $color-primary-600; }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  &__req {
+    color: $color-danger-600;
+  }
+
+  // ── Documents tab ──────────────────────────────────────────────────────
+  &__doc-bar {
+    margin-bottom: $space-4;
+  }
+
+  &__doc-empty {
+    padding: $space-8;
+    text-align: center;
+    background: $color-neutral-50;
+    border: 1px dashed $color-neutral-300;
+    border-radius: $radius-lg;
+  }
+
+  // ── Review tab ─────────────────────────────────────────────────────────
+  &__review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: $space-4;
+  }
+
+  &__review-label {
+    margin: 0 0 $space-1 0;
+    font-size: $font-size-xs;
+    color: $color-neutral-500;
+    font-weight: $font-weight-medium;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__review-value {
+    margin: 0;
+    font-size: $font-size-base;
+    color: $color-neutral-900;
+    font-weight: $font-weight-medium;
+  }
+
+  // ── Sticky form actions ────────────────────────────────────────────────
+  &__actions {
+    position: fixed;
+    bottom: 0;
+    left: $sidenav-width;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $space-3 $space-6;
+    background: $color-neutral-0;
+    border-top: $border-width-thin solid $color-neutral-200;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+    z-index: $z-sticky;
+
+    @include breakpoint-down(md) {
+      left: 0;
+      padding: $space-3 $space-4;
+    }
+  }
+}

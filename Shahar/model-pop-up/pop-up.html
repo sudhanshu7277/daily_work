@@ -1,0 +1,50 @@
+<div class="modal-backdrop">
+    <div class="modal-container">
+      <!-- Header Section -->
+      <header class="modal-header">
+        <h1>Duplicate Transaction Detected</h1>
+        <button class="close-btn" aria-label="Close">&times;</button>
+      </header>
+  
+      <!-- Body Section -->
+      <div class="modal-body">
+        <p class="warning-text">
+          A similar transaction was recently submitted. Proceeding will override the existing transaction.
+        </p>
+  
+        <!-- Transaction Details Card -->
+        <div class="details-card">
+          <div class="detail-row">
+            <span class="label">Sender Reference ID:</span>
+            <span class="value">TXN-2026-00012</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Amount:</span>
+            <span class="value">$150.000,00 | Regular</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Beneficiary:</span>
+            <span class="value">Acme Corp Ldt</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Submitted:</span>
+            <span class="value">Today, 09:14am</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Status:</span>
+            <span class="value status-pending">Pending Approval</span>
+          </div>
+        </div>
+  
+        <p class="confirmation-prompt">
+          Do you want to proceed anyway? If you proceed, the payment will be sent for approval.
+        </p>
+      </div>
+  
+      <!-- Footer Actions -->
+      <footer class="modal-footer">
+        <button class="btn-secondary">Go Back</button>
+        <button class="btn-primary">Create Payment</button>
+      </footer>
+    </div>
+  </div>

@@ -1,0 +1,22 @@
+<nav class="gab-sidenav" [class.gab-sidenav--collapsed]="collapsed()" aria-label="Primary navigation">
+  <ul class="gab-sidenav__list" role="list">
+    @for (item of items; track item.path) {
+      <li class="gab-sidenav__item">
+        <a
+          class="gab-sidenav__link"
+          [routerLink]="item.path"
+          routerLinkActive="gab-sidenav__link--active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          [attr.aria-label]="item.label"
+        >
+          <span class="gab-sidenav__icon" [innerHTML]="item.icon" aria-hidden="true"></span>
+          <span class="gab-sidenav__label">{{ item.label }}</span>
+        </a>
+      </li>
+    }
+  </ul>
+
+  <div class="gab-sidenav__footer">
+    <span class="gab-sidenav__version">v{{ version }}</span>
+  </div>
+</nav>
