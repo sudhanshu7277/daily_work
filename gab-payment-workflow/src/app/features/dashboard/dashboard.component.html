@@ -1,0 +1,59 @@
+<div class="container-fluid p-0">
+    <h4 class="mb-4 text-dark fw-bold">Instructions Dashboard</h4>
+  
+    <!-- Top Metrics Row (Replicating the green blocks in Fig 6) -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4 col-lg-3">
+        <div class="card text-white bg-success border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h6 class="card-title text-uppercase opacity-75 mb-1">Total Active</h6>
+            <h2 class="display-5 fw-bold mb-0">142</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <div class="card text-white bg-success border-0 shadow-sm h-100" style="background-color: #266B2A !important;">
+          <div class="card-body">
+            <h6 class="card-title text-uppercase opacity-75 mb-1">Pending Approval</h6>
+            <h2 class="display-5 fw-bold mb-0">38</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <div class="card text-white bg-success border-0 shadow-sm h-100" style="background-color: #1F5A22 !important;">
+          <div class="card-body">
+            <h6 class="card-title text-uppercase opacity-75 mb-1">Today's Volume</h6>
+            <h2 class="display-5 fw-bold mb-0">$4.2M</h2>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quick Actions (Optional, matches right side of Fig 6) -->
+      <div class="col-md-12 col-lg-3 d-flex flex-column justify-content-center">
+        <div class="bg-white p-3 rounded shadow-sm text-center border">
+          <h3 class="text-primary fw-bold mb-0">23</h3>
+          <small class="text-muted d-block border-bottom pb-2 mb-2">Instructions Created</small>
+          <h3 class="text-success fw-bold mb-0">12</h3>
+          <small class="text-muted d-block">Instructions Authorised</small>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Middle Row: Distribution Charts -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <app-distribution-chart title="Effect by Source" [data]="sourceData"></app-distribution-chart>
+      </div>
+      <div class="col-md-6">
+        <app-distribution-chart title="Status Distribution" [data]="statusData"></app-distribution-chart>
+      </div>
+    </div>
+  
+    <!-- Bottom Row: Data Grid -->
+    <div class="row">
+      <div class="col-12">
+        <app-instruction-grid [rowData]="mockInstructions"></app-instruction-grid>
+      </div>
+    </div>
+  
+  </div>

@@ -1,0 +1,52 @@
+/* --- Dual Blind Keying Input Styling --- */
+.dual-blind-input {
+    /* Remove all standard borders except the bottom */
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    
+    /* The grey line across the field */
+    border-bottom: 3px solid #ced4da;
+    
+    background-color: transparent;
+    color: #0b2265; /* GAB Navy */
+    font-weight: 800; /* Extra bold to stand out */
+    padding-left: 0;
+    box-shadow: none !important;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  
+    /* State when user clicks/focuses on the line */
+    &:focus {
+      border-bottom: 3px solid #0b2265; /* Highlights to Navy */
+      background-color: #ffffff; /* White background to indicate active typing */
+      outline: none;
+    }
+  
+    /* Error state */
+    &.is-invalid {
+      border-bottom: 3px solid #dc3545;
+      background-image: none; /* Hide default bootstrap warning icon for a cleaner look */
+    }
+  
+    &::placeholder {
+      color: #adb5bd;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+  }
+  
+  /* --- Disabled Input (Read-Only) Styling --- */
+  input:disabled {
+    background-color: #e9ecef !important; /* Standard greyed-out background */
+    border: 1px solid #dee2e6;
+    color: #495057; /* Darker grey text for readability */
+    font-weight: 600;
+    cursor: not-allowed;
+    opacity: 1; /* Override iOS Safari default fading */
+  }
+  
+  /* Ensure the modals appear above other content */
+  .modal.show {
+    backdrop-filter: blur(3px);
+  }

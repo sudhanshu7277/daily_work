@@ -1,9 +1,0 @@
-// =============================================================================
-// GAB — root stylesheet
-// Order matters: tokens first, then themes (CSS vars), then base, then components.
-// Feature/component-scoped SCSS imports `abstracts` for tokens & mixins.
-// =============================================================================
-
-@use 'styles/themes';
-@use 'styles/base';
-@use 'styles/components';

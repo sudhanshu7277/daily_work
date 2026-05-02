@@ -1,7 +1,0 @@
-@use 'abstracts' as *;
-
-:host { display: block; }
-
-.gab-input {
-  @include input-base;
-}
