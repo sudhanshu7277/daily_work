@@ -6,7 +6,7 @@ export const InstructionApiActions = createActionGroup({
   events: {
     // Save Draft Flow
     'Save Draft': props<{ payload: Partial<PaymentInstruction> }>(),
-    'Save Draft Success': props<{ response: PaymentInstruction }>(),
+    'Save Draft Success': props<{ response: any }>(),
     'Save Draft Failure': props<{ error: string }>(),
     'Reset Saved State': emptyProps(),
 

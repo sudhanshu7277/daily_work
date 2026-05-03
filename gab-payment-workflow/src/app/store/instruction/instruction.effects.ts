@@ -18,21 +18,24 @@ export class InstructionEffects {
   saveDraft$ = createEffect(() =>
     this.actions$.pipe(
       ofType(InstructionApiActions.saveDraft),
-      mergeMap(action =>
+      // Fix: Add (action: any)
+      mergeMap((action: any) => 
         this.apiService.saveForLater(action.payload).pipe(
-          map(response => InstructionApiActions.saveDraftSuccess({ response })),
-          catchError(error => of(InstructionApiActions.saveDraftFailure({ error: error.message })))
+          // Fix: Add (response: any)
+          map((response: any) => InstructionApiActions.saveDraftSuccess({ response })),
+          catchError((error: any) => of(InstructionApiActions.submitFailure({ error: error.message })))
         )
       )
     )
   );
 
   // 2. On successful save, trigger a global success toast notification
-  saveSuccessNotification$ = createEffect(() =>
+  submitSuccessNotification$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(InstructionApiActions.saveDraftSuccess),
-      map(action => UiActions.showNotification({ 
-        message: `Draft saved successfully! Ref: ${action.response.referenceId}`, 
+      ofType(InstructionApiActions.submitSuccess),
+      // Fix: Add (action: any)
+      map((action: any) => UiActions.showNotification({ 
+        message: `Success: ${action.message}`, 
         toastType: 'success' 
       }))
     )
@@ -42,10 +45,12 @@ export class InstructionEffects {
   submitInstruction$ = createEffect(() =>
     this.actions$.pipe(
       ofType(InstructionApiActions.submitInstruction),
-      mergeMap(action =>
+      // Fix: Add (action: any)
+      mergeMap((action: any) => 
         this.apiService.submitInstruction(action.payload).pipe(
-          map(response => InstructionApiActions.submitSuccess({ message: response.message })),
-          catchError(error => of(InstructionApiActions.submitFailure({ error: error.message })))
+          // Fix: Add (response: any)
+          map((response: any) => InstructionApiActions.submitSuccess({ message: response.message })),
+          catchError((error: any) => of(InstructionApiActions.submitFailure({ error: error.message })))
         )
       )
     )
@@ -101,10 +106,12 @@ export class InstructionEffects {
   extractDocument$ = createEffect(() =>
     this.actions$.pipe(
       ofType(InstructionApiActions.extractDocument),
-      mergeMap(action =>
+      // Fix: Add (action: any)
+      mergeMap((action: any) =>
         this.apiService.extractDataFromDocument(action.file).pipe(
-          map(data => InstructionApiActions.extractDocumentSuccess({ data })),
-          catchError(error => of(InstructionApiActions.extractDocumentFailure({ error: error.message })))
+          // Fix: Add (data: any)
+          map((data: any) => InstructionApiActions.extractDocumentSuccess({ data })),
+          catchError((error: any) => of(InstructionApiActions.extractDocumentFailure({ error: error.message })))
         )
       )
     )
@@ -116,6 +123,17 @@ export class InstructionEffects {
       map(() => UiActions.showNotification({ 
         message: 'Document analyzed! Form populated successfully.', 
         toastType: 'success' 
+      }))
+    )
+  );
+
+  saveDraftSuccessNotification$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InstructionApiActions.saveDraftSuccess),
+      // Fix: Add (action: any)
+      map((action: any) => UiActions.showNotification({ 
+        message: `Draft saved successfully! Ref: ${action.response.referenceId}`, 
+        toastType: 'info' 
       }))
     )
   );
