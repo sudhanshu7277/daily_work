@@ -1,44 +1,42 @@
-import {
-    ColDef,
-    GridApi,
-    GridReadyEvent,
-    ICellRendererParams,
-    SortChangedEvent,         // ← ADD
-  } from 'ag-grid-community';
+//NameHeaderComponent (the second @Component in the file)
+//Fields — add sort and onSort alongside existing state:
 
-  //Add sort state fields after pageSizeOpts:
-typescriptprivate sortField: string | null       = null;
-private sortDir:   'asc' | 'desc' | null = null;
+state: 'none' | 'some' | 'all' = 'none';
+sort:  'none' | 'asc' | 'desc' = 'none';  // ← ADD
+private onSelectAll!: (v: boolean) => void;
+private onSort!: () => void;               // ← ADD
 
-//3. In NameHeaderComponent — add sort field, onSort callback, and sort icon to template:
-//In the class fields add:
-//typescript
 
-sort: 'none' | 'asc' | 'desc' = 'none';
-private onSort!: () => void;
 
-//In agInit() add:
-//typescript
+// agInit() — add two lines:
 
-this.sort   = p.sort   ?? 'none';
-this.onSort = p.onSort;
+agInit(p: any): void {
+    this.state       = p.state   ?? 'none';
+    this.sort        = p.sort    ?? 'none';  // ← ADD
+    this.onSelectAll = p.onSelectAll;
+    this.onSort      = p.onSort;             // ← ADD
+    this.cdr.detectChanges();
+  }
 
-//In refresh() add:
-//typescript
+  // refresh() — add one line:
 
-this.sort = p.sort ?? 'none';
+  refresh(p: any): boolean {
+    this.state = p.state ?? 'none';
+    this.sort  = p.sort  ?? 'none';  // ← ADD
+    this.cdr.detectChanges();
+    return true;
+  }
 
-//Add onSortClick method:
-//typescript
+  // onSortClick() method — add alongside onClick():
 
-onSortClick(e: MouseEvent): void {
-  e.stopPropagation();
-  this.onSort?.();
-}
+  onSortClick(e: MouseEvent): void {
+    e.stopPropagation();
+    this.onSort?.();
+  }
 
-//Add sort icon to the template after <span class="hdr-label">Profile Name</span>:
+  // Template — add sort icon after <span class="hdr-label">Profile Name</span>:
 
-<span class="hdr-sort" (click)="onSortClick($event)">
+  <span class="hdr-sort" (click)="onSortClick($event)">
   <svg *ngIf="sort === 'none'" viewBox="0 0 10 14" fill="none" width="10" height="14">
     <path d="M5 1v12M1 4l4-3 4 3M1 10l4 3 4-3"
           stroke="#1c2333" stroke-width="1.5"
@@ -56,24 +54,29 @@ onSortClick(e: MouseEvent): void {
   </svg>
 </span>
 
-// Add to NameHeaderComponent styles:
+  // Styles — add inside NameHeaderComponent's styles: [...]:
 
-.hdr-sort { display:inline-flex; align-items:center; margin-left:4px; cursor:pointer; flex-shrink:0; opacity:0.7; }
+  .hdr-sort { display:inline-flex; align-items:center; margin-left:4px; cursor:pointer; flex-shrink:0; opacity:0.7; }
 .hdr-sort:hover { opacity:1; }
 
-// 4. In columnDefs — update headerComponentParams for the legalName column:
+// CustomerSearchGridComponent (the third and main @Component)
+//Import — SortChangedEvent in the ag-grid-community import at the top of the file.
+//Fields — add after pageSizeOpts:
 
+private sortField: string | null        = null;
+private sortDir:   'asc' | 'desc' | null = null;
+
+// columnDefs constructor — on the legalName column, add suppressHeaderMenuButton and update headerComponentParams:
+
+suppressHeaderMenuButton: true,
 headerComponentParams: {
-    state:       'none' as 'none' | 'some' | 'all',
-    sort:        'none' as 'none' | 'asc' | 'desc',   // ← ADD
-    onSelectAll: (select: boolean) => this.onSelectAll(select),
-    onSort:      () => this.toggleProfileNameSort(),   // ← ADD
-  },
+  state:       'none' as 'none' | 'some' | 'all',
+  sort:        'none' as 'none' | 'asc' | 'desc',  // ← ADD
+  onSelectAll: (select: boolean) => this.onSelectAll(select),
+  onSort:      () => this.toggleProfileNameSort(),  // ← ADD
+},
 
-
-  // Also add suppressHeaderMenuButton: true to the legalName column def.
-// 5. Sort this.tree inside refresh() before flattenTree():
-
+// refresh() — add sort block before flattenTree():
 
 if (this.sortField && this.sortDir) {
     const dir = this.sortDir === 'asc' ? 1 : -1;
@@ -85,8 +88,7 @@ if (this.sortField && this.sortDir) {
     });
   }
 
-
-  // 6. Update syncHeaderCheckbox() — also pass sort state into header params:
+  // syncHeaderCheckbox() — add sort to the params spread:
 
   const sort: 'none' | 'asc' | 'desc' =
   this.sortField === 'legalName' && this.sortDir ? this.sortDir : 'none';
@@ -96,12 +98,11 @@ this.columnDefs[0] = {
   headerComponentParams: {
     ...this.columnDefs[0].headerComponentParams,
     state,
-    sort,   // ← ADD
+    sort,  // ← ADD
   },
 };
 
-
-// 7. Add toggleProfileNameSort() method:
+// New methods — add before onGridReady():
 
 private toggleProfileNameSort(): void {
     if (this.sortField !== 'legalName') {
@@ -120,10 +121,7 @@ private toggleProfileNameSort(): void {
     this.currentPage = 1;
     this.refresh();
   }
-
-
-  // 8. Add onSortChanged() method:
-
+  
   onSortChanged(e: SortChangedEvent): void {
     const col = e.api.getColumnState().find(c => c.sort != null);
     if (col) {
@@ -138,14 +136,17 @@ private toggleProfileNameSort(): void {
   }
 
 
-  // HTML change — add (sortChanged) to the grid tag:
+  // HTML — ag-grid-angular tag
+// Add one binding:
 
-  (sortChanged)="onSortChanged($event)"
+
+(sortChanged)="onSortChanged($event)"
 
 
-  // SCSS change — hide AG Grid's native sort icon on the legalName column (we render our own), keep it for Legal Hold Status:
+// SCSS — inside ::ng-deep .ag-theme-alpine.csg-grid
+// Add after the existing sort icon rules:
 
-  .ag-header-cell[col-id="legalName"] {
+.ag-header-cell[col-id="legalName"] {
     .ag-sort-indicator-container,
     .ag-sort-indicator-icon { display: none !important; }
   }
