@@ -1,0 +1,278 @@
+h1. PPA Payment Components — Consumer Integration Guide
+
+{info}
+*Packages:* @citi-icg-169779/payment-maker · @citi-icg-169779/payment-checker · v1.0.0
+{info}
+
+----
+
+h2. What you get
+
+|| Package || Selector || What it does ||
+| @citi-icg-169779/payment-maker | {noformat}<pm-maker-form>{noformat} | Editable Pain001 payment form. Validates fields, checks hardcap on Transaction Amount, submits via POST. |
+| @citi-icg-169779/payment-checker | {noformat}<pc-checker-form>{noformat} | Read-only view of the same form. Loads data via GET. Checker can modify the Transaction Amount, then Approve or Reject. |
+
+----
+
+h2. Step 1 — Configure .npmrc
+
+Add these two lines to your project .npmrc. This tells pnpm where to find and install the scoped packages.
+
+{code:ini}
+# Add to your project .npmrc
+@citi-icg-169779:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/:_authToken=${NPM_AUTH_TOKEN}
+{code}
+
+----
+
+h2. Step 2 — Authenticate
+
+Set your Citi Artifactory token as an environment variable. Use the same token from your existing Citi project .npmrc (the eyJ... string).
+
+*Windows PowerShell*
+{code:powershell}
+$env:NPM_AUTH_TOKEN = "eyJ..."   # paste your full token here
+{code}
+
+*macOS / Linux*
+{code:bash}
+export NPM_AUTH_TOKEN="eyJ..."
+{code}
+
+{note}
+*Recommended:* Add the token line directly to your global .npmrc at *C:\Users\<SOEID>\.npmrc* — this avoids having to set it every session and is the most reliable approach on Windows Git Bash.
+{note}
+
+*Add to global .npmrc (C:\Users\<SOEID>\.npmrc)*
+{code:ini}
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/:_authToken=eyJ...
+{code}
+
+*Verify authentication*
+{code:bash}
+pnpm whoami --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+# Should print your Citi SOEID
+{code}
+
+----
+
+h2. Step 3 — Install
+
+{code:bash}
+pnpm install @citi-icg-169779/payment-maker
+pnpm install @citi-icg-169779/payment-checker
+{code}
+
+----
+
+h2. Step 4 — Project Setup
+
+*Add Bootstrap to angular.json*
+{code:json}
+"styles": [
+  "node_modules/bootstrap/dist/css/bootstrap.min.css",
+  "src/styles.scss"
+]
+{code}
+
+*Add provideHttpClient to main.ts*
+{code:typescript}
+import { provideHttpClient } from '@angular/common/http';
+
+bootstrapApplication(AppComponent, {
+  providers: [provideHttpClient()]
+});
+{code}
+
+----
+
+h2. Step 5 — Use payment-maker
+
+*Component class*
+{code:typescript}
+import {
+  MakerFormComponent,
+  PaymentComponentInput,
+  MakerSubmitResponse,
+  FormFieldConfig,
+  DEFAULT_FIELD_CONFIG
+} from '@citi-icg-169779/payment-maker';
+
+@Component({ standalone: true, imports: [MakerFormComponent] })
+export class YourComponent {
+
+  paymentInput: PaymentComponentInput = {
+    applicationName:   'YOUR_APP',
+    applicationModule: 'YOUR_MODULE',
+    region:            'US',
+    useMockApi:        true,   // true = mock, false = real HTTP calls
+    makerSubmitUrl:    'https://your-api.com/api/v1/pain001/maker/submit',
+    hardcapCheckUrl:   'https://your-api.com/api/v1/pain001/hardcap/check',
+    headers: { 'Authorization': 'Bearer your-token' }
+  };
+
+  fieldConfig: FormFieldConfig[] = DEFAULT_FIELD_CONFIG;
+
+  onSubmitted(res: MakerSubmitResponse): void {
+    console.log('TXN:', res.transactionId);
+    this.showChecker = true;  // trigger checker after maker submits
+  }
+}
+{code}
+
+*Template*
+{code:html}
+<pm-maker-form
+  [paymentInput]="paymentInput"
+  [fieldConfig]="fieldConfig"
+  (submitted)="onSubmitted($event)">
+</pm-maker-form>
+{code}
+
+----
+
+h2. Step 6 — Use payment-checker
+
+{info}
+The checker only renders when *[visible]="true"*. Set this after the maker submits successfully — this is the external trigger that loads the checker and fires the GET API.
+{info}
+
+*Component class*
+{code:typescript}
+import {
+  CheckerFormComponent,
+  CheckerComponentInput,
+  CheckerActionResponse,
+  FormFieldConfig,
+  DEFAULT_CHECKER_FIELD_CONFIG
+} from '@citi-icg-169779/payment-checker';
+
+@Component({ standalone: true, imports: [CheckerFormComponent] })
+export class YourComponent {
+
+  showChecker = false;  // flip to true after maker submits
+
+  checkerInput: CheckerComponentInput = {
+    applicationName:   'YOUR_APP',
+    applicationModule: 'YOUR_MODULE',
+    region:            'US',
+    useMockApi:        true,   // true = mock, false = real HTTP calls
+    checkerGetUrl:     'https://your-api.com/api/v1/pain001/checker/get',
+    checkerActionUrl:  'https://your-api.com/api/v1/pain001/checker/action',
+    amountMismatchUrl: 'https://your-api.com/api/v1/pain001/checker/amount-mismatch',
+    headers: { 'Authorization': 'Bearer your-token' }
+  };
+
+  fieldConfig: FormFieldConfig[] = DEFAULT_CHECKER_FIELD_CONFIG;
+
+  onActionCompleted(res: CheckerActionResponse): void {
+    console.log(res.action, res.transactionId); // 'APPROVED' | 'REJECTED'
+  }
+}
+{code}
+
+*Template*
+{code:html}
+<pc-checker-form
+  [visible]="showChecker"
+  [checkerInput]="checkerInput"
+  [fieldConfig]="fieldConfig"
+  (actionCompleted)="onActionCompleted($event)">
+</pc-checker-form>
+{code}
+
+----
+
+h2. Step 7 — Switch to real APIs
+
+When backend APIs are ready — one property change in your component, no package rebuild needed:
+
+{code:typescript}
+// payment-maker — change useMockApi to false and provide real URLs
+paymentInput: PaymentComponentInput = {
+  useMockApi:      false,   // ← only change needed
+  makerSubmitUrl:  'https://your-real-api.com/api/v1/pain001/maker/submit',
+  hardcapCheckUrl: 'https://your-real-api.com/api/v1/pain001/hardcap/check',
+  // ... rest stays the same
+};
+
+// payment-checker — same pattern
+checkerInput: CheckerComponentInput = {
+  useMockApi:        false,   // ← only change needed
+  checkerGetUrl:     'https://your-real-api.com/api/v1/pain001/checker/get',
+  checkerActionUrl:  'https://your-real-api.com/api/v1/pain001/checker/action',
+  amountMismatchUrl: 'https://your-real-api.com/api/v1/pain001/checker/amount-mismatch',
+  // ... rest stays the same
+};
+{code}
+
+----
+
+h2. Step 8 — Controlling fields (optional)
+
+Every field is visible by default. Use fieldConfig to hide fields or override labels. Import DEFAULT_FIELD_CONFIG as your starting point.
+
+*Hide specific fields*
+{code:typescript}
+import { DEFAULT_FIELD_CONFIG } from '@citi-icg-169779/payment-maker';
+
+fieldConfig = DEFAULT_FIELD_CONFIG.map(f => ({
+  ...f,
+  ...(f.fieldName === 'debtorSortCodeUS'         ? { hidden: true } : {}),
+  ...(f.fieldName === 'firstIntermediaryBankBIC'  ? { hidden: true } : {}),
+}));
+{code}
+
+*Override labels*
+{code:typescript}
+fieldConfig = DEFAULT_FIELD_CONFIG.map(f => ({
+  ...f,
+  ...(f.fieldName === 'debtorName'   ? { label: 'Sender Name' }      : {}),
+  ...(f.fieldName === 'creditorName' ? { label: 'Beneficiary Name' } : {}),
+}));
+{code}
+
+----
+
+h2. Quick Reference
+
+h3. PaymentComponentInput (payment-maker)
+
+|| Property || Required || Description ||
+| applicationName | Yes | Sent as X-Application-Name header |
+| applicationModule | Yes | Sent as X-Application-Module header |
+| region | No | Sent as X-Region header |
+| makerSubmitUrl | Yes | POST endpoint for Pain001 form submission |
+| hardcapCheckUrl | Yes | POST endpoint for Transaction Amount hardcap check |
+| useMockApi | No | true = mock (default). false = real HTTP calls |
+| headers | No | Additional custom request headers |
+
+h3. CheckerComponentInput (payment-checker)
+
+|| Property || Required || Description ||
+| applicationName | Yes | Sent as X-Application-Name header |
+| applicationModule | Yes | Sent as X-Application-Module header |
+| region | No | Sent as X-Region header |
+| checkerGetUrl | Yes | GET endpoint — loads maker data and transactionId |
+| checkerActionUrl | Yes | POST endpoint — approve or reject action |
+| amountMismatchUrl | Yes | POST endpoint — fired when checker modifies amount on Approve (dual boundary key: originalAmount + modifiedAmount) |
+| useMockApi | No | true = mock (default). false = real HTTP calls |
+| headers | No | Additional custom request headers |
+
+h3. Hardcap check — responses shown under Transaction Amount field
+
+|| Status || Message displayed || Submit button ||
+| PASSED | Hardcap limit check passed | Enabled (blue) |
+| EXCEEDED | Value cannot be more than {limit} | Blocked (gray) |
+| REQUIRED | Transaction amount is required | Blocked (gray) |
+| MIN_ERROR | Min value is 0 | Blocked (gray) |
+
+h3. Peer dependencies
+
+|| Package || Minimum version ||
+| @angular/core | >=17.3.5 |
+| @angular/common | >=17.3.5 |
+| @angular/forms | >=17.3.5 |
+| bootstrap | >=5.3.8 |
+| rxjs | >=7.8.0 |
