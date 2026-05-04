@@ -1,0 +1,15 @@
+# Force the specific Windows binaries
+pnpm add -D @rollup/rollup-win32-x64-msvc @esbuild/win32-x64 --force
+
+# Explicitly permit these binaries to execute
+pnpm config set only-built-dependencies esbuild @rollup/rollup-win32-x64-msvc
+pnpm approve-builds
+
+
+
+# Stop any hanging processes (Ctrl + C)
+# Delete the internal Angular cache
+Remove-Item -Recurse -Force .angular/cache
+
+# Start the serve
+pnpm start
