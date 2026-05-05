@@ -1,0 +1,71 @@
+# Force the specific Windows binaries
+pnpm add -D @rollup/rollup-win32-x64-msvc @esbuild/win32-x64 --force
+
+# Explicitly permit these binaries to execute
+pnpm config set only-built-dependencies esbuild @rollup/rollup-win32-x64-msvc
+pnpm approve-builds
+
+
+
+# Stop any hanging processes (Ctrl + C)
+# Delete the internal Angular cache
+Remove-Item -Recurse -Force .angular/cache
+
+# Start the serve
+pnpm start
+
+
+Check if artifactory has the dependencies available 
+
+1. pnpm info <package-name> --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+
+# Angular core
+pnpm info @angular/core --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+# Angular forms
+pnpm info @angular/forms --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+# Bootstrap
+pnpm info bootstrap --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+# rxjs
+pnpm info rxjs --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+# Your own published packages
+pnpm info @citi-icg-169779/payment-maker --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+pnpm info @citi-icg-169779/payment-checker --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-icg-teamdev-local/
+
+
+"dependencies": {
+    "@reduxjs/toolkit": "^2.5.0",
+    "ag-grid-community": "^33.0.4",
+    "ag-grid-react": "^33.0.4",
+    "bootstrap": "^5.3.3",
+    "d3": "^7.9.0",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.7",
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.1.1",
+    "redux-observable": "^3.0.0-rc.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/d3": "^7.4.3",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+
+
