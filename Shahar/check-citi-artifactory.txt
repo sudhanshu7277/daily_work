@@ -86,17 +86,19 @@ application name in package  json : @citi-icg-179025/payment-flow-ui-lib
 
 1) push.yaml
 
-tasks:
-  - ref: npm-build
-    params:
-      - name: node-version
-        value: '22'
-      - name: publish-artifact
-        value: true                              # ← MISSING in yours
-      - name: npm-install-command
-        value: "npm i"                           # ← MISSING in yours
-      - name: npm-publish-folder
-        value: 'dist/payment-flow-ui-lib'        # ← MISSING in yours
+params:
+  - name: repo_url
+    value: "{{ repo_url }}"
+  - name: revision
+    value: "{{ revision }}"
+  - name: node-version          # ADD THIS
+    value: '22'
+  - name: publish-artifact      # ADD THIS
+    value: true
+  - name: npm-install-command   # ADD THIS
+    value: "npm i"
+  - name: npm-publish-folder    # ADD THIS
+    value: 'dist/payment-flow-ui-lib'
 
 
 
@@ -105,4 +107,7 @@ tasks:
 3) .npmrc:  @citi-icg-179025:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
 
 4) root package json : "name": "@citi-icg-179025/payment-flow-workspace"
+
+
+
 
