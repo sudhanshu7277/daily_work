@@ -69,3 +69,13 @@ pnpm info @citi-icg-169779/payment-checker --registry=https://www.artifactreposi
   }
 
 
+.npmrc contents
+
+@icg-msst-shared-services-179025:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/:_authToken=[YOUR_TOKEN]
+strict-ssl=false
+email=SJ81534@citi.com
+always-auth=true
+# cafile=C:\Users\SJ81534\cacerts.jks  <-- Commented out or deleted
+
