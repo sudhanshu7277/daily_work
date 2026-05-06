@@ -83,3 +83,26 @@ always-auth=true
 
 application name in package  json : @citi-icg-179025/payment-flow-ui-lib
 
+
+1) push.yaml
+
+tasks:
+  - ref: npm-build
+    params:
+      - name: node-version
+        value: '22'
+      - name: publish-artifact
+        value: true                              # ← MISSING in yours
+      - name: npm-install-command
+        value: "npm i"                           # ← MISSING in yours
+      - name: npm-publish-folder
+        value: 'dist/payment-flow-ui-lib'        # ← MISSING in yours
+
+
+
+2) projects package json:  "name": "@citi-icg-179025/payment-flow-ui-lib"
+
+3) .npmrc:  @citi-icg-179025:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+4) root package json : "name": "@citi-icg-179025/payment-flow-workspace"
+
