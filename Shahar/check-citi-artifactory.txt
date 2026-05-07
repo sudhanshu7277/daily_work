@@ -110,4 +110,14 @@ params:
 
 
 
+Add registry for ADR :
+
+registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+@citi:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+@citi-icg-172888:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+always-auth=true
+strict-ssl=false
+
+
+
 
