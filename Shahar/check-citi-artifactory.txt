@@ -121,16 +121,14 @@ strict-ssl=false
 
 react project, add to package json:
 
-{
-  "pnpm": {
-    "neverBuiltDependencies": ["esbuild", "rollup"]
-  },
-  "overrides": {
-    "@rollup/rollup-win32-x64-msvc": "4.60.3",
-    "@esbuild/win32-x64": "0.21.5"
-  }
+"pnpm": {
+  "ignoredOptionalDependencies": [
+    "@rollup/rollup-win32-x64-msvc",
+    "@esbuild/win32-x64"
+  ]
 }
 
 
+check if esbuild exists in registry:
 
-
+pnpm info esbuild --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
