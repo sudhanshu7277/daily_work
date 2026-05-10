@@ -119,5 +119,18 @@ always-auth=true
 strict-ssl=false
 
 
+react project, add to package json:
+
+{
+  "pnpm": {
+    "neverBuiltDependencies": ["esbuild", "rollup"]
+  },
+  "overrides": {
+    "@rollup/rollup-win32-x64-msvc": "4.60.3",
+    "@esbuild/win32-x64": "0.21.5"
+  }
+}
+
+
 
 
