@@ -152,3 +152,16 @@ pnpm info esbuild --registry=https://www.artifactrepository.citigroup.net/artifa
 }
 
   pnpm info @esbuild/win32-x64@0.28.0 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+
+
+  now:
+
+  1) pnpm info @esbuild/win32-x64@0.28.0 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+  2) 
+
+  rm -rf node_modules
+pnpm i --ignore-scripts
+pnpm add @esbuild/win32-x64@0.28.0
+pnpm dev
+
+3) find node_modules -name "esbuild.exe" 2>/dev/null
