@@ -176,3 +176,18 @@ console.log('Patched successfully');
 
 
 npm info @esbuild/win32-x64 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
+
+
+
+RUN THESE NOW:
+
+export PATH="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/bin:$PATH"
+node --version
+
+rm -rf node_modules
+npm i
+npm run dev
+
+
+echo 'export PATH="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
