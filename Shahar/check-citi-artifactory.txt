@@ -172,3 +172,7 @@ c = c.replace(/throw new Error\(/g, 'return; throw new Error(');
 fs.writeFileSync(p, c);
 console.log('Patched successfully');
 "
+
+
+
+npm info @esbuild/win32-x64 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
