@@ -134,22 +134,7 @@ check if esbuild exists in registry:
 pnpm info esbuild --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
 
 
-"pnpm": {
-  "neverBuiltDependencies": ["esbuild", "rollup"],
-  "ignoredOptionalDependencies": [
-    "@rollup/rollup-win32-x64-msvc"
-  ],
-  "overrides": {
-    "esbuild": "0.28.0",
-    "@esbuild/win32-x64": "0.28.0",
-    "@rollup/rollup-win32-x64-msvc": "4.60.3"
-  }
-},
-"overrides": {
-  "esbuild": "0.28.0",
-  "@esbuild/win32-x64": "0.28.0",
-  "@rollup/rollup-win32-x64-msvc": "4.60.3"
-}
+
 
   pnpm info @esbuild/win32-x64@0.28.0 --registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
 
