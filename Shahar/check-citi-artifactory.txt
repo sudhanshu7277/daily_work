@@ -267,3 +267,22 @@ noproxy[]=nsroot.net,citigroup.net
 no-proxy=artifactrepository.citigroup.net
 proxy=http://webproxy.wlb.nsroot.net:8080/
 loglevel=info
+
+
+FIX, GET ZIPPED 
+node_modules/.pnpm/esbuild@0.21.5/node_modules/@esbuild/win32-x64
+
+MY LATEST .NPMRC FOR NPM:
+
+registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+no-proxy=artifactrepository.citigroup.net
+strict-ssl=false
+always-auth=true
+noproxy[]=nsroot.net,citigroup.net
+prefix=C:\Users\SJ81534\AppData\Local\CitiSoftware\CTC2294747_NODEJS_22.18.0
+cache=C:\Users\SJ81534\node_cache
+proxy=http://webproxy.wlb.nsroot.net:8080/
+loglevel=info
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/:_authToken=YOUR_FRESH_TOKEN
+cafile=C:/Users/SJ81534/Certs/CitiInternalCAChain_PROD.pem
+email=sj81534@citi.com
