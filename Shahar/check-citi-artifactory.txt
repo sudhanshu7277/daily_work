@@ -153,6 +153,7 @@ pnpm dev
 
 
 command to run now:
+-------------------
 
 sed -i 's/throw new Error(`Cannot find module/\/\/ throw new Error(`Cannot find module/' node_modules/.pnpm/@rollup+rollup@4.60.3/node_modules/rollup/dist/native.js
 
