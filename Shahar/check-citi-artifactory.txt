@@ -213,7 +213,24 @@ shamefully-hoist=true
 loglevel=info
 
 
-RUN THESE TOO: 
+DO THIS NOW:  
 
-alias node="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/node.exe"
-alias npm="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/npm.cmd"
+export PATH="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0:$PATH"
+node --version
+
+"pnpm": {
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node"
+  },
+  "ignoredOptionalDependencies": [
+    "@rollup/rollup-win32-x64-msvc"
+  ]
+}
+
+
+rm -rf node_modules
+pnpm i
+pnpm dev
+
+
+pnpm node --version
