@@ -330,3 +330,20 @@ ignore-scripts=true
   }
 }
 
+
+
+You Must Raise An IT Ticket Now
+Send this exact message to IT/Service Desk:
+
+Subject: URGENT — Application Control blocking esbuild.exe for React development
+Application Control is blocking esbuild.exe from running on my VDI (SJ81534).
+
+Colleague Carlitos Dutan (cd01084) has identical setup working fine
+esbuild.exe is required by Vite/React build tools
+Blocking path: C:\Users\SJ81534\Documents\GAB-REACT\179025.shared-services.gab-ui\node_modules\esbuild\esbuild.exe
+This is blocking urgent project 179025 development
+
+Please whitelist esbuild.exe for my VDI profile SJ81534.
+
+There is nothing more that can be fixed in code. IT must whitelist esbuild.exe on your machine.
+
