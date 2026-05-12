@@ -238,3 +238,9 @@ pnpm node --version
 SET NODE 22 IN environment variables:
 
 C:\Users\SJ81534\AppData\Local\CitiSoftware\CTC2294747_NODEJS_22.18.0
+
+
+
+run this :
+
+ls /c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/
