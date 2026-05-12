@@ -170,12 +170,11 @@ pnpm dev
 LATEST .npmrc
 
 registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm/:_authToken=cmVmdGtuOjAxOjAwMDAwMDAwMDA6RVY5S2ZYU0RwM21tOHBEaXBBM2xQWkVSQTda
+email=sj81534@citi.com
 always-auth=true
 strict-ssl=false
-# The line below must NOT have a space after the =
-//www.artifactrepository.citigroup.net/artifactory/api/npm/npm/:_authToken=YOUR_TOKEN_HERE
-
-# Keep these global paths only in this file
-prefix=C:\Users\SJ81534\AppData\Local\CitiSoftware\CTC2294747_NODEJS_22.18.0
-cache=C:\Users\SJ81534\node_cache
+legacy-peer-deps=true
+shamefully-hoist=true
+ignore-scripts=true
 
