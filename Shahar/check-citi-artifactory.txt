@@ -251,3 +251,19 @@ NOW RUN THIS:
 echo 'export PATH="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 node --version
+
+
+update .npmrc with this:
+
+registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/:_authToken=YOUR_FRESH_TOKEN
+strict-ssl=false
+email=sj81534@citi.com
+always-auth=true
+cafile=C:\Users\sj81534\cacerts.jks
+legacy-peer-deps=true
+shamefully-hoist=true
+noproxy[]=nsroot.net,citigroup.net
+no-proxy=artifactrepository.citigroup.net
+proxy=http://webproxy.wlb.nsroot.net:8080/
+loglevel=info
