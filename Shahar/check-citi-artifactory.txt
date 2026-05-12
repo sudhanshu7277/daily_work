@@ -197,3 +197,17 @@ FIX FOR NODE VERSION:
 
 alias node="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/node.exe"
 alias npm="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/npm.cmd"
+
+CHANGES FOR PNPM IN .NPMRC:
+
+registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm-teamdev/:_authToken=YOUR_FRESH_TOKEN
+strict-ssl=false
+always-auth=true
+noproxy[]=nsroot.net,citigroup.net
+no-proxy=artifactrepository.citigroup.net
+proxy=http://webproxy.wlb.nsroot.net:8080/
+email=sj81534@citi.com
+legacy-peer-deps=true
+shamefully-hoist=true
+loglevel=info
