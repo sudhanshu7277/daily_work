@@ -167,14 +167,10 @@ pnpm dev
 3) find node_modules -name "esbuild.exe" 2>/dev/null
 
 
-LATEST npmrc
+command to run now:
 
-registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
-//www.artifactrepository.citigroup.net/artifactory/api/npm/npm/:_authToken=cmVmdGtuOjAxOjAwMDAwMDAwMDA6RVY5S2ZYU0RwM21tOHBEaXBBM2xQWkVSQTda
-email=sj81534@citi.com
-always-auth=true
-strict-ssl=false
-legacy-peer-deps=true
-shamefully-hoist=true
-ignore-scripts=true
+sed -i 's/throw new Error(`Cannot find module/\/\/ throw new Error(`Cannot find module/' node_modules/.pnpm/@rollup+rollup@4.60.3/node_modules/rollup/dist/native.js
 
+grep -n "throw new Error" node_modules/.pnpm/@rollup+rollup@4.60.3/node_modules/rollup/dist/native.js
+
+pnpm dev
