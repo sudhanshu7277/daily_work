@@ -347,3 +347,15 @@ Please whitelist esbuild.exe for my VDI profile SJ81534.
 
 There is nothing more that can be fixed in code. IT must whitelist esbuild.exe on your machine.
 
+
+Hi Carlitos,
+
+I have troubleshooting the setup. Made a few changes. 
+
+1) can you please share your : node_modules\esbuild and node_modules\@esbuild
+
+2) Do you get the Application Control popup when running npm run dev?
+If yes — what does you do with it?
+If no — did IT whitelist anything on your machine?
+
+
