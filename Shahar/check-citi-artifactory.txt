@@ -167,7 +167,7 @@ pnpm dev
 3) find node_modules -name "esbuild.exe" 2>/dev/null
 
 
-LATEST .npmrc
+LATEST npmrc
 
 registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
 //www.artifactrepository.citigroup.net/artifactory/api/npm/npm/:_authToken=cmVmdGtuOjAxOjAwMDAwMDAwMDA6RVY5S2ZYU0RwM21tOHBEaXBBM2xQWkVSQTda
