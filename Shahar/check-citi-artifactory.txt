@@ -160,3 +160,15 @@ sed -i 's/throw new Error(`Cannot find module/\/\/ throw new Error(`Cannot find 
 grep -n "throw new Error" node_modules/.pnpm/@rollup+rollup@4.60.3/node_modules/rollup/dist/native.js
 
 pnpm dev
+
+
+paster this :
+
+node -e "
+const fs = require('fs');
+const p = 'node_modules/rollup/dist/native.js';
+let c = fs.readFileSync(p, 'utf8');
+c = c.replace(/throw new Error\(/g, 'return; throw new Error(');
+fs.writeFileSync(p, c);
+console.log('Patched successfully');
+"
