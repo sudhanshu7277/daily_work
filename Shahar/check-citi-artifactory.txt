@@ -244,3 +244,10 @@ C:\Users\SJ81534\AppData\Local\CitiSoftware\CTC2294747_NODEJS_22.18.0
 run this :
 
 ls /c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/
+
+
+NOW RUN THIS:
+
+echo 'export PATH="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+node --version
