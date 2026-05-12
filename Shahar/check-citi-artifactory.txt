@@ -191,3 +191,9 @@ npm run dev
 
 echo 'export PATH="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
+
+
+FIX FOR NODE VERSION:
+
+alias node="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/node.exe"
+alias npm="/c/Users/SJ81534/AppData/Local/CitiSoftware/CTC2294747_NODEJS_22.18.0/npm.cmd"
