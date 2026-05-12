@@ -169,29 +169,15 @@ pnpm dev
 
 LATEST .npmrc
 
-# --- PRIMARY REGISTRY ---
+
+
 registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
 always-auth=true
 strict-ssl=false
+# The line below must NOT have a space after the =
+//www.artifactrepository.citigroup.net/artifactory/api/npm/npm/:_authToken=YOUR_TOKEN_HERE
 
-# --- SCOPE-SPECIFIC REGISTRIES (Stops "Phoning Home") ---
-@esbuild:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
-@citi-icg-172888:registry=https://www.artifactrepository.citigroup.net/artifactory/api/npm/npm/
-
-# --- AUTHENTICATION ---
-# Ensure no leading slashes or spaces in this line
-//www.artifactrepository.citigroup.net/artifactory/api/npm/npm/:_authToken=cmVmdGt1OjAxOjAwMDAwMDAwMDA2ZlRyck10dkJoS1lRck10dkJoS1lRck10dkJoS1lR
-
-# --- CERTIFICATES & PATHS ---
-cafile=C:\Users\SJ81534\Certs\CitiInternalCAChain_PROD.pem
-email=sj81534@citi.com
+# Keep these global paths only in this file
 prefix=C:\Users\SJ81534\AppData\Local\CitiSoftware\CTC2294747_NODEJS_22.18.0
-
-# --- PROXY (Commented out to prevent E407 Authentication errors) ---
-# proxy=http://webproxy.wlb.nsroot.net:8080/
-# noproxy=artifactrepository.citigroup.net,nsroot.net,citigroup.net
-
-# --- PACKAGE MANAGER SETTINGS ---
-legacy-peer-deps=true
-shamefully-hoist=true
+cache=C:\Users\SJ81534\node_cache
 
