@@ -29,7 +29,8 @@ export default defineConfig({
         target: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net',
         changeOrigin: true,
         secure: false, // Bypass Citi's internal self-signed SSL certificates
-        rewrite: (path) => path.replace(/^\/api/, '/gab/api')
+        // rewrite: (path) => path.replace(/^\/api/, '/gab/api')
+        rewrite: (path) => path.replace(/^\/api\/v1\/gab/, '/gab/api/v1/gab')
       }
     }
   }
