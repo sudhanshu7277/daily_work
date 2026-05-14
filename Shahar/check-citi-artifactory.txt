@@ -377,9 +377,15 @@ git remote set-url origin git@github.com:CitiInternal/179025.shared-services.gab
     git push -u origin feature/gab-ui-edge-cases
     ```
 
-### 💡 VDI-Specific Tip
-If your team uses **Devhub** or a specific **internal portal** to manage repository access, you might need to "request" write access for this specific project ID (`179025`) through an automated ticket.
+next steps to pus code to gab:
 
-**Are your coworkers pushing directly to this `CitiInternal` repo, or are they using a fork-and-pull-request model?**
+# Replace <TOKEN> with your classic token
+git remote set-url origin https://<TOKEN>@github.com/CitiInternal/179025.shared-services.gab-ui.git
+
+# Now try the push again
+git push -u origin feature/gab-ui-edge-cases
+
+
+ssh-keygen -t ed25519 -C "sj81534@citi.com"
 
 
