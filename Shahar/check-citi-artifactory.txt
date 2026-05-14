@@ -400,3 +400,17 @@ Host github.com
 Test the connection again:
   ssh -T git@github.com
 
+
+
+  run these commands:
+
+  echo -e "Host github.com\n  Hostname ssh.github.com\n  Port 443\n  User git" > ~/.ssh/config
+
+  cat ~/.ssh/config
+
+  nslookup github.com
+
+  ssh -T git@github.com
+
+  
+
