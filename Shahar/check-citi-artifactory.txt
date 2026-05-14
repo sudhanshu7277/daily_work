@@ -422,3 +422,10 @@ export http_proxy=http://proxy.service.com:8080
 export https_proxy=http://proxy.service.com:8080
 
 
+unset http_proxy
+unset https_proxy
+
+
+git -c credential.helper= push https://ghp_M7113LJbNtMOyyJvz7qHHzWZLLSSRV0jH8an@github.com/CitiInternal/179025.shared-services.gab-ui.git feature/gab-ui-edge-cases
+
+
