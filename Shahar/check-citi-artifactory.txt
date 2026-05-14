@@ -429,6 +429,5 @@ unset https_proxy
 git -c credential.helper= push https://ghp_M7113LJbNtMOyyJvz7qHHzWZLLSSRV0jH8an@github.com/CitiInternal/179025.shared-services.gab-ui.git feature/gab-ui-edge-cases
 
 
-
-
-git -c credential.helper="" push https://YOUR_GITHUB_USERNAME:ghp_M7113LJbNtMOyyJvz7qHHzWZLLSSRV0jH8an@github.com/CitiInternal/179025.shared-services.gab-ui.git feature/gab-ui-edge-cases
+run thi now: 
+git -c credential.helper="" push https://ghp_M7113LJbNtMOyyJvz7qHHzWZLLSSRV0jH8an@github.com/CitiInternal/179025.shared-services.gab-ui.git feature/gab-ui-edge-cases
