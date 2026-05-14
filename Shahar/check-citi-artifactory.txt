@@ -396,3 +396,7 @@ Host github.com
   Port 443
   User git
 
+
+Test the connection again:
+  ssh -T git@github.com
+
