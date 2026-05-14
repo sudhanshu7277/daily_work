@@ -359,3 +359,27 @@ If yes — what does you do with it?
 If no — did IT whitelist anything on your machine?
 
 
+
+GAB GITHUB WRITE ACCESS:
+
+git remote add my-fork https://github.com/CitiInternal/[YOUR_USER_ID]/179025.shared-services.gab-ui.git
+git push -u my-fork feature/gab-ui-edge-cases
+
+
+1) Generate a new PAT in GitHub (Settings > Developer Settings > Personal Access Tokens).
+
+2) git credential-manager reject [https://github.com](https://github.com)
+
+
+3. SSH Alternative:
+
+git remote set-url origin git@github.com:CitiInternal/179025.shared-services.gab-ui.git
+    git push -u origin feature/gab-ui-edge-cases
+    ```
+
+### 💡 VDI-Specific Tip
+If your team uses **Devhub** or a specific **internal portal** to manage repository access, you might need to "request" write access for this specific project ID (`179025`) through an automated ticket.
+
+**Are your coworkers pushing directly to this `CitiInternal` repo, or are they using a fork-and-pull-request model?**
+
+
