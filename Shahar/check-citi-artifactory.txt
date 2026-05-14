@@ -389,3 +389,10 @@ git push -u origin feature/gab-ui-edge-cases
 ssh-keygen -t ed25519 -C "sj81534@citi.com"
 
 
+add to config file:
+
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+
