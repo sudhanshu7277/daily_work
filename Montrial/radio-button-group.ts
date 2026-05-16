@@ -28,43 +28,51 @@
 
 
   // updated submitActiveTasks function
-
   submitActiveTasks() {
     if (this.tasksForm.dirty && this.tasksForm.touched) {
       console.log('this.tasksForm values : ', this.tasksForm.value);
       
       let hasTasks = false;
-      const isNewCase = this.caseVersion !== null;
   
-      // 1. Enforce CaseVersion Rule for Complete State check
+      // 1. Evaluate the complete tracking state rule based on caseVersion
+      const isNewCase = this.caseVersion !== null;
       const COMPLETE_STATE = isNewCase ? TaskStateNewCases.COMPLETE : TaskState.COMPLETE;
+  
+      // 2. Map using the stable originalIndex to prevent array element shifting
+      const mappedTasks = this.tasks
+        .map((task, originalIndex) => {
+          const formControlValue = this.tasksForm.value.taskArray[originalIndex];
+          
+          // Skip if this row control is missing or hasn't been evaluated
+          if (!formControlValue) {
+            return null;
+          }
+  
+          const formState = formControlValue[task.name];
+          
+          // Skip if the specific task key value inside the object is missing
+          if (formState === undefined || formState === null) {
+            return null;
+          }
+  
+          hasTasks = true;
+  
+          return {
+            ...task,
+            isIrregular:
+              task.isIrregular === TaskIrregular.IRREGULAR &&
+              formState !== task.state &&
+              formState === COMPLETE_STATE
+                ? TaskIrregular.CORRECTED
+                : task.isIrregular,
+            state: formState, // Resolves seamlessly to 'na', 'uploaded', or 'complete'
+          };
+        })
+        .filter(task => task !== null); // 3. Cleanly strip out untouched array rows last
   
       const eCETaskBody = {
         name: this.categoryName,
-        tasks: this.tasks
-          .filter((task) => {
-            // Find the form interaction object by matching its specific key name string
-            const taskEvent = this.tasksForm.value.taskArray?.find((t: any) => t && t[task.name] !== undefined);
-            return taskEvent !== undefined;
-          })
-          .map((task) => {
-            hasTasks = true;
-  
-            // Extract the form value using a safe name-lookup instead of an index loop [i]
-            const taskEvent = this.tasksForm.value.taskArray.find((t: any) => t && t[task.name] !== undefined);
-            const formState = taskEvent[task.name];
-  
-            return {
-              ...task,
-              isIrregular:
-                task.isIrregular === TaskIrregular.IRREGULAR &&
-                formState !== task.state &&
-                formState === COMPLETE_STATE
-                  ? TaskIrregular.CORRECTED
-                  : task.isIrregular,
-              state: formState, // Resolves safely to 'na', 'uploaded', etc.
-            };
-          })
+        tasks: mappedTasks
       };
   
       if (hasTasks) {
@@ -74,4 +82,39 @@
         });
       }
     }
+  }
+
+
+  setNotApplicableTasks(_tasks: ECETask[]) {
+    console.log('received tasks in setNotApplicableTasks function : ', _tasks);
+    
+    // Determine enum configuration dynamically based on caseVersion presence
+    const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+    const NA_STATE = isNewCase ? TaskStateNewCases.NA : TaskState.NA;
+
+    this.notApplicableTasks = _tasks.filter(
+      (task) => task.state === NA_STATE
+    );
+  }
+
+  setCompletedTasks(_tasks: ECETask[]) {
+    console.log('received tasks in setCompletedTasks function : ', _tasks);
+    
+    const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+    const COMPLETE_STATE = isNewCase ? TaskStateNewCases.COMPLETE : TaskState.COMPLETE;
+
+    this.completedTasks = _tasks.filter(
+      (task) => task.state === COMPLETE_STATE
+    );
+  }
+
+  setActiveTasks(_tasks: ECETask[]) {
+    console.log('received tasks in setActiveTasks function : ', _tasks);
+    
+    const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+    const ACTIVE_STATE = isNewCase ? TaskStateNewCases.ACTIVE : TaskState.ACTIVE;
+
+    this.activeTasks = _tasks.filter(
+      (task) => task.state === ACTIVE_STATE
+    );
   }
