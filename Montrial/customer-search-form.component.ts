@@ -291,3 +291,35 @@ export class CustomerSearchService {
     );
   }
 }
+
+
+private setupPrecedenceListener(): void {
+    const firstNameControl = this.customerSearchForm.get('firstName');
+    const lastNameControl = this.customerSearchForm.get('lastName');
+
+    this.customerSearchForm.get('caseId')?.valueChanges.subscribe((value: string) => {
+      if (value && value.trim() !== '') {
+        // 1. Clear demographic field values
+        this.customerSearchForm.patchValue({
+          firstName: '',
+          lastName: '',
+          city: '',
+          province: '',
+          dob: '',
+          phone: ''
+        }, { emitEvent: false });
+
+        // 2. CASE SEARCH MODE: Drop the required constraint from names
+        firstNameControl?.setValidators([Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
+        lastNameControl?.setValidators([Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
+      } else {
+        // 3. DEMOGRAPHIC SEARCH MODE: Restore required constraint for normal search
+        firstNameControl?.setValidators([Validators.required, Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
+        lastNameControl?.setValidators([Validators.required, Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
+      }
+
+      // 4. CRITICAL: Recalculate status tracking flags to instantly unlock the UI button
+      firstNameControl?.updateValueAndValidity({ emitEvent: false });
+      lastNameControl?.updateValueAndValidity({ emitEvent: false });
+    });
+  }
