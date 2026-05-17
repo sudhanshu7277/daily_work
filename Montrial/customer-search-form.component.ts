@@ -323,3 +323,53 @@ private setupPrecedenceListener(): void {
       lastNameControl?.updateValueAndValidity({ emitEvent: false });
     });
   }
+
+
+
+  //// customer-search.service.ts
+
+
+  getCustomerSearchResults(
+    api: string,
+    customerSearchFormData: CustomerSearchFormData,
+    offset?: number
+  ): Observable<CustomerSearchResultResponse> {
+    
+    if (!customerSearchFormData) {
+      return of({ data: [], availableResultsCount: "0" });
+    }
+
+    // BRANCH 1: Advanced Case Search Route (BR006)
+    if (customerSearchFormData.caseId && customerSearchFormData.caseId.trim() !== '') {
+      // 1. Fix the 405 error by switching from POST to GET query parameters
+      let advancedParams = new HttpParams()
+        .set('caseId', customerSearchFormData.caseId.trim());
+
+      // 2. Dispatches as: /api/customer-cases/cases/advance-filters?caseId=5453433
+      return this.http.get<CustomerSearchResultResponse>(
+        environment.endpointUrl.advancedSearch,
+        { params: advancedParams }
+      );
+    }
+
+    // BRANCH 2: Regular Customer Demographic Route (Legacy GET)
+    let params = new HttpParams();
+    params = params
+      .set('first_name', customerSearchFormData.firstName || null)
+      .set('last_name', customerSearchFormData.lastName || null)
+      .set('city', customerSearchFormData.city || null)
+      .set('province', customerSearchFormData.province || null)
+      .set('date_of_birth', customerSearchFormData.dob || null)
+      .set('phone_number', customerSearchFormData.phone || null);
+
+    if (offset) {
+      params = params
+        .set('start_offset', offset.toString())
+        .set('end_offset', (offset + 99).toString());
+    }
+
+    return this.http.get<CustomerSearchResultResponse>(
+      environment.endpointUrl.getCustomer,
+      { params: params }
+    );
+  }
