@@ -328,7 +328,6 @@ private setupPrecedenceListener(): void {
 
   //// customer-search.service.ts
 
-
   getCustomerSearchResults(
     api: string,
     customerSearchFormData: CustomerSearchFormData,
@@ -336,19 +335,29 @@ private setupPrecedenceListener(): void {
   ): Observable<CustomerSearchResultResponse> {
     
     if (!customerSearchFormData) {
-      return of({ data: [], availableResultsCount: "0" });
+      const emptyResult: CustomerSearchResultResponse = {
+        data: [],
+        availableResultsCount: "0"
+      };
+      return of(emptyResult);
     }
 
     // BRANCH 1: Advanced Case Search Route (BR006)
     if (customerSearchFormData.caseId && customerSearchFormData.caseId.trim() !== '') {
-      // 1. Fix the 405 error by switching from POST to GET query parameters
-      let advancedParams = new HttpParams()
-        .set('caseId', customerSearchFormData.caseId.trim());
+      
+      // Exact structural JSON body payload format mandated by backend spec: { "caseId": "9809809" }
+      const advancedSearchPayload = {
+        caseId: customerSearchFormData.caseId.trim()
+      };
 
-      // 2. Dispatches as: /api/customer-cases/cases/advance-filters?caseId=5453433
-      return this.http.get<CustomerSearchResultResponse>(
-        environment.endpointUrl.advancedSearch,
-        { params: advancedParams }
+      // Safe Fallback: Resolves whichever key name was defined in your environment configurations
+      const targetUrl = environment.endpointUrl.getCaseAdvanceFilters || (environment.endpointUrl as any).advancedSearch;
+
+      console.log('Dispatching advanced filter search to:', targetUrl, 'with payload:', advancedSearchPayload);
+
+      return this.http.post<CustomerSearchResultResponse>(
+        targetUrl,
+        advancedSearchPayload
       );
     }
 
