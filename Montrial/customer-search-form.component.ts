@@ -230,9 +230,10 @@ export class CustomerSearchComponent {
 // customer-search.service.ts
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { CustomerSearchFormData, CustomerSearchResultResponse } from '@ece-models/customer-search';
 
 @Injectable({
   providedIn: 'root'
@@ -240,75 +241,53 @@ import { environment } from 'src/environments/environment';
 export class CustomerSearchService {
   constructor(private http: HttpClient) {}
 
-  // Legacy GET lookup channel
-  getCustomerSearchResults(urlPath: string, formData: any): Observable<any> {
-    return this.http.get<any>(`${environment.endpointUrl.getCustomerSearchResult}${urlPath}`, { params: formData });
+  getCustomerSearchResults(
+    api: string,
+    customerSearchFormData: CustomerSearchFormData,
+    offset?: number
+  ): Observable<CustomerSearchResultResponse> {
+    
+    // Safety check for uninitialized forms
+    if (!customerSearchFormData) {
+      const emptyResult: CustomerSearchResultResponse = {
+        data: [],
+        availableResultsCount: "0"
+      };
+      return of(emptyResult);
+    }
+
+    // 1. ADVANCED SEARCH BRANCH: Executed when caseId is defined
+    if (customerSearchFormData.caseId && customerSearchFormData.caseId.trim() !== '') {
+      const advancedSearchPayload = {
+        caseId: customerSearchFormData.caseId.trim()
+      };
+
+      // Executes a POST request to the new advance-filters gateway route with the exact required payload
+      return this.http.post<CustomerSearchResultResponse>(
+        environment.endpointUrl.advancedSearch,
+        advancedSearchPayload
+      );
+    }
+
+    // 2. REGULAR CUSTOMER SEARCH BRANCH: Fallback legacy demographic parameter mapping
+    let params = new HttpParams();
+    params = params
+      .set('first_name', customerSearchFormData.firstName || null)
+      .set('last_name', customerSearchFormData.lastName || null)
+      .set('city', customerSearchFormData.city || null)
+      .set('province', customerSearchFormData.province || null)
+      .set('date_of_birth', customerSearchFormData.dob || null)
+      .set('phone_number', customerSearchFormData.phone || null);
+
+    if (offset) {
+      params = params
+        .set('start_offset', offset.toString())
+        .set('end_offset', (offset + 99).toString());
+    }
+
+    return this.http.get<CustomerSearchResultResponse>(
+      environment.endpointUrl.getCustomer,
+      { params: params }
+    );
   }
-
-  // BR006 targeted exact match POST lookup channel
-  getCaseAdvanceFilters(payload: { cases: string }): Observable<any> {
-    return this.http.post<any>(environment.endpointUrl.getCaseAdvanceFilters, payload);
-  }
-}
-
-// customer-search.effects.ts
-
-import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { of } from 'rxjs';
-import { catchError, map, mergeMap } from 'rxjs/operators';
-import { CustomerSearchActions } from './customer-search.actions';
-import { CustomerSearchService } from '@ece-services/customer-search.service';
-
-@Injectable()
-export class CustomerSearchEffects {
-  constructor(
-    private actions$: Actions,
-    private customerSearchService: CustomerSearchService
-  ) {}
-
-  getCustomerSearchResult$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(CustomerSearchActions.getResult),
-      mergeMap((action) => {
-        const formData = action.customerSearchFormData;
-        const isCaseSearch = formData?.caseId && formData.caseId.trim() !== '';
-
-        // Intercept action payload to route stream to correct endpoint system
-        const apiCall$ = isCaseSearch
-          ? this.customerSearchService.getCaseAdvanceFilters({ cases: formData.caseId.trim() })
-          : this.customerSearchService.getCustomerSearchResults('/customer', formData);
-
-        return apiCall$.pipe(
-          map((response: any) => {
-            const rawData = response?.data || [];
-
-            // Preserves sorting and mapping parameters to cleanly bind to existing customer result grids
-            const sortedAndMappedResults = rawData
-              .sort((a: any, b: any) => {
-                if (a.caseId === b.caseId) return 0;
-                if (a.caseId === null) return 1;
-                if (b.caseId === null) return -1;
-                return a.caseId < b.caseId ? 1 : -1;
-              })
-              .map((r: any, i: number) => ({
-                ...r,
-                index: i,
-                legalName: `${r.firstName || ''} ${r.lastName || ''}`.trim(),
-                city: r.address?.city || null,
-                province: r.address?.province || null
-              }));
-
-            return CustomerSearchActions.getResultSuccess({
-              customerSearchResult: sortedAndMappedResults,
-              availableResults: Number(response?.availableResultsCount || sortedAndMappedResults.length)
-            });
-          }),
-          catchError((error) =>
-            of(CustomerSearchActions.getResultFail({ error }))
-          )
-        );
-      })
-    )
-  );
 }
