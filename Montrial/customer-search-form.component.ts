@@ -382,3 +382,88 @@ private setupPrecedenceListener(): void {
       { params: params }
     );
   }
+
+
+  // Inside open-tasks.component.ts (Replaces lines 64–100 from Image 78)
+
+  submitActiveTasks() {
+    if (this.tasksForm.dirty && this.tasksForm.touched) {
+      console.log('this.tasksForm values : ', this.tasksForm.value);
+      
+      let hasTasks = false;
+      const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+      
+      // Select correct enum string value rule based on caseVersion
+      const COMPLETE_STATE = isNewCase ? TaskStateNewCases.COMPLETE : TaskState.COMPLETE;
+
+      const eCETaskBody = {
+        name: this.categoryName,
+        tasks: this.tasks
+          .map((task, originalIndex) => {
+            const formControlValue = this.tasksForm.value.taskArray[originalIndex];
+            
+            // Skip if this row has not been loaded or evaluated
+            if (!formControlValue || formControlValue[task.name] === undefined || formControlValue[task.name] === null) {
+              return null;
+            }
+
+            hasTasks = true;
+            const formState = formControlValue[task.name];
+
+            return {
+              ...task,
+              isIrregular:
+                task.isIrregular === TaskIrregular.IRREGULAR &&
+                formState !== task.state &&
+                formState === COMPLETE_STATE
+                  ? TaskIrregular.CORRECTED
+                  : task.isIrregular,
+              state: formState, // Maps 'na', 'uploaded', or 'waitingForDocumentation' safely
+            };
+          })
+          .filter(task => task !== null) // Strip unpopulated items at the very end
+      };
+
+      if (hasTasks) {
+        this.submitTasks.emit({
+          eCETaskBody,
+          isUpdate: true,
+        });
+      }
+    }
+  }
+
+  // Inside tasks-manager.component.ts (Replaces lines 60–80 from Image 81)
+
+  setNotApplicableTasks(_tasks: ECETask[]) {
+    console.log('received tasks in setNotApplicableTasks function : ', _tasks);
+    
+    const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+    const NA_STATE = isNewCase ? TaskStateNewCases.NA : TaskState.NA;
+
+    this.notApplicableTasks = _tasks.filter(
+      (task) => task.state === NA_STATE
+    );
+  }
+
+  setCompletedTasks(_tasks: ECETask[]) {
+    console.log('received tasks in setCompletedTasks function : ', _tasks);
+    
+    const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+    const COMPLETE_STATE = isNewCase ? TaskStateNewCases.COMPLETE : TaskState.COMPLETE;
+
+    this.completedTasks = _tasks.filter(
+      (task) => task.state === COMPLETE_STATE
+    );
+  }
+
+  setActiveTasks(_tasks: ECETask[]) {
+    console.log('received tasks in setActiveTasks function : ', _tasks);
+    
+    const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
+    const ACTIVE_STATE = isNewCase ? TaskStateNewCases.ACTIVE : TaskState.ACTIVE;
+
+    this.activeTasks = _tasks.filter(
+      (task) => task.state === ACTIVE_STATE
+    );
+  }
