@@ -393,7 +393,7 @@ private setupPrecedenceListener(): void {
       let hasTasks = false;
       const isNewCase = this.caseVersion !== null && this.caseVersion !== undefined;
       
-      // Select correct enum string value rule based on caseVersion
+      // Dynamically assign the complete validation state string based on case version
       const COMPLETE_STATE = isNewCase ? TaskStateNewCases.COMPLETE : TaskState.COMPLETE;
 
       const eCETaskBody = {
@@ -402,7 +402,7 @@ private setupPrecedenceListener(): void {
           .map((task, originalIndex) => {
             const formControlValue = this.tasksForm.value.taskArray[originalIndex];
             
-            // Skip if this row has not been loaded or evaluated
+            // Safe escape check: skip if this row element control hasn't been modified or initialized
             if (!formControlValue || formControlValue[task.name] === undefined || formControlValue[task.name] === null) {
               return null;
             }
@@ -418,10 +418,10 @@ private setupPrecedenceListener(): void {
                 formState === COMPLETE_STATE
                   ? TaskIrregular.CORRECTED
                   : task.isIrregular,
-              state: formState, // Maps 'na', 'uploaded', or 'waitingForDocumentation' safely
+              state: formState, // Resolves safely to 'na', 'uploaded', or 'waitingForDocumentation'
             };
           })
-          .filter(task => task !== null) // Strip unpopulated items at the very end
+          .filter(task => task !== null) // Strip untouched elements cleanly at the end
       };
 
       if (hasTasks) {
