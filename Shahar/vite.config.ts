@@ -10,7 +10,6 @@ export default defineConfig({
   optimizeDeps: {
     esbuildOptions: { target: 'esnext' }
   },
-  // 1. Matches your VDI/local frontend base path
   base: '/gab/ui/',
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
@@ -24,12 +23,11 @@ export default defineConfig({
       port: 5173,
     },
     proxy: {
-      // 2. Catches frontend requests going to /gab/api
-      '/gab/api': {
+      '/api': {
         target: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net',
         changeOrigin: true,
         secure: false,
-        // No rewrite function needed; preserves the path clean
+        rewrite: (path) => path.replace(/^\/api/, '/gab/api/api')
       }
     }
   }
