@@ -5,6 +5,13 @@ import path from 'path'
 export default defineConfig({
   base: '/gab/ui/',
   plugins: [react()],
+  
+  // 1. RESTORE THESE BLOCKS: Fixes the 1900+ destructuring build errors
+  build: { target: 'esnext' },
+  optimizeDeps: {
+    esbuildOptions: { target: 'esnext' }
+  },
+  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
