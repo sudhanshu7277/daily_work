@@ -24,10 +24,15 @@ export default defineConfig({
         target: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net',
         changeOrigin: true,
         secure: false,
-        // Inject corporate persona tokens to elevate local proxy permissions
         headers: {
-          'X-User-Id': 'sj81534',       // Overrides the unprivileged 'SYSTEM' SOEID context
-          'X-User-Role': 'ROLE_DEAL_ADMIN'  // Grants full dashboard view rights
+          // 1. Keep your auth.ts overrides
+          'X-User-Id': 'sj81534',
+          'X-User-Role': 'ROLE_DEAL_ADMIN',
+          
+          // 2. Add these to mimic a fully authorized corporate browser session
+          'OIDC_CLAIM_USERID': 'sj81534',
+          'OIDC_CLAIM_ROLES': 'ROLE_DEAL_ADMIN',
+          'sm_user': 'sj81534'
         }
       }
     }
