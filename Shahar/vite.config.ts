@@ -25,13 +25,12 @@ export default defineConfig({
     },
     // 2. The proxy MUST be inside the server block
     proxy: {
-      // 3. Catch the /gab/api path the browser is sending
-      '/gab/api': {
+      '/api': {
         target: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net',
         changeOrigin: true,
         secure: false,
-        // 4. No rewrite needed because the browser is already
-        // sending the full path the backend expects
+        // Rewrites /api/v1/... to /gab/api/v1/...
+        rewrite: (path) => path.replace(/^\/api/, '/gab/api') 
       }
     }
   }
