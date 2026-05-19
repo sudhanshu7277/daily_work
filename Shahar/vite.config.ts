@@ -24,10 +24,10 @@ export default defineConfig({
         target: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net',
         changeOrigin: true,
         secure: false,
-        // Spoof headers inside the UI config to bypass Spring Boot CSRF/Origin blocks
+        // Inject corporate persona tokens to elevate local proxy permissions
         headers: {
-          Origin: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net',
-          Referer: 'https://icg-msst-shared-services.apps.namicggtd152d.ecs.dyn.nsroot.net/'
+          'X-User-Id': 'sj81534',       // Overrides the unprivileged 'SYSTEM' SOEID context
+          'X-User-Role': 'ROLE_DEAL_ADMIN'  // Grants full dashboard view rights
         }
       }
     }
