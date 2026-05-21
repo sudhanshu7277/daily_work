@@ -1,12 +1,12 @@
 const overdueColumns = [
-    // 1. FIRST COLUMN: Structured Checkboxes
+    // 1. FIRST COLUMN: Selection Checkboxes
     {
-      title: <input type="checkbox" style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />,
-      dataIndex: 'instructionId', // Backing property satisfies Table contract
+      title: 'Select', 
+      dataIndex: 'instructionId',
       key: 'selection',
-      width: 50,
+      width: 60,
       align: 'center',
-      render: (_: unknown, record: InstructionResponse) => (
+      render: (_: unknown, record: any) => (
         <input 
           type="checkbox" 
           style={{ cursor: 'pointer', transform: 'scale(1.1)' }} 
@@ -18,9 +18,9 @@ const overdueColumns = [
       title: 'Sequence No.',
       dataIndex: 'instructionRef',
       key: 'ref',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.instructionRef || '').localeCompare(b.instructionRef || ''),
-      render: (text: string, record: InstructionResponse) => (
+      render: (text: string, record: any) => (
         <a 
           className="lmn-text-link" 
           style={{ cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
@@ -33,9 +33,9 @@ const overdueColumns = [
     // 3. Source & Category Column
     {
       title: 'Source & Category',
-      dataIndex: 'source', 
+      dataIndex: 'source',
       key: 'sourceCategory',
-      render: (_: unknown, record: InstructionResponse) => {
+      render: (_: unknown, record: any) => {
         const src = record.instructionSource || record.source || '';
         const isEmail = src.toLowerCase().includes('email');
         return (
@@ -55,11 +55,11 @@ const overdueColumns = [
     // 4. Client & GFC Column
     {
       title: 'Client & GFC',
-      dataIndex: 'clientName', 
+      dataIndex: 'clientName',
       key: 'clientInfo',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.clientName || '').localeCompare(b.clientName || ''),
-      render: (_: unknown, record: InstructionResponse) => (
+      render: (_: unknown, record: any) => (
         <El style={{ fontSize: '12px', lineHeight: '14px' }}>
           <El style={{ fontWeight: 600 }}>{record.clientName || '-'}</El>
           {record.buildingCode && (
@@ -68,12 +68,12 @@ const overdueColumns = [
         </El>
       ),
     },
-    // 5. Deal & Deal Key Column (With Inline Type Cast Intersection)
+    // 5. Deal & Deal Key Column
     {
       title: 'Deal & Deal Key',
-      dataIndex: 'dealName', 
+      dataIndex: 'dealName',
       key: 'dealInfo',
-      render: (_: unknown, record: InstructionResponse & { dealKey?: string }) => (
+      render: (_: unknown, record: any) => (
         <El style={{ fontSize: '12px', lineHeight: '14px' }}>
           <El style={{ fontWeight: 600 }}>{record.dealName || '-'}</El>
           {record.dealKey && (
@@ -82,12 +82,12 @@ const overdueColumns = [
         </El>
       ),
     },
-    // 6. Value Date Column (Forced Single-Line Baseline Fix)
+    // 6. Value Date Column (Single Line Horizon Fix)
     {
       title: 'Value Date',
       dataIndex: 'valueDate',
       key: 'valueDate',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.valueDate || '').localeCompare(b.valueDate || ''),
       render: (d: string) => d ? (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
@@ -101,7 +101,7 @@ const overdueColumns = [
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.dueDate || '').localeCompare(b.dueDate || ''),
       render: (d: string) => d ? (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
@@ -115,7 +115,7 @@ const overdueColumns = [
       title: 'Country',
       dataIndex: 'country',
       key: 'country',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.country || '').localeCompare(b.country || ''),
       render: (val: string) => val ? (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
@@ -127,11 +127,11 @@ const overdueColumns = [
     // 9. Assignee Column
     {
       title: 'Assignee',
-      dataIndex: 'primaryAssignee', 
+      dataIndex: 'primaryAssignee',
       key: 'assignee',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.primaryAssignee || '').localeCompare(b.primaryAssignee || ''),
-      render: (_: unknown, record: InstructionResponse) => (
+      render: (_: unknown, record: any) => (
         <El className="lmn-d-flex lmn-flex-column" style={{ gap: '4px', fontSize: '11px' }}>
           {record.primaryAssignee && (
             <El className="lmn-d-flex lmn-align-items-center">
@@ -157,7 +157,7 @@ const overdueColumns = [
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      sorter: (a: InstructionResponse, b: InstructionResponse) => 
+      sorter: (a: any, b: any) => 
         (a.status || '').localeCompare(b.status || ''),
       render: (s: string) => (
         <El style={{ fontSize: '12px', fontWeight: 600 }}>
@@ -168,19 +168,19 @@ const overdueColumns = [
     // 11. Updated By Column
     {
       title: 'Updated By',
-      dataIndex: 'modifiedBy', 
+      dataIndex: 'modifiedBy',
       key: 'updatedBy',
-      render: (_: unknown, record: InstructionResponse) => (
+      render: (_: unknown, record: any) => (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px' }}>
           <Icon type="user" style={{ fontSize: 14, marginRight: 4, color: '#666' }} />
           {record.modifiedBy || '-'}
         </El>
       ),
     },
-    // 12. LAST COLUMN: Blue Action Delete Buttons
+    // 12. LAST COLUMN: Action Delete Buttons
     {
       title: 'Actions',
-      dataIndex: 'instructionId', 
+      dataIndex: 'instructionId',
       key: 'actions',
       width: 70,
       align: 'center',
