@@ -1,7 +1,8 @@
 const overdueColumns = [
-    // 1. FIRST COLUMN: Structured Checkboxes
+    // 1. FIRST COLUMN: Structured Checkboxes (Added safe dataIndex string fallback)
     {
       title: <input type="checkbox" style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />,
+      dataIndex: 'instructionId',
       key: 'selection',
       width: 50,
       align: 'center',
@@ -32,6 +33,7 @@ const overdueColumns = [
     // 3. Source & Category Column
     {
       title: 'Source & Category',
+      dataIndex: 'source', // Added backing dataIndex fallback wrapper
       key: 'sourceCategory',
       render: (_: unknown, record: InstructionResponse) => {
         const src = record.instructionSource || record.source || '';
@@ -53,6 +55,7 @@ const overdueColumns = [
     // 4. Client & GFC Column
     {
       title: 'Client & GFC',
+      dataIndex: 'clientName', // Added fallback backing mapping token
       key: 'clientInfo',
       sorter: (a: InstructionResponse, b: InstructionResponse) => 
         (a.clientName || '').localeCompare(b.clientName || ''),
@@ -68,6 +71,7 @@ const overdueColumns = [
     // 5. Deal & Deal Key Column (With Inline Type Fix)
     {
       title: 'Deal & Deal Key',
+      dataIndex: 'dealName', // Added explicit backup token parameter field mapping
       key: 'dealInfo',
       render: (_: unknown, record: InstructionResponse & { dealKey?: string }) => (
         <El style={{ fontSize: '12px', lineHeight: '14px' }}>
@@ -78,7 +82,7 @@ const overdueColumns = [
         </El>
       ),
     },
-    // 6. Value Date Column (Forced Single Line Alignment Fix)
+    // 6. Value Date Column 
     {
       title: 'Value Date',
       dataIndex: 'valueDate',
@@ -123,6 +127,7 @@ const overdueColumns = [
     // 9. Assignee Column
     {
       title: 'Assignee',
+      dataIndex: 'primaryAssignee', // Added dynamic fallback property signature
       key: 'assignee',
       sorter: (a: InstructionResponse, b: InstructionResponse) => 
         (a.primaryAssignee || '').localeCompare(b.primaryAssignee || ''),
@@ -140,7 +145,7 @@ const overdueColumns = [
             <El className="lmn-d-flex lmn-align-items-center" style={{ marginTop: '4px' }}>
               <El style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', color: '#333', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', marginRight: 6, flexShrink: 0 }}>
                 <Icon type="profile-o" />
-              </El>
+              </</El>
               <span style={{ color: '#666' }}>{record.backupAssignee}</span>
             </El>
           )}
@@ -163,6 +168,7 @@ const overdueColumns = [
     // 11. Updated By Column
     {
       title: 'Updated By',
+      dataIndex: 'modifiedBy', // Explicitly connected backing parameter key 
       key: 'updatedBy',
       render: (_: unknown, record: InstructionResponse) => (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px' }}>
@@ -174,6 +180,7 @@ const overdueColumns = [
     // 12. LAST COLUMN: Blue Action Delete Buttons
     {
       title: 'Actions',
+      dataIndex: 'instructionId', // Safe backing key string hook
       key: 'actions',
       width: 70,
       align: 'center',
