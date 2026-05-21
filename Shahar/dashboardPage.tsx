@@ -3,22 +3,20 @@ const overdueColumns = [
     {
       title: <input type="checkbox" style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />,
       key: 'selection',
-      width: 50, // Static micro-boundary is safe for fixed standalone controls
+      width: 50,
       align: 'center',
       render: (_: unknown, record: InstructionResponse) => (
         <input 
           type="checkbox" 
           style={{ cursor: 'pointer', transform: 'scale(1.1)' }} 
-          // onClick={() => handleRowSelect(record.instructionId)} 
         />
       ),
     },
-    // 2. Sequence No Column
+    // 2. Sequence No. Column
     {
       title: 'Sequence No.',
       dataIndex: 'instructionRef',
       key: 'ref',
-      // Removed fixed pixel definitions to let flex-layout scale naturally
       sorter: (a: InstructionResponse, b: InstructionResponse) => 
         (a.instructionRef || '').localeCompare(b.instructionRef || ''),
       render: (text: string, record: InstructionResponse) => (
@@ -67,11 +65,11 @@ const overdueColumns = [
         </El>
       ),
     },
-    // 5. Deal & Deal Key Column
+    // 5. Deal & Deal Key Column (With Inline Type Fix)
     {
       title: 'Deal & Deal Key',
       key: 'dealInfo',
-      render: (_: unknown, record: InstructionResponse) => (
+      render: (_: unknown, record: InstructionResponse & { dealKey?: string }) => (
         <El style={{ fontSize: '12px', lineHeight: '14px' }}>
           <El style={{ fontWeight: 600 }}>{record.dealName || '-'}</El>
           {record.dealKey && (
@@ -89,7 +87,7 @@ const overdueColumns = [
         (a.valueDate || '').localeCompare(b.valueDate || ''),
       render: (d: string) => d ? (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
-          <Icon type="calendar-dots" style={{ fontSize: 13, marginRight: 4, color: '#002D72' }} />
+          <Icon type="calendar-dots" style={{ fontSize: 14, marginRight: 6, color: '#002D72' }} />
           {formatDate(d)}
         </El>
       ) : '-',
@@ -103,7 +101,7 @@ const overdueColumns = [
         (a.dueDate || '').localeCompare(b.dueDate || ''),
       render: (d: string) => d ? (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
-          <Icon type="calendar-dots" style={{ fontSize: 13, marginRight: 4, color: '#002D72' }} />
+          <Icon type="calendar-dots" style={{ fontSize: 14, marginRight: 6, color: '#002D72' }} />
           {formatDate(d)}
         </El>
       ) : '-',
@@ -117,7 +115,7 @@ const overdueColumns = [
         (a.country || '').localeCompare(b.country || ''),
       render: (val: string) => val ? (
         <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
-          <Icon type="location-pin" style={{ fontSize: 13, marginRight: 4, color: '#002D72' }} />
+          <Icon type="location-pin" style={{ fontSize: 14, marginRight: 6, color: '#002D72' }} />
           {val}
         </El>
       ) : '-',
@@ -132,16 +130,16 @@ const overdueColumns = [
         <El className="lmn-d-flex lmn-flex-column" style={{ gap: '4px', fontSize: '11px' }}>
           {record.primaryAssignee && (
             <El className="lmn-d-flex lmn-align-items-center">
-              <El style={{ width: 18, height: 18, borderRadius: '50%', background: '#002D72', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', marginRight: 4 }}>
-                <Icon type="profile-o" style={{ fontSize: 10 }} />
+              <El style={{ width: 22, height: 22, borderRadius: '50%', background: '#002D72', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', marginRight: 6, flexShrink: 0 }}>
+                <Icon type="profile-o" />
               </El>
               <span style={{ fontWeight: 600 }}>{record.primaryAssignee}</span>
             </El>
           )}
           {record.backupAssignee && (
-            <El className="lmn-d-flex lmn-align-items-center">
-              <El style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', color: '#333', border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', marginRight: 4 }}>
-                <Icon type="profile-o" style={{ fontSize: 10 }} />
+            <El className="lmn-d-flex lmn-align-items-center" style={{ marginTop: '4px' }}>
+              <El style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', color: '#333', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', marginRight: 6, flexShrink: 0 }}>
+                <Icon type="profile-o" />
               </El>
               <span style={{ color: '#666' }}>{record.backupAssignee}</span>
             </El>
@@ -157,40 +155,45 @@ const overdueColumns = [
       sorter: (a: InstructionResponse, b: InstructionResponse) => 
         (a.status || '').localeCompare(b.status || ''),
       render: (s: string) => (
-        <El style={{ fontSize: '11px', fontWeight: 600, textTransform: 'capitalize' }}>
+        <El style={{ fontSize: '12px', fontWeight: 600 }}>
           {s ? s.replace(/_/g, ' ') : '-'}
         </El>
       ),
     },
-    // 11. LAST COLUMN: Blue Action Delete Buttons
+    // 11. Updated By Column
+    {
+      title: 'Updated By',
+      key: 'updatedBy',
+      render: (_: unknown, record: InstructionResponse) => (
+        <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px' }}>
+          <Icon type="user" style={{ fontSize: 14, marginRight: 4, color: '#666' }} />
+          {record.modifiedBy || '-'}
+        </El>
+      ),
+    },
+    // 12. LAST COLUMN: Blue Action Delete Buttons
     {
       title: 'Actions',
       key: 'actions',
-      width: 70, // Retains a tight layout segment for operation triggers
+      width: 70,
       align: 'center',
-      render: (_: unknown, record: InstructionResponse) => (
+      render: () => (
         <Button 
           color="link" 
           size="sm" 
           style={{ padding: 0, color: '#002D72', minWidth: 'auto' }}
-          onClick={() => {
-            if(confirm('Are you sure you want to delete this instruction?')) {
-              // handleDelete(record.instructionId);
-            }
-          }}
           title="Delete Instruction"
         >
-          {/* Swaps in your native UI-library's delete/trash icon cleanly */}
           <Icon type="trash" style={{ fontSize: '15px' }} />
         </Button>
       ),
     },
   ];
 
-  {/* --- Change your current rendering block --- */}
-<Table
-  data={tableData}
-  columns={overdueColumns}
-  className="lmn-table-bordered"
-  // ❌ REMOVE THIS LINE: scroll={{ x: 1400 }}
-/>
+  <Table
+            data={pagedOverdue.map(i => ({ ...i, key: i.instructionId }))}
+            columns={overdueColumns}
+            className="lmn-table-bordered"
+            // Removed scroll={{ x: '100%' }} to drop the overflow wrapper constraints completely
+            style={{ fontSize: 11 }}
+          />
