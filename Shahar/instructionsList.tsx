@@ -201,3 +201,28 @@ const columns = [
   // 🌟 REMOVED: scroll={{ x: 1400 }}
   style={{ fontSize: 11 }}
 />
+
+
+// 1. Place this tracking helper function at the top of your ApprovalQueuePage component function
+const getResponsiveLabelStyle = (): React.CSSProperties => {
+    return {
+      fontSize: 12,
+      whiteSpace: 'normal',
+      wordBreak: 'break-word',
+      overflowWrap: 'anywhere',
+      lineHeight: '13px',
+      display: 'block'
+    };
+  };
+
+  // 2. Map the style attribute reference function cleanly inside your rendering DOM tree loop
+  <Card body>
+    <El className="lmn-text-center">
+      <El style={getResponsiveLabelStyle()}>
+        {STATUS_LABEL[status]}
+      </El>
+      <El style={{ fontSize: 24, fontWeight: 700 }}>
+        {counts[status] || 0}
+      </El>
+    </El>
+  </Card>
