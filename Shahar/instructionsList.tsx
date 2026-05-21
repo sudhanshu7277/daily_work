@@ -1,63 +1,30 @@
+const loadReportData = useCallback(async () => {
+    console.log('AM I GETTING CALLED !!');
+    
+    // 🌟 Defensive Fallback: If year or month parameters aren't ready yet, use the current date instead of breaking
+    const queryYear = year || new Date().getFullYear();
+    const queryMonth = month || (new Date().getMonth() + 1);
 
-
-const getResponsiveLabelStyle = (): any => {
-    return {
-      fontSize: '12px',
-      fontWeight: 600,
-      color: '#444444',
-      whiteSpace: 'normal',
-      wordBreak: 'break-word',
-      overflowWrap: 'anywhere',
-      lineHeight: '14px',
-      textAlign: 'center'
-    };
-  };
-
-
-  {/* 🌟 Parent Container: Full screen width, single row, no wrapping */}
-  <El 
-  className="lmn-d-flex" 
-  style={{ 
-    width: '100%', 
-    gap: '8px', 
-    flexWrap: 'nowrap', 
-    marginBottom: '20px' 
-  }}
->
-  {PENDING_STATUSES.map(status => (
-    /* 🌟 Flex 1 forces all 9 boxes to stretch and divide the screen width perfectly */
-    <El key={status} style={{ flex: 1, minWidth: 0 }}>
-      <Card
-        layer={statusFilter === status ? 'primary' : undefined}
-        className={statusFilter === status ? 'active-card' : 'lmn-border'}
-        style={{ 
-          cursor: 'pointer', 
-          height: '70px', /* 🌟 Fixed, lower height for all boxes */
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        onClick={() => { setStatusFilter(status); setPage(0); }}
-      >
-        {/* 🌟 padding-bottom reduced to keep the short card compact */}
-        <Card body style={{ padding: '8px 4px 4px 4px', height: '100%' }}>
-          <El 
-            className="lmn-d-flex lmn-flex-column lmn-justify-content-between lmn-align-items-center" 
-            style={{ height: '100%' }}
-          >
-            
-            {/* Text Label Layer */}
-            <El style={getResponsiveLabelStyle()}>
-              {STATUS_LABEL[status]}
-            </El>
-
-            {/* Number Counter Layer */}
-            <El style={{ fontSize: '20px', fontWeight: 700, lineHeight: '20px' }}>
-              {counts[status] || 0}
-            </El>
-
-          </El>
-        </Card>
-      </Card>
-    </El>
-  ))}
-</El>
+    setLoading(true);
+    setError('');
+    
+    try {
+      let result: { data: PagedResponse<InstructionResponse> | InstructionResponse[] };
+      try {
+        // Pass the safely-calculated dates to prevent API crashes
+        result = await getCompletedInstructionsReport({ year: queryYear, month: queryMonth, size: 500 });
+      } catch {
+        result = await getInstructions({ status: 'COMPLETED', size: 500 });
+      }
+      
+      const items = Array.isArray(result.data)
+        ? result.data
+        : (result.data as PagedResponse<InstructionResponse>).content || [];
+      setData(items);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load report data');
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [year, month]); // Dependencies stay intact safely
