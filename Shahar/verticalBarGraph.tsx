@@ -1,111 +1,86 @@
-interface VerticalBarItem {
-    label: string;
-    value: number;
-    color: string;
-  }
-  
-  interface VerticalBarChartProps {
-    items: VerticalBarItem[];
-    barColor?: string;
-    rotateLabels?: boolean;
-  }
-  
-  function VerticalBarChart({ items = [], barColor, rotateLabels = false }: VerticalBarChartProps) {
-    const maxVal = Math.max(...items.map(i => i.value), 1);
+export default function DashboardPage() {
+    // ... your states and handlers ...
   
     return (
-      <El 
-        className="lmn-d-flex lmn-justify-content-center" 
-        style={{ 
-          height: '240px', // 1. Increased slightly to accommodate the label dropdown footprint
-          gap: '16px',     // Increased spacing slightly between the data clusters
-          padding: '0 8px', 
-          width: '100%',
-          // 2. Extends container boundary down to give the tilted words plenty of room
-          marginBottom: rotateLabels ? '65px' : '20px' 
-        }}
-      >
-        {items.map((item) => {
-          const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
-          const computedHeight = `${Math.max(pct, 6)}%`;
+      <div className="dashboard-page">
+        {error && <Alert type="danger" ... />}
   
-          return (
+        {/* --- Main Row Wrapper Container --- */}
+        <El className="dashboard-header">
+          
+          {/* Left Side: Sub-tab selectors */}
+          <El className="dashboard-sub-tabs" style={{ display: 'flex', gap: '8px' }}>
             <El 
-              key={item.label} 
-              className="lmn-d-flex lmn-flex-column lmn-align-items-center lmn-justify-content-end" 
-              style={{ 
-                flex: 1, 
-                height: '100%', 
-                position: 'relative', 
-                minWidth: '40px' // Added comfortable scaling room per column cluster
+              onClick={() => setSubTab('dashboard')}
+              style={{
+                padding: '8px 24px',
+                borderRadius: 20,
+                background: subTab === 'dashboard' ? '#002D72' : 'transparent',
+                color: subTab === 'dashboard' ? '#fff' : '#002D72',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                border: subTab === 'dashboard' ? 'none' : '1px solid #002D72',
+                whiteSpace: 'nowrap'
               }}
             >
-              {/* Value Label above the bar */}
-              <El style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                {item.value}
-              </El>
-  
-              {/* The Actual Colored Chart Bar */}
-              <El 
-                style={{ 
-                  width: '100%', 
-                  height: computedHeight, 
-                  background: barColor ?? item.color ?? '#337ab7', 
-                  borderRadius: '4px 4px 0 0' 
-                }} 
-              />
-  
-              {/* 3. NEW: Dedicated Layout Label Container to act as a clear baseline barrier */}
-              <El 
-                style={{ 
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  width: '100%',
-                  height: '20px', // Solid spacing buffer that clears the bar graphic area
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}
-              >
-                {rotateLabels ? (
-                  <El 
-                    style={{ 
-                      position: 'absolute', 
-                      top: '12px', // Pushes the pivot point comfortably below the baseline floor
-                      left: '50%', // Centers the origin hook directly under the bar
-                      whiteSpace: 'nowrap',
-                      // 4. Combined translation with rotation aligns the text start-edge nicely
-                      transform: 'translateX(-30%) rotate(-45deg)', 
-                      transformOrigin: 'top left', 
-                      fontSize: '10px',
-                      lineHeight: '14px',
-                      textAlign: 'left'
-                    }}
-                    title={item.label}
-                  >
-                    {item.label}
-                  </El>
-                ) : (
-                  <El 
-                    className="lmn-text-truncate lmn-text-center" 
-                    style={{ 
-                      fontSize: '10px', 
-                      marginTop: '8px', 
-                      width: '100%',
-                      whiteSpace: 'nowrap'
-                    }} 
-                    title={item.label}
-                  >
-                    {item.label}
-                  </El>
-                )}
-              </El>
-  
+              INSTRUCTIONS DASHBOARD
             </El>
-          );
-        })}
-      </El>
+            
+            <El 
+              onClick={() => setSubTab('report')}
+              style={{
+                padding: '8px 24px',
+                borderRadius: 20,
+                background: subTab === 'report' ? '#002D72' : 'transparent',
+                color: subTab === 'report' ? '#fff' : '#002D72',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                border: subTab === 'report' ? 'none' : '1px solid #002D72',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              INSTRUCTIONS REPORT
+            </El>
+          </El>
+  
+          {/* Right Side: Filters Group Panel */}
+          <El className="dashboard-header-filters" style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            
+            {/* From Datepicker */}
+            <El className="lmn-d-flex lmn-flex-column">
+              <El tag="label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>From</El>
+              <DatePicker value={fromDate} onChange={(d) => setFromDate(d)} useSplitInput style={{ width: 140 }} size="sm" />
+            </El>
+  
+            {/* To Datepicker */}
+            <El className="lmn-d-flex lmn-flex-column">
+              <El tag="label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>To</El>
+              <DatePicker value={toDate} onChange={(d) => setToDate(d)} useSplitInput style={{ width: 140 }} size="sm" />
+            </El>
+  
+            {/* Region Dropdown */}
+            <El className="lmn-d-flex lmn-flex-column">
+              <El tag="label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Region</El>
+              <Dropdown value={regionFilter} onChange={(v) => setRegionFilter(String(v))} placeholder="All Regions" style={{ width: 130 }} size="sm">
+                {REGION_OPTIONS.map(o => (
+                  <Dropdown.Item key={o.value} value={o.value}>{o.label}</Dropdown.Item>
+                ))}
+              </Dropdown>
+            </El>
+  
+            {/* Refresh Action Button */}
+            <El className="lmn-d-flex lmn-flex-column">
+              <Button color="outline" size="sm" onClick={loadData}>
+                <Icon type="refresh" className="lmn-mr-4px" /> Refresh
+              </Button>
+            </El>
+  
+          </El>
+        </El>
+  
+        {/* --- Rest of your layout views (subTab logic) --- */}
+      </div>
     );
   }
-
-  <VerticalBarChart items={statusBarItems} rotateLabels={true} />
