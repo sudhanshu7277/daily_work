@@ -39,9 +39,16 @@
 
 
 .active-card {
-    background-color: rgba(0, 45, 114, 0.06) !important; /* Soft corporate blue background tint */
-    border: 2px solid #002D72 !important;              /* Solid active blue border line */
-    box-shadow: 0 4px 12px rgba(0, 45, 114, 0.15) !important; /* Elegant matching brand shadow */
-    transform: translateY(-1px);                       /* Extremely subtle lift to show interactive selection */
+    /* 1. Use outline instead of border to break through component wrapper nesting */
+    outline: 2px solid #002D72 !important;
+    outline-offset: -1px; /* Subtle inward inset so it sits exactly on the component edge */
+    
+    /* 2. Give it a distinct corporate selection background tint */
+    background-color: rgba(0, 45, 114, 0.08) !important; 
+    
+    /* 3. Deepen the shadow so the active state clearly stands out from neutral cards */
+    box-shadow: 0 6px 16px rgba(0, 45, 114, 0.18) !important;
+    
+    /* 4. Keep smooth state transitions intact */
     transition: all 0.2s ease-in-out;
 }
