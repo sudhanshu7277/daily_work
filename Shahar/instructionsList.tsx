@@ -257,3 +257,34 @@ const getResponsiveLabelStyle = (status: any): any => {
     // Default return fallback safety mesh
     return { fontSize: 12, display: 'block' };
   };
+
+
+  {PENDING_STATUSES.map(status => (
+    <El className="lmn-col-1" key={status}>
+      <Card
+        layer={statusFilter === status ? 'primary' : undefined}
+        className={statusFilter === status ? 'active-card' : 'lmn-border'}
+        style={{ 
+          cursor: 'pointer', 
+          maxWidth: '115px', 
+          minHeight: '85px' // Changed from maxHeight to minHeight so wrapped text doesn't overflow
+        }}
+        onClick={() => { setStatusFilter(status); setPage(0); }}
+      >
+        <Card body style={{ padding: '8px 4px' }}>
+          <El className="lmn-text-center">
+            
+            {/* Cleaned up label layer with the style function properly linked */}
+            <El style={getResponsiveLabelStyle(STATUS_LABEL[status])}>
+              {STATUS_LABEL[status]}
+            </El>
+
+            <El style={{ fontSize: 24, fontWeight: 700, marginTop: '4px' }}>
+              {counts[status] || 0}
+            </El>
+
+          </El>
+        </Card>
+      </Card>
+    </El>
+  ))}
