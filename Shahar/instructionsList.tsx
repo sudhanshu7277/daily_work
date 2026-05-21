@@ -226,3 +226,34 @@ const getResponsiveLabelStyle = (): React.CSSProperties => {
       </El>
     </El>
   </Card>
+
+
+const getResponsiveLabelStyle = (status: any): any => {
+    console.log('getResponsiveLabelStyle status values ', status);
+
+    // Grouping your current targets cleanly into a single unified condition check
+    if (
+      status === 'Admin Maker' ||
+      status === 'Admin Checker' ||
+      status === 'Payment Maker' ||
+      status === 'Payment Checker' ||
+      status === 'Super Checker' ||
+      status === 'Signature' ||
+      status === 'Callback' ||
+      status === 'Completed' ||
+      status === 'Deleted' ||
+      status === 'Duplicate'
+    ) {
+      return {
+        fontSize: 12,
+        whiteSpace: 'normal',
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        lineHeight: '13px',
+        display: 'block'
+      };
+    }
+
+    // Default return fallback safety mesh
+    return { fontSize: 12, display: 'block' };
+  };
