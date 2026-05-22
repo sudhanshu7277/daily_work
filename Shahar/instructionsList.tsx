@@ -48,3 +48,52 @@
     justify-content: center;
     height: auto;
   }
+
+
+
+  // consitonla styles
+
+
+  {/* 1. Handling Boolean Flags (Yes/No styling) */}
+<El style={{ fontSize: 13 }}>
+  <Tag 
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '3px 12px',
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: 600,
+      height: 'auto',
+      // Ternary Operators
+      border: instruction.citiDirectClientProfile ? '1px solid #2e7d32' : '1px solid #1a365d',
+      color: instruction.citiDirectClientProfile ? '#2e7d32' : '#1a365d',
+      backgroundColor: instruction.citiDirectClientProfile ? '#edf7ed' : 'transparent',
+    }}
+  >
+    {instruction.citiDirectClientProfile ? 'Yes' : 'No'}
+  </Tag>
+</El>
+
+{/* 2. Handling String Matches (Approved vs Pending/Declined) */}
+<El style={{ fontSize: 13 }}>
+  <Tag 
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '3px 12px',
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: 600,
+      height: 'auto',
+      // Ternary Operators
+      border: instruction.contractValidation === 'Approved' ? '1px solid #2e7d32' : '1px solid #1a365d',
+      color: instruction.contractValidation === 'Approved' ? '#2e7d32' : '#1a365d',
+      backgroundColor: instruction.contractValidation === 'Approved' ? '#edf7ed' : 'transparent',
+    }}
+  >
+    {instruction.contractValidation || 'Pending'}
+  </Tag>
+</El>
