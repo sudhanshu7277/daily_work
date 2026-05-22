@@ -25,3 +25,26 @@
     position: relative !important;
     z-index: 10 !important; 
 }
+
+
+.box-instruction-styles {
+    display: inline-flex;
+    width: max-content;
+    
+    /* Match the padding & border-radius of the StatusTag component */
+    padding: 4px 12px; 
+    border-radius: 4px;
+    
+    /* Add the core border layout style */
+    border: 1px solid #1a365d; /* Dark navy border to match the look */
+    background-color: transparent; /* Or add a light background variant if needed */
+  
+    /* Text formatting overrides */
+    font-size: 11px;
+    font-weight: 600;
+    color: #1a365d;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+  }
