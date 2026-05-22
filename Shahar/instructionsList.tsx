@@ -1,30 +1,27 @@
-const loadReportData = useCallback(async () => {
-    console.log('AM I GETTING CALLED !!');
+/* Header wrapper block alignment adjustments */
+.dashboard-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 24px;
     
-    // 🌟 Defensive Fallback: If year or month parameters aren't ready yet, use the current date instead of breaking
-    const queryYear = year || new Date().getFullYear();
-    const queryMonth = month || (new Date().getMonth() + 1);
+    /* 🌟 FIX 1: Remove the negative margin causing the invisible overlapping glitch */
+    margin-top: 0px !important; 
+    width: 100%;
+    flex-wrap: nowrap !important;
+}
 
-    setLoading(true);
-    setError('');
+/* Filters panel layout adjustments */
+.dashboard-header-filters {
+    display: flex;
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    gap: 12pxpx;
+    flex-wrap: nowrap !important;
+    margin-left: auto !important;
     
-    try {
-      let result: { data: PagedResponse<InstructionResponse> | InstructionResponse[] };
-      try {
-        // Pass the safely-calculated dates to prevent API crashes
-        result = await getCompletedInstructionsReport({ year: queryYear, month: queryMonth, size: 500 });
-      } catch {
-        result = await getInstructions({ status: 'COMPLETED', size: 500 });
-      }
-      
-      const items = Array.isArray(result.data)
-        ? result.data
-        : (result.data as PagedResponse<InstructionResponse>).content || [];
-      setData(items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load report data');
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [year, month]); // Dependencies stay intact safely
+    /* 🌟 FIX 2: Elevate the stack layer order to make sure fields capture mouse events natively */
+    position: relative !important;
+    z-index: 10 !important; 
+}
