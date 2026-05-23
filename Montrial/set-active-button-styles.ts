@@ -1,131 +1,65 @@
-activeRadioButtonValueBasedOnCaseVersion(taskName: any) {
-    // If caseVersion is truthy (handles null, undefined, false, "")
-    if (this.caseVersion) {
-      return Object.fromEntries([[taskName, TaskStateNewCases.ACTIVE]]);
-    } else {
-      return Object.fromEntries([[taskName, TaskState.ACTIVE]]);
-    }
-  }
-  
-  completeRadioButtonValueBasedOnCaseVersion(taskName: any) {
-    if (this.caseVersion) {
-      return Object.fromEntries([[taskName, TaskStateNewCases.COMPLETE]]);
-    } else {
-      return Object.fromEntries([[taskName, TaskState.COMPLETE]]);
-    }
-  }
-  
-  naRadioButtonValueBasedOnCaseVersion(taskName: any) {
-    if (this.caseVersion) {
-      return Object.fromEntries([[taskName, TaskStateNewCases.NA]]);
-    } else {
-      return Object.fromEntries([[taskName, TaskState.NA]]);
-    }
-  }
+//1. The Template (open-tasks.component.html)
+//Use the row index i to check the current control's configuration. We explicitly bind a brand new, isolated class [class.bmo-active-fill] only to the first radio button container.
 
 
-  // The SCSS Style Enforcement (radio-button-group.component.scss)
 
-  /* Base Styling for the Radio Box Item */
-.fdc-radio-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 36px;
-    padding: 0 16px;
-    border: 1px solid #999999;
-    border-radius: 4px;
-    background-color: #ffffff;
-    color: #333333;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-  
-    /* Target the active/selected state rendered by the parent group attribute */
-    &.is-selected,
-    &[aria-checked="true"],
-    &.active {
-      background-color: #004c97 !important; /* Dark Blue BMO Fill */
-      border-color: #004c97 !important;
-      color: #ffffff !important;            /* White Text Font */
-      font-weight: 600;
-    }
-  }
+<div formArrayName="taskArray">
+  <div *ngFor="let control of tasksForm.get('taskArray')?.controls; let i = index">
+    <fdc-radio-button-group [formControlName]="i">
+      
+      <fdc-radio-button 
+        [value]="activeRadioButtonValueBasedOnCaseVersion(tasks[i].name)"
+        [class.bmo-active-fill]="isFirstButtonActive(i, tasks[i].name)"
+        [label]="settingLabelForOpenTasksRadioButtons(categoryName, 'active') | translate">
+      </fdc-radio-button>
 
+      <fdc-radio-button 
+        [value]="completeRadioButtonValueBasedOnCaseVersion(tasks[i].name)"
+        [label]="settingLabelForOpenTasksRadioButtons(categoryName, 'complete') | translate">
+      </fdc-radio-button>
 
-  ///// LATEST TASK STATE LOGIC (CASE VERSION) — INSTRUCTIONS LIST COMPONENT
+      <fdc-radio-button 
+        [value]="naRadioButtonValueBasedOnCaseVersion(tasks[i].name)"
+        [label]="settingLabelForOpenTasksRadioButtons(categoryName, 'na') | translate">
+      </fdc-radio-button>
 
-  <div class="radio-group-wrapper">
-  
-  <fdc-radio-button 
-    [value]="activeRadioButtonValueBasedOnCaseVersion(task.taskName)"
-    [class.active-state]="isButtonActiveState(task.taskName)"
-    [formControlName]="task.taskName">
-    {{ caseVersion ? 'Waiting for Documentation' : 'Active' }}
-  </fdc-radio-button>
-
-  <fdc-radio-button 
-    [value]="completeRadioButtonValueBasedOnCaseVersion(task.taskName)"
-    [formControlName]="task.taskName">
-    Complete
-  </fdc-radio-button>
-
-  <fdc-radio-button 
-    [value]="naRadioButtonValueBasedOnCaseVersion(task.taskName)"
-    [formControlName]="task.taskName">
-    N/A
-  </fdc-radio-button>
-
+    </fdc-radio-button-group>
+  </div>
 </div>
 
 
-// 2. The TypeScript Evaluation (open-tasks.component.ts)
+// 2. The TypeScript Component (open-tasks.component.ts)
+//Add this lightweight helper function to evaluate if the row's form control value matches the expected active state value on render:
 
-
-/**
- * Evaluates whether the current row's task control is in an 'Active' state on load
- */
-isButtonActiveState(taskName: string): boolean {
-    const currentControlValue = this.tasksFormGroup.get(taskName)?.value;
+isFirstButtonActive(index: number, taskName: string): boolean {
+    const formArray = this.tasksForm.get('taskArray') as FormArray;
+    const controlValue = formArray?.at(index)?.value;
     
-    if (!currentControlValue) {
-      return false;
-    }
+    if (!controlValue) return false;
   
-    // Determine what the target active value string is based on version
-    const expectedActiveValue = this.caseVersion 
-      ? TaskStateNewCases.ACTIVE       // Equals 'Waiting for Documentation'
-      : TaskState.ACTIVE;              // Equals 'Active'
+    // Expected active value string depends completely on the case version
+    const expectedState = this.caseVersion ? TaskStateNewCases.ACTIVE : TaskState.ACTIVE;
   
-    // Match against the nested object structure: { [taskName]: stateValue }
-    return currentControlValue[taskName] === expectedActiveValue;
+    // True if the nested task object match equals the active state string
+    return controlValue[taskName] === expectedState;
   }
 
+  /// 3. The Isolated SCSS Overrides (open-tasks.component.scss)
+// By targeting .bmo-active-fill via ::ng-deep, we force the host component and any internal structure it renders to display the dark blue theme immediately on layout initialization, completely ignoring whether the component thinks it is clicked or not.//
 
-  // 3. The Isolated SCSS Overrides (open-tasks.component.scss)
-
-
-  /* Use ::ng-deep to break encapsulation and apply style to the rendered host directly */
-::ng-deep {
-    fdc-radio-button {
-      /* Base styles for unselected sibling buttons */
-      background-color: #ffffff;
-      color: #333333;
-      border: 1px solid #999999;
+::ng-deep fdc-radio-button {
+    /* Strict style enforcement for our targeted active button element on load */
+    &.bmo-active-fill {
+      background-color: #004c97 !important; /* BMO Dark Blue */
+      border-color: #004c97 !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
   
-      /* STRICT TARGET: Only the element containing our custom active-state class */
-      &.active-state {
-        background-color: #004c97 !important; /* Dark Blue BMO Fill */
+      /* Penetrate deep into whatever container/button/wrapper the library spits out */
+      div, button, .fdc-radio-inner, .box-layout, label span {
+        background-color: #004c97 !important;
         border-color: #004c97 !important;
-        color: #ffffff !important;            /* White Text Font */
-        font-weight: 600 !important;
-  
-        /* If fdc-radio-button renders an internal native element like a button or div wrapper */
-        div, button, .fdc-radio-inner {
-          background-color: #004c97 !important;
-          border-color: #004c97 !important;
-          color: #ffffff !important;
-        }
+        color: #ffffff !important;
       }
     }
   }
