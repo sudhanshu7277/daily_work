@@ -85,3 +85,45 @@ onGridSelectionChanged(rows: CustomerNode[]): void {
   <button (click)="onProfileDeleted(profile)">✕</button>
 </div>
 
+
+// below logic to deselct profiles from entity search grid when the record/records are deleted from selected profiles section
+
+// Looking at the code from your images, here's the exact fix:
+// legal-hold-shell.component.html — already has:
+
+<app-selection-panel
+  [selectedProfiles]="selectedList"
+  (removeProfile)="handleRemoveProfile($event)"
+  ...
+>
+
+
+// legal-hold-shell.component.ts — image 5, line 109-113, currently:
+
+handleRemoveProfile(profile: any): void {
+    if (this.resultsGrid) {
+      this.resultsGrid.deselectRow(profile);
+    }
+  }
+
+  // Change it to:
+
+  handleRemoveProfile(profile: any): void {
+    if (this.currentTab === 'customer' && this.resultsGrid) {
+      this.resultsGrid.deselectRow(profile);
+    }
+    if (this.currentTab === 'entity' && this.entityAgGrid) {
+      this.entityAgGrid.deselectRow(profile);  // ← add this
+    }
+  }
+
+  // entity-grid-component.ts — add this method:
+
+  deselectRow(profile: any): void {
+    this.entityAgGrid.forEachNode(node => {
+      if (node.data?.id === profile.id) {
+        node.setSelected(false);
+      }
+    });
+  }
+
