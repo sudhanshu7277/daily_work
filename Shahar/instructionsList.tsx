@@ -1,99 +1,15 @@
-/* Header wrapper block alignment adjustments */
-.dashboard-header {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 24px;
-    
-    /* 🌟 FIX 1: Remove the negative margin causing the invisible overlapping glitch */
-    margin-top: 0px !important; 
-    width: 100%;
-    flex-wrap: nowrap !important;
-}
+// CHANGE THIS:
+const segments = slices.filter(s => s.value > 0);
+const cx = 100, cy = 100, r = 90; // <-- Change from 60, 60, 55 to 100, 100, 90
+let cumAngle = -90;
 
-/* Filters panel layout adjustments */
-.dashboard-header-filters {
-    display: flex;
-    flex-direction: row !important;
-    align-items: flex-end !important;
-    gap: 12pxpx;
-    flex-wrap: nowrap !important;
-    margin-left: auto !important;
-    
-    /* 🌟 FIX 2: Elevate the stack layer order to make sure fields capture mouse events natively */
-    position: relative !important;
-    z-index: 10 !important; 
-}
-
-
-.box-instruction-styles {
-    display: inline-flex;
-    width: max-content;
-    
-    /* Match the padding & border-radius of the StatusTag component */
-    padding: 4px 12px; 
-    border-radius: 4px;
-    
-    /* Add the core border layout style */
-    border: 1px solid #1a365d; /* Dark navy border to match the look */
-    background-color: transparent; /* Or add a light background variant if needed */
-  
-    /* Text formatting overrides */
-    font-size: 11px;
-    font-weight: 600;
-    color: #1a365d;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-    height: auto;
-  }
+// CHANGE THIS BLOCK:
+const d = segments.length === 1
+  ? `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx - 0.01},${cy - r} Z` // <-- Cleared hardcoded math references
+  : `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
 
 
 
-  // consitonla styles
 
-
-  {/* 1. Handling Boolean Flags (Yes/No styling) */}
-<El style={{ fontSize: 13 }}>
-  <Tag 
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '3px 12px',
-      borderRadius: '6px',
-      fontSize: '11px',
-      fontWeight: 600,
-      height: 'auto',
-      // Ternary Operators
-      border: instruction.citiDirectClientProfile ? '1px solid #2e7d32' : '1px solid #1a365d',
-      color: instruction.citiDirectClientProfile ? '#2e7d32' : '#1a365d',
-      backgroundColor: instruction.citiDirectClientProfile ? '#edf7ed' : 'transparent',
-    }}
-  >
-    {instruction.citiDirectClientProfile ? 'Yes' : 'No'}
-  </Tag>
-</El>
-
-{/* 2. Handling String Matches (Approved vs Pending/Declined) */}
-<El style={{ fontSize: 13 }}>
-  <Tag 
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '3px 12px',
-      borderRadius: '6px',
-      fontSize: '11px',
-      fontWeight: 600,
-      height: 'auto',
-      // Ternary Operators
-      border: instruction.contractValidation === 'Approved' ? '1px solid #2e7d32' : '1px solid #1a365d',
-      color: instruction.contractValidation === 'Approved' ? '#2e7d32' : '#1a365d',
-      backgroundColor: instruction.contractValidation === 'Approved' ? '#edf7ed' : 'transparent',
-    }}
-  >
-    {instruction.contractValidation || 'Pending'}
-  </Tag>
-</El>
+  // CHANGE THE SVG WRAPPER TAG TO THIS:
+<svg width="220" height="220" viewBox="0 0 220 220" style={{ overflow: 'visible' }}></svg>
