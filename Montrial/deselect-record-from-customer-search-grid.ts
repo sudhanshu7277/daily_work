@@ -127,3 +127,40 @@ handleRemoveProfile(profile: any): void {
     });
   }
 
+  // caseversion logic
+
+  Events() {
+    const stepEvents = this.taskConfig.taskFunctions[StepsName.SCAN_REQUIRED_DOCUMENTS];
+    stepEvents.continue = of(true).pipe(
+      switchMap(() => {
+        this.subscriptions.add(
+          this.tasks$.subscribe((tasks) => {
+            
+            // Fix 1: Evaluates to 0/false if caseVersion is null, undefined, false, or ""
+            this.canContinueActive = 
+              tasks.filter((task) => this.caseVersion ? task.state === TaskStateNewCases.ACTIVE : TaskState.ACTIVE).length === 0;
+  
+            // Fix 2: Same clean falsy check applied here
+            this.canContinueComplete = 
+              tasks.filter((task) => this.caseVersion ? task.state === TaskStateNewCases.COMPLETE : TaskState.COMPLETE).length !== 0;
+              
+          })
+        );
+        
+        return !this.canContinueActive || !this.canContinueComplete
+          ? throwError(() => "error, can't progress to next step")
+          : of(true);
+      })
+    );
+    
+    // ... remaining logic
+  }
+
+
+  // Coerces null, undefined, false, "" all strictly into the boolean literal: false
+const isValidVersion = !!this.caseVersion; 
+
+this.canContinueActive = tasks.filter((task) => 
+  isValidVersion ? task.state === TaskStateNewCases.ACTIVE : TaskState.ACTIVE
+).length === 0;
+
