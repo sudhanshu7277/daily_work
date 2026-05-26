@@ -199,3 +199,63 @@ const overdueColumns = [
   
   /* If tracking a descending toggle switch direction */
   /* You can map this dynamically using custom template strings in your className wrapper if needed */
+
+
+  // 🛠️ Step 1: Create the Sorted Slice
+//Scroll right above line 1126 (above the filteredOverdue.length === 0 check) and add this calculation block. 
+//This ensures your active filters, sorting preferences, and pagination pages all play nicely together:
+
+// 1. Sort the filtered data pool first using our sortedOverdueData logic wrapper
+const activeSortedPool = useMemo(() => {
+    const dataCopy = [...(filteredOverdue || [])];
+    if (!sortColumn || !sortDirection) return dataCopy;
+  
+    return dataCopy.sort((a: any, b: any) => {
+      // Dynamic lookups using your custom keys (handles keys like 'instructionRef')
+      let valueA = a[sortColumn];
+      let valueB = b[sortColumn];
+  
+      if (valueA === undefined || valueA === null) return 1;
+      if (valueB === undefined || valueB === null) return -1;
+  
+      if (typeof valueA === 'string') valueA = valueA.toLowerCase();
+      if (typeof valueB === 'string') valueB = valueB.toLowerCase();
+  
+      if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+      if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredOverdue, sortColumn, sortDirection]);
+  
+  // 2. Slice the sorted pool down to the specific current active page view window
+  const startIdx = (overduePage - 1) * overduePageSize;
+  const endIdx = startIdx + overduePageSize;
+  const pagedSortedOverdue = activeSortedPool.slice(startIdx, endIdx);
+
+
+  // 🔀 Step 2: Swap the Table Data Prop Source//
+//Now, let's update your <Table> data input on line 1131 to read from this new sorted page collection.
+
+//Change lines 1130 to 1136 on your screen to match this:
+
+<Table
+  // CHANGED: Swapped pagedOverdue for pagedSortedOverdue
+  data={pagedSortedOverdue.map(i => ({ ...i, key: i.instructionId }))}
+  columns={overdueColumns}
+  className="lmn-table-bordered"
+  scroll={{ x: '100%' }}
+  style={{ fontSize: 12 }}
+/>
+
+// 🔢 Step 3: Align Your Pagination Component Counter
+//To make sure your page number listings don't break when you sort, look right under the table at the <Pagination> component (lines 1138–1143). 
+// Ensure its total calculation points accurately to your data pool length:
+
+<Pagination
+  current={overduePage}
+  total={filteredOverdue.length} // Keeps the row count accurate to the active filters
+  pageSize={overduePageSize}
+  onChange={(page: number) => setOverduePage(page)}
+  size="sm"
+/>
+
