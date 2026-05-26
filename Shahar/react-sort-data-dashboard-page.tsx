@@ -259,3 +259,120 @@ const activeSortedPool = useMemo(() => {
   size="sm"
 />
 
+
+
+////
+{
+    title: 'Source & Category',
+    dataIndex: 'source',
+    key: 'source',
+    width: 140,
+    onHeaderCell: () => ({
+      style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+    }),
+    render: (source: string) => {
+      console.log('In source and category column : ', source);
+      
+      if (!source) return '-';
+  
+      // 1. Check if the string contains a " - " delimiter to split on
+      if (source.includes(' - ')) {
+        const parts = source.split(' - ');
+        const label = parts[0];
+        const value = parts.slice(1).join(' - '); // Handles edge cases if value contains internal hyphens
+  
+        return (
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <El className="lmn-d-flex lmn-flex-column">
+              {/* The Label: Bold Jet Black */}
+              <span style={{ fontWeight: 700, color: '#000000' }}>
+                {label}
+              </span>
+              {/* The Value / Email Address: Soft Slate Gray */}
+              <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>
+                {value}
+              </span>
+            </El>
+          </El>
+        );
+      }
+  
+      // 2. Fallback: If it's a single string token (like CITI_SFT), render it cleanly as the primary title
+      return (
+        <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+          <span style={{ fontWeight: 700, color: '#000000' }}>
+            {source.replace(/_/g, ' ')} {/* Cleans up underscores if present */}
+          </span>
+        </El>
+      );
+    }
+  }
+
+  {
+    title: 'Client, GFC & Country',
+    dataIndex: 'clientName',
+    key: 'clientName',
+    width: 165,
+    onHeaderCell: () => ({
+      style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+    }),
+    render: (name: string, record: InstructionResponse) => {
+      return (
+        <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+          <El className="lmn-d-flex lmn-flex-column">
+            {/* Main Client Name: Bold Jet Black */}
+            <span style={{ fontWeight: 700, color: '#000000' }}>
+              {name || '-'}
+            </span>
+            
+            {/* Account/GFC Number: Soft Slate Gray */}
+            {record.accountNumber && (
+              <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>
+                {record.accountNumber}
+              </span>
+            )}
+            
+            {/* Country Name: Soft Slate Gray */}
+            {record.country && (
+              <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>
+                {record.country}
+              </span>
+            )}
+          </El>
+        </El>
+      );
+    }
+  },
+
+  {
+    title: 'Deal & Deal Key',
+    dataIndex: 'dealName',
+    key: 'dealName',
+    width: 130,
+    onHeaderCell: () => ({
+      style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+    }),
+    render: (deal: string, record: InstructionResponse) => {
+      // If your backend object uses a specific key like dealKey or dealId, 
+      // grab it right here from the record context
+      const subValue = record.dealKey || record.dealId; 
+  
+      return (
+        <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+          <El className="lmn-d-flex lmn-flex-column">
+            {/* Main Deal Text: Bold Jet Black */}
+            <span style={{ fontWeight: 700, color: '#000000' }}>
+              {deal || '-'}
+            </span>
+            
+            {/* Deal Key/ID Secondary Context Line: Soft Slate Gray */}
+            {subValue && (
+              <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>
+                {subValue}
+              </span>
+            )}
+          </El>
+        </El>
+      );
+    }
+  },
