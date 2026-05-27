@@ -92,6 +92,16 @@ const mockCountsPayload = {
   PENDING_CHECKER: 1,
 };
 
+beforeEach(() => {
+    vi.clearAllMocks();
+    
+    // CHANGED: Swapped 'vi.Mock' for 'Mock'
+    (getDashboardCounts as Mock).mockResolvedValue({ data: mockCountsPayload });
+    (getInstructions as Mock).mockResolvedValue({ data: { content: mockDataPayload } });
+  });
+
+  
+
 describe('ApprovalQueuePage Component Tests', () => {
     beforeEach(() => {
       vi.clearAllMocks();
