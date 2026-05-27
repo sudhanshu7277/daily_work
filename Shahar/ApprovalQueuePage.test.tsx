@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
-// UNCOMMENTED & FIXED PATH RESOLUTIONS:
 import ApprovalQueuePage from '../ApprovalQueuePage'; 
 import { getInstructions, getDashboardCounts } from '../../../api/instructions'; 
 
@@ -18,25 +17,25 @@ vi.mock('../../../api/instructions', () => ({
   getDashboardCounts: vi.fn(),
 }));
 
-// 3. Mock internal design system library wrappers
+// 3. Mock internal design system library wrappers with sanitized properties
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
     El: ({ children, onClick, className, style }: any) => 
       ReactActual.createElement('div', { onClick, className, style }, children),
-    Card: ({ children, header, className }: any) => 
-      ReactActual.createElement('div', { className, 'data-testid': 'mock-card' }, [
-        ReactActual.createElement('div', { className: 'card-header' }, header),
-        ReactActual.createElement('div', { className: 'card-body' }, children)
+    Card: ({ children, header, className, onClick }: any) => 
+      ReactActual.createElement('div', { className, onClick, 'data-testid': 'mock-card' }, [
+        ReactActual.createElement('div', { key: 'h', className: 'card-header' }, header),
+        ReactActual.createElement('div', { key: 'b', className: 'card-body' }, children)
       ]),
-    Table: ({ data, columns, className, style }: any) => {
-      return ReactActual.createElement('table', { className, style: JSON.stringify(style) }, [
-        ReactActual.createElement('thead', null, 
+    Table: ({ data, columns, className }: any) => {
+      return ReactActual.createElement('table', { className }, [
+        ReactActual.createElement('thead', { key: 'th' }, 
           ReactActual.createElement('tr', null, columns.map((col: any, idx: number) => 
             ReactActual.createElement('th', { key: idx, onClick: col.title?.props?.onClick }, col.title)
           ))
         ),
-        ReactActual.createElement('tbody', null, 
+        ReactActual.createElement('tbody', { key: 'tb' }, 
           data?.map((row: any, idx: number) => 
             ReactActual.createElement('tr', { key: idx }, columns.map((col: any, cIdx: number) => 
               ReactActual.createElement('td', { key: cIdx }, 
@@ -47,19 +46,19 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         )
       ]);
     },
-    Icon: ({ type, style, className }: any) => 
-      ReactActual.createElement('span', { className, style: JSON.stringify(style) }, `icon-${type}`),
-    Input: ({ value, onChange, placeholder, style, iconPrefix }: any) => 
-      ReactActual.createElement('input', { value, onChange, placeholder, 'data-prefix': iconPrefix, style: JSON.stringify(style) }),
-    Dropdown: ({ children, value, onChange, placeholder, style }: any) => 
-      ReactActual.createElement('select', { value, onChange, placeholder, style: JSON.stringify(style) }, children),
+    Icon: ({ type, className }: any) => 
+      ReactActual.createElement('span', { className }, `icon-${type}`),
+    Input: ({ value, onChange, placeholder }: any) => 
+      ReactActual.createElement('input', { value: value || '', onChange, placeholder }),
+    Dropdown: ({ children, value, onChange, placeholder }: any) => 
+      ReactActual.createElement('select', { value: value || '', onChange, placeholder }, children),
     DropdownItem: ({ children, value }: any) => 
       ReactActual.createElement('option', { value }, children),
-    RangePicker: ({ onChange, placeholder, style }: any) => 
-      ReactActual.createElement('input', { type: 'date', onChange: (e) => onChange ? onChange([new Date(e.target.value), new Date(e.target.value)]) : null, placeholder: JSON.stringify(placeholder), style: JSON.stringify(style) }),
+    RangePicker: ({ onChange, placeholder }: any) => 
+      ReactActual.createElement('input', { type: 'date', onChange: (e) => onChange ? onChange([new Date(e.target.value), new Date(e.target.value)]) : null, placeholder }),
     Pagination: ({ current, onChange }: any) => 
       ReactActual.createElement('div', null, [
-        ReactActual.createElement('button', { onClick: () => onChange ? onChange(current + 1) : null }, 'Next')
+        ReactActual.createElement('button', { key: 'p', onClick: () => onChange ? onChange(current + 1) : null }, 'Next')
       ]),
     StatusTag: ({ status }: any) => ReactActual.createElement('span', null, status),
     Alert: ({ children, type }: any) => ReactActual.createElement('div', { className: `alert-${type}` }, children),
@@ -148,7 +147,6 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
   });
 });
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // 🧪 2. Final Complete Test File: InstructionDetailPage.test.tsx
@@ -156,7 +154,6 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
-// UNCOMMENTED & FIXED PATH RESOLUTIONS:
 import InstructionDetailPage from '../InstructionDetailPage'; 
 import { getInstruction, submitInstruction } from '../../../api/instructions'; 
 import { getComments, addComment } from '../../../api/comments'; 
@@ -180,8 +177,8 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
     El: ({ children, onClick, className, style }: any) => ActualReact.createElement('div', { onClick, className, style }, children),
     Card: ({ children, header, className }: any) => 
       ActualReact.createElement('div', { className, 'data-testid': 'icgds-card' }, [
-        ActualReact.createElement('div', { className: 'card-header' }, header),
-        ActualReact.createElement('div', { className: 'card-body' }, children)
+        ActualReact.createElement('div', { key: 'h', className: 'card-header' }, header),
+        ActualReact.createElement('div', { key: 'b', className: 'card-body' }, children)
       ]),
     Button: ({ children, onClick, disabled }: any) => ActualReact.createElement('button', { onClick, disabled }, children),
     Icon: ({ type }: any) => ActualReact.createElement('span', null, `icon-${type}`),
@@ -190,13 +187,13 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
     Alert: ({ children, type }: any) => ActualReact.createElement('div', { className: `alert-${type}` }, children),
     Modal: ({ children, visible, title }: any) => visible ? ActualReact.createElement('div', null, [title, children]) : null,
     TextArea: ({ value, onChange, placeholder }: any) => ActualReact.createElement('textarea', { value, onChange, placeholder }),
-    Input: ({ value, onChange, placeholder }: any) => ActualReact.createElement('input', { value, onChange, placeholder }),
-    Dropdown: ({ children, value, onChange, placeholder }: any) => ActualReact.createElement('select', { value, onChange, placeholder }, children),
+    Input: ({ value, onChange, placeholder }: any) => ActualReact.createElement('input', { value: value || '', onChange, placeholder }),
+    Dropdown: ({ children, value, onChange, placeholder }: any) => ActualReact.createElement('select', { value: value || '', onChange, placeholder }, children),
     DropdownItem: ({ children, value }: any) => ActualReact.createElement('option', { value }, children),
     Table: ({ data, columns, className }: any) => {
       return ActualReact.createElement('table', { className }, [
-        ActualReact.createElement('thead', null, ActualReact.createElement('tr', null, columns.map((c: any, i: number) => ActualReact.createElement('th', { key: i }, c.title)))),
-        ActualReact.createElement('tbody', null, data?.map((row: any, rIdx: number) => 
+        ActualReact.createElement('thead', { key: 'th' }, ActualReact.createElement('tr', null, columns.map((c: any, i: number) => ActualReact.createElement('th', { key: i }, c.title)))),
+        ActualReact.createElement('tbody', { key: 'tb' }, data?.map((row: any, rIdx: number) => 
           ActualReact.createElement('tr', { key: rIdx }, columns.map((c: any, cIdx: number) => 
             ActualReact.createElement('td', { key: cIdx }, c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex])
           ))
