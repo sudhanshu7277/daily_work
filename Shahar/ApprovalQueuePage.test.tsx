@@ -17,7 +17,7 @@ vi.mock('../../../api/instructions', () => ({
   getDashboardCounts: vi.fn(),
 }));
 
-// 3. Mock internal design system library wrappers with sanitized properties
+// 3. Mock internal design system library wrappers with strictly sanitized type properties
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
@@ -54,8 +54,13 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
       ReactActual.createElement('select', { value: value || '', onChange, placeholder }, children),
     DropdownItem: ({ children, value }: any) => 
       ReactActual.createElement('option', { value }, children),
+    // FIXED: Explicitly cast e.target as any to eliminate the type compilation error
     RangePicker: ({ onChange, placeholder }: any) => 
-      ReactActual.createElement('input', { type: 'date', onChange: (e) => onChange ? onChange([new Date(e.target.value), new Date(e.target.value)]) : null, placeholder }),
+      ReactActual.createElement('input', { 
+        type: 'date', 
+        onChange: (e: any) => onChange ? onChange([new Date(e.target.value), new Date(e.target.value)]) : null, 
+        placeholder 
+      }),
     Pagination: ({ current, onChange }: any) => 
       ReactActual.createElement('div', null, [
         ReactActual.createElement('button', { key: 'p', onClick: () => onChange ? onChange(current + 1) : null }, 'Next')
