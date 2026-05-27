@@ -523,4 +523,132 @@ describe('InstructionListPage Thorough Branch Validation Suite', () => {
     });
   });
 
+
+  // 🧪 Complete Vitest File: WorkflowCircles.test.tsx
+//Create this test file under your components directory layout at:
+
+//src/components/common/__tests__/WorkflowCircles.test.tsx
+
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+import WorkflowCircles from '../WorkflowCircles';
+
+// 1. Mock your internal platform library wrappers to parse down cleanly into standard DOM elements
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const ReactActual = await vi.importActual<typeof import('react')>('react');
+  return {
+    El: ({ children, className, style }: any) => 
+      ReactActual.createElement('div', { className, style: JSON.stringify(style) }, children),
+    Tooltip: ({ children, title, id }: any) => 
+      ReactActual.createElement('div', { 'data-testid': 'mock-tooltip', id, 'data-title': title }, children),
+  };
+});
+
+describe('WorkflowCircles Component Target Branch Coverage Matrix', () => {
   
+  // Test 1: Standard happy-path state (DRAFT status)
+  it('should render initial pipeline milestones starting with Admin Maker active', () => {
+    render(
+      <WorkflowCircles 
+        status="DRAFT" 
+        signatureRequired={false} 
+        callbackRequired={false} 
+      />
+    );
+
+    // Verify step index values are visible inside circles
+    expect(screen.getByText('1')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
+    
+    // Verify descriptive stage labels render down smoothly
+    expect(screen.getByText('Admin Maker')).toBeTruthy();
+    expect(screen.getByText('Admin Checker')).toBeTruthy();
+  });
+
+  // Test 2: Verify active step calculations skipping optional signature blocks
+  it('should dynamically slice signature validation when signatureRequired parameter is false', () => {
+    render(
+      <WorkflowCircles 
+        status="PENDING_CALLBACK_VALIDATION" 
+        signatureRequired={false} 
+        callbackRequired={true} 
+      />
+    );
+
+    // Since signatureRequired is false, Signature Validation is omitted from calculations
+    expect(screen.queryByText('Signature Validation')).toBeNull();
+    expect(screen.getByText('Callback Validation')).toBeTruthy();
+  });
+
+  // Test 3: Verify active step calculations slicing optional callback blocks
+  it('should dynamically slice callback loops when callbackRequired parameter is false', () => {
+    render(
+      <WorkflowCircles 
+        status="PENDING_PAYMENT_MAKER" 
+        signatureRequired={true} 
+        callbackRequired={false} 
+      />
+    );
+
+    // Since callbackRequired is false, Callback Validation is omitted from calculations
+    expect(screen.queryByText('Callback Validation')).toBeNull();
+    expect(screen.getByText('Signature Validation')).toBeTruthy();
+  });
+
+  // Test 4: Triggers Rejected/Cancelled background style coloring checks (idx === currentIdx)
+  it('should apply critical color tokens when matching a REJECTED processing state', () => {
+    const { container } = render(
+      <WorkflowCircles 
+        status="REJECTED" 
+        signatureRequired={true} 
+        callbackRequired={true} 
+      />
+    );
+
+    // Forces the loop execution right down into the (isRejected || isCancelled) conditional branch blocks
+    expect(container.innerHTML).toContain('#D32F2F');
+  });
+
+  // Test 5: Triggers Returned background style coloring checks
+  it('should apply fallback warning token colors when matching a RETURNED_TO_ADMIN state', () => {
+    const { container } = render(
+      <WorkflowCircles 
+        status="RETURNED_TO_ADMIN" 
+        signatureRequired={true} 
+        callbackRequired={true} 
+      />
+    );
+
+    // Forces loop execution down into the isReturned branch check inside getCircleStyle
+    expect(container.innerHTML).toContain('#F57C00');
+  });
+
+  // Test 6: Verify specialized title override string parser condition (logicForStepsTitle)
+  it('should override step label text output to Admin Rework when conditions align perfectly', () => {
+    render(
+      <WorkflowCircles 
+        status="RETURNED_TO_ADMIN" 
+        signatureRequired={true} 
+        callbackRequired={true} 
+      />
+    );
+
+    // Confirms that logicForStepsTitle intercepts stage.label for 'Admin Maker' and safely returns 'Admin Rework'
+    expect(screen.getByText('Admin Rework')).toBeTruthy();
+    expect(screen.queryByText('Admin Maker')).toBeNull();
+  });
+
+  // Test 7: Terminal pipeline layout condition execution
+  it('should process clean visual elements when workflow drops into terminal status', () => {
+    render(
+      <WorkflowCircles 
+        status="COMPLETED" 
+        signatureRequired={true} 
+        callbackRequired={true} 
+      />
+    );
+
+    expect(screen.getByText('Completed')).toBeTruthy();
+  });
+});
