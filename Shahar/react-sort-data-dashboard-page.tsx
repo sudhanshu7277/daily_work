@@ -3,18 +3,17 @@
 // Right around line 48 (where useNavigate is called), add your tracking state hooks:
 
 // Add these at the top of your component function
+// 1. Core Sorting Tracking States (Initial state set to Sequence No. Descending)
 const [sortColumn, setSortColumn] = useState<string | null>('instructionRef');
 const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
 
-// The cycle state toggle handler: Ascending -> Descending -> Unsorted
+// 2. Strict Two-Way Sorting Toggle Handler
 const handleSort = (columnKey: string) => {
   if (sortColumn === columnKey) {
-    if (sortDirection === 'asc') setSortDirection('desc');
-    else if (sortDirection === 'desc') {
-      setSortDirection(null);
-      setSortColumn(null);
-    } else setSortDirection('asc');
+    // If clicking the active column, strictly toggle between 'asc' and 'desc' (never null)
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   } else {
+    // If shifting focus to a new column, instantly anchor it and default to 'asc'
     setSortColumn(columnKey);
     setSortDirection('asc');
   }
@@ -267,3 +266,198 @@ const columns: any = [
 ////Your raw dataset mapping variable tableData is already tracking our filteredData utility hook:
 
 const tableData = filteredData.map((item) => ({ ...item, key: item.instructionId }));
+
+
+// latest change
+
+// 1. Core Sorting Tracking States (Initial state set to Sequence No. Descending)
+const [sortColumn, setSortColumn] = useState<string | null>('instructionRef');
+const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
+
+// 2. Strict Two-Way Sorting Toggle Handler
+const handleSort = (columnKey: string) => {
+  if (sortColumn === columnKey) {
+    // If clicking the active column, strictly toggle between 'asc' and 'desc' (never null)
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  } else {
+    // If shifting focus to a new column, instantly anchor it and default to 'asc'
+    setSortColumn(columnKey);
+    setSortDirection('asc');
+  }
+};
+
+// columns section
+
+const columns: any = [
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('instructionRef')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Sequence No.</span>
+          <Icon 
+            type={
+              sortColumn === 'instructionRef' 
+                ? (sortDirection === 'asc' ? 'arrow-up' : 'arrow-down') 
+                : 'swap' // Double arrow shows when inactive so they know it is sortable
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'instructionRef' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1 // Always fully visible
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'instructionRef',
+      key: 'instructionRef',
+      width: 130,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (text: string, record: InstructionResponse) => (
+        <a 
+          onClick={() => navigate(`/instructions/${record.instructionId}`)} 
+          className="lmn-text-link" 
+          style={{ cursor: 'pointer', fontWeight: 500, fontSize: '12px' }}
+        >
+          {text}
+        </a>
+      ),
+    },
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('source')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Source & Category</span>
+          <Icon 
+            type={
+              sortColumn === 'source' 
+                ? (sortDirection === 'asc' ? 'arrow-up' : 'arrow-down') 
+                : 'swap'
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'source' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'source',
+      key: 'source',
+      width: 140,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (source: string) => {
+        if (!source) return '-';
+        if (source.includes(' - ')) {
+          const parts = source.split(' - ');
+          return (
+            <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+              <El className="lmn-d-flex lmn-flex-column">
+                <span style={{ fontWeight: 700, color: '#000000' }}>{parts[0]}</span>
+                <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{parts.slice(1).join(' - ')}</span>
+              </El>
+            </El>
+          );
+        }
+        return (
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <span style={{ fontWeight: 700, color: '#000000' }}>{source}</span>
+          </El>
+        );
+      }
+    },
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('clientName')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Client, GFC & Country</span>
+          <Icon 
+            type={
+              sortColumn === 'clientName' 
+                ? (sortDirection === 'asc' ? 'arrow-up' : 'arrow-down') 
+                : 'swap'
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'clientName' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'clientName',
+      key: 'clientName',
+      width: 165,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (name: string, record: InstructionResponse) => (
+        <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+          <El className="lmn-d-flex lmn-flex-column">
+            <span style={{ fontWeight: 700, color: '#000000' }}>{name || '-'}</span>
+            {record.accountNumber && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{record.accountNumber}</span>}
+            {record.country && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{record.country}</span>}
+          </El>
+        </El>
+      )
+    },
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('dealName')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Deal & Deal Key</span>
+          <Icon 
+            type={
+              sortColumn === 'dealName' 
+                ? (sortDirection === 'asc' ? 'arrow-up' : 'arrow-down') 
+                : 'swap'
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'dealName' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'dealName',
+      key: 'dealName',
+      width: 130,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (deal: string, record: InstructionResponse) => {
+        const subValue = record.instructionRef || record.purposeOfPayment;
+        return (
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <El className="lmn-d-flex lmn-flex-column">
+              <span style={{ fontWeight: 700, color: '#000000' }}>{deal || '-'}</span>
+              {subValue && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{subValue}</span>}
+            </El>
+          </El>
+        );
+      }
+    }
+  ];
+
+
+
