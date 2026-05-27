@@ -1,22 +1,19 @@
-// 🧱 1. Component State & Sort Handler
-//Place this block right at the very top of your ApprovalQueuePage() 
-//component function, near your other state hooks (like searchTerm):
+/// Step 1: Initialize the Page States
+//Scroll to the very top of your ApprovalQueuePage component function. 
+// Right around line 48 (where useNavigate is called), add your tracking state hooks:
 
-// 1. Add tracking hooks for column and direction
-const [sortColumn, setSortColumn] = useState<string | null>(null);
-const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+// Add these at the top of your component function
+const [sortColumn, setSortColumn] = useState<string | null>('instructionRef');
+const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
 
-// 2. Add the state cycling function
+// The cycle state toggle handler: Ascending -> Descending -> Unsorted
 const handleSort = (columnKey: string) => {
   if (sortColumn === columnKey) {
-    if (sortDirection === 'asc') {
-      setSortDirection('desc');
-    } else if (sortDirection === 'desc') {
+    if (sortDirection === 'asc') setSortDirection('desc');
+    else if (sortDirection === 'desc') {
       setSortDirection(null);
       setSortColumn(null);
-    } else {
-      setSortDirection('asc');
-    }
+    } else setSortDirection('asc');
   } else {
     setSortColumn(columnKey);
     setSortDirection('asc');
@@ -24,41 +21,66 @@ const handleSort = (columnKey: string) => {
 };
 
 
-//🔀 2. The Updated filteredData UseMemo Logic Block
-///Locate your existing filteredData mapping loop (lines 111–133) 
-//and update it to intercept the array data and perform the sorting computation before returning:
+//🔀 Step 2: Update the filteredData Logic Block
+// Locate your data filtering loop (const filteredData = useMemo(...)). 
+//We want to insert the array sorting routine right after your valueDateRange filtering block processes but before the component hits return result;.
 
+// // Update that entire useMemo block to look like this:
 const filteredData = useMemo(() => {
-    // ... KEEP ALL YOUR EXISTING SEARCH / FILTER CODE THAT CREATES THE 'result' ARRAY AS-IS ...
-  
-    // Create a copy to prevent direct array mutation errors
-    const dataCopy = [...(result || [])];
-  
-    if (!sortColumn || !sortDirection) return dataCopy;
-  
-    return dataCopy.sort((a: any, b: any) => {
-      let valueA = a[sortColumn];
-      let valueB = b[sortColumn];
-  
-      // Push null, blank, or undefined records down to the bottom
-      if (valueA === undefined || valueA === null) return 1;
-      if (valueB === undefined || valueB === null) return -1;
-  
-      // Standard lowercase alphabetical evaluation matching string properties
-      valueA = String(valueA).toLowerCase().trim();
-      valueB = String(valueB).toLowerCase().trim();
-  
-      if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-      if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  
-    // CRITICAL: Append the sort tracking hooks to the useMemo dependency tracking matrix array below
+    let result = data.content;
+
+    // 1. Existing Search Term Filter Block
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(i =>
+        (i.instructionRef || '').toLowerCase().includes(term) ||
+        (i.clientName || '').toLowerCase().includes(term) ||
+        (i.dealName || '').toLowerCase().includes(term) ||
+        (i.region || '').toLowerCase().includes(term) ||
+        (i.country || '').toLowerCase().includes(term) ||
+        (i.accountNumber || '').toLowerCase().includes(term) ||
+        (i.primaryAssignee || '').toLowerCase().includes(term)
+      );
+    }
+
+    // 2. Existing Value Date Range Filter Block
+    if (valueDateRange && valueDateRange[0] && valueDateRange[1]) {
+      result = result.filter(i => {
+        if (!i.dueDate) return false;
+        const dueDate = new Date(i.dueDate);
+        return dueDate >= valueDateRange[0] && dueDate <= valueDateRange[1];
+      });
+    }
+
+    // 3. NEW: Pure Inline Copy Sorting Loop
+    if (sortColumn && sortDirection) {
+      result = [...result].sort((a: any, b: any) => {
+        let valueA = a[sortColumn];
+        let valueB = b[sortColumn];
+
+        // Push null, blank, or missing rows elegantly to the bottom
+        if (valueA === undefined || valueA === null) return 1;
+        if (valueB === undefined || valueB === null) return -1;
+
+        // Normalize data values into standardized lowercase comparison strings
+        valueA = String(valueA).toLowerCase().trim();
+        valueB = String(valueB).toLowerCase().trim();
+
+        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+
+    // Hook our reactive state dependencies down to the monitor layout array below
   }, [data.content, searchTerm, valueDateRange, sortColumn, sortDirection]);
 
-  //🎨 3. Wired Sequence No. Column Configuration
-//Update the first element of your columns array configuration (lines 135–150) 
-// to render the clickable text layout and track your icon display parameters:
+
+  //🎨 Step 3: Wire Up the Component columns Definition Array
+///Let's rebuild your columns config block. We will pass a styled layout button frame to our header titles. By forcing opacity: 1 and mapping the color token to #b3c6ff (a light pastel slate-blue), 
+//the buttons remain fully visible on the background all the time without blending into the canvas text.
 
 const columns: any = [
     {
@@ -66,9 +88,9 @@ const columns: any = [
         <El 
           className="lmn-d-flex lmn-align-items-center" 
           onClick={() => handleSort('instructionRef')} 
-          style={{ cursor: 'pointer', userSelect: 'none' }}
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
         >
-          <span>Sequence No.</span>
+          <span style={{ marginRight: 'auto' }}>Sequence No.</span>
           <Icon 
             type={
               sortColumn === 'instructionRef' && sortDirection === 'asc' 
@@ -78,11 +100,10 @@ const columns: any = [
                   : 'swap'
             } 
             style={{ 
-              fontSize: '11px', 
+              fontSize: '12px', 
               marginLeft: '6px', 
-              // Highlights white when column matches active state; otherwise remains soft gray
-              color: sortColumn === 'instructionRef' ? '#ffffff' : '#cccccc', 
-              opacity: sortColumn === 'instructionRef' ? 1 : 0.6 
+              color: sortColumn === 'instructionRef' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1 
             }} 
           />
         </El>
@@ -103,117 +124,146 @@ const columns: any = [
         </a>
       ),
     },
-    // ... Leave 'Source & Category', 'Client', and 'Deal' arrays exactly as they are ...
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('source')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Source & Category</span>
+          <Icon 
+            type={
+              sortColumn === 'source' && sortDirection === 'asc' 
+                ? 'arrow-up' 
+                : sortColumn === 'source' && sortDirection === 'desc' 
+                  ? 'arrow-down' 
+                  : 'swap'
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'source' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1 
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'source',
+      key: 'source',
+      width: 140,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (source: string) => {
+        if (!source) return '-';
+        if (source.includes(' - ')) {
+          const parts = source.split(' - ');
+          return (
+            <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+              <El className="lmn-d-flex lmn-flex-column">
+                <span style={{ fontWeight: 700, color: '#000000' }}>{parts[0]}</span>
+                <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{parts.slice(1).join(' - ')}</span>
+              </El>
+            </El>
+          );
+        }
+        return (
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <span style={{ fontWeight: 700, color: '#000000' }}>{source}</span>
+          </El>
+        );
+      }
+    },
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('clientName')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Client, GFC & Country</span>
+          <Icon 
+            type={
+              sortColumn === 'clientName' && sortDirection === 'asc' 
+                ? 'arrow-up' 
+                : sortColumn === 'clientName' && sortDirection === 'desc' 
+                  ? 'arrow-down' 
+                  : 'swap'
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'clientName' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1 
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'clientName',
+      key: 'clientName',
+      width: 165,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (name: string, record: InstructionResponse) => (
+        <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+          <El className="lmn-d-flex lmn-flex-column">
+            <span style={{ fontWeight: 700, color: '#000000' }}>{name || '-'}</span>
+            {record.accountNumber && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{record.accountNumber}</span>}
+            {record.country && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{record.country}</span>}
+          </El>
+        </El>
+      )
+    },
+    {
+      title: (
+        <El 
+          className="lmn-d-flex lmn-align-items-center" 
+          onClick={() => handleSort('dealName')} 
+          style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
+        >
+          <span style={{ marginRight: 'auto' }}>Deal & Deal Key</span>
+          <Icon 
+            type={
+              sortColumn === 'dealName' && sortDirection === 'asc' 
+                ? 'arrow-up' 
+                : sortColumn === 'dealName' && sortDirection === 'desc' 
+                  ? 'arrow-down' 
+                  : 'swap'
+            } 
+            style={{ 
+              fontSize: '12px', 
+              marginLeft: '6px', 
+              color: sortColumn === 'dealName' ? '#ffffff' : '#b3c6ff', 
+              opacity: 1 
+            }} 
+          />
+        </El>
+      ),
+      dataIndex: 'dealName',
+      key: 'dealName',
+      width: 130,
+      onHeaderCell: () => ({
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (deal: string, record: InstructionResponse) => {
+        const subValue = record.instructionRef || record.purposeOfPayment;
+        return (
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <El className="lmn-d-flex lmn-flex-column">
+              <span style={{ fontWeight: 700, color: '#000000' }}>{deal || '-'}</span>
+              {subValue && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{subValue}</span>}
+            </El>
+          </El>
+        );
+      }
+    }
   ];
 
 
+  // 🎚️ Step 4: Verify the Table Data Map Prop
+//Look at line 333 in your component file code template block. 
+////Your raw dataset mapping variable tableData is already tracking our filteredData utility hook:
 
-  //////////////////////////////////
-  /////// LATEST CODE
-
-  const filteredData = useMemo(() => {
-    let result = data.content;
-
-    // 1. Text Search Filter Block
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(i =>
-        (i.instructionRef || '').toLowerCase().includes(term) ||
-        (i.clientName || '').toLowerCase().includes(term) ||
-        (i.dealName || '').toLowerCase().includes(term) ||
-        (i.region || '').toLowerCase().includes(term) ||
-        (i.country || '').toLowerCase().includes(term) ||
-        (i.accountNumber || '').toLowerCase().includes(term) ||
-        (i.primaryAssignee || '').toLowerCase().includes(term)
-      );
-    }
-
-    // 2. Date Range Filter Block
-    if (valueDateRange && valueDateRange[0] && valueDateRange[1]) {
-      result = result.filter(i => {
-        if (!i.dueDate) return false;
-        const dueDate = new Date(i.dueDate);
-        return dueDate >= valueDateRange[0] && dueDate <= valueDateRange[1];
-      });
-    }
-
-    // 3. NEW: Multi-Directional Alphabetical Sort Block
-    if (sortColumn && sortDirection) {
-      result = [...result].sort((a: any, b: any) => {
-        let valueA = a[sortColumn];
-        let valueB = b[sortColumn];
-
-        // Push null or undefined records to the bottom cleanly
-        if (valueA === undefined || valueA === null) return 1;
-        if (valueB === undefined || valueB === null) return -1;
-
-        // Force to normalized lowercase strings for exact alphabetical sorting
-        valueA = String(valueA).toLowerCase().trim();
-        valueB = String(valueB).toLowerCase().trim();
-
-        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return result;
-    
-    // 4. CRITICAL: Added sort states to the useMemo tracking matrix down here
-  }, [data.content, searchTerm, valueDateRange, sortColumn, sortDirection]);
-
-  //🧱 1. Update Component States for Default Sort
-//Go to where you defined your state variables at the top of ApprovalQueuePage() and set default values inside your useState initializers:
-
-// Sets the table to automatically render sorted by Sequence No. in descending order
-const [sortColumn, setSortColumn] = useState<string | null>('instructionRef');
-const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
-
-// 🎨 2. Update the Sequence No. Column Definition
-// Update the title element logic within your columns array block. We'll modify the color property to a clean light gray (#b3c6ff or #cccccc) 
-///for better contrast against the corporate blue background, and keep the opacity locked at 1:
-
-{
-    title: (
-      <El 
-        className="lmn-d-flex lmn-align-items-center" 
-        onClick={() => handleSort('instructionRef')} 
-        style={{ cursor: 'pointer', userSelect: 'none', width: '100%' }}
-      >
-        <span style={{ marginRight: 'auto' }}>Sequence No.</span>
-        <Icon 
-          type={
-            sortColumn === 'instructionRef' && sortDirection === 'asc' 
-              ? 'arrow-up' 
-              : sortColumn === 'instructionRef' && sortDirection === 'desc' 
-                ? 'arrow-down' 
-                : 'swap' // Shows double-arrow icon when inactive
-          } 
-          style={{ 
-            fontSize: '12px', 
-            marginLeft: '6px', 
-            // Highlight white if actively sorting this column, otherwise keep it a readable light gray
-            color: sortColumn === 'instructionRef' ? '#ffffff' : '#b3c6ff',
-            opacity: 1 // Force icon to be 100% visible at all times
-          }} 
-        />
-      </El>
-    ),
-    dataIndex: 'instructionRef',
-    key: 'instructionRef',
-    width: 130,
-    onHeaderCell: () => ({
-      style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
-    }),
-    render: (text: string, record: InstructionResponse) => (
-      <a 
-        onClick={() => navigate(`/instructions/${record.instructionId}`)} 
-        className="lmn-text-link" 
-        style={{ cursor: 'pointer', fontWeight: 500, fontSize: '12px' }}
-      >
-        {text}
-      </a>
-    ),
-  },
-
-  
+const tableData = filteredData.map((item) => ({ ...item, key: item.instructionId }));
