@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import ApprovalQueuePage from '../ApprovalQueuePage';
-import { getInstructions, getDashboardCounts } from '../../../api/instructions';
+import ApprovalQueuePage from '../ApprovalQueuePage'; // FIXED Relative Import
+import { getInstructions, getDashboardCounts } from '../../../api/instructions'; // FIXED Relative Import
 
 // 1. Mock standard routing vectors
 const mockNavigate = vi.fn();
@@ -150,16 +150,15 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // 🧪 2. Final Complete Test File: InstructionDetailPage.test.tsx
-
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import InstructionDetailPage from '../InstructionDetailPage';
+import InstructionDetailPage from '../InstructionDetailPage'; // FIXED Relative Import
 
-import { getInstruction, submitInstruction } from '../../../api/instructions';
-import { getComments, addComment } from '../../../api/comments';
-import { getDocuments } from '../../../api/documents';
-import { getInstructionHistory, getFieldHistory } from '../../../api/audit';
+import { getInstruction, submitInstruction } from '../../../api/instructions'; // FIXED Relative Import
+import { getComments, addComment } from '../../../api/comments'; // FIXED Relative Import
+import { getDocuments } from '../../../api/documents'; // FIXED Relative Import
+import { getInstructionHistory, getFieldHistory } from '../../../api/audit'; // FIXED Relative Import
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
