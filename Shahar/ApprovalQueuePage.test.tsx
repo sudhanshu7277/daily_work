@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import ApprovalQueuePage from '../ApprovalQueuePage'; // FIXED Relative Import
-import { getInstructions, getDashboardCounts } from '../../../api/instructions'; // FIXED Relative Import
+
+// UNCOMMENTED & FIXED PATH RESOLUTIONS:
+import ApprovalQueuePage from '../ApprovalQueuePage'; 
+import { getInstructions, getDashboardCounts } from '../../../api/instructions'; 
 
 // 1. Mock standard routing vectors
 const mockNavigate = vi.fn();
@@ -10,13 +12,13 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// 2. Mock API resource endpoints
+// 2. Mock API resource endpoints matching the clean relative path
 vi.mock('../../../api/instructions', () => ({
   getInstructions: vi.fn(),
   getDashboardCounts: vi.fn(),
 }));
 
-// 3. Mock internal Citi design system library wrappers
+// 3. Mock internal design system library wrappers
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
@@ -153,12 +155,13 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import InstructionDetailPage from '../InstructionDetailPage'; // FIXED Relative Import
 
-import { getInstruction, submitInstruction } from '../../../api/instructions'; // FIXED Relative Import
-import { getComments, addComment } from '../../../api/comments'; // FIXED Relative Import
-import { getDocuments } from '../../../api/documents'; // FIXED Relative Import
-import { getInstructionHistory, getFieldHistory } from '../../../api/audit'; // FIXED Relative Import
+// UNCOMMENTED & FIXED PATH RESOLUTIONS:
+import InstructionDetailPage from '../InstructionDetailPage'; 
+import { getInstruction, submitInstruction } from '../../../api/instructions'; 
+import { getComments, addComment } from '../../../api/comments'; 
+import { getDocuments } from '../../../api/documents'; 
+import { getInstructionHistory, getFieldHistory } from '../../../api/audit'; 
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
