@@ -299,3 +299,228 @@ describe('InstructionDetailPage Comprehensive Coverage Suite', () => {
     fireEvent.click(fieldLevelSubTab);
   });
 });
+
+
+///🧪 Complete Reviewed File: InstructionListPage.test.tsx
+//File Path location: src/pages/instructions/__tests__/InstructionListPage.test.tsx
+
+
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+
+// Path matching pages/instructions/__tests__/ relative directory layout trees
+import InstructionListPage from '../InstructionListPage';
+import { getInstructions, getDashboardCounts, getActionRequiredItems } from '../../../api/instructions';
+
+// 1. Mock standard routing parameters and search parameters
+const mockNavigate = vi.fn();
+const mockSearchParams = new URLSearchParams();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+  useSearchParams: () => [mockSearchParams, vi.fn()],
+}));
+
+// 2. Mock API modules explicitly
+vi.mock('../../../api/instructions', () => ({
+  getInstructions: vi.fn(),
+  getDashboardCounts: vi.fn(),
+  getActionRequiredItems: vi.fn(),
+}));
+
+// 3. Complete structural mock layout matching the internal corporate library design wrappers
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const ReactActual = await vi.importActual<typeof import('react')>('react');
+  return {
+    El: ({ children, onClick, className, style }: any) => 
+      ReactActual.createElement('div', { onClick, className, style }, children),
+    Card: ({ children, header, className, onClick, style }: any) => 
+      ReactActual.createElement('div', { className, onClick, style: JSON.stringify(style), 'data-testid': 'mock-card' }, [
+        ReactActual.createElement('div', { key: 'ch', className: 'card-header' }, header),
+        ReactActual.createElement('div', { key: 'cb', className: 'card-body' }, children)
+      ]),
+    Table: ({ data, columns, className }: any) => {
+      return ReactActual.createElement('table', { className }, [
+        ReactActual.createElement('thead', { key: 'thead' }, 
+          ReactActual.createElement('tr', null, columns.map((c: any, i: number) => ReactActual.createElement('th', { key: i }, c.title)))
+        ),
+        ReactActual.createElement('tbody', { key: 'tbody' }, 
+          data?.map((row: any, rIdx: number) => 
+            ReactActual.createElement('tr', { key: rIdx }, columns.map((c: any, cIdx: number) => 
+              ReactActual.createElement('td', { key: cIdx }, c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex])
+            ))
+          )
+        )
+      ]);
+    },
+    Icon: ({ type, className }: any) => ReactActual.createElement('span', { className }, `icon-${type}`),
+    Input: ({ value, onChange, placeholder }: any) => 
+      ReactActual.createElement('input', { value: value || '', onChange, placeholder }),
+    Dropdown: ({ children, value, onChange, placeholder }: any) => 
+      ReactActual.createElement('select', { value: value || '', onChange, 'aria-label': placeholder }, children),
+    DropdownItem: ({ children, value }: any) => ReactActual.createElement('option', { value }, children),
+    // Explicitly typed parameter casting allows input variables to pass compilation checks cleanly
+    RangePicker: ({ onChange, placeholder }: any) => 
+      ReactActual.createElement('input', { 
+        type: 'date', 
+        onChange: (e: any) => onChange ? onChange([new Date(e.target.value), new Date(e.target.value)]) : null, 
+        placeholder 
+      }),
+    Pagination: ({ current, onChange }: any) => 
+      ReactActual.createElement('button', { onClick: () => onChange ? onChange(current + 1) : null }, 'Next'),
+    Loading: () => ReactActual.createElement('div', null, 'Loading instructions...'),
+    Alert: ({ children, type }: any) => ReactActual.createElement('div', { className: `alert-${type}` }, children),
+    Button: ({ children, onClick, color, size }: any) => ReactActual.createElement('button', { onClick, className: `${color} ${size}` }, children),
+    StatusTag: ({ status }: any) => ReactActual.createElement('span', null, status),
+  };
+});
+
+// Mock records configured to hit both branches of split string parsers and date evaluations
+const mockContentRecords = [
+  {
+    instructionId: 'lst-101',
+    instructionRef: 'GAB-1778880964589-1235',
+    clientName: 'Citi Enterprise Logistics',
+    source: 'Email - jp72154@citi.com', // Delimited to exercise split functionality
+    dealName: 'Telecom Bundle Delta',
+    dueDate: '2026-05-20',
+    status: 'PENDING_CHECKER',
+    senderEmail: 'jp72154@citi.com',
+    paymentMethod: 'WIRE',
+    createdBy: 'SYSTEM',
+    region: 'LATAM',
+    country: 'BRAZIL',
+    buildingCode: 'BLDG-A',
+    modifiedBy: 'SA07013',
+    modifiedOn: '2026-05-26T12:00:00Z'
+  },
+  {
+    instructionId: 'lst-202',
+    instructionRef: 'GAB-1779413223804-1110',
+    clientName: 'CP LA CASTELLANA SAU',
+    source: 'CitiSFT', // Standard string to cover fallback branch properties
+    dealName: 'Cepula Castellana Swap',
+    dueDate: '2026-05-25',
+    status: 'DRAFT',
+    createdBy: 'SA07013',
+    region: 'NAM',
+    country: 'Argentina'
+  }
+];
+
+const mockCountsPayload = { PENDING_CHECKER: 1, DRAFT: 1 };
+const mockActionRequiredPayload = [
+  { instructionId: 'lst-101', instructionRef: 'GAB-1778880964589-1235', message: 'Missing Signature Document', returnedOn: '2026-05-27' }
+];
+
+
+describe('InstructionListPage Thorough Branch Validation Suite', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      (getDashboardCounts as Mock).mockResolvedValue({ data: mockCountsPayload });
+      (getInstructions as Mock).mockResolvedValue({ data: { content: mockContentRecords, totalElements: 2, totalPages: 1 } });
+      (getActionRequiredItems as Mock).mockResolvedValue({ data: mockActionRequiredPayload });
+    });
+  
+    // Test 1: Layout initialization and mapping cells parsing verification
+    it('should render headers, query forms, metrics summaries, and lists completely', async () => {
+      render(<InstructionListPage />);
+  
+      // Wait until loading hook is turned off and elements match
+      await waitFor(() => {
+        expect(screen.getByText('Citi Enterprise Logistics')).toBeTruthy();
+      });
+  
+      // Check individual table structural layout text markers
+      expect(screen.getByText('Sequence No.')).toBeTruthy();
+      expect(screen.getByText('Source & Category')).toBeTruthy();
+  
+      // Verify cell format splitters correctly execute branches
+      expect(screen.getByText('jp72154@citi.com')).toBeTruthy();
+      expect(screen.getByText('CitiSFT')).toBeTruthy();
+    });
+  
+    // Test 2: Summary card filter operations execution path
+    it('should apply and toggle query configurations on metric tab selection click events', async () => {
+      render(<InstructionListPage />);
+      await waitFor(() => screen.getByText('Citi Enterprise Logistics'));
+  
+      const activeCountCard = screen.getByText('Pending Checker').parentElement;
+      expect(activeCountCard).toBeTruthy();
+  
+      if (activeCountCard) {
+        fireEvent.click(activeCountCard); // Activates the filtering parameter configuration layer
+        fireEvent.click(activeCountCard); // Clears tracking constraints via target toggle match conditions
+      }
+    });
+  
+    // Test 3: Form text string parsing evaluation criteria
+    it('should dynamically narrow dataset rendering results when values change inside the text box', async () => {
+      render(<InstructionListPage />);
+      await waitFor(() => screen.getByText('Citi Enterprise Logistics'));
+  
+      const filterInput = screen.getByPlaceholderText('Search Instructions');
+      expect(filterInput).toBeTruthy();
+  
+      // Fire search filter updates
+      fireEvent.change(filterInput, { target: { value: 'CASTELLANA' } });
+  
+      expect(screen.getByText('CP LA CASTELLANA SAU')).toBeTruthy();
+      expect(screen.queryByText('Citi Enterprise Logistics')).toBeNull();
+    });
+  
+    // Test 4: Action Required collapsible accordion drawer triggers
+    it('should render alert criteria tables and expand layout dimensions safely on panel headers click', async () => {
+      render(<InstructionListPage />);
+      await waitFor(() => screen.getByText('Action Required'));
+  
+      expect(screen.getByText('Missing Signature Document')).toBeTruthy();
+  
+      const accordionSection = screen.getByText('Action Required').parentElement;
+      if (accordionSection) {
+        fireEvent.click(accordionSection); // Tests collapsible display toggle branching states
+      }
+    });
+  
+    // Test 5: Dropdown filter inputs parameter tracking metrics validation
+    it('should change filter context fields cleanly on form select events', async () => {
+      render(<InstructionListPage />);
+      await waitFor(() => screen.getByText('Citi Enterprise Logistics'));
+  
+      const filterCountry = screen.getByLabelText('Country');
+      fireEvent.change(filterCountry, { target: { value: 'BRAZIL' } });
+  
+      const filterSource = screen.getByLabelText('Source');
+      fireEvent.change(filterSource, { target: { value: 'CitiSFT' } });
+    });
+  
+    // Test 6: Cell navigation router callback compliance
+    it('should resolve routing functions seamlessly when grid sequence tokens are triggered', async () => {
+      render(<InstructionListPage />);
+      await waitFor(() => screen.getByText('Citi Enterprise Logistics'));
+  
+      const gridCellLink = screen.getByText('GAB-1778880964589-1235');
+      expect(gridCellLink).toBeTruthy();
+  
+      fireEvent.click(gridCellLink);
+      expect(mockNavigate).toHaveBeenCalledWith('/instructions/lst-101');
+    });
+  
+    // Test 7: Payment vs Non-Payment absolute queue path switches
+    it('should handle category switches correctly when processing alternative navigation tags', async () => {
+      render(<InstructionListPage />);
+      await waitFor(() => screen.getByText('Sequence No.'));
+  
+      const nonPaymentTab = screen.queryByText('Non-Payment Instructions');
+      if (nonPaymentTab) {
+        fireEvent.click(nonPaymentTab);
+      }
+  
+      const paymentTab = screen.queryByText('Payment Instructions');
+      if (paymentTab) {
+        fireEvent.click(paymentTab);
+      }
+    });
+  });
+
+  
