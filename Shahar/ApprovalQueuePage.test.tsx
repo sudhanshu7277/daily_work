@@ -1,8 +1,6 @@
-// Complete 100% Passing File: InstructionDetailPage.test.tsx
-
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import InstructionDetailPage from '../InstructionDetailPage'; 
@@ -17,13 +15,13 @@ vi.mock('react-router-dom', () => ({
   useParams: vi.fn(() => ({ id: '777' })),
 }));
 
-// 2. Mock formatting utilities safely to prevent formatting engine failures
+// 2. Mock regional formatting utilities directly to intercept component crashes
 vi.mock('../../../utils/format', () => ({
   formatCurrency: (val: any) => typeof val === 'number' ? `$${val.toLocaleString()}` : val,
   formatDate: (val: any) => val,
 }));
 
-// 3. Mock internal corporate library components with safe factory stubs and layout wrappers
+// 3. Mock internal corporate library components with safe factory stubs
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const ActualReact = await vi.importActual<typeof import('react')>('react');
   const MockFactory = (tag: string) => {
@@ -91,7 +89,6 @@ describe('InstructionDetailPage Comprehensive Coverage Suite', () => {
         amount: 2500000,
         currency: 'USD',
         status: 'PENDING_CHECKER',
-        // FIXED: Delimited compound patterns on ALL potentially audited fields to satisfy .split(' - ') rules completely
         source: 'Email - maker.user@citi.com',
         primaryAssignee: 'SA07013 - John Doe',
         createdBy: 'MAKER01 - Alice Smith',
@@ -104,18 +101,28 @@ describe('InstructionDetailPage Comprehensive Coverage Suite', () => {
 
     vi.spyOn(apiComments, 'getComments').mockResolvedValue({ 
       data: [
-        { commentId: 1, text: 'Signature matched successfully', createdBy: 'Checker-01', createdOn: '2026-05-28T10:00:00Z' }
+        { commentId: 1, text: 'Signature matched successfully', createdBy: 'Checker-01 - Bob', createdOn: '2026-05-28T10:00:00Z' }
       ] 
     });
 
     vi.spyOn(apiDocuments, 'getDocuments').mockResolvedValue({ 
       data: [
-        { documentId: 'doc-101', fileName: 'wire_instruction_signed.pdf', fileSize: '1.2 MB', uploadedBy: 'Maker-01' }
+        { documentId: 'doc-101', fileName: 'wire_instruction_signed.pdf', fileSize: '1.2 MB', uploadedBy: 'Maker-01 - Alice' }
       ] 
     });
 
-    vi.spyOn(apiAudit, 'getInstructionHistory').mockResolvedValue({ data: [] });
-    vi.spyOn(apiAudit, 'getFieldHistory').mockResolvedValue({ data: [] });
+    // FIXED: Populated dummy structured history entries with the compound delimiter to stop unhandled background loops from crashing
+    vi.spyOn(apiAudit, 'getInstructionHistory').mockResolvedValue({ 
+      data: [
+        { id: 1, action: 'CREATE', modifiedBy: 'SYSTEM - Automation', modifiedOn: '2026-05-28T09:00:00Z', status: 'DRAFT' }
+      ] 
+    });
+    
+    vi.spyOn(apiAudit, 'getFieldHistory').mockResolvedValue({ 
+      data: [
+        { id: 1, fieldName: 'status', oldValue: 'DRAFT', newValue: 'PENDING_CHECKER', modifiedBy: 'SYSTEM - Automation', modifiedOn: '2026-05-28T09:05:00Z' }
+      ] 
+    });
   });
 
   it('should render core instruction fields, metadata cards, and workspace tabs safely on mount', async () => {
