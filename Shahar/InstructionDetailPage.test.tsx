@@ -15,7 +15,7 @@ vi.mock('react-router-dom', () => ({
   useParams: vi.fn(() => ({ id: '777' })),
 }));
 
-// 2. Mock AuthContext
+// 2. Mock AuthContext — path relative to src/pages/instructions/
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
     user: { name: 'Automation Studio User', role: 'ADMIN_MAKER' },
@@ -23,73 +23,81 @@ vi.mock('../../context/AuthContext', () => ({
   }),
 }));
 
-// 3. Mock regional formatting utilities
+// 3. Mock formatting utilities
 vi.mock('../../../utils/format', () => ({
   formatCurrency: (val: any) => typeof val === 'number' ? `$${val.toLocaleString()}` : val,
   formatDate: (val: any) => val,
 }));
 
-// 4. Mock icgds-react — MUST include Switch to prevent SetupInstructionModal crash
+// 4. Mock icgds-react — ALL components including Switch, Checkbox, Radio
+//    to prevent SetupInstructionModal crashes at lines 353, 395, 402, 656
 vi.mock('@citi-icg-172888/icgds-react', async () => {
-  const ActualReact = await vi.importActual<typeof import('react')>('react');
-  const MockFactory = (tag: string) =>
-    ({ children, className, ...props }: any) =>
-      ActualReact.createElement(tag, { className, ...props }, children);
+  const R = await vi.importActual<typeof import('react')>('react');
+  const Div = ({ children, className, ...p }: any) => R.createElement('div', { className, ...p }, children);
+  const Span = ({ children, ...p }: any) => R.createElement('span', p, children);
 
   return {
-    El: MockFactory('div'),
+    El: Div,
     Card: ({ children, header, className }: any) =>
-      ActualReact.createElement('div', { className, 'data-testid': 'icgds-card' }, [
-        header && ActualReact.createElement('div', { key: 'h', className: 'card-header' }, header),
-        ActualReact.createElement('div', { key: 'b', className: 'card-body' }, children),
+      R.createElement('div', { className, 'data-testid': 'icgds-card' }, [
+        header && R.createElement('div', { key: 'h' }, header),
+        R.createElement('div', { key: 'b' }, children),
       ]),
     Button: ({ children, onClick, disabled, className }: any) =>
-      ActualReact.createElement('button', { onClick, disabled, className }, children),
-    Icon: ({ type }: any) => ActualReact.createElement('span', null, `icon-${type}`),
+      R.createElement('button', { onClick, disabled, className }, children),
+    Icon: ({ type }: any) => R.createElement('span', null, `icon-${type}`),
     Tag: ({ children, style, color }: any) =>
-      ActualReact.createElement('span', { style, 'data-color': color }, children),
-    Loading: () => ActualReact.createElement('div', null, 'Loading Instruction Details...'),
+      R.createElement('span', { style, 'data-color': color }, children),
+    Loading: () => R.createElement('div', null, 'Loading Instruction Details...'),
     Alert: ({ children, type }: any) =>
-      ActualReact.createElement('div', { className: `alert-${type}` }, children),
+      R.createElement('div', { className: `alert-${type}` }, children),
     Modal: ({ children, visible, title, onCancel, onApply }: any) =>
-      visible
-        ? ActualReact.createElement('div', { 'data-testid': 'mock-modal' }, [
-            ActualReact.createElement('h3', { key: 't' }, title),
-            ActualReact.createElement('button', { key: 'c', onClick: onCancel }, 'Cancel'),
-            ActualReact.createElement('button', { key: 'a', onClick: onApply }, 'Apply'),
-            children,
-          ])
-        : null,
-    // ── KEY FIX: Switch was missing — SetupInstructionModal line 402 uses it ──
-    Switch: ({ checked, onChange, children }: any) =>
-      ActualReact.createElement('input', {
-        type: 'checkbox',
-        checked: !!checked,
-        onChange,
-        'data-testid': 'mock-switch',
-      }),
+      visible ? R.createElement('div', { 'data-testid': 'mock-modal' }, [
+        R.createElement('h3', { key: 't' }, title),
+        R.createElement('button', { key: 'c', onClick: onCancel }, 'Cancel'),
+        R.createElement('button', { key: 'a', onClick: onApply }, 'Apply'),
+        children,
+      ]) : null,
+    // KEY FIX: Switch used in SetupInstructionModal line 402
+    Switch: ({ checked, onChange }: any) =>
+      R.createElement('input', { type: 'checkbox', checked: !!checked, onChange, 'data-testid': 'mock-switch' }),
+    // Extra components used elsewhere in SetupInstructionModal (lines 353, 395, 656)
+    Checkbox: ({ checked, onChange, children }: any) =>
+      R.createElement('label', null, [
+        R.createElement('input', { key: 'i', type: 'checkbox', checked: !!checked, onChange }),
+        R.createElement('span', { key: 's' }, children),
+      ]),
+    Radio: ({ checked, onChange, children }: any) =>
+      R.createElement('label', null, [
+        R.createElement('input', { key: 'i', type: 'radio', checked: !!checked, onChange }),
+        R.createElement('span', { key: 's' }, children),
+      ]),
+    RadioGroup: ({ children }: any) => R.createElement('div', null, children),
+    FormItem: ({ children, label }: any) =>
+      R.createElement('div', { 'data-testid': 'form-item' }, [
+        label && R.createElement('label', { key: 'l' }, label),
+        R.createElement('div', { key: 'c' }, children),
+      ]),
     TextArea: ({ value, onChange, placeholder }: any) =>
-      ActualReact.createElement('textarea', { value, onChange, placeholder }),
+      R.createElement('textarea', { value: value || '', onChange, placeholder }),
     Input: ({ value, onChange, placeholder }: any) =>
-      ActualReact.createElement('input', { value: value || '', onChange, placeholder }),
+      R.createElement('input', { value: value || '', onChange, placeholder }),
     Dropdown: ({ children, value, onChange, placeholder }: any) =>
-      ActualReact.createElement('select', { value: value || '', onChange, placeholder }, children),
+      R.createElement('select', { value: value || '', onChange, placeholder }, children),
     DropdownItem: ({ children, value }: any) =>
-      ActualReact.createElement('option', { value }, children),
+      R.createElement('option', { value }, children),
     Table: ({ data, columns, className }: any) =>
-      ActualReact.createElement('table', { className }, [
-        ActualReact.createElement('thead', { key: 'th' },
-          ActualReact.createElement('tr', null,
-            columns?.map((c: any, i: number) =>
-              ActualReact.createElement('th', { key: i }, c.title)
-            )
+      R.createElement('table', { className }, [
+        R.createElement('thead', { key: 'th' },
+          R.createElement('tr', null,
+            columns?.map((c: any, i: number) => R.createElement('th', { key: i }, c.title))
           )
         ),
-        ActualReact.createElement('tbody', { key: 'tb' },
+        R.createElement('tbody', { key: 'tb' },
           data?.map((row: any, rIdx: number) =>
-            ActualReact.createElement('tr', { key: rIdx },
+            R.createElement('tr', { key: rIdx },
               columns?.map((c: any, cIdx: number) =>
-                ActualReact.createElement('td', { key: cIdx },
+                R.createElement('td', { key: cIdx },
                   c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex]
                 )
               )
@@ -97,15 +105,17 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
           )
         ),
       ]),
-    StatusTag: ({ status }: any) => ActualReact.createElement('span', null, status),
+    StatusTag: ({ status }: any) => R.createElement('span', null, status),
     Tooltip: ({ children, tooltip }: any) =>
-      ActualReact.createElement('div', { 'data-tooltip': tooltip }, children),
+      R.createElement('div', { 'data-tooltip': tooltip }, children),
     Steps: ({ items, current }: any) =>
-      ActualReact.createElement('div', { 'data-current-step': current },
-        items?.map((item: any, idx: number) =>
-          ActualReact.createElement('span', { key: idx }, item.title)
-        )
+      R.createElement('div', { 'data-current-step': current },
+        items?.map((item: any, idx: number) => R.createElement('span', { key: idx }, item.title))
       ),
+    Tabs: ({ children }: any) => R.createElement('div', { 'data-testid': 'mock-tabs' }, children),
+    Tab: ({ children, label }: any) => R.createElement('div', { 'data-testid': `tab-${label}` }, children),
+    Divider: () => R.createElement('hr', null),
+    Badge: ({ children, count }: any) => R.createElement('span', { 'data-count': count }, children),
     notification: { success: vi.fn(), danger: vi.fn() },
   };
 });
@@ -147,20 +157,13 @@ const mockInstruction = {
 };
 
 const mockComment = {
-  commentId: 1,
-  commentText: 'Signature matched successfully',
-  createdBy: 'Checker-01 - Bob',
-  createdOn: '2026-05-28T10:00:00Z',
-  instructionId: 0,
+  commentId: 1, commentText: 'Signature matched successfully',
+  createdBy: 'Checker-01 - Bob', createdOn: '2026-05-28T10:00:00Z', instructionId: 0,
 };
 
 const mockDocument = {
-  instructionId: 101,
-  fileName: 'wire_instruction_signed.pdf',
-  fileSize: 1.2,
-  uploadedBy: 'Maker-01 - Alice',
-  documentId: 0,
-  documentType: 'PAYMENT_INSTRUCTION',
+  instructionId: 101, fileName: 'wire_instruction_signed.pdf', fileSize: 1.2,
+  uploadedBy: 'Maker-01 - Alice', documentId: 0, documentType: 'PAYMENT_INSTRUCTION',
   dmcDocumentId: '', contentType: '', uploadedOn: '',
 };
 
@@ -191,8 +194,7 @@ describe('InstructionDetailPage Comprehensive Coverage Suite', () => {
     } as any);
 
     (apiDocuments.getDocuments as any) = vi.fn().mockResolvedValue({
-      data: [{ ...mockDocument }],
-      success: false, message: '', timestamp: '',
+      data: [{ ...mockDocument }], success: false, message: '', timestamp: '',
     });
 
     vi.spyOn(apiAudit, 'getInstructionHistory').mockResolvedValue({
@@ -209,48 +211,51 @@ describe('InstructionDetailPage Comprehensive Coverage Suite', () => {
   it('should render core instruction fields, metadata cards, and workspace tabs safely on mount', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      expect(screen.getByText('Zenith Global Wire')).toBeTruthy();
+      // Use getAllByText since dealName appears in multiple places (header + table)
+      expect(screen.getAllByText('Zenith Global Wire').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('GAB-992211')).toBeTruthy();
+    expect(screen.getAllByText('GAB-992211').length).toBeGreaterThan(0);
   });
 
   it('should render core instruction fields safely on mount and pass split transformations', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      expect(screen.getByText('Zenith Global Wire')).toBeTruthy();
+      expect(screen.getAllByText('Zenith Global Wire').length).toBeGreaterThan(0);
     });
   });
 
   it('should display the instruction status correctly', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      expect(screen.getByText('Zenith Global Wire')).toBeTruthy();
+      expect(screen.getAllByText('Zenith Global Wire').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('PENDING_CHECKER')).toBeTruthy();
+    expect(screen.getAllByText('PENDING_CHECKER').length).toBeGreaterThan(0);
   });
 
   it('should display the instruction reference number', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      expect(screen.getByText('GAB-992211')).toBeTruthy();
+      expect(screen.getAllByText('GAB-992211').length).toBeGreaterThan(0);
     });
   });
 
   it('should display client name on mount', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      expect(screen.getByText('Zenith Enterprise LLC')).toBeTruthy();
+      expect(screen.getAllByText('Zenith Enterprise LLC').length).toBeGreaterThan(0);
     });
   });
 
   it('should call getInstruction API on mount with correct instruction id', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      // Component calls with number 777, accept either string or number
       expect(apiInstructions.getInstruction).toHaveBeenCalledWith(
-        expect.stringContaining('777') || expect.objectContaining({ toString: expect.any(Function) })
+        expect.anything()
       );
     });
+    // Verify the actual argument contains 777
+    const callArg = (apiInstructions.getInstruction as any).mock.calls[0][0];
+    expect(String(callArg)).toContain('777');
   });
 
   it('should call getComments API on mount', async () => {
