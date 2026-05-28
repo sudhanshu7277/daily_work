@@ -1,4 +1,4 @@
-// InstructionListPage.test.tsx
+// Final Fixed File: InstructionListPage.test.tsx
 
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -75,7 +75,8 @@ describe('InstructionListPage Thorough Branch Validation Suite', () => {
   });
 });
 
-//ApprovalQueuePage.test.tsx
+
+// Final Fixed File: ApprovalQueuePage.test.tsx
 
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -142,3 +143,4 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
     await waitFor(() => expect(screen.getByText('Instructions Explorer')).toBeTruthy());
   });
 });
+
