@@ -1,4 +1,4 @@
-// 1. Final Complete File: InstructionListPage.test.tsx
+// 1. Comprehensive Unit Test: InstructionListPage.test.tsx
 
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -8,17 +8,20 @@ import React from 'react';
 import InstructionListPage from '../InstructionListPage';
 import { getInstructions, getDashboardCounts, getActionRequiredItems } from '../../../api/instructions';
 
+// 1. Standalone Routing Mocks
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
+// 2. Concrete API Namespace Footprint Mocking to Block Copilot Regressions
 vi.mock('../../../api/instructions', () => ({
   getInstructions: vi.fn(),
   getDashboardCounts: vi.fn(),
   getActionRequiredItems: vi.fn(),
 }));
 
+// 3. Strict UI Component Custom Engine Simulation with Unique React Keys
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
@@ -32,12 +35,12 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
       return ReactActual.createElement('table', null, [
         ReactActual.createElement('thead', { key: 'th' }, 
           ReactActual.createElement('tr', null, columns.map((c: any, i: number) => 
-            ReactActual.createElement('th', { key: `col-${i}` }, c.title)
+            ReactActual.createElement('th', { key: `col-head-${i}` }, c.title)
           ))
         ),
         ReactActual.createElement('tbody', { key: 'tb' }, data?.map((row: any, rIdx: number) => 
-          ReactActual.createElement('tr', { key: `row-${rIdx}` }, columns.map((c: any, cIdx: number) => 
-            ReactActual.createElement('td', { key: `cell-${rIdx}-${cIdx}` }, c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex])
+          ReactActual.createElement('tr', { key: `row-group-${rIdx}` }, columns.map((c: any, cIdx: number) => 
+            ReactActual.createElement('td', { key: `cell-item-${rIdx}-${cIdx}` }, c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex])
           ))
         ))
       ]);
@@ -48,9 +51,9 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
     DropdownItem: ({ children, value }: any) => ReactActual.createElement('option', { value }, children),
     RangePicker: () => ReactActual.createElement('input', { type: 'date' }),
     Pagination: () => ReactActual.createElement('div', null),
-    Loading: () => ReactActual.createElement('div', null, 'Loading instructions...'),
-    Alert: ({ children }: any) => ReactActual.createElement('div', null, children),
-    Button: ({ children }: any) => ReactActual.createElement('button', null, children),
+    Loading: () => ReactActual.createElement('div', null, 'Loading...'),
+    Alert: ({ children, type }: any) => ReactActual.createElement('div', { className: `alert-${type}` }, children),
+    Button: ({ children, onClick, color, size }: any) => ReactActual.createElement('button', { onClick, className: `${color} ${size}` }, children),
     StatusTag: ({ status }: any) => ReactActual.createElement('span', null, status),
   };
 });
@@ -58,10 +61,11 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
 describe('InstructionListPage Thorough Branch Validation Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
     vi.mocked(getDashboardCounts).mockResolvedValue({ data: { PENDING_CHECKER: 1, DRAFT: 1 } });
     vi.mocked(getActionRequiredItems).mockResolvedValue({ data: [] });
     
-    // Configured data strings and states cleanly to prevent .toLowerCase() string processing crashes
+    // FIXED: Populated every single text attribute string property used in filters to eliminate toLowerCase() errors completely
     vi.mocked(getInstructions).mockResolvedValue({ 
       data: { 
         content: [
@@ -72,7 +76,12 @@ describe('InstructionListPage Thorough Branch Validation Suite', () => {
             instructionRef: 'GAB-998877',
             dueDate: '2026-05-28',
             status: 'DRAFT',
-            dealName: 'Telecom Deal'
+            dealName: 'Telecom Deal',
+            paymentMethod: 'WIRE',
+            category: 'URGENT',
+            region: 'NAM',
+            country: 'CANADA',
+            createdBy: 'USER-101'
           }
         ], 
         totalElements: 1, 
@@ -87,7 +96,7 @@ describe('InstructionListPage Thorough Branch Validation Suite', () => {
   });
 });
 
-// 2. Final Complete File: ApprovalQueuePage.test.tsx
+// 2. Comprehensive Unit Test: ApprovalQueuePage.test.tsx
 
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -97,54 +106,57 @@ import React from 'react';
 import ApprovalQueuePage from '../ApprovalQueuePage'; 
 import { getInstructions, getDashboardCounts } from '../../../api/instructions';
 
+// 1. Standalone Routing Mocks
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
+// 2. Concrete API Namespace Footprint Mocking to Block Copilot Regressions
 vi.mock('../../../api/instructions', () => ({
   getInstructions: vi.fn(),
   getDashboardCounts: vi.fn(),
 }));
 
+// 3. Strict UI Component Custom Engine Simulation with Unique React Keys
 vi.mock('@citi-icg-172888/icgds-react', async () => {
-  const ActualReact = await vi.importActual<typeof import('react')>('react');
+  const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
-    El: ({ children, className }: any) => ActualReact.createElement('div', { className }, children),
+    El: ({ children, className }: any) => ReactActual.createElement('div', { className }, children),
     Card: ({ children, header, onClick, className }: any) => 
-      ActualReact.createElement('div', { className, onClick, 'data-testid': 'mock-card' }, [
-        ActualReact.createElement('div', { key: 'h', className: 'card-header' }, header),
-        ActualReact.createElement('div', { key: 'b', className: 'card-body' }, children)
+      ReactActual.createElement('div', { className, onClick, 'data-testid': 'mock-card' }, [
+        ReactActual.createElement('div', { key: 'h', className: 'card-header' }, header),
+        ReactActual.createElement('div', { key: 'b', className: 'card-body' }, children)
       ]),
     Table: ({ data, columns }: any) => {
-      return ActualReact.createElement('table', null, [
+      return ReactActual.createElement('table', null, [
         ReactActual.createElement('thead', { key: 'th' }, 
           ReactActual.createElement('tr', null, columns.map((c: any, i: number) => 
-            ReactActual.createElement('th', { key: `col-${i}` }, c.title)
+            ReactActual.createElement('th', { key: `col-head-${i}` }, c.title)
           ))
         ),
-        ActualReact.createElement('tbody', { key: 'tb' }, data?.map((row: any, rIdx: number) => 
-          ActualReact.createElement('tr', { key: `row-${rIdx}` }, columns.map((c: any, cIdx: number) => 
-            ActualReact.createElement('td', { key: `cell-${rIdx}-${cIdx}` }, c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex])
+        ReactActual.createElement('tbody', { key: 'tb' }, data?.map((row: any, rIdx: number) => 
+          ReactActual.createElement('tr', { key: `row-group-${rIdx}` }, columns.map((c: any, cIdx: number) => 
+            ReactActual.createElement('td', { key: `cell-item-${rIdx}-${cIdx}` }, c.render ? c.render(row[c.dataIndex], row) : row[c.dataIndex])
           ))
         ))
       ]);
     },
-    Icon: () => ActualReact.createElement('span', null),
-    Input: () => ActualReact.createElement('input', null),
-    Dropdown: () => ActualReact.createElement('select', null),
+    Icon: () => ReactActual.createElement('span', null),
+    Input: () => ReactActual.createElement('input', null),
+    Dropdown: () => ReactActual.createElement('select', null),
     RangePicker: ({ onChange, placeholder }: any) => 
-      ActualReact.createElement('input', { 
+      ReactActual.createElement('input', { 
         type: 'date', 
         onChange: (e: any) => onChange ? onChange([new Date(e.target.value), new Date(e.target.value)]) : null, 
         placeholder 
       }),
     Pagination: ({ current, onChange }: any) => 
-      ActualReact.createElement('div', null, [
-        ActualReact.createElement('button', { key: 'p', onClick: () => onChange ? onChange(current + 1) : null }, 'Next')
+      ReactActual.createElement('div', null, [
+        ReactActual.createElement('button', { key: 'p', onClick: () => onChange ? onChange(current + 1) : null }, 'Next')
       ]),
-    StatusTag: ({ status }: any) => ActualReact.createElement('span', null, status),
-    Alert: ({ children, type }: any) => ActualReact.createElement('div', { className: `alert-${type}` }, children),
-    Button: ({ children, onClick, color, size }: any) => ActualReact.createElement('button', { onClick, className: `${color} ${size}` }, children),
+    StatusTag: ({ status }: any) => ReactActual.createElement('span', null, status),
+    Alert: ({ children, type }: any) => ReactActual.createElement('div', { className: `alert-${type}` }, children),
+    Button: ({ children, onClick, color, size }: any) => ReactActual.createElement('button', { onClick, className: `${color} ${size}` }, children),
   };
 });
 
@@ -153,6 +165,7 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
     vi.clearAllMocks();
     vi.mocked(getDashboardCounts).mockResolvedValue({ data: { ADMIN_PAYMENT_MAKER: 1, PENDING_CHECKER: 1 } });
     
+    // FIXED: Populated every text property string field evaluated in approval views to ensure no undefined filter properties crash the runtime
     vi.mocked(getInstructions).mockResolvedValue({ 
       data: { 
         content: [
@@ -164,7 +177,10 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
             dealName: 'TELECOM ARGENTINA SA',
             country: 'BRAZIL',
             dueDate: '2026-05-21',
-            status: 'PENDING_CHECKER'
+            status: 'PENDING_CHECKER',
+            category: 'GENERAL',
+            region: 'LATAM',
+            paymentMethod: 'WIRE'
           }
         ] 
       } 
@@ -176,3 +192,4 @@ describe('ApprovalQueuePage Component Comprehensive Tests', () => {
     await waitFor(() => expect(screen.getByText('Instructions Explorer')).toBeTruthy());
   });
 });
+
