@@ -5,13 +5,11 @@ import React from 'react';
 
 import CreateInstructionPage from './CreateInstructionPage';
 
-// 1. Mock routing
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
-// 2. Mock AuthContext — path relative to src/pages/instructions/
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
     user: { name: 'Automation Studio User', role: 'ADMIN_MAKER' },
@@ -20,25 +18,13 @@ vi.mock('../../context/AuthContext', () => ({
   AuthProvider: ({ children }: any) => children,
 }));
 
-// 3. Mock icgds-react
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const R = await vi.importActual<typeof import('react')>('react');
-  const Factory = (tag: string) =>
-    ({ children, className, ...p }: any) => R.createElement(tag, { className, ...p }, children);
-
+  const F = (tag: string) => ({ children, className, ...p }: any) => R.createElement(tag, { className, ...p }, children);
   return {
-    El: Factory('div'),
-    Card: ({ children, header, className }: any) =>
-      R.createElement('div', { className }, [
-        header && R.createElement('div', { key: 'h' }, header),
-        R.createElement('div', { key: 'b' }, children),
-      ]),
-    Button: Factory('button'),
-    Icon: Factory('span'),
-    Tag: Factory('span'),
+    El: F('div'), Card: F('div'), Button: F('button'), Icon: F('span'), Tag: F('span'),
     Loading: () => R.createElement('div', null, 'Loading Form Layout...'),
-    Alert: Factory('div'),
-    Modal: Factory('div'),
+    Alert: F('div'), Modal: F('div'),
     Switch: ({ checked, onChange }: any) =>
       R.createElement('input', { type: 'checkbox', checked: !!checked, onChange }),
     Checkbox: ({ checked, onChange, children }: any) =>
@@ -52,17 +38,24 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         R.createElement('span', { key: 's' }, children),
       ]),
     RadioGroup: ({ children }: any) => R.createElement('div', null, children),
+    // KEY FIX: Collapse and CollapsePanel used in CreateInstructionPage line 503
+    Collapse: ({ children }: any) => R.createElement('div', { 'data-testid': 'mock-collapse' }, children),
+    CollapsePanel: ({ children, header }: any) =>
+      R.createElement('div', { 'data-testid': 'mock-collapse-panel' }, [
+        R.createElement('div', { key: 'h' }, header),
+        R.createElement('div', { key: 'c' }, children),
+      ]),
     FormItem: ({ children, label }: any) =>
       R.createElement('div', null, [
         label && R.createElement('label', { key: 'l' }, label),
         R.createElement('div', { key: 'c' }, children),
       ]),
-    TextArea: Factory('textarea'),
+    TextArea: F('textarea'),
     Input: ({ value, onChange, placeholder, ...props }: any) =>
       R.createElement('input', { value: value || '', onChange, placeholder, ...props }),
     Dropdown: ({ children, value, onChange, placeholder }: any) =>
       R.createElement('select', { value: value || '', onChange, 'aria-label': placeholder }, children),
-    DropdownItem: Factory('option'),
+    DropdownItem: F('option'),
     StatusTag: ({ status }: any) => R.createElement('span', null, status),
     Tooltip: ({ children }: any) => R.createElement('div', null, children),
     Steps: ({ items, current }: any) =>
@@ -91,20 +84,12 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
 describe('CreateInstructionPage Complete Unit Test Matrix', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
     Object.defineProperty(window, 'localStorage', {
-      value: {
-        clear: vi.fn(), getItem: vi.fn(() => null),
-        setItem: vi.fn(), removeItem: vi.fn(),
-      },
+      value: { clear: vi.fn(), getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn() },
       writable: true,
     });
-
     vi.spyOn(global, 'fetch').mockImplementation(() =>
-      Promise.resolve({
-        ok: true, status: 200,
-        json: () => Promise.resolve({ success: true, data: [] }),
-      } as Response)
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true, data: [] }) } as Response)
     );
   });
 
@@ -114,9 +99,7 @@ describe('CreateInstructionPage Complete Unit Test Matrix', () => {
 
   it('should render page content on mount', async () => {
     render(<CreateInstructionPage />);
-    await waitFor(() => {
-      expect(document.body.innerHTML.length).toBeGreaterThan(0);
-    });
+    await waitFor(() => { expect(document.body.innerHTML.length).toBeGreaterThan(0); });
   });
 
   it('should process change events for search boxes and inputs without throwing runtime failures', async () => {
