@@ -1,5 +1,3 @@
-// 🧪 Complete Production-Grade File: CreateInstructionPage.test.tsx
-
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -7,13 +5,13 @@ import React from 'react';
 
 import CreateInstructionPage from '../CreateInstructionPage';
 
-// 1. Mock standard routing parameters and search params hooks
+// 1. Mock standard routing parameters and search parameters hooks
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
-// 2. Mock Security/Auth Context Hook Namespace directly to prevent context errors
+// 2. Mock Security/Auth Context Hook Namespace directly to prevent context lifecycle errors
 vi.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({
     user: { name: 'Automation Studio User', role: 'ADMIN_MAKER' },
@@ -66,7 +64,7 @@ describe('CreateInstructionPage Complete Unit Test Matrix', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // FIXED ENVIRONMENT BOUNDARY: Polyfill localStorage to prevent reference crashes inside setup lifecycles
+    // Polyfill localStorage to prevent reference crashes inside setup lifecycles
     Object.defineProperty(window, 'localStorage', {
       value: {
         clear: vi.fn(),
