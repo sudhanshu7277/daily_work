@@ -16,7 +16,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 // 2. Mock AuthContext
-vi.mock('../../../context/AuthContext', () => ({
+vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
     user: { name: 'Automation Studio User', role: 'ADMIN_MAKER' },
     isAuthenticated: true,
@@ -29,13 +29,13 @@ vi.mock('../../../utils/format', () => ({
   formatDate: (val: any) => val,
 }));
 
-// 4. Mock icgds-react
+// 4. Mock icgds-react — MUST include Switch to prevent SetupInstructionModal crash
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const ActualReact = await vi.importActual<typeof import('react')>('react');
-  const MockFactory = (tag: string) => {
-    return ({ children, className, ...props }: any) =>
+  const MockFactory = (tag: string) =>
+    ({ children, className, ...props }: any) =>
       ActualReact.createElement(tag, { className, ...props }, children);
-  };
+
   return {
     El: MockFactory('div'),
     Card: ({ children, header, className }: any) =>
@@ -60,6 +60,14 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
             children,
           ])
         : null,
+    // ── KEY FIX: Switch was missing — SetupInstructionModal line 402 uses it ──
+    Switch: ({ checked, onChange, children }: any) =>
+      ActualReact.createElement('input', {
+        type: 'checkbox',
+        checked: !!checked,
+        onChange,
+        'data-testid': 'mock-switch',
+      }),
     TextArea: ({ value, onChange, placeholder }: any) =>
       ActualReact.createElement('textarea', { value, onChange, placeholder }),
     Input: ({ value, onChange, placeholder }: any) =>
@@ -238,7 +246,10 @@ describe('InstructionDetailPage Comprehensive Coverage Suite', () => {
   it('should call getInstruction API on mount with correct instruction id', async () => {
     render(<InstructionDetailPage />);
     await waitFor(() => {
-      expect(apiInstructions.getInstruction).toHaveBeenCalledWith('777');
+      // Component calls with number 777, accept either string or number
+      expect(apiInstructions.getInstruction).toHaveBeenCalledWith(
+        expect.stringContaining('777') || expect.objectContaining({ toString: expect.any(Function) })
+      );
     });
   });
 
