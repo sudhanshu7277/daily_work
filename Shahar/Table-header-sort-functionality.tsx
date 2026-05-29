@@ -1,7 +1,7 @@
-// 1. State Tracking and Sorter Component Setup
-//Place this sorting control hook state and the caret header renderer function 
-// right at the top of your main functional component inside DashboardPage.tsx:
+// ApprovalQueuePage.tsx.
 
+// 1. State Tracking & Sort Arrow Renderer
+// Add this state config and header text cell wrapper right above your const columns: any = [ statement:
 
 const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({
     key: '',
@@ -13,12 +13,12 @@ const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | '
     if (sortConfig.key === columnKey && sortConfig.direction === 'asc') {
       direction = 'desc';
     } else if (sortConfig.key === columnKey && sortConfig.direction === 'desc') {
-      direction = null; // Unsorts completely on 3rd toggle loop
+      direction = null; // Unsorts completely on 3rd click loop
     }
     setSortConfig({ key: direction ? columnKey : '', direction });
   };
   
-  // Render function for the Gray Interactive Carets
+  // Render helper for the white/translucent sorting caret icons to match the dark blue header background
   const renderSortHeader = (title: string, columnKey: string) => {
     const isActive = sortConfig.key === columnKey;
     const isAsc = isActive && sortConfig.direction === 'asc';
@@ -30,169 +30,205 @@ const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | '
         <El style={{ display: 'inline-flex', flexDirection: 'column', fontSize: '8px', lineHeight: '1' }}>
           <Icon 
             type="caret-up" 
-            style={{ color: isAsc ? '#003DA5' : '#888888', marginBottom: '-2px' }} 
+            style={{ color: isAsc ? '#ffffff' : 'rgba(255, 255, 255, 0.4)', marginBottom: '-2px' }} 
           />
           <Icon 
             type="caret-down" 
-            style={{ color: isDesc ? '#003DA5' : '#888888' }} 
+            style={{ color: isDesc ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }} 
           />
         </El>
       </El>
     );
   };
 
+  // 2. Injecting onHeaderCell Hooks into Column Configurations
+//Update your columns configuration list array to apply the header click trackers to every target index key. (Notice 
+  //  how your default style block style: { backgroundColor: '#003DA5', color: '#ffffff' } is completely maintained):
 
-  // 2. Complete Fixed overdueColumns Configuration Array
-// This implementation leaves your custom rendering layouts for columns like Source & Category, 
-// Assignee, and Updated By completely intact, while adding renderSortHeader and onHeaderCell click handlers to every column.
-
-const overdueColumns = [
+  const columns: any = [
     {
       title: renderSortHeader('Sequence No.', 'instructionRef'),
       dataIndex: 'instructionRef',
-      key: 'ref',
+      key: 'instructionRef',
       width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('instructionRef') }),
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('instructionRef'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
       render: (text: string, record: InstructionResponse) => (
-        <a 
-          className="lmn-text-link" 
-          style={{ cursor: 'pointer', fontSize: '12px' }}
-          onClick={() => navigate(`/instructions/${record.instructionId}`)}
-        >
+        <a onClick={() => navigate(`/instructions/${record.instructionId}`)} className="lmn-text-link" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '12px' }}>
           {text}
         </a>
       ),
     },
     {
       title: renderSortHeader('Source & Category', 'source'),
-      key: 'sourceCategory',
-      width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('source') }),
-      render: (_: unknown, record: InstructionResponse) => {
-        const src = record.instructionSource || record.source || '';
-        const isEmail = src.toLowerCase().includes('email');
+      dataIndex: 'source',
+      key: 'source',
+      width: 140,
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('source'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (source: string) => {
+        if (!source) return '-';
+        const parts = source.split(' - ');
+        const label = parts[0];
+        const value = parts.slice(1).join(' - ');
         return (
-          <El>
-            <El className="lmn-d-flex lmn-align-items-center" style={{ fontWeight: 600, fontSize: '12px' }}>
-              {isEmail && <Icon type="envelope" style={{ fontSize: '12px', marginRight: 4, color: '#002D72' }} />}
-              {isEmail ? 'Email' : (src || '-')}
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <El className="lmn-d-flex lmn-flex-column">
+              <span style={{ fontWeight: 700, color: '#000000' }}>{label}</span>
+              <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{value}</span>
             </El>
-            {isEmail && record.senderEmail && (
-              <El style={{ fontSize: '12px', color: '#666', marginTop: 2 }}>{record.senderEmail}</El>
-            )}
-            <El style={{ color: '#666', marginTop: 2, fontSize: '12px' }}>{record.category || '-'}</El>
           </El>
         );
       },
     },
     {
-      title: renderSortHeader('Client & GFC', 'clientName'),
-      key: 'clientInfo',
-      width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('clientName') }),
-      render: (_: unknown, record: InstructionResponse) => (
-        <El>
-          <El style={{ fontWeight: 600, fontSize: '12px' }}>{record.clientName || '-'}</El>
-          <El style={{ color: '#666', fontSize: '12px' }}>{record.buildingCode || '-'}</El>
+      title: renderSortHeader('Client, GFC & Country', 'clientName'),
+      dataIndex: 'clientName',
+      key: 'clientName',
+      width: 165,
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('clientName'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (name: string, record: InstructionResponse) => (
+        <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+          <El className="lmn-d-flex lmn-flex-column">
+            <span style={{ fontWeight: 700, color: '#000000' }}>{name || '-'}</span>
+            {record.accountNumber && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{record.accountNumber}</span>}
+            {record.country && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{record.country}</span>}
+          </El>
         </El>
       ),
+    },
+    {
+      title: renderSortHeader('Deal & Deal Key', 'dealName'),
+      dataIndex: 'dealName',
+      key: 'dealName',
+      width: 130,
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('dealName'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (dealName: string, record: InstructionResponse) => {
+        const subValue = record.instructionRef || record.dealName;
+        return (
+          <El style={{ fontSize: '12px', lineHeight: '14px' }}>
+            <El className="lmn-d-flex lmn-flex-column">
+              <span style={{ fontWeight: 700, color: '#000000' }}>{dealName || '-'}</span>
+              {subValue && <span style={{ color: '#666666', marginTop: '2px', fontSize: '11px' }}>{subValue}</span>}
+            </El>
+          </El>
+        );
+      },
+    },
+    {
+      title: renderSortHeader('Tickler Task Id', 'ticklerTaskId'),
+      dataIndex: 'ticklerTaskId',
+      key: 'ticklerTaskId',
+      width: 130,
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('ticklerTaskId'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (ticklerTaskId: string) => (
+        <El style={{ fontSize: 12 }}>{ticklerTaskId || '-'}</El>
+      )
     },
     {
       title: renderSortHeader('Value Date', 'valueDate'),
       dataIndex: 'valueDate',
       key: 'valueDate',
       width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('valueDate') }),
-      render: (d: string) => d ? (
-        <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px' }}>
-          <Icon type="calendar-dots" style={{ fontSize: '12px', marginRight: 4, color: '#002D72' }} />
-          {formatDate(d)}
-        </El>
-      ) : '-',
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('valueDate'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (d: string) => (
+        <El style={{ fontSize: 12 }}>{d ? formatDate(d) : '-'}</El>
+      )
     },
     {
       title: renderSortHeader('Due Date', 'dueDate'),
       dataIndex: 'dueDate',
       key: 'dueDate',
       width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('dueDate') }),
-      render: (d: string) => d ? (
-        <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px' }}>
-          <Icon type="calendar-dots" style={{ fontSize: '12px', marginRight: 4, color: '#002D72' }} />
-          {formatDate(d)}
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('dueDate'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (d: string) => (
+        <El className="lmn-d-flex lmn-align-items-center">
+          <Icon type="calendar-dots" style={{ fontSize: 12, marginRight: 4, color: '#002D72' }} />
+          <El style={{ fontSize: 12 }}>{d ? formatDate(d) : '-'}</El>
         </El>
-      ) : '-',
-    },
-    {
-      title: renderSortHeader('Country', 'country'),
-      dataIndex: 'country',
-      key: 'country',
-      width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('country') }),
-      render: (val: string) => (
-        <El className="lmn-d-flex lmn-align-items-center" style={{ fontSize: '12px' }}>
-          <Icon type="location-pin" style={{ fontSize: '12px', marginRight: 4, color: '#002D72' }} />
-          {val || '-'}
-        </El>
-      ),
+      )
     },
     {
       title: renderSortHeader('Assignee', 'primaryAssignee'),
-      key: 'assignee',
+      dataIndex: 'primaryAssignee',
+      key: 'primaryAssignee',
       width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('primaryAssignee') }),
-      render: (_: unknown, record: InstructionResponse) => (
-        <El>
-          <El className="lmn-d-flex lmn-align-items-center" style={{ marginBottom: '4px' }}>
-            <El style={{ width: 22, height: 22, borderRadius: '50%', background: '#002D72', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 6, flexShrink: 0 }}>
-              <Icon type="profile-o" style={{ fontSize: '12px' }} />
-            </El>
-            <span style={{ fontSize: '12px' }}>{record.primaryAssignee || '-'}</span>
-            </El>
-          <El className="lmn-d-flex lmn-align-items-center">
-            <El style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', color: '#333', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 6, flexShrink: 0 }}>
-              <Icon type="profile-o" style={{ fontSize: '12px' }} />
-            </El>
-            <span style={{ fontSize: '12px' }}>{record.backupAssignee || '-'}</span>
-          </El>
-        </El>
-      ),
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('primaryAssignee'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (assignee: string) => (
+        <El style={{ fontSize: 12 }}>{assignee || '-'}</El>
+      )
     },
     {
       title: renderSortHeader('Status', 'status'),
       dataIndex: 'status',
       key: 'status',
       width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('status') }),
-      render: (s: string) => (
-        <El style={{ fontSize: '12px' }}>{s ? s.replace(/_/g, ' ') : '-'}</El>
-      ),
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('status'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (status: any) => (
+        <StatusTag status={status} />
+      )
     },
     {
-      title: renderSortHeader('Updated By', 'modifiedBy'),
-      key: 'updatedBy',
+      title: renderSortHeader('Admin Maker', 'adminMaker'),
+      dataIndex: 'adminMaker',
+      key: 'adminMaker',
       width: 130,
-      onHeaderCell: () => ({ onClick: () => handleSort('modifiedBy') }),
-      render: (_: unknown, record: InstructionResponse) => (
-        <El className="lmn-d-flex lmn-align-items-center">
-          <El style={{ width: 22, height: 22, borderRadius: '50%', background: '#002D72', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 6, flexShrink: 0 }}>
-            <Icon type="profile-o" style={{ fontSize: '12px' }} />
-          </El>
-          <span style={{ fontSize: '12px' }}>{record.modifiedBy || '-'}</span>
-        </El>
-      ),
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('adminMaker'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (adminMaker: string) => (
+        <El style={{ fontSize: 12 }}>{adminMaker || '-'}</El>
+      )
+    },
+    {
+      title: renderSortHeader('Last Updated', 'lastUpdated'),
+      dataIndex: 'lastUpdated',
+      key: 'lastUpdated',
+      width: 130,
+      onHeaderCell: () => ({ 
+        onClick: () => handleSort('lastUpdated'),
+        style: { backgroundColor: '#003DA5', color: '#ffffff', fontSize: '12px' }
+      }),
+      render: (d: string) => (
+        <El style={{ fontSize: 12 }}>{d ? formatDate(d) : '-'}</El>
+      )
     }
   ];
 
-  // 3. Array Dataset Sorping Mechanism Add-on
-//Locate the table renderer row block where <Table data={pagedOverdue} ... /> or <Table data={filteredOverdue} ... /> 
-//is bound (visible around Image 272). Wrap that source array with this sorted sorting hook operation:
+  // 3. Data Sorting Pipeline
+//Find line 334 in your code (right above where your current const tableData = 
+  //  filteredData.map(...) statement resides) and add this memoized sorting logic to update your dataset:
 
-const sortedOverdueDataset = useMemo(() => {
-    // If no column is active, return the existing base dashboard array
-    if (!sortConfig.key || !sortConfig.direction) return pagedOverdue || [];
+  const sortedPipelineData = useMemo(() => {
+    if (!sortConfig.key || !sortConfig.direction) return filteredData || [];
   
-    return [...pagedOverdue].sort((a: any, b: any) => {
+    return [...filteredData].sort((a: any, b: any) => {
       const valueA = String(a[sortConfig.key] || '').toLowerCase();
       const valueB = String(b[sortConfig.key] || '').toLowerCase();
   
@@ -200,14 +236,10 @@ const sortedOverdueDataset = useMemo(() => {
       if (valueA > valueB) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [pagedOverdue, sortConfig]);
+  }, [filteredData, sortConfig]);
+  
+  // Update the final tableData assignment mapping:
+  const tableData = sortedPipelineData.map((item) => ({ ...item, key: item.instructionId }));
 
-  // Finally, go down to your JSX block and pass the clean sorted values directly to the native element:
 
-  <Table 
-  data={sortedOverdueDataset} 
-  columns={overdueColumns} 
-  className="lmn-table-bordered"
-  scroll={{ x: '100%' }}
-  style={{ fontSize: 12 }}
-/>
+  
