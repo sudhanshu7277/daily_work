@@ -272,3 +272,52 @@ private deselectByOcif(ocifId: string): void {
     <small class="error-text">Last Name cannot exceed 30 characters.</small>
   }
 </div>
+
+
+////
+
+/* 1. Ensure the parent field group container handles an explicit layout padding anchor */
+.form-field-group {
+    display: flex;
+    flex-direction: column;
+    position: relative; /* CRUCIAL: Anchors the absolute positioned child */
+    
+    /* Add explicit bottom padding equivalent to the error message footprint */
+    padding-bottom: 20px; 
+    box-sizing: border-box;
+  
+    /* Form Input Styling base definitions */
+    .advanced-inputs {
+      width: 100%;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      
+      &.input-error {
+        border-color: #a12000 !important; /* BMO Warning Red */
+        box-shadow: 0 0 0 1px #a12000;
+      }
+    }
+  
+    /* 2. Absolute anchor your dynamic validation messaging layout block */
+    .error-text {
+      position: absolute;
+      /* Position the text perfectly inside the padding dead-zone below the input box */
+      bottom: 2px; 
+      left: 0;
+      
+      color: #a12000;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 14px;
+      margin: 0;
+      display: block;
+      
+      /* Smooth fade animation preventing sudden pixel jumps */
+      animation: fadeInError 0.15s ease-in-out forwards;
+    }
+  }
+  
+  @keyframes fadeInError {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
