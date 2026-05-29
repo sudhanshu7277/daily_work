@@ -99,3 +99,67 @@ private deselectByOcif(ocifId: string): void {
   → refresh()                             grid re-renders, checkbox unchecked
   → emitSelected()                        parent selectedProfiles stays in sync
   → setTimeout → deletedOcifId = null     resets so same ocifId works next time
+
+
+
+  /////// TRIM PAYLOAD LOGIC
+
+  onSearch(): void {
+    // 1. Double check validation criteria
+    if (this.searchForm.invalid) {
+      return;
+    }
+  
+    // 2. Fetch raw key-value form object map snapshot
+    const rawFormValue = this.searchForm.getRawValue();
+  
+    // 3. Dynamically iterate and trim all string attributes cleanly
+    const trimmedPayload = Object.keys(rawFormValue).reduce((acc, key) => {
+      const value = rawFormValue[key];
+      // Trim string inputs, keep dates/null values intact
+      acc[key] = typeof value === 'string' ? value.trim() : value;
+      return acc;
+    }, {} as any);
+  
+    console.log('Cleaned Search Criteria Payload:', trimmedPayload);
+  
+    // 4. Emit the polished criteria up to your grid wrapper engine
+    if (trimmedPayload.customerType === 'Individual') {
+      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'SEARCH_CUSTOMER' });
+    } else if (trimmedPayload.customerType === 'entity') {
+      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'ENTITY_CUSTOMER' });
+    }
+  }
+
+
+  // MAXIMUM LENGTH VALIDATION
+
+  <div class="form-field-group">
+  <label>{{ searchCustomerVerbiage.firstName | translate }}</label>
+  <input class="advanced-inputs" 
+         type="text" 
+         formControlName="firstName" 
+         maxlength="30" 
+         placeholder="First Name" />
+</div>
+
+<div class="form-field-group">
+  <label>{{ searchCustomerVerbiage.lastName | translate }}</label>
+  <input class="advanced-inputs" 
+         type="text" 
+         formControlName="lastName" 
+         maxlength="30" 
+         placeholder="Last Name" />
+</div>
+
+<div class="form-field-group">
+  <label>{{ searchCustomerVerbiage.cityOrTown | translate }}</label>
+  <input class="advanced-inputs" 
+         type="text" 
+         formControlName="city" 
+         maxlength="40" 
+         placeholder="City/Town" />
+</div>
+
+
+
