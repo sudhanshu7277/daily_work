@@ -103,63 +103,104 @@ private deselectByOcif(ocifId: string): void {
 
 
   /////// TRIM PAYLOAD LOGIC
-
-  onSearch(): void {
-    // 1. Double check validation criteria
-    if (this.searchForm.invalid) {
-      return;
-    }
-  
-    // 2. Fetch raw key-value form object map snapshot
-    const rawFormValue = this.searchForm.getRawValue();
-  
-    // 3. Dynamically iterate and trim all string attributes cleanly
-    const trimmedPayload = Object.keys(rawFormValue).reduce((acc, key) => {
-      const value = rawFormValue[key];
-      // Trim string inputs, keep dates/null values intact
-      acc[key] = typeof value === 'string' ? value.trim() : value;
-      return acc;
-    }, {} as any);
-  
-    console.log('Cleaned Search Criteria Payload:', trimmedPayload);
-  
-    // 4. Emit the polished criteria up to your grid wrapper engine
-    if (trimmedPayload.customerType === 'Individual') {
-      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'SEARCH_CUSTOMER' });
-    } else if (trimmedPayload.customerType === 'entity') {
-      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'ENTITY_CUSTOMER' });
-    }
+  ngOnInit(): void {
+    this.searchForm = this.fb.group({
+      customerType: ['Individual'],
+      // Add maxLength validators here
+      firstName: ['', [Validators.required, Validators.maxLength(30)]],
+      middleName: ['', [Validators.maxLength(30)]],
+      lastName: ['', [Validators.required, Validators.maxLength(30)]],
+      country: ['Canada'],
+      streetNumber: [''],
+      streetName: [''],
+      unitNumber: [''],
+      province: [''],
+      city: ['', [Validators.maxLength(40)]], // City constraint added as well
+      postalCode: [''],
+      dateOfBirth: [''],
+      phoneNumber: [''],
+      emailAddress: ['']
+    });
   }
 
+  // 2. Add Error Messages to the Template Layout (search-customer.component.html)
 
-  // MAXIMUM LENGTH VALIDATION
+  <div class="form-row three-cols">
+  
+  <div class="form-field-group">
+    <label>{{ searchCustomerVerbiage.lastName | translate }} *</label>
+    <input class="advanced-inputs" 
+           [class.input-error]="searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')"
+           type="text" 
+           formControlName="lastName" 
+           placeholder="Last Name" />
+    
+    @if (searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')) {
+      <small class="error-text">Last Name cannot exceed 30 characters.</small>
+    }
+  </div>
 
   <div class="form-field-group">
-  <label>{{ searchCustomerVerbiage.firstName | translate }}</label>
-  <input class="advanced-inputs" 
-         type="text" 
-         formControlName="firstName" 
-         maxlength="30" 
-         placeholder="First Name" />
+    <label>Middle Name</label>
+    <input class="advanced-inputs" 
+           [class.input-error]="searchForm.get('middleName')?.touched && searchForm.get('middleName')?.hasError('maxlength')"
+           type="text" 
+           formControlName="middleName" 
+           placeholder="Middle Name" />
+    
+    @if (searchForm.get('middleName')?.touched && searchForm.get('middleName')?.hasError('maxlength')) {
+      <small class="error-text">Middle Name cannot exceed 30 characters.</small>
+    }
+  </div>
+
+  <div class="form-field-group">
+    <label>{{ searchCustomerVerbiage.firstName | translate }} *</label>
+    <input class="advanced-inputs" 
+           [class.input-error]="searchForm.get('firstName')?.touched && searchForm.get('firstName')?.hasError('maxlength')"
+           type="text" 
+           formControlName="firstName" 
+           placeholder="First Name" />
+    
+    @if (searchForm.get('firstName')?.touched && searchForm.get('firstName')?.hasError('maxlength')) {
+      <small class="error-text">First Name cannot exceed 30 characters.</small>
+    }
+  </div>
+
 </div>
 
-<div class="form-field-group">
-  <label>{{ searchCustomerVerbiage.lastName | translate }}</label>
-  <input class="advanced-inputs" 
-         type="text" 
-         formControlName="lastName" 
-         maxlength="30" 
-         placeholder="Last Name" />
-</div>
-
-<div class="form-field-group">
-  <label>{{ searchCustomerVerbiage.cityOrTown | translate }}</label>
-  <input class="advanced-inputs" 
-         type="text" 
-         formControlName="city" 
-         maxlength="40" 
-         placeholder="City/Town" />
-</div>
+// 3. Add Error Styling (search-customer.component.scss)
 
 
+.form-field-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin-bottom: 16px;
+  
+    /* Form control text input error highlight styling */
+    .advanced-inputs.input-error {
+      border-color: #a12000 !important; /* BMO Warning/Error Dark Red */
+      box-shadow: 0 0 0 1px #a12000;
+      
+      &:focus {
+        box-shadow: 0 0 0 2px #a12000;
+      }
+    }
+  
+    /* Text layout properties */
+    .error-text {
+      color: #a12000;
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 4px;
+      display: block;
+      animate: fadeIn 0.2s ease-in-out;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
+  
