@@ -203,4 +203,72 @@ private deselectByOcif(ocifId: string): void {
     to { opacity: 1; transform: translateY(0); }
   }
 
+
+  // 1. Update the TypeScript Logic (search-customer.component.ts)
+
+  private updateValidators(type: string): void {
+    const last = this.searchForm.get('lastName');
+    const first = this.searchForm.get('firstName');
+    const middle = this.searchForm.get('middleName');
+    const city = this.searchForm.get('city');
+    const entity = this.searchForm.get('entityTradeName');
   
+    if (type === 'Individual') {
+      // Pass arrays containing BOTH required and maxLength rules
+      last?.setValidators([Validators.required, Validators.maxLength(30)]);
+      first?.setValidators([Validators.required, Validators.maxLength(30)]);
+      middle?.setValidators([Validators.maxLength(30)]);
+      city?.setValidators([Validators.maxLength(40)]);
+      entity?.clearValidators();
+    } else if (type === 'entity') {
+      this.searchForm.get('customerType')?.patchValue('entity', { emitEvent: false });
+      last?.clearValidators();
+      first?.clearValidators();
+      middle?.clearValidators();
+      city?.setValidators([Validators.maxLength(40)]);
+      entity?.setValidators([Validators.required]);
+    }
+  
+    // Refresh status flags across the array collection
+    [last, first, middle, city, entity].forEach(control => control?.updateValueAndValidity());
+  }
+
+
+  // 2. Update the Search Trigger (search-customer.component.ts)
+
+  onSearch(): void {
+    if (this.searchForm.invalid) {
+      this.searchForm.markAllAsTouched();
+      return;
+    }
+  
+    const rawFormValue = this.searchForm.getRawValue();
+  
+    // Unified trim engine for all fields
+    const trimmedPayload = Object.keys(rawFormValue).reduce((acc, key) => {
+      const value = rawFormValue[key];
+      acc[key] = typeof value === 'string' ? value.trim() : value;
+      return acc;
+    }, {} as any);
+  
+    if (trimmedPayload.customerType === 'Individual') {
+      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'SEARCH_CUSTOMER' });
+    } else {
+      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'ENTITY_CUSTOMER' });
+    }
+  }
+
+  // 3. Clean Template Binding Check (search-customer.component.html)
+
+  <div class="form-field-group">
+  <label>{{ searchCustomerVerbiage.lastName | translate }} *</label>
+  <input class="advanced-inputs" 
+         [class.input-error]="searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')"
+         type="text" 
+         formControlName="lastName" 
+         placeholder="Last Name" />
+  
+  @if (searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')) {
+    <small class="error-text">Last Name cannot exceed 30 characters.</small>
+  }
+</div>
