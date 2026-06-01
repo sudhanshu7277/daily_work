@@ -1,323 +1,53 @@
-// Looking at the screenshot — the parent has onRemove(profile: any, index: number) and selectedProfiles array. The deleted profile object is available so we match on ocifId.
-//Here are the exact changes, file by file:
+// Step 1: Update the Selection Panel Component (selection-panel.component.ts)
+//Add an @Output() event emitter property at the top of 
+//your class definition, and trigger it inside your existing onRemove utility method.
 
-// Parent component TS — 3 additions:
-// 1. Add deletedOcifId property:
 
-deletedOcifId: string | null = null;
-
-// 2. Update onRemove — add two lines after deleteByIndex:
+// 1. Ensure Output & EventEmitter are imported from '@angular/core'
+@Output() profileDeselected = new EventEmitter<any>();
 
 onRemove(profile: any, index: number): void {
-    console.log('Removing item at index:', index);
+  console.log('Removing item at index:', index);
   
-    if (index !== undefined && index > -1) {
-      this.deleteByIndex(this.selectedProfiles, index);
-  
-      // ← ADD THESE TWO LINES
-      this.deletedOcifId = profile.ocifId;
-      setTimeout(() => this.deletedOcifId = null, 0);
-  
-      if (this.selectedProfiles.length === 0) {
-        this.removeCachedItems('profilesSelected');
-        this.clearCache();
-      }
-  
-      this.cdr.detectChanges();
+  if (index !== undefined && index > -1) {
+    // Fire the output event payload up before splicing the element array instance
+    this.profileDeselected.emit(profile);
+
+    this.deleteByIndex(this.selectedProfiles, index);
+    
+    if (this.selectedProfiles.length === 0) {
+      this.removeCachedItems('profilesSelected');
+      this.clearCache();
+    } else {
+      // Keep remaining entries synchronized in local cache storage
+      this.saveToCache('profilesSelected', this.selectedProfiles);
     }
+    
+    this.cdr.detectChanges();
   }
-
-
-  // 3. Add handler for grid selection:
-
-  onGridSelectionChanged(rows: any[]): void {
-    this.selectedProfiles = rows;
-  }
-
-  //Parent component HTML — bind to the grid:
-
-  <app-customer-search-grid
-  [firstName]="firstName"
-  [lastName]="lastName"
-  [deselectByOcifId]="deletedOcifId"
-  (selectionChanged)="onGridSelectionChanged($event)">
-</app-customer-search-grid>
-
-//customer-search-grid.component.ts — 2 additions:
-//1. Add @Input setter after existing inputs:
-
-@Input() firstName = '';
-@Input() lastName  = '';
-
-// Receives an ocifId when parent deletes a profile card.
-// Automatically deselects the matching row in the grid.
-@Input() set deselectByOcifId(ocifId: string | null) {
-  if (!ocifId) return;
-  this.deselectByOcif(ocifId);
 }
 
-//2. Add deselectByOcif() private method before emitSelected():
 
-// Deselects a row by ocifId.
-// Parent node  → deselects itself and cascades to all children.
-// Child node   → deselects itself and bubbles up to parent.
-private deselectByOcif(ocifId: string): void {
-    let changed = false;
-  
-    for (const n of this.tree) {
-  
-      // Parent match
-      if (n.ocifId === ocifId && n._selected) {
-        n._selected = false;
-        (n.children ?? []).forEach(c => c._selected = false);
-        changed = true;
+// Step 2: Bind the Event in the Parent Template (manage-legal-hold.component.html)
+//Locate where your <app-selection-panel> element tag is embedded in your main dashboard
+//  layout screen view. Hook into our brand new output property binding parameter link:
+
+<app-selection-panel 
+  [selectedProfiles]="selectedProfilesList"
+  (profileDeselected)="handleSidebarDeselection($event)">
+</app-selection-panel>
+
+
+// Step 3: Clear Grid Rows inside the Parent Controller (manage-legal-hold.component.ts)
+//Depending on whether your team uses AG-Grid or a custom Angular Material Data Table component inside your c
+//ustomer-search-grid, you need to toggle that specific model row reference to false.
+
+
+handleSidebarDeselection(deselectedProfile: any): void {
+    // Loop through grid nodes to find the matching customer ID
+    this.gridApi.forEachNode((node) => {
+      if (node.data.ecifId === deselectedProfile.ecifId) {
+        node.setSelected(false); // Unchecks row selection instantly in UI
       }
-  
-      // Child match
-      for (const c of (n.children ?? [])) {
-        if (c.ocifId === ocifId && c._selected) {
-          c._selected = false;
-          n._selected = false; // parent unchecked — not all children selected
-          changed = true;
-        }
-      }
-    }
-  
-    if (changed) {
-      this.refresh();       // re-renders grid, syncs header checkbox
-      this.emitSelected();  // keeps parent selectedProfiles in sync
-    }
-  }
-
-  // flow
-
-  User clicks ✕ on profile card
-  → onRemove(profile, index)
-  → deleteByIndex removes from selectedProfiles
-  → deletedOcifId = profile.ocifId        triggers @Input setter on grid
-  → deselectByOcif(ocifId)                walks tree, deselects match + cascade
-  → refresh()                             grid re-renders, checkbox unchecked
-  → emitSelected()                        parent selectedProfiles stays in sync
-  → setTimeout → deletedOcifId = null     resets so same ocifId works next time
-
-
-
-  /////// TRIM PAYLOAD LOGIC
-  ngOnInit(): void {
-    this.searchForm = this.fb.group({
-      customerType: ['Individual'],
-      // Add maxLength validators here
-      firstName: ['', [Validators.required, Validators.maxLength(30)]],
-      middleName: ['', [Validators.maxLength(30)]],
-      lastName: ['', [Validators.required, Validators.maxLength(30)]],
-      country: ['Canada'],
-      streetNumber: [''],
-      streetName: [''],
-      unitNumber: [''],
-      province: [''],
-      city: ['', [Validators.maxLength(40)]], // City constraint added as well
-      postalCode: [''],
-      dateOfBirth: [''],
-      phoneNumber: [''],
-      emailAddress: ['']
     });
-  }
-
-  // 2. Add Error Messages to the Template Layout (search-customer.component.html)
-
-  <div class="form-row three-cols">
-  
-  <div class="form-field-group">
-    <label>{{ searchCustomerVerbiage.lastName | translate }} *</label>
-    <input class="advanced-inputs" 
-           [class.input-error]="searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')"
-           type="text" 
-           formControlName="lastName" 
-           placeholder="Last Name" />
-    
-    @if (searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')) {
-      <small class="error-text">Last Name cannot exceed 30 characters.</small>
-    }
-  </div>
-
-  <div class="form-field-group">
-    <label>Middle Name</label>
-    <input class="advanced-inputs" 
-           [class.input-error]="searchForm.get('middleName')?.touched && searchForm.get('middleName')?.hasError('maxlength')"
-           type="text" 
-           formControlName="middleName" 
-           placeholder="Middle Name" />
-    
-    @if (searchForm.get('middleName')?.touched && searchForm.get('middleName')?.hasError('maxlength')) {
-      <small class="error-text">Middle Name cannot exceed 30 characters.</small>
-    }
-  </div>
-
-  <div class="form-field-group">
-    <label>{{ searchCustomerVerbiage.firstName | translate }} *</label>
-    <input class="advanced-inputs" 
-           [class.input-error]="searchForm.get('firstName')?.touched && searchForm.get('firstName')?.hasError('maxlength')"
-           type="text" 
-           formControlName="firstName" 
-           placeholder="First Name" />
-    
-    @if (searchForm.get('firstName')?.touched && searchForm.get('firstName')?.hasError('maxlength')) {
-      <small class="error-text">First Name cannot exceed 30 characters.</small>
-    }
-  </div>
-
-</div>
-
-// 3. Add Error Styling (search-customer.component.scss)
-
-
-.form-field-group {
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    margin-bottom: 16px;
-  
-    /* Form control text input error highlight styling */
-    .advanced-inputs.input-error {
-      border-color: #a12000 !important; /* BMO Warning/Error Dark Red */
-      box-shadow: 0 0 0 1px #a12000;
-      
-      &:focus {
-        box-shadow: 0 0 0 2px #a12000;
-      }
-    }
-  
-    /* Text layout properties */
-    .error-text {
-      color: #a12000;
-      font-size: 11px;
-      font-weight: 500;
-      margin-top: 4px;
-      display: block;
-      animate: fadeIn 0.2s ease-in-out;
-    }
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-2px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-
-  // 1. Update the TypeScript Logic (search-customer.component.ts)
-
-  private updateValidators(type: string): void {
-    const last = this.searchForm.get('lastName');
-    const first = this.searchForm.get('firstName');
-    const middle = this.searchForm.get('middleName');
-    const city = this.searchForm.get('city');
-    const entity = this.searchForm.get('entityTradeName');
-  
-    if (type === 'Individual') {
-      // Pass arrays containing BOTH required and maxLength rules
-      last?.setValidators([Validators.required, Validators.maxLength(30)]);
-      first?.setValidators([Validators.required, Validators.maxLength(30)]);
-      middle?.setValidators([Validators.maxLength(30)]);
-      city?.setValidators([Validators.maxLength(40)]);
-      entity?.clearValidators();
-    } else if (type === 'entity') {
-      this.searchForm.get('customerType')?.patchValue('entity', { emitEvent: false });
-      last?.clearValidators();
-      first?.clearValidators();
-      middle?.clearValidators();
-      city?.setValidators([Validators.maxLength(40)]);
-      entity?.setValidators([Validators.required]);
-    }
-  
-    // Refresh status flags across the array collection
-    [last, first, middle, city, entity].forEach(control => control?.updateValueAndValidity());
-  }
-
-
-  // 2. Update the Search Trigger (search-customer.component.ts)
-
-  onSearch(): void {
-    if (this.searchForm.invalid) {
-      this.searchForm.markAllAsTouched();
-      return;
-    }
-  
-    const rawFormValue = this.searchForm.getRawValue();
-  
-    // Unified trim engine for all fields
-    const trimmedPayload = Object.keys(rawFormValue).reduce((acc, key) => {
-      const value = rawFormValue[key];
-      acc[key] = typeof value === 'string' ? value.trim() : value;
-      return acc;
-    }, {} as any);
-  
-    if (trimmedPayload.customerType === 'Individual') {
-      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'SEARCH_CUSTOMER' });
-    } else {
-      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'ENTITY_CUSTOMER' });
-    }
-  }
-
-  // 3. Clean Template Binding Check (search-customer.component.html)
-
-  <div class="form-field-group">
-  <label>{{ searchCustomerVerbiage.lastName | translate }} *</label>
-  <input class="advanced-inputs" 
-         [class.input-error]="searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')"
-         type="text" 
-         formControlName="lastName" 
-         placeholder="Last Name" />
-  
-  @if (searchForm.get('lastName')?.touched && searchForm.get('lastName')?.hasError('maxlength')) {
-    <small class="error-text">Last Name cannot exceed 30 characters.</small>
-  }
-</div>
-
-
-////
-
-/* 1. Ensure the parent field group container handles an explicit layout padding anchor */
-.form-field-group {
-    display: flex;
-    flex-direction: column;
-    position: relative; /* CRUCIAL: Anchors the absolute positioned child */
-    
-    /* Add explicit bottom padding equivalent to the error message footprint */
-    padding-bottom: 20px; 
-    box-sizing: border-box;
-  
-    /* Form Input Styling base definitions */
-    .advanced-inputs {
-      width: 100%;
-      box-sizing: border-box;
-      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-      
-      &.input-error {
-        border-color: #a12000 !important; /* BMO Warning Red */
-        box-shadow: 0 0 0 1px #a12000;
-      }
-    }
-  
-    /* 2. Absolute anchor your dynamic validation messaging layout block */
-    .error-text {
-      position: absolute;
-      /* Position the text perfectly inside the padding dead-zone below the input box */
-      bottom: 2px; 
-      left: 0;
-      
-      color: #a12000;
-      font-size: 11px;
-      font-weight: 500;
-      line-height: 14px;
-      margin: 0;
-      display: block;
-      
-      /* Smooth fade animation preventing sudden pixel jumps */
-      animation: fadeInError 0.15s ease-in-out forwards;
-    }
-  }
-  
-  @keyframes fadeInError {
-    from { opacity: 0; transform: translateY(-3px); }
-    to { opacity: 1; transform: translateY(0); }
   }
