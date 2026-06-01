@@ -13,9 +13,8 @@
       "test": "vitest run --coverage",
       "test:watch": "vitest",
       "test:coverage": "vitest run --coverage",
-  
-      "build:angular-element": "node scripts/build-angular-element.mjs",
       "prebuild:angular-element": "echo 'Building Angular Elements bundle for payment-flow-ui-lib...'",
+      "build:angular-element": "node scripts/build-angular-element.mjs",
       "postbuild:angular-element": "echo 'Bundle written to public/ss-payment-flow-element.js'"
     },
     "dependencies": {
@@ -66,13 +65,13 @@
       "vitest": "^2.1.9"
     },
     "overrides": {
-    "rollup": "npm:@rollup/wasm-node",
-    "esbuild": "npm:esbuild-wasm@latest",
-    "@angular/build": {
+      "rollup": "npm:@rollup/wasm-node",
+      "esbuild": "npm:esbuild-wasm@latest",
+      "@angular/build": {
         "esbuild": "npm:esbuild-wasm@latest"
-    },
-    "@angular-devkit/build-angular": {
+      },
+      "@angular-devkit/build-angular": {
         "esbuild": "npm:esbuild-wasm@latest"
-    }
+      }
     }
   }
