@@ -124,3 +124,45 @@ console.log('✅ dist/ss-payment-flow-element.js ready — copy to GAB UI public
   "browser": "projects/payment-flow-ui-lib/src/main-element.ts",
 "tsConfig": "tsconfig.element.json"
 
+
+// First — update main-element.ts to import from the public API instead:
+
+import 'zone.js';
+import { createApplication } from '@angular/platform-browser';
+import { createCustomElement } from '@angular/elements';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { SSPaymentMakerComponent } from '@citi-icg-179025/payment-flow-ui-lib';
+
+(async () => {
+  const app = await createApplication({
+    providers: [provideHttpClient(withInterceptorsFromDi())],
+  });
+  const PaymentElement = createCustomElement(SSPaymentMakerComponent, {
+    injector: app.injector,
+  });
+  customElements.define('ss-payment-flow', PaymentElement);
+})();
+
+
+// Second — update tsconfig.element.json with explicit include to only compile what we need:
+
+{
+    "compilerOptions": {
+      "outDir": "./dist/out-tsc",
+      "target": "ES2022",
+      "module": "ES2022",
+      "moduleResolution": "bundler",
+      "experimentalDecorators": true,
+      "useDefineForClassFields": false,
+      "skipLibCheck": true,
+      "lib": ["ES2022", "dom"]
+    },
+    "include": [
+      "projects/payment-flow-ui-lib/src/main-element.ts"
+    ],
+    "exclude": [
+      "**/*.spec.ts",
+      "**/node_modules/**"
+    ]
+  }
+
