@@ -175,3 +175,9 @@ import { SSPaymentMakerComponent } from '../public-api';
 // run this
 
 ./node_modules/.bin/ng run payment-flow-ui-lib:build-element:production --output-path dist/element
+
+// in powershell 
+
+cd C:\Users\SJ81534\Documents\SS-PAYMENT-UI--ACTUAL-LIBRARY\179025.shared-services.payment-flow-ui-lib
+
+.\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
