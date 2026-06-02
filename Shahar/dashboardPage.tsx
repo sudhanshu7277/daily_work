@@ -255,3 +255,27 @@ const sourceSlices = useMemo(() => {
     };
   });
 }, [dynamicSourceCounts]);
+
+// country pie chart fixes
+
+const countrySlices: PieSlice[] = useMemo(() => {
+  // Build stable color map from ALL country keys first
+  const allCountryKeys = Object.keys(countryCounts);
+  const countryColorMap: Record<string, string> = {};
+  allCountryKeys.forEach((key, idx) => {
+    countryColorMap[key] = PIE_COLORS[idx % PIE_COLORS.length];
+  });
+
+  let data = countryCounts;
+  if (countryFilter) {
+    data = Object.fromEntries(
+      Object.entries(data).filter(([k]) => k === countryFilter)
+    );
+  }
+
+  return Object.entries(data).map(([label, value]) => ({
+    label,
+    value,
+    color: countryColorMap[label],
+  }));
+}, [countryCounts, countryFilter]);
