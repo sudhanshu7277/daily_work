@@ -204,3 +204,56 @@ const overdueColumns = [
             // Removed scroll={{ x: '100%' }} to drop the overflow wrapper constraints completely
             style={{ fontSize: 11 }}
           />
+
+
+          /// PIE CHART FIXES
+
+
+          // 1. Fixed color indexes pinned directly to the unique API string keys
+const MAPPED_SOURCE_COLORS: Record<string, string> = {
+  'CITI_SFT': '#337ab7',       // Original Blue
+  'Email': '#5cb85c',          // Original Green
+  'Contract': '#f0ad4e',       // Original Orange
+  'UNKNOWN': '#9b59b6',        // Original Purple
+  'EMAIL_POLLER': '#5cb85c',   // Poller fallback matching Email color
+  'SFT_POLLER': '#337ab7'      // Poller fallback matching CITI_SFT color
+};
+
+const MAPPED_COUNTRY_COLORS: Record<string, string> = {
+  'EMEA': '#337ab7',
+  'Argentina': '#5cb85c',
+  'Brazil': '#f0ad4e',
+  'APAC': '#9b59b6',
+  'Peru': '#e74c3c',
+  'LATAM': '#1abc9c',
+  'NAM': '#34495e',
+  'UNKNOWN': '#95a5a6'
+};
+
+// 2. Updated source slices memoizer
+const sourceSlices = useMemo(() => {
+  return Object.keys(sourceCounts).map((key, index) => {
+    // Looks up the predefined hex value; falls back gracefully to standard index order if missing
+    const chosenColor = MAPPED_SOURCE_COLORS[key] || PIE_COLORS[index % PIE_COLORS.length];
+    
+    return {
+      label: key,
+      value: sourceCounts[key],
+      color: chosenColor
+    };
+  });
+}, [sourceCounts]);
+
+// 3. Updated country slices memoizer
+const countrySlices = useMemo(() => {
+  return Object.keys(countryCounts).map((key, index) => {
+    // Looks up the predefined hex value; falls back gracefully to standard index order if missing
+    const chosenColor = MAPPED_COUNTRY_COLORS[key] || PIE_COLORS[index % PIE_COLORS.length];
+    
+    return {
+      label: key,
+      value: countryCounts[key],
+      color: chosenColor
+    };
+  });
+}, [countryCounts]);
