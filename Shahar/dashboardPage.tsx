@@ -209,51 +209,49 @@ const overdueColumns = [
           /// PIE CHART FIXES
 
 
-          // 1. Fixed color indexes pinned directly to the unique API string keys
-const MAPPED_SOURCE_COLORS: Record<string, string> = {
-  'CITI_SFT': '#337ab7',       // Original Blue
-  'Email': '#5cb85c',          // Original Green
-  'Contract': '#f0ad4e',       // Original Orange
-  'UNKNOWN': '#9b59b6',        // Original Purple
-  'EMAIL_POLLER': '#5cb85c',   // Poller fallback matching Email color
-  'SFT_POLLER': '#337ab7'      // Poller fallback matching CITI_SFT color
+          // Here is the precise, complete fix for DashboardPage.tsx:
+
+//Locate where your pie chart data splits are prepared (where sourceCounts and countryCounts are 
+ // derived or tracked) and replace them with this reactive client-side counting layer:
+
+ // 1. Unified Static Palette Map
+const STABLE_CHART_COLORS: Record<string, string> = {
+  'CITI_SFT': '#337ab7',       // Blue
+  'SFT_POLLER': '#337ab7',     // Blue fallback
+  'MANUAL': '#5cb85c',         // Green
+  'EMAIL_POLLER': '#f0ad4e',   // Orange
+  'Email': '#f0ad4e',          // Orange fallback
+  'UNKNOWN': '#9b59b6'         // Purple
 };
 
-const MAPPED_COUNTRY_COLORS: Record<string, string> = {
-  'EMEA': '#337ab7',
-  'Argentina': '#5cb85c',
-  'Brazil': '#f0ad4e',
-  'APAC': '#9b59b6',
-  'Peru': '#e74c3c',
-  'LATAM': '#1abc9c',
-  'NAM': '#34495e',
-  'UNKNOWN': '#95a5a6'
-};
+// 2. Compute source counts dynamically from the ALREADY FILTERED instructions list array
+const dynamicSourceCounts = useMemo(() => {
+  // Replace 'overdueInstructions' or 'filteredData' with whichever array holds your active dashboard table items
+  const activeRecords = overdueInstructions || []; 
+  
+  return activeRecords.reduce((acc: Record<string, number>, item: any) => {
+    const src = item.sourceCategory || item.source || 'UNKNOWN';
+    // Normalize string tags to match your API keys cleanly
+    let key = 'UNKNOWN';
+    if (src.includes('SFT')) key = 'CITI_SFT';
+    else if (src.includes('Manual') || src.includes('MANUAL')) key = 'MANUAL';
+    else if (src.includes('Email') || src.includes('POLLER')) key = 'EMAIL_POLLER';
+    
+    // If a dropdown selection is active, filter out non-matching rows entirely
+    if (sourceFilter && key !== sourceFilter) return acc;
 
-// 2. Updated source slices memoizer
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+}, [overdueInstructions, sourceFilter]); // Re-computes whenever dropdown changes!
+
+// 3. Update your sourceSlices to consume the dynamic counts
 const sourceSlices = useMemo(() => {
-  return Object.keys(sourceCounts).map((key, index) => {
-    // Looks up the predefined hex value; falls back gracefully to standard index order if missing
-    const chosenColor = MAPPED_SOURCE_COLORS[key] || PIE_COLORS[index % PIE_COLORS.length];
-    
+  return Object.keys(dynamicSourceCounts).map((key) => {
     return {
       label: key,
-      value: sourceCounts[key],
-      color: chosenColor
+      value: dynamicSourceCounts[key],
+      color: STABLE_CHART_COLORS[key] || '#95a5a6' // Latches perfectly to the exact color key
     };
   });
-}, [sourceCounts]);
-
-// 3. Updated country slices memoizer
-const countrySlices = useMemo(() => {
-  return Object.keys(countryCounts).map((key, index) => {
-    // Looks up the predefined hex value; falls back gracefully to standard index order if missing
-    const chosenColor = MAPPED_COUNTRY_COLORS[key] || PIE_COLORS[index % PIE_COLORS.length];
-    
-    return {
-      label: key,
-      value: countryCounts[key],
-      color: chosenColor
-    };
-  });
-}, [countryCounts]);
+}, [dynamicSourceCounts]);
