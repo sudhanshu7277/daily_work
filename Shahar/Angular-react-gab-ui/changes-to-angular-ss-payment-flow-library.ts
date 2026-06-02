@@ -100,3 +100,27 @@ for (const chunk of chunkOrder) {
 fs.writeFileSync(outputFile, combined, 'utf8');
 console.log('✅ dist/ss-payment-flow-element.js ready — copy to GAB UI public/');
 
+
+
+// create a new tsconfig.element.json
+
+{
+    "extends": "./projects/payment-flow-ui-lib/tsconfig.lib.json",
+    "compilerOptions": {
+      "outDir": "./dist/out-tsc",
+      "target": "ES2022",
+      "module": "ES2022",
+      "useDefineForClassFields": false,
+      "skipLibCheck": true
+    },
+    "exclude": [
+      "**/*.spec.ts",
+      "**/node_modules/**"
+    ]
+  }
+
+  // Then update angular.json build-element options:
+
+  "browser": "projects/payment-flow-ui-lib/src/main-element.ts",
+"tsConfig": "tsconfig.element.json"
+
