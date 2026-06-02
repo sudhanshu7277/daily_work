@@ -196,3 +196,7 @@ $file = "node_modules\@angular-devkit\build-angular\src\tools\esbuild\applicatio
 // If you can't find that exact file, try:
 
 Get-ChildItem -Recurse -Path node_modules\@angular-devkit -Filter "*.js" | Select-String "is not an absolute path" | Select-Object -First 3
+
+// Let me find the actual source of the error:
+
+Get-ChildItem -Recurse -Path node_modules -Filter "*.js" | Select-String "is not an absolute path" | Select-Object -First 5
