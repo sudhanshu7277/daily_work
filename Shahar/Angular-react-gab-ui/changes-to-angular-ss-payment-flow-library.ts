@@ -125,13 +125,13 @@ console.log('✅ dist/ss-payment-flow-element.js ready — copy to GAB UI public
 "tsConfig": "tsconfig.element.json"
 
 
-// First — update main-element.ts to import from the public API instead:
+// So the full main-element.ts
 
 import 'zone.js';
 import { createApplication } from '@angular/platform-browser';
 import { createCustomElement } from '@angular/elements';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { SSPaymentMakerComponent } from '@citi-icg-179025/payment-flow-ui-lib';
+import { SSPaymentMakerComponent } from '../public-api';
 
 (async () => {
   const app = await createApplication({
@@ -142,6 +142,8 @@ import { SSPaymentMakerComponent } from '@citi-icg-179025/payment-flow-ui-lib';
   });
   customElements.define('ss-payment-flow', PaymentElement);
 })();
+
+
 
 
 // Second — update tsconfig.element.json with explicit include to only compile what we need:
