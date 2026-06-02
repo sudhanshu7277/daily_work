@@ -14,27 +14,27 @@ pnpm install @angular/elements@~17.3.5
     ...existing lint config...
   },
   "build-element": {
-    "builder": "@angular-devkit/build-angular:application",
-    "options": {
-      "outputPath": "dist/element",
-      "index": false,
-      "browser": "projects/src/main-element.ts",
-      "tsConfig": "tsconfig.app.json",
-      "polyfills": ["zone.js"],
+  "builder": "@angular-devkit/build-angular:application",
+  "options": {
+    "outputPath": "dist/element",
+    "index": false,
+    "browser": "projects/src/main-element.ts",
+    "tsConfig": "tsconfig.app.json",
+    "polyfills": ["zone.js"],
+    "outputHashing": "none",
+    "budgets": []
+  },
+  "configurations": {
+    "production": {
       "outputHashing": "none",
+      "optimization": true,
+      "sourceMap": false,
+      "namedChunks": false,
       "budgets": []
-    },
-    "configurations": {
-      "production": {
-        "outputHashing": "none",
-        "optimization": true,
-        "sourceMap": false,
-        "namedChunks": false,
-        "budgets": []
-      }
-    },
-    "defaultConfiguration": "production"
-  }
+    }
+  },
+  "defaultConfiguration": "production"
+}
 }
 
 // Step 3 — Create projects/src/main-element.ts
