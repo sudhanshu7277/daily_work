@@ -115,9 +115,14 @@ if (!fs.existsSync(nmLink)) {
 console.log('⚙️  Running ng build (this may take a minute)...');
 const ngBin = path.join(ROOT, 'node_modules', '.bin', 'ng');
 try {
+  const esbuildWasmPath = path.join(ROOT, 'node_modules', 'esbuild-wasm', 'esbuild.wasm');
   execSync('"' + ngBin + '" build payment-element --configuration production', {
     cwd: BUILD_DIR,
     stdio: 'inherit',
+    env: {
+      ...process.env,
+      ESBUILD_BINARY_PATH: esbuildWasmPath,
+    },
   });
 } catch (err) {
   console.error('\n❌ ng build failed. See errors above.');
