@@ -168,3 +168,6 @@ import { SSPaymentMakerComponent } from '../public-api';
     ]
   }
 
+// angular.json
+
+"outputPath": "C:/Users/SJ81534/Documents/SS-PAYMENT-UI--ACTUAL-LIBRARY/179025.shared-services.payment-flow-ui-lib/dist/element"
