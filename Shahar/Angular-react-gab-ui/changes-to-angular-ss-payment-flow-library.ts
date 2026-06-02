@@ -200,3 +200,16 @@ Get-ChildItem -Recurse -Path node_modules\@angular-devkit -Filter "*.js" | Selec
 // Let me find the actual source of the error:
 
 Get-ChildItem -Recurse -Path node_modules -Filter "*.js" | Select-String "is not an absolute path" | Select-Object -First 5
+
+
+//Patch it directly in PowerShell:
+
+$file = "node_modules\.pnpm\schema-utils@3.3.0\node_modules\schema-utils\dist\keywords\absolutePath.js"
+(Get-Content $file) -replace 'shouldBeAbsolute \?', 'false ?' | Set-Content $file
+
+$file2 = "node_modules\.pnpm\schema-utils@4.3.3\node_modules\schema-utils\dist\keywords\absolutePath.js"
+(Get-Content $file2) -replace 'shouldBeAbsolute \?', 'false ?' | Set-Content $file2
+
+// then run:
+
+.\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
