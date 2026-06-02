@@ -2,6 +2,18 @@
 
 pnpm install @angular/elements@~17.3.5
 
+
+"pnpm": {
+  "overrides": {
+    "esbuild": "npm:esbuild-wasm@^0.21.0",
+    "@angular/build": {
+      "esbuild": "npm:esbuild-wasm@^0.21.0"
+    },
+    "@angular-devkit/build-angular": {
+      "esbuild": "npm:esbuild-wasm@^0.21.0"
+    }
+  }
+}
 // Step 2 — Add build-element target to angular.json
 //In your angular.json, after the closing } of the lint block (line 38) and before }} 
 // (line 39-40), add this new target. Here's exactly what the architect section should look like after your edit:
