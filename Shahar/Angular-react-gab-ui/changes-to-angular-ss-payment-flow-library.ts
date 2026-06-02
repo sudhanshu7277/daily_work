@@ -181,3 +181,18 @@ import { SSPaymentMakerComponent } from '../public-api';
 cd C:\Users\SJ81534\Documents\SS-PAYMENT-UI--ACTUAL-LIBRARY\179025.shared-services.payment-flow-ui-lib
 
 .\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
+
+////////////////////////
+//RUN IN POWERSHELL
+
+$file = "node_modules\@angular-devkit\build-angular\src\tools\esbuild\application.js"
+(Get-Content $file) -replace 'path\.isAbsolute\(context\.workspaceRoot\)', 'true' | Set-Content $file
+
+// THEN
+
+.\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
+// If you can't find that exact file, try:
+
+Get-ChildItem -Recurse -Path node_modules\@angular-devkit -Filter "*.js" | Select-String "is not an absolute path" | Select-Object -First 3
