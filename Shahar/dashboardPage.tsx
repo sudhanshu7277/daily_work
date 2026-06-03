@@ -86,41 +86,59 @@ const countrySlices: PieSlice[] = useMemo(() => {
 
 // In the JSX around line 905-907, replace the <span> in the card header:
 
-<span>
-  {sourceFilter && !sourceStatusFilter
-    ? `Status Breakdown`
-    : sourceFilter && sourceStatusFilter
-    ? `${sourceFilter} — ${sourceStatusFilter.replace(/_/g, ' ')}`
-    : 'Instruction(s) by Source'}
-</span>
-{sourceFilter && !sourceStatusFilter && (
-  <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
-    for source: <strong>{
-      sourceFilter.toLowerCase() === 'email_poller' 
-        ? 'Email' : sourceFilter
-    }</strong>
-  </El>
-)}
-{!sourceFilter && sourceStatusFilter && (
-  <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
-    filtered by: <strong>
-      {sourceStatusFilter.replace(/_/g, ' ').toLowerCase()
-        .replace(/\b\w/g, c => c.toUpperCase())}
-    </strong>
-  </El>
-)}
+<El className="dashboard-card-header-content">
+  <span>
+    {sourceFilter && !sourceStatusFilter
+      ? `Status Breakdown`
+      : sourceFilter && sourceStatusFilter
+      ? `${sourceFilter === 'EMAIL_POLLER' ? 'Email' : sourceFilter} — ${sourceStatusFilter.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}`
+      : 'Instruction(s) by Source'}
+  </span>
+  {sourceFilter && !sourceStatusFilter && (
+    <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+      for source: <strong>{
+        sourceFilter.toLowerCase() === 'email_poller'
+          ? 'Email' : sourceFilter
+      }</strong>
+    </El>
+  )}
+  {!sourceFilter && sourceStatusFilter && (
+    <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+      filtered by: <strong>
+        {sourceStatusFilter.replace(/_/g, ' ').toLowerCase()
+          .replace(/\b\w/g, c => c.toUpperCase())}
+      </strong>
+    </El>
+  )}
 
-//And same pattern for the Country card (~line 950):
+//And for country, find lines ~949-951:
 
-<span>
-  {countryFilter && !countryStatusFilter
-    ? `Status Breakdown`
-    : countryFilter && countryStatusFilter
-    ? `${countryFilter} — ${countryStatusFilter.replace(/_/g, ' ')}`
-    : 'Instruction(s) by Country'}
-</span>
-{countryFilter && !countryStatusFilter && (
-  <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
-    for country: <strong>{countryFilter}</strong>
-  </El>
-)}
+
+<El className="dashboard-card-header-content">
+  <span>
+    Instruction(s) by Country</span>
+
+    //replace above with below
+
+
+    <El className="dashboard-card-header-content">
+  <span>
+    {countryFilter && !countryStatusFilter
+      ? `Status Breakdown`
+      : countryFilter && countryStatusFilter
+      ? `${countryFilter} — ${countryStatusFilter.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}`
+      : 'Instruction(s) by Country'}
+  </span>
+  {countryFilter && !countryStatusFilter && (
+    <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+      for country: <strong>{countryFilter}</strong>
+    </El>
+  )}
+  {!countryFilter && countryStatusFilter && (
+    <El style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+      filtered by: <strong>
+        {countryStatusFilter.replace(/_/g, ' ').toLowerCase()
+          .replace(/\b\w/g, c => c.toUpperCase())}
+      </strong>
+    </El>
+  )}
