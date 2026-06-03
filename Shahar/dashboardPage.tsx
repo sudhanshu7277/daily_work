@@ -1,13 +1,41 @@
-// Replace sourceSlices memo (lines 540-549):
+// 1. sourceOptions memo — find and replace:
 
+// FIND:
+const sourceOptions = useMemo(() =>
+  Object.keys(sourceCounts).map(s => ({ value: s, label: s.toLowerCase() === 'email_poller' ? 'Email' : s })),
+[sourceCounts]);
+
+// REPLACE WITH:
+const sourceOptions = useMemo(() => {
+  const seen = new Set<string>();
+  return Object.keys(sourceCounts)
+    .map(s => ({
+      value: s,
+      label: s.toLowerCase() === 'email_poller' ? 'Email' : s,
+    }))
+    .filter(o => {
+      if (seen.has(o.label)) return false;
+      seen.add(o.label);
+      return true;
+    });
+}, [sourceCounts]);
+
+// 2. sourceSlices memo — find and replace:
+
+// FIND:
 const sourceSlices: PieSlice[] = useMemo(() => {
-  const grandTotal = Object.values(sourceCounts).reduce((s, v) => s + v, 0);
+  ...existing code...
+}, [sourceCounts, sourceFilter]);
 
-  // Case 1: Source + All Statuses → status breakdown for that source
+// REPLACE WITH:
+const sourceSlices: PieSlice[] = useMemo(() => {
+  const grandTotal = Object.values(sourceCounts)
+    .reduce((s, v) => s + v, 0);
+
+  // Case 1: Source + All Statuses → status breakdown
   if (sourceFilter && !sourceStatusFilter) {
     const sourceTotal = sourceCounts[sourceFilter] ?? 0;
     const ratio = grandTotal > 0 ? sourceTotal / grandTotal : 0;
-
     return Object.entries(counts)
       .filter(([, v]) => v > 0)
       .map(([status, globalCount]) => ({
@@ -24,19 +52,20 @@ const sourceSlices: PieSlice[] = useMemo(() => {
     const sourceTotal = sourceCounts[sourceFilter] ?? 0;
     const ratio = grandTotal > 0 ? sourceTotal / grandTotal : 0;
     const statusCount = counts[sourceStatusFilter] ?? 0;
+    const estimatedCount = Math.round(statusCount * ratio);
     const displayLabel = sourceStatusFilter.replace(/_/g, ' ')
       .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
     const displaySource = sourceFilter.toLowerCase() === 'email_poller'
       ? 'Email' : sourceFilter;
-
+    if (estimatedCount === 0) return [];
     return [{
       label: `${displayLabel} — ${displaySource}`,
-      value: Math.round(statusCount * ratio) || 1,
+      value: estimatedCount,
       color: STATUS_COLORS[sourceStatusFilter] || '#999',
     }];
   }
 
-  // Case 3: No filters → all sources, merge duplicate labels
+  // Case 3: No filters → all sources, merge duplicates
   const merged: Record<string, PieSlice> = {};
   mapToSlices(sourceCounts).forEach(s => {
     const label = s.label.toLowerCase() === 'email_poller'
@@ -54,22 +83,27 @@ const sourceSlices: PieSlice[] = useMemo(() => {
 
 }, [sourceCounts, sourceFilter, sourceStatusFilter, counts]);
 
-//For the Country pie, same pattern — replace countrySlices memo (lines 551-570):
+//  3. countrySlices memo — find and replace:
 
+
+// FIND:
 const countrySlices: PieSlice[] = useMemo(() => {
-  // Build stable color map from ALL country keys
+  ...existing code...
+}, [countryCounts, countryFilter]);
+
+// REPLACE WITH:
+const countrySlices: PieSlice[] = useMemo(() => {
   const countryColorMap: Record<string, string> = {};
   Object.keys(countryCounts).forEach((key, idx) => {
     countryColorMap[key] = PIE_COLORS[idx % PIE_COLORS.length];
   });
+  const grandTotal = Object.values(countryCounts)
+    .reduce((s, v) => s + v, 0);
 
-  const grandTotal = Object.values(countryCounts).reduce((s, v) => s + v, 0);
-
-  // Case 1: Country + All Statuses → status breakdown for that country
+  // Case 1: Country + All Statuses → status breakdown
   if (countryFilter && !countryStatusFilter) {
     const countryTotal = countryCounts[countryFilter] ?? 0;
     const ratio = grandTotal > 0 ? countryTotal / grandTotal : 0;
-
     return Object.entries(counts)
       .filter(([, v]) => v > 0)
       .map(([status, globalCount]) => ({
@@ -86,12 +120,13 @@ const countrySlices: PieSlice[] = useMemo(() => {
     const countryTotal = countryCounts[countryFilter] ?? 0;
     const ratio = grandTotal > 0 ? countryTotal / grandTotal : 0;
     const statusCount = counts[countryStatusFilter] ?? 0;
+    const estimatedCount = Math.round(statusCount * ratio);
     const displayLabel = countryStatusFilter.replace(/_/g, ' ')
       .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-
+    if (estimatedCount === 0) return [];
     return [{
       label: `${displayLabel} — ${countryFilter}`,
-      value: Math.round(statusCount * ratio) || 1,
+      value: estimatedCount,
       color: STATUS_COLORS[countryStatusFilter] || '#999',
     }];
   }
@@ -104,14 +139,29 @@ const countrySlices: PieSlice[] = useMemo(() => {
   }));
 
 }, [countryCounts, countryFilter, countryStatusFilter, counts]);
-// In the JSX around line 905-907, replace the <span> in the card header:
+
+
+// 4. Two new useEffect hooks — add after the existing country useEffect (line ~392):
+
+
+// Reset status filter when source changes
+useEffect(() => {
+  setSourceStatusFilter('');
+}, [sourceFilter]);
+
+// Reset status filter when country changes
+useEffect(() => {
+  setCountryStatusFilter('');
+}, [countryFilter]);
+
+// 5. Source card dashboard-card-header-content block — full replacement:
 
 <El className="dashboard-card-header-content">
   <span>
     {sourceFilter && !sourceStatusFilter
       ? 'Status Breakdown'
       : sourceFilter && sourceStatusFilter
-      ? `${sourceFilter.toLowerCase() === 'email_poller' 
+      ? `${sourceFilter.toLowerCase() === 'email_poller'
           ? 'Email' : sourceFilter} — ${sourceStatusFilter
           .replace(/_/g, ' ').toLowerCase()
           .replace(/\b\w/g, c => c.toUpperCase())}`
@@ -165,18 +215,21 @@ const countrySlices: PieSlice[] = useMemo(() => {
         size="sm"
       >
         <Dropdown.Item value="">All Statuses</Dropdown.Item>
-        {Object.keys(counts).map(s => (
-          <Dropdown.Item key={s} value={s}>
-            {s.replace(/_/g, ' ').toLowerCase()
-              .replace(/\b\w/g, c => c.toUpperCase())}
-          </Dropdown.Item>
-        ))}
+        {Object.keys(counts)
+          .filter(s => (counts as Record<string, number>)[s] > 0)
+          .map(s => (
+            <Dropdown.Item key={s} value={s}>
+              {s.replace(/_/g, ' ').toLowerCase()
+                .replace(/\b\w/g, c => c.toUpperCase())}
+            </Dropdown.Item>
+          ))}
       </Dropdown>
     </El>
   </El>
 </El>
 
-//And for country, find lines ~949-951:
+  
+// 6. Country card dashboard-card-header-content block — full replacement:
 
 <El className="dashboard-card-header-content">
   <span>
@@ -233,12 +286,14 @@ const countrySlices: PieSlice[] = useMemo(() => {
         size="sm"
       >
         <Dropdown.Item value="">All Statuses</Dropdown.Item>
-        {Object.keys(counts).map(s => (
-          <Dropdown.Item key={s} value={s}>
-            {s.replace(/_/g, ' ').toLowerCase()
-              .replace(/\b\w/g, c => c.toUpperCase())}
-          </Dropdown.Item>
-        ))}
+        {Object.keys(counts)
+          .filter(s => (counts as Record<string, number>)[s] > 0)
+          .map(s => (
+            <Dropdown.Item key={s} value={s}>
+              {s.replace(/_/g, ' ').toLowerCase()
+                .replace(/\b\w/g, c => c.toUpperCase())}
+            </Dropdown.Item>
+          ))}
       </Dropdown>
     </El>
   </El>
