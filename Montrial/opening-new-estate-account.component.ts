@@ -1,44 +1,58 @@
-// tasks.config.ts — replace lines 295-308:
-
-taskQuestions: [
+export enum OpeningNewEstateAccountQuestionKeys {
+    WILL_NEW_ESTATE_ACCOUNT_BE_OPENED = 'willNewEstateAccountBeOpened',
+    AT_LEAST_ONE_EXECUTOR = 'atLeastOneExecutorOrLiquidatorPresent',
+    // ADD THESE:
+    EST_OF_IS_TASKED = 'estOfIstasked',
+    CHANGE_DECEASED_ADDRESS = 'changeDeceasedAddress',
+    EXECUTOR_OR_LIQUIDATOR_EXISTS = 'executorOrLiquidatorExists',
+    SET_UP_FROZEN_STATUS = 'setUpFrozenStatusOnEstateAccount',
+    ACCOUNT_APPLICATION_IS_VIEWABLE = 'accountApplicationAccountOpeningIsViewable',
+    REGULATORY_CUSTOMER_SUMMARY_IS_VIEWABLE = 'regulatoryCustomerSummaryReportIsViewable',
+    FORM_90450_IS_SCANNED = 'form90450IsScannedAndViewable',
+  }
+  
+  
+  
+  taskQuestions: [
     {
-      questionKey: 'willNewEstateAccountBeOpened',
+      questionKey: OpeningNewEstateAccountQuestionKeys.WILL_NEW_ESTATE_ACCOUNT_BE_OPENED,
       answers: [...yesNoAnswers],
       step: 1,
     },
     {
-      questionKey: 'atLeastOneExecutorOrLiquidatorPresent',
+      questionKey: OpeningNewEstateAccountQuestionKeys.AT_LEAST_ONE_EXECUTOR,
+      answers: [...yesNoAnswers],
       step: 1,
       showQuestion: false,
     },
+    // ADD THESE 7:
     {
-      questionKey: 'estOfIstasked',
+      questionKey: OpeningNewEstateAccountQuestionKeys.EST_OF_IS_TASKED,
       step: 1,
     },
     {
-      questionKey: 'changeDeceasedAddress',
+      questionKey: OpeningNewEstateAccountQuestionKeys.CHANGE_DECEASED_ADDRESS,
       step: 1,
     },
     {
-      questionKey: 'executorOrLiquidatorExists',
+      questionKey: OpeningNewEstateAccountQuestionKeys.EXECUTOR_OR_LIQUIDATOR_EXISTS,
       step: 1,
     },
     {
-      questionKey: 'setUpFrozenStatusOnEstateAccount',
+      questionKey: OpeningNewEstateAccountQuestionKeys.SET_UP_FROZEN_STATUS,
       step: 1,
     },
     {
-      questionKey: 'accountApplicationAccountOpeningIsViewable',
+      questionKey: OpeningNewEstateAccountQuestionKeys.ACCOUNT_APPLICATION_IS_VIEWABLE,
       step: 1,
     },
     {
-      questionKey: 'regulatoryCustomerSummaryReportIsViewable',
+      questionKey: OpeningNewEstateAccountQuestionKeys.REGULATORY_CUSTOMER_SUMMARY_IS_VIEWABLE,
       step: 1,
     },
     {
-      questionKey: 'form90450IsScannedAndViewable',
+      questionKey: OpeningNewEstateAccountQuestionKeys.FORM_90450_IS_SCANNED,
       step: 1,
     },
   ],
-
-  // OpeningNewEstateAccountQuestionKeys
+  
