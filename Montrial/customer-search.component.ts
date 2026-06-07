@@ -1,33 +1,53 @@
-// HTML — line 156:
+// HTML — clean version:
 
-<input type="text"
+
+<input type="date"
        id="dateOfBirth"
        class="custom-date-input"
-       placeholder="Select"
-       maxlength="10"
        formControlName="dateOfBirth"
-       (input)="onDateInput($event)"
-       (keydown)="onDateKeydown($event)">
+       (change)="onDateChange($event)">
 
-       // TS — add two methods, nothing else:
+       // Remove (input) and (keydown) bindings entirely.
 
-       onDateInput(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        let v = input.value.replace(/\D/g, '');
-      
-        if (v.length >= 3) v = v.substring(0, 2) + '/' + v.substring(2);
-        if (v.length >= 6) v = v.substring(0, 5) + '/' + v.substring(5);
-      
-        v = v.substring(0, 10);
-        input.value = v;
-        this.searchForm.get('dateOfBirth')?.setValue(v, { emitEvent: false });
-      }
-      
-      onDateKeydown(event: KeyboardEvent): void {
-        const allowed = [
-          'Backspace', 'Delete', 'Tab', 'Escape',
-          'Enter', 'ArrowLeft', 'ArrowRight'
-        ];
-        if (allowed.includes(event.key)) return;
-        if (!/^\d$/.test(event.key)) event.preventDefault();
-      }
+// TS — replace onDateInput and onDateKeydown with one simple method:
+
+// Converts selected date from yyyy-mm-dd to MM/DD/YYYY for display
+onDateChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const raw = input.value; // yyyy-mm-dd from native picker
+  
+    if (raw && raw.length === 10) {
+      const [year, month, day] = raw.split('-');
+      const formatted = `${month}/${day}/${year}`; // MM/DD/YYYY
+      this.searchForm.get('dateOfBirth')?.setValue(formatted, { emitEvent: false });
+    }
+  }
+
+  // SCSS — hide yyyy-mm-dd placeholder, show Select:
+
+  .custom-date-input {
+    // Hide browser default yyyy-mm-dd text when empty
+    &:not(:valid) {
+      color: transparent;
+    }
+  
+    // Show "Select" as placeholder text
+    &:not(:valid)::before {
+      content: 'Select';
+      color: #6b7a8a;
+      position: absolute;
+    }
+  
+    // Show date value normally when selected
+    &:valid {
+      color: #1c2333;
+    }
+  }
+
+  // TS — on submit, convert MM/DD/YYYY back to yyyy-mm-dd for API:
+
+  // In onSearch(), after const trimmedPayload (line 221):
+if (trimmedPayload.dateOfBirth?.includes('/')) {
+    const [month, day, year] = trimmedPayload.dateOfBirth.split('/');
+    trimmedPayload.dateOfBirth = `${year}-${month}-${day}`;
+  }
