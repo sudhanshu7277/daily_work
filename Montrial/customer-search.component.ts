@@ -1,120 +1,128 @@
-// . The Template Fix (search-customer.component.html)
-//We will update your date field block to bind a dynamic class helper condition. This hides the browser's default internal yyyy-mm-dd text placeholder whenever the field control is completely empty or untouched.
-
-//Replace your current date field group block with this:
+// 1. The Component Template Update (search-customer.component.html)
+//We will keep your native <input type="date"> inside the DOM so your calendar picker i
+//nterface works perfectly, but we will make it completely invisible using opacity.
 
 <div class="form-field-group date-picker-group">
   <label>{{ searchCustomerVerbiage.dob | translate }}</label>
-  <div class="date-input-wrapper" [class.show-placeholder]="!searchForm.get('dateOfBirth')?.value">
+  <div class="date-input-wrapper">
+    
+    <input type="text"
+           class="form-control custom-date-display"
+           placeholder="Select"
+           [value]="formattedDateDisplay"
+           readonly />
+
     <input type="date"
            id="dateOfBirth"
-           class="custom-date-input"
-           placeholder="Select"
+           class="custom-date-hidden-picker"
            formControlName="dateOfBirth"
-           (change)="onDateChange($event)" />
+           (change)="handleDateSelection($event)" />
+           
     <span class="custom-calendar-icon"></span>
   </div>
   <small class="date-picker-text" style="color: #a0a0a0;">MM/DD/YYYY</small>
 </div>
 
 
-// 2. The Style Fix (search-customer.component.scss)
-//Add this isolated CSS block to your component's stylesheet. When the input has no active value selection, this ruleset hides the browser's default shadow DOM text characters and places a custom pseudo-element overlay displaying your precise 
-//Figma "Select" label right inside the container.
+// 2. The Component Controller Fix (search-customer.component.ts)
 
-.date-input-wrapper {
-    position: relative;
-    display: inline-block;
-    width: 100%;
-  
-    &.show-placeholder {
-      input[type="date"] {
-        // Hide the native browser placeholder markers cleanly
-        &::-webkit-datetime-edit-text,
-        &::-webkit-datetime-edit-month-field,
-        &::-webkit-datetime-edit-day-field,
-        &::-webkit-datetime-edit-year-field {
-          color: transparent !important;
-        }
-  
-        // Drop in the clean Figma text placeholder mask
-        ::after {
-          content: "Select";
-          position: absolute;
-          left: 12px;
-          color: #757575; 
-          pointer-events: none;
-        }
-      }
-    }
-  
-    input[type="date"] {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 100%;
-      
-      // Ensure the native interactive calendar trigger button overlay stays fully active
-      &::-webkit-calendar-picker-indicator {
-        position: absolute;
-        right: 12px;
-        z-index: 2;
-        opacity: 0; // Hides default icon to rely on your custom-calendar-icon span positioning
-        cursor: pointer;
-      }
-    }
-  }
+// Step A: Declare a display tracker variable at the top of your class body
 
-  // 3. The Payload Formatting Fix (search-customer.component.ts)
-//When a user selects a date via the calendar layout, standard browsers write a string formatted explicitly as YYYY-MM-DD directly into the template form engine.
+// Place this near your other component property declarations (e.g., around line 126)
+formattedDateDisplay = '';
 
-//To convert this selection to MM/DD/YYYY across both your local UI component controls and your dynamic outgoing network dispatch model array payloads, locate your onSearch() function block. We will intercept the payload generation sweep inside your object reducer loop.
 
-//Step A: Update the form payload generator inside onSearch()
-//Update your active form serialization pass (around lines 207–227) to include a conversion check for the dateOfBirth property:
+//Step B: Add the calculation intercept method inside your class body
 
-onSearch(): void {
-    if (this.searchForm.invalid) {
-      this.searchForm.markAllAsTouched();
-      return;
-    }
-  
-    const rawFormValue = this.searchForm.getRawValue();
-    const trimmedPayload = Object.keys(rawFormValue).reduce((acc, key) => {
-      const value = rawFormValue[key];
-      
-      // --- START PRODUCTION payload TRANSFORMATION FIX ---
-      if (key === 'dateOfBirth' && value) {
-        // Convert browser default YYYY-MM-DD string format safely to MM/DD/YYYY
-        const [year, month, day] = value.split('-');
-        acc[key] = `${month}/${day}/${year}`;
-      } else {
-        acc[key] = typeof value === 'string' ? value.trim() : value;
-      }
-      // --- END PRODUCTION payload TRANSFORMATION FIX ---
-  
-      return acc;
-    }, {} as any);
-  
-    if (trimmedPayload.customerType === 'Individual' && this.searchForm.valid) {
-      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'SEARCH_CUSTOMER' });
-    } else if (trimmedPayload.customerType === 'entity' && this.searchForm.valid) {
-      this.searchTriggered.emit({ ...trimmedPayload, searchType: 'ENTITY_CUSTOMER' });
-    }
-  }
-
-  // Step B: Intercept user changes to keep the text display updated (Optional)
-//If you need the literal control property string element value inside your application's reactive form controls stack tracking layer to match the network contract model configuration exactly at runtime as soon as 
-//blur fields emit, drop this mapping function directly into your component body:
-
-onDateChange(event: Event): void {
+handleDateSelection(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
-    const rawValue = inputElement.value; // Receives 'YYYY-MM-DD' natively
+    const rawValue = inputElement.value; // Receives browser 'YYYY-MM-DD' natively
   
     if (rawValue) {
       const [year, month, day] = rawValue.split('-');
-      const formattedDate = `${month}/${day}/${year}`;
       
-      // Allows internal validation routines to keep running using the exact Figma format mapping
-      console.log('Formatted frontend selection string target created:', formattedDate);
+      // Convert right away to the required format
+      this.formattedDateDisplay = `${month}/${day}/${year}`;
+      
+      // Explicitly update your Reactive Form value block to stay in sync
+      this.searchForm.get('dateOfBirth')?.setValue(this.formattedDateDisplay, { emitEvent: false });
+    } else {
+      this.formattedDateDisplay = '';
     }
   }
+
+  // Step C: Clear or adjust your payload loop inside onSearch()
+//Since handleDateSelection now handles updating your Reactive Form 
+// //control value directly into the exact string layout contract, 
+// //
+// you can completely simplify your payload mapping 
+// loop inside onSearch() (lines 213–218). It can pass values naturally 
+// without manual manipulation blocks:
+
+const trimmedPayload = Object.keys(rawFormValue).reduce((acc, key) => {
+    const value = rawFormValue[key];
+    acc[key] = typeof value === 'string' ? value.trim() : value; // dateOfBirth is already MM/DD/YYYY here
+    return acc;
+  }, {} as any);
+
+  //Step D: Update onClear() to reset the text display state
+//Locate your onClear() method (around line 229) a
+//nd make sure it resets your visual string string reference 
+// //alongside the parent group:
+
+onClear(): void {
+    this.searchForm.reset({ customerType: 'Individual', country: 'Canada' });
+    this.formattedDateDisplay = ''; // 👈 Clear the visual display input value box
+    this.searchTriggered.emit();
+  }
+
+  // 3. The Stylesheet Fix (search-customer.component.scss)
+
+  .date-input-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+  
+    // The visual text field block matching your Figma style properties
+    .custom-date-display {
+      width: 100%;
+      background-color: #ffffff;
+      cursor: pointer;
+    }
+  
+    // The native browser input is made completely invisible but stretches over the display input
+    .custom-date-hidden-picker {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0; // Completely un-rendered visually
+      z-index: 5;  // Sits on top so clicking anywhere inside the field safely opens the calendar panel
+      cursor: pointer;
+  
+      // Direct click mapping pass for standard Chromium configurations
+      &::-webkit-calendar-picker-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+    }
+  
+    // Position your calendar icon span securely underneath the interactive click layer
+    .custom-calendar-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none; // Allows click event propagation to leak down to the picker layer
+      z-index: 2;
+    }
+  }
+
+
