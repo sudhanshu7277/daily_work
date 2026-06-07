@@ -105,3 +105,71 @@ onClear(): void {
       z-index: 2;
     }
   }
+
+
+  //1. The Template Pass (search-customer.component.html)
+//We don't need to change any styling or structure. We just need to add a template reference variable (#dateInput) so our TypeScript code can directly command the element to show its picker.
+
+//Update the input element to look exactly like this:
+
+<div class="form-field-group date-picker-group">
+  <label>{{ searchCustomerVerbiage.dob | translate }}</label>
+  <div class="date-input-wrapper">
+    <input #dateInput
+           [type]="isDatePickerActive ? 'date' : 'text'"
+           id="dateOfBirth"
+           class="form-control custom-date-input"
+           placeholder="Select"
+           [value]="formattedDateDisplay"
+           (focus)="activateDatePicker(dateInput)"
+           (blur)="deactivateDatePicker()"
+           (change)="handleDateSelection($event)" />
+    <span class="custom-calendar-icon" (click)="dateInput.focus()"></span>
+  </div>
+  <small class="date-picker-text" style="color: #a0a0a0;">MM/DD/YYYY</small>
+</div>
+
+
+  //2. The TypeScript Fix (search-customer.component.ts)
+//Modern browsers support a native JavaScript API method called showPicker(). By calling this method inside a microtask (setTimeout) immediately after switching the type, we force the browser to throw open the calendar dropdown instantly on that very first click.
+
+//Update your activateDatePicker method, and keep the rest of your state handlers identical:
+
+activateDatePicker(inputElement: HTMLInputElement): void {
+    this.isDatePickerActive = true;
+  
+    // Run a microtask pass to let Angular switch the DOM element type to "date" first
+    setTimeout(() => {
+      try {
+        // FORCE UNBLOCK: Instantly pops open the native calendar layout on click 1
+        if (typeof inputElement.showPicker === 'function') {
+          inputElement.showPicker();
+        }
+      } catch (error) {
+        console.warn('Native picker popup fallback handled:', error);
+      }
+    }, 1);
+  }
+  
+  deactivateDatePicker(): void {
+    if (!this.formattedDateDisplay) {
+      this.isDatePickerActive = false;
+    }
+  }
+  
+  handleDateSelection(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    const rawValue = inputElement.value;
+  
+    if (rawValue && rawValue.includes('-')) {
+      const [year, month, day] = rawValue.split('-');
+      this.formattedDateDisplay = `${month}/${day}/${year}`;
+      
+      // Updates your underlying validation search payload cleanly
+      this.searchForm.get('dateOfBirth')?.setValue(this.formattedDateDisplay, { emitEvent: false });
+      this.isDatePickerActive = false;
+    } else {
+      this.formattedDateDisplay = '';
+      this.searchForm.get('dateOfBirth')?.setValue('', { emitEvent: false });
+    }
+  }
