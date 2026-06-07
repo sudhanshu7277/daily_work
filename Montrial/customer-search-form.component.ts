@@ -467,3 +467,44 @@ private setupPrecedenceListener(): void {
       (task) => task.state === ACTIVE_STATE
     );
   }
+
+
+  //////
+
+  //Step 1: Clean Your HTML Template
+//Remove any inline (input) handlers from your template markup. 
+// //This keeps your template simple and relies on Angular's Reactive Forms 
+// //architecture to manage data state.
+
+<fdc-input
+  [type]="'text'"
+  [maxLength]="20"
+  formControlName="caseId"
+  [label]="'customerSearch.form.caseId.label' | translate"
+  [helperText]="'customerSearch.form.caseId.helperText' | translate"
+  [errorMessages]="fnErrorMessages">
+</fdc-input>
+
+
+//Step 2: Inject the Reactive Interceptor in TypeScript
+//Open search-customer.component.ts. Locate your ngOnInit() method and add a stream subscription to the caseId value control
+// right below where your this.searchForm structure is instantiated (around line 149):
+
+ngOnInit(): void {
+  // ... Your existing form initialization stays exactly as it is ...
+
+  // NUMERIC INTERCEPT FIX: Sanitize input values at the reactive framework layer
+  this.searchForm.get('caseId')?.valueChanges.subscribe((value: string) => {
+    if (value) {
+      // Strip out any character that is not a digit from 0 to 9
+      const sanitizedValue = value.replace(/[^0-9]/g, '');
+
+      // Only force an update if alphabetic/special characters were stripped out
+      if (value !== sanitizedValue) {
+        this.searchForm.get('caseId')?.setValue(sanitizedValue, { emitEvent: false });
+      }
+    }
+  });
+
+  // ... Rest of your existing ngOnInit logic continues beneath ...
+}
