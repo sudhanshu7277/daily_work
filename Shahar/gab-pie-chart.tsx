@@ -1,13 +1,11 @@
 // =========================================================================
-// Safe Dynamic Bidirectional Chart Processor Matrix
+// 🚀 SAFE BIDIRECTIONAL CHART PROCESSOR (INTACT LEFT->RIGHT & ADDED RIGHT->LEFT)
 // =========================================================================
 const bidirectionalSourceChartSlices = useMemo(() => {
-    // SCENARIO A: Right filter is clear, or only Left (Source) filter is active
-    // -> Default to showing Status breakdowns (Your working Left-to-Right relationship)
+  
+    // 1. LEFT-TO-RIGHT (EXISTS & UNTOUCHED): If right filter is empty, use your original working logic
     if (!sourceStatusFilter) {
-      // If a source is chosen on the left, show only that single status package slice
       const operationalData = sourceCounts || {};
-      
       return Object.entries(operationalData).map(([statusKey, totalCount], idx) => ({
         label: statusKey.replace(/_/g, ' '),
         value: totalCount,
@@ -15,15 +13,12 @@ const bidirectionalSourceChartSlices = useMemo(() => {
       }));
     }
   
-    // SCENARIO B: Right (Status) filter is explicitly active
-    // -> Pivot chart logic to show a breakdown of SOURCES for that status (Right-to-Left relationship)
+    // 2. RIGHT-TO-LEFT (ADDED FEATURE): If status filter on the right is selected, show source bifurcation
     const directionalSourceCounts: Record<string, number> = {};
-  
-    // Safeguard: Read metrics dynamically from your base counts object safely
     const baseMetrics = counts || {};
     
     Object.entries(baseMetrics).forEach(([sourceKey, metricPack]: [string, any]) => {
-      // Only map sources that have active values under the selected status dropdown string
+      // Only map sources that have active values under the chosen status dropdown token string
       if (metricPack && typeof metricPack === 'object' && metricPack[sourceStatusFilter]) {
         let normalizedSrc = sourceKey;
         if (sourceKey.includes('SFT')) normalizedSrc = 'CITI_SFT';
@@ -31,7 +26,7 @@ const bidirectionalSourceChartSlices = useMemo(() => {
         else if (sourceKey.includes('Email') || sourceKey.includes('POLLER')) normalizedSrc = 'EMAIL_POLLER';
         else if (sourceKey.includes('Billing') || sourceKey.includes('BILLING')) normalizedSrc = 'Billing';
   
-        // If a left source filter is also selected, enforce it matches
+        // If a left filter value is also simultaneously active, ensure context isolation matches
         if (sourceFilter && normalizedSrc !== sourceFilter) return;
   
         directionalSourceCounts[normalizedSrc] = (directionalSourceCounts[normalizedSrc] || 0) + metricPack[sourceStatusFilter];
@@ -53,10 +48,5 @@ const bidirectionalSourceChartSlices = useMemo(() => {
         color: sourceColors[sourceKey] || '#95a5a6'
       };
     });
-    // Tracks your exact, real local file state triggers safely
+  
   }, [counts, sourceCounts, sourceFilter, sourceStatusFilter]);
-
-  <Card body>
-  {/* 🚀 FIXED: Pointed straight to your safe bidirectional memo pipeline */}
-  <SimplePieChart slices={bidirectionalSourceChartSlices} />
-</Card>
