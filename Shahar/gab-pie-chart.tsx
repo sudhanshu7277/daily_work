@@ -72,3 +72,9 @@ const bidirectionalSourceChartSlices = useMemo(() => {
       };
     });
   }, [overdueInstructions, sourceFilter, sourceStatusFilter]);
+
+  ///
+
+  <Card body>
+  <SimplePieChart slices={bidirectionalSourceChartSlices} />
+</Card>
