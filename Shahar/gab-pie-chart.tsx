@@ -1,63 +1,44 @@
 // =========================================================================
-// Fixed Dynamic Bidirectional Chart Processor Matrix
+// Safe Dynamic Bidirectional Chart Processor Matrix
 // =========================================================================
 const bidirectionalSourceChartSlices = useMemo(() => {
-    // 🚀 FIX: Swapped out overdueInstructions for your real data array context
-    const activeRecords = data || []; 
-  
-    // SCENARIO A: Both filters are clear, or only the Left (Source) filter is active
-    // -> Show Status breakdown for all/selected sources
+    // SCENARIO A: Right filter is clear, or only Left (Source) filter is active
+    // -> Default to showing Status breakdowns (Your working Left-to-Right relationship)
     if (!sourceStatusFilter) {
-      const statusCounts: Record<string, number> = {};
+      // If a source is chosen on the left, show only that single status package slice
+      const operationalData = sourceCounts || {};
       
-      activeRecords.forEach((item: any) => {
-        const src = item.sourceCategory || item.source || 'UNKNOWN';
-        let normalizedSrc = 'UNKNOWN';
-        if (src.includes('SFT')) normalizedSrc = 'CITI_SFT';
-        else if (src.includes('Manual') || src.includes('MANUAL')) normalizedSrc = 'MANUAL';
-        else if (src.includes('Email') || src.includes('POLLER')) normalizedSrc = 'EMAIL_POLLER';
-        else if (src.includes('Billing') || src.includes('BILLING')) normalizedSrc = 'Billing';
-  
-        // Filter by source if the left dropdown is active
-        if (sourceFilter && normalizedSrc !== sourceFilter) return;
-  
-        const currentStatus = item.status || 'UNKNOWN';
-        statusCounts[currentStatus] = (statusCounts[currentStatus] || 0) + 1;
-      });
-  
-      return Object.entries(statusCounts).map(([statusKey, totalCount], idx) => ({
+      return Object.entries(operationalData).map(([statusKey, totalCount], idx) => ({
         label: statusKey.replace(/_/g, ' '),
         value: totalCount,
-        // Map to your corporate status colors dictionary, fallback to pie array index sequence
         color: STATUS_COLORS[statusKey] || PIE_COLORS[idx % PIE_COLORS.length]
       }));
     }
   
-    // SCENARIO B: The Right (Status) filter is explicitly active
-    // -> Pivot chart logic to show a breakdown of SOURCES for that status
+    // SCENARIO B: Right (Status) filter is explicitly active
+    // -> Pivot chart logic to show a breakdown of SOURCES for that status (Right-to-Left relationship)
     const directionalSourceCounts: Record<string, number> = {};
   
-    activeRecords.forEach((item: any) => {
-      const currentStatus = item.status || 'UNKNOWN';
-      
-      // Only look at records matching the selected status
-      if (sourceStatusFilter && currentStatus !== sourceStatusFilter) return;
+    // Safeguard: Read metrics dynamically from your base counts object safely
+    const baseMetrics = counts || {};
+    
+    Object.entries(baseMetrics).forEach(([sourceKey, metricPack]: [string, any]) => {
+      // Only map sources that have active values under the selected status dropdown string
+      if (metricPack && typeof metricPack === 'object' && metricPack[sourceStatusFilter]) {
+        let normalizedSrc = sourceKey;
+        if (sourceKey.includes('SFT')) normalizedSrc = 'CITI_SFT';
+        else if (sourceKey.includes('Manual') || sourceKey.includes('MANUAL')) normalizedSrc = 'MANUAL';
+        else if (sourceKey.includes('Email') || sourceKey.includes('POLLER')) normalizedSrc = 'EMAIL_POLLER';
+        else if (sourceKey.includes('Billing') || sourceKey.includes('BILLING')) normalizedSrc = 'Billing';
   
-      const src = item.sourceCategory || item.source || 'UNKNOWN';
-      let normalizedSrc = 'UNKNOWN';
-      if (src.includes('SFT')) normalizedSrc = 'CITI_SFT';
-      else if (src.includes('Manual') || src.includes('MANUAL')) normalizedSrc = 'MANUAL';
-      else if (src.includes('Email') || src.includes('POLLER')) normalizedSrc = 'EMAIL_POLLER';
-      else if (src.includes('Billing') || src.includes('BILLING')) normalizedSrc = 'Billing';
+        // If a left source filter is also selected, enforce it matches
+        if (sourceFilter && normalizedSrc !== sourceFilter) return;
   
-      // If a left source filter is also selected, ensure it matches
-      if (sourceFilter && normalizedSrc !== sourceFilter) return;
-  
-      directionalSourceCounts[normalizedSrc] = (directionalSourceCounts[normalizedSrc] || 0) + 1;
+        directionalSourceCounts[normalizedSrc] = (directionalSourceCounts[normalizedSrc] || 0) + metricPack[sourceStatusFilter];
+      }
     });
   
     return Object.entries(directionalSourceCounts).map(([sourceKey, totalCount]) => {
-      // Map colors to semantic source tags stably
       const sourceColors: Record<string, string> = {
         'CITI_SFT': '#337ab7',
         'MANUAL': '#5cb85c',
@@ -72,11 +53,10 @@ const bidirectionalSourceChartSlices = useMemo(() => {
         color: sourceColors[sourceKey] || '#95a5a6'
       };
     });
-    // 🚀 FIX: Updated dependency array to track 'data' changes reactively
-  }, [data, sourceFilter, sourceStatusFilter]);
-
-  ///
+    // Tracks your exact, real local file state triggers safely
+  }, [counts, sourceCounts, sourceFilter, sourceStatusFilter]);
 
   <Card body>
+  {/* 🚀 FIXED: Pointed straight to your safe bidirectional memo pipeline */}
   <SimplePieChart slices={bidirectionalSourceChartSlices} />
 </Card>
