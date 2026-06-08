@@ -50,3 +50,5 @@ const bidirectionalSourceChartSlices = useMemo(() => {
     });
   
   }, [counts, sourceCounts, sourceFilter, sourceStatusFilter]);
+
+  <SimplePieChart slices={bidirectionalSourceChartSlices} />
