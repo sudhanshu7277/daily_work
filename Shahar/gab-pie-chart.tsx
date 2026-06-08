@@ -1,8 +1,9 @@
 // =========================================================================
-// Dynamic Bidirectional Chart Processor Matrix
+// Fixed Dynamic Bidirectional Chart Processor Matrix
 // =========================================================================
 const bidirectionalSourceChartSlices = useMemo(() => {
-    const activeRecords = overdueInstructions || [];
+    // 🚀 FIX: Swapped out overdueInstructions for your real data array context
+    const activeRecords = data || []; 
   
     // SCENARIO A: Both filters are clear, or only the Left (Source) filter is active
     // -> Show Status breakdown for all/selected sources
@@ -71,7 +72,8 @@ const bidirectionalSourceChartSlices = useMemo(() => {
         color: sourceColors[sourceKey] || '#95a5a6'
       };
     });
-  }, [overdueInstructions, sourceFilter, sourceStatusFilter]);
+    // 🚀 FIX: Updated dependency array to track 'data' changes reactively
+  }, [data, sourceFilter, sourceStatusFilter]);
 
   ///
 
