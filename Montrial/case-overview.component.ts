@@ -1,6 +1,6 @@
 // Replace lines 106–121 in customer-search-form.component.ts with this drop-in block:
 
-this.this.customerSearchForm.get('caseId')?.valueChanges.subscribe((value: string) => {
+this.customerSearchForm.get('caseId')?.valueChanges.subscribe((value: string) => {
     const control = this.this.customerSearchForm.get('caseId');
     if (!control || !value) return;
 
