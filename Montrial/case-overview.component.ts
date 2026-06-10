@@ -6,17 +6,17 @@ private setupPrecedenceListener(): void {
     caseIdControl?.valueChanges.subscribe((value: string) => {
       if (!caseIdControl) return;
 
-      // 1. STRIP ALPHABETS INSTANTLY: Keep only numbers 0-9
+      // 1. Strip any character that isn't a number (0-9) immediately
       const sanitizedValue = (value || '').replace(/[^0-9]/g, '');
 
-      // 2. Overwrite the input text box quietly if letters were filtered out
+      // 2. If letters were entered, overwrite the text box cleanly
       if (value !== sanitizedValue) {
         caseIdControl.setValue(sanitizedValue, { emitEvent: false });
       }
 
-      // 3. PRECEDENCE TOGGLE: Check against the clean, sanitized numeric string
+      // 3. SWITCH MODE: If a valid number exists, drop name requirements
       if (sanitizedValue && sanitizedValue.trim() !== '') {
-        // Clear all other optional fields as required by the design spec
+        // Clear out other fields as per requirements
         this.customerSearchForm.patchValue({
           firstName: '',
           lastName: '',
@@ -26,16 +26,16 @@ private setupPrecedenceListener(): void {
           phone: ''
         }, { emitEvent: false });
 
-        // Switch to Case Search Mode: Remove mandatory requirements from name inputs
+        // MODE: CASE SEARCH - Names are no longer required
         firstNameControl?.setValidators([Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
         lastNameControl?.setValidators([Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
       } else {
-        // RESET STATE: If Case Search box is fully cleared, names become mandatory again
+        // MODE: NAME SEARCH - Restore mandatory requirements because Case Search is empty
         firstNameControl?.setValidators([Validators.required, Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
         lastNameControl?.setValidators([Validators.required, Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
       }
 
-      // 4. Force Angular to recalculate validity and perfectly update [disabled] states
+      // 4. Recalculate status so the template [disabled] state updates perfectly
       firstNameControl?.updateValueAndValidity({ emitEvent: false });
       lastNameControl?.updateValueAndValidity({ emitEvent: false });
     });
