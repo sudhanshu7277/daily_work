@@ -12,6 +12,11 @@ private setupPrecedenceListener(): void {
       // 2. If letters were entered, overwrite the text box cleanly
       if (value !== sanitizedValue) {
         caseIdControl.setValue(sanitizedValue, { emitEvent: false });
+        
+        // 🟢 DEPLOYMENT FIX: Force custom fdc-input component to repaint its UI on DEV
+        caseIdControl.markAsDirty();
+        caseIdControl.markAsTouched();
+        caseIdControl.updateValueAndValidity({ emitEvent: false });
       }
 
       // 3. SWITCH MODE: If a valid number exists, drop name requirements
