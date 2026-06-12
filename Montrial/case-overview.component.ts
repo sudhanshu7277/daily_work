@@ -3,25 +3,26 @@ private setupPrecedenceListener(): void {
     const lastNameControl = this.customerSearchForm.get('lastName');
     const caseIdControl = this.customerSearchForm.get('caseId');
 
+    // Regex pattern allowing letters, French characters, and single internal spaces
+    const nameWithSpacesPattern = '^[a-zA-ZÀ-ÿ]+(?: [a-zA-ZÀ-ÿ]+)*$';
+
     caseIdControl?.valueChanges.subscribe((value: string) => {
       if (!caseIdControl) return;
 
-      // 1. Strip any character that isn't a number (0-9) immediately
+      // 1. STRIP ALPHABETS INSTANTLY: Keep only numbers 0-9
       const sanitizedValue = (value || '').replace(/[^0-9]/g, '');
 
-      // 2. If letters were entered, overwrite the text box cleanly
+      // 2. Overwrite the input text box quietly if letters were filtered out
       if (value !== sanitizedValue) {
         caseIdControl.setValue(sanitizedValue, { emitEvent: false });
-        
-        // 🟢 DEPLOYMENT FIX: Force custom fdc-input component to repaint its UI on DEV
         caseIdControl.markAsDirty();
         caseIdControl.markAsTouched();
         caseIdControl.updateValueAndValidity({ emitEvent: false });
       }
 
-      // 3. SWITCH MODE: If a valid number exists, drop name requirements
+      // 3. PRECEDENCE TOGGLE: Check against the clean, sanitized numeric string
       if (sanitizedValue && sanitizedValue.trim() !== '') {
-        // Clear out other fields as per requirements
+        // Clear all other optional fields as required by the design spec
         this.customerSearchForm.patchValue({
           firstName: '',
           lastName: '',
@@ -31,16 +32,16 @@ private setupPrecedenceListener(): void {
           phone: ''
         }, { emitEvent: false });
 
-        // MODE: CASE SEARCH - Names are no longer required
-        firstNameControl?.setValidators([Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
-        lastNameControl?.setValidators([Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
+        // Switch to Case Search Mode: Names are no longer required but must match regex if typed
+        firstNameControl?.setValidators([Validators.pattern(nameWithSpacesPattern)]);
+        lastNameControl?.setValidators([Validators.pattern(nameWithSpacesPattern)]);
       } else {
-        // MODE: NAME SEARCH - Restore mandatory requirements because Case Search is empty
-        firstNameControl?.setValidators([Validators.required, Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
-        lastNameControl?.setValidators([Validators.required, Validators.pattern(RegEx.ALPHANUMERIC_WITH_FRENCH)]);
+        // RESET STATE: If Case Search box is fully cleared, names become mandatory again
+        firstNameControl?.setValidators([Validators.required, Validators.pattern(nameWithSpacesPattern)]);
+        lastNameControl?.setValidators([Validators.required, Validators.pattern(nameWithSpacesPattern)]);
       }
 
-      // 4. Recalculate status so the template [disabled] state updates perfectly
+      // 4. Force Angular to recalculate validity and perfectly update [disabled] states
       firstNameControl?.updateValueAndValidity({ emitEvent: false });
       lastNameControl?.updateValueAndValidity({ emitEvent: false });
     });
