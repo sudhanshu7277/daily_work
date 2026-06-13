@@ -49,7 +49,9 @@ export class CustomerSearchGridComponent implements OnInit, OnDestroy, OnChanges
   }
 
   private handleResponse(res: any): void {
-    this.tree        = res.data as GridRow[];
+    console.log('handleResponse received:', res);
+    this.tree = res.data as GridRow[];
+    console.log('this.tree after assignment:', this.tree);
     this.stampTree(this.tree, '');
     this.currentPage = 1;
     this.isLoading   = false;
@@ -59,6 +61,7 @@ export class CustomerSearchGridComponent implements OnInit, OnDestroy, OnChanges
   // ── Maps real API shape { profiles: [...] } → GridRow shape ────────────────
 private mapApiResponse(res: any): { totalCount: number; data: any[] } {
     const profiles = res?.profiles ?? [];
+    console.log('mapApiResponse - profiles found:', profiles);
   
     const data = profiles.map((p: any) => ({
       legalName:      p.profileName ?? '',
@@ -76,6 +79,7 @@ private mapApiResponse(res: any): { totalCount: number; data: any[] } {
       children:       [],
     }));
   
+    console.log('mapApiResponse - mapped data:', data);
     return { totalCount: data.length, data };
   }
 }
