@@ -661,3 +661,46 @@ toggleSelectAll(event: MouseEvent): void {
   this.onFilterChange();
 }
 }
+
+
+// Step 3 — Grid honours preselectIds after data loads:
+
+// customer-search-grid.component.ts
+
+@Input() preselectIds: string[] = [];
+
+// In handleResponse() — after stampTree, before refresh:
+private handleResponse(res: any): void {
+  this.tree = res.data as GridRow[];
+  this.stampTree(this.tree, '');
+
+  // Restore previously selected profiles
+  if (this.preselectIds?.length) {
+    this.applyPreselection();
+  }
+
+  this.currentPage = 1;
+  this.isLoading   = false;
+  this.refresh();
+}
+
+private applyPreselection(): void {
+  for (const n of this.tree) {
+    if (this.preselectIds.includes(n.ocifId)) {
+      n._selected = true;
+      (n.children ?? []).forEach(c => c._selected = true);
+    }
+    for (const c of (n.children ?? [])) {
+      if (this.preselectIds.includes(c.ocifId)) {
+        c._selected = true;
+        if ((n.children ?? []).every(ch => ch._selected)) {
+          n._selected = true;
+        }
+      }
+    }
+  }
+}
+
+  
+
+
