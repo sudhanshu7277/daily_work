@@ -2,11 +2,17 @@
 
 @Input() set deselectByOcifId(ecifId: string | null) {
     if (!ecifId || !this.gridApi) return;
+    let targetNode: any = null;
     this.gridApi.forEachNode(node => {
       if (node.data?.ocifId === ecifId) {
-        node.setSelected(false);
+        targetNode = node;
       }
     });
+    if (targetNode) {
+      targetNode.setSelected(false, false, 'api');
+      this.gridApi.redrawRows({ rowNodes: [targetNode] });
+    }
+    this.cdr.detectChanges();
   }
 
   //2. entity-grid.component.ts — add deselectByOcifId setter 
