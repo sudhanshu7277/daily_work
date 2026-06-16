@@ -1,158 +1,75 @@
-// selection-panel.component.ts — stamp sourceGrid in ngOnChanges
+// 1. customer-search-grid.component.ts — add deselectByOcifId setter
 
-// Current line 131:
-
-this.selectedProfiles = [
-    ...customersSelectedData || [],
-    ...holdSelectedData || [],
-    ...entitySelectedData || []
-  ];
-
-  // Replace with:
-
-  this.selectedProfiles = [
-    ...(customersSelectedData || []).map((r: any) => ({ ...r, sourceGrid: 'customer' })),
-    ...(holdSelectedData || []).map((r: any) => ({ ...r, sourceGrid: 'legal-hold' })),
-    ...(entitySelectedData || []).map((r: any) => ({ ...r, sourceGrid: 'entity' })),
-  ];
-
-  // 2. selection-panel.component.ts — save updated cache after deleteByIndex in onRemove
-// Current onRemove (line 485-503):
-
-onRemove(profile: any, index: number): void {
-    console.log('Removing item at index:', index);
-  
-    if (index !== undefined && index > -1) {
-      this.removeProfile.emit(profile);
-      this.deleteByIndex(this.selectedProfiles, index);
-      if (this.selectedProfiles.length === 0) {
-        this.removeCachedItems('profilesSelected');
-        this.clearCache();
+@Input() set deselectByOcifId(ecifId: string | null) {
+    if (!ecifId || !this.gridApi) return;
+    this.gridApi.forEachNode(node => {
+      if (node.data?.ocifId === ecifId) {
+        node.setSelected(false);
       }
-  
-      this.cdr.detectChanges();
-    }
-  
-    this.cdr.detectChanges();
+    });
   }
 
-  // Replace with:
+  //2. entity-grid.component.ts — add deselectByOcifId setter 
 
-  onRemove(profile: any, index: number): void {
-    console.log('Removing item at index:', index);
-  
-    if (index !== undefined && index > -1) {
-      this.removeProfile.emit(profile); // emits to shell with sourceGrid stamped
-      this.deleteByIndex(this.selectedProfiles, index);
-  
-      if (this.selectedProfiles.length === 0) {
-        this.removeCachedItems('profilesSelected');
-        this.clearCache();
-      } else {
-        // Keep cache in sync after single deletion
-        this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
+  @Input() set deselectByOcifId(ecifId: string | null) {
+    if (!ecifId || !this.gridApi) return;
+    this.gridApi.forEachNode(node => {
+      if (node.data?.ocifId === ecifId) {
+        node.setSelected(false);
       }
-  
-      this.cdr.detectChanges();
-    }
+    });
   }
 
+  // 3. hold-search-grid.component.ts — add deselectByOcifId setter
 
-  // 3. legal-hold-shell.component.ts — update handleRemoveProfile to route by sourceGrid
-// Add properties after line 49:
+  @Input() set deselectByOcifId(ecifId: string | null) {
+    if (!ecifId || !this.gridApi) return;
+    this.gridApi.forEachNode(node => {
+      if (node.data?.ocifId === ecifId) {
+        node.setSelected(false);
+      }
+    });
+  }
 
-deletedProfile: any | null = null;
-customerPreselectIds:  string[] = [];
-legalHoldPreselectIds: string[] = [];
-entityPreselectIds:    string[] = [];
+  // 4. legal-hold-shell.component.ts — update handleRemoveProfile
 
-// Replace handleRemoveProfile (line 293):
+  deletedProfileEcifId: string | null = null;
 
 handleRemoveProfile(deselectedProfile: any): void {
-    // Signal the correct grid to visually deselect — only if currently visible
-    this.deletedProfile = deselectedProfile;
-    setTimeout(() => { this.deletedProfile = null; }, 0);
-  
-    // Update individual typed lists
-    this.selectedCustomerList  = this.selectedCustomerList
-      .filter(p => (p.proxyOcifId ?? p.ocifId) !==
-                   (deselectedProfile.proxyOcifId ?? deselectedProfile.ocifId));
-    this.selectedLegalHoldList = this.selectedLegalHoldList
-      .filter(p => (p.proxyOcifId ?? p.ocifId) !==
-                   (deselectedProfile.proxyOcifId ?? deselectedProfile.ocifId));
-    this.selectedEntityList    = this.selectedEntityList
-      .filter(p => (p.proxyOcifId ?? p.ocifId) !==
-                   (deselectedProfile.proxyOcifId ?? deselectedProfile.ocifId));
-  
-    this.cdr.detectChanges();
-  }
+  console.log('deselectedProfile : ');
+  console.log(deselectedProfile);
 
-  // 4. legal-hold-shell.component.html — add deselectByOcifId to each grid
-// app-customer-search-grid (line 54-59) — add one binding:
+  // Uncheck from current grid (existing logic)
+  this.gridApi?.forEachNode((node: { data: { ecifId: any }; setSelected: (arg0: boolean) => void }) => {
+    if (node.data.ecifId === deselectedProfile.ecifId) {
+      node.setSelected(false);
+    }
+  });
+
+  // NEW: broadcast ecifId to all three grids via Input setter
+  this.deletedProfileEcifId = deselectedProfile.ecifId;
+  this.cdr.detectChanges();
+  setTimeout(() => {
+    this.deletedProfileEcifId = null;
+    this.cdr.detectChanges();
+  }, 0);
+}
+
+// 5. legal-hold-shell.component.html — pass deletedProfileEcifId to all three grids
+//Find your three grid tags and add the [deselectByOcifId] binding:
 
 <app-customer-search-grid
-  [customerGridData]="customerGridData.length && customerGridData"
-  [searchSummary]="searchSummary"
-  [deselectByOcifId]="deletedProfile?.sourceGrid === 'customer'
-                       ? (deletedProfile?.proxyOcifId ?? deletedProfile?.ocifId)
-                       : null"
-  (selectionChanged)="handleSelectionChange(selectedRows: $event)"
-  (removeProfile)="handleRemoveProfile(deselectedProfile: $event)">
+  [deselectByOcifId]="deletedProfileEcifId"
+  (selectionChanged)="onCustomerSelectionChanged($event)">
 </app-customer-search-grid>
 
-
-// app-hold-search-grid (line 77-81) — add one binding:
+<app-entity-grid
+  [deselectByOcifId]="deletedProfileEcifId"
+  (selectionChanged)="onEntitySelectionChanged($event)">
+</app-entity-grid>
 
 <app-hold-search-grid
-  [legalHoldGridData]="legalHoldGridData.length && legalHoldGridData"
-  [searchSummary]="searchSummary"
-  [deselectByOcifId]="deletedProfile?.sourceGrid === 'legal-hold'
-                       ? (deletedProfile?.proxyOcifId ?? deletedProfile?.ocifId)
-                       : null"
-  (selectionChanged)="handleSelectionChange(selectedRows: $event)">
+  [deselectByOcifId]="deletedProfileEcifId"
+  (selectionChanged)="onHoldSelectionChanged($event)">
 </app-hold-search-grid>
 
-// app-temp-entity-data-grid (line 63-68) — add one binding:
-
-<app-temp-entity-data-grid #entityAgGrid
-  [tempEntityGridData]="entityGridData.length && entityGridData"
-  [searchSummary]="searchSummary"
-  [deselectByOcifId]="deletedProfile?.sourceGrid === 'entity'
-                       ? (deletedProfile?.proxyOcifId ?? deletedProfile?.ocifId)
-                       : null"
-  (selectionChanged)="handleSelectionChange(selectedRows: $event)"
-  (removeProfile)="handleRemoveProfile(deselectedProfile: $event)">
-</app-temp-entity-data-grid>
-
-
-// 5. customer-search-grid.component.ts — add @Input deselectByOcifId
-
-
-@Input() set deselectByOcifId(ocifId: string | null) {
-    if (!ocifId) return;
-    this.deselectByOcif(ocifId);
-  }
-  
-  private deselectByOcif(ocifId: string): void {
-    let changed = false;
-    for (const n of this.tree) {
-      if (n.ocifId === ocifId && n._selected) {
-        n._selected = false;
-        (n.children ?? []).forEach((c: any) => c._selected = false);
-        changed = true;
-      }
-      for (const c of (n.children ?? [])) {
-        if (c.ocifId === ocifId && c._selected) {
-          c._selected = false;
-          n._selected = false;
-          changed = true;
-        }
-      }
-    }
-    if (changed) {
-      this.refresh();
-      this.emitSelected();
-    }
-  }
-
-  
