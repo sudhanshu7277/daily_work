@@ -1,16 +1,24 @@
 // 1. customer-search-grid.component.ts — add deselectByOcifId setter
 
-@Input() set deselectByOcifId(ecifId: string | null) {
-    if (!ecifId || !this.gridApi) return;
+@Input() set deselectByOcifId(record: any | null) {
+    console.log('CHECKING IF ECIF ID REACHED CUSTOMER SEARCH GRID COMPONENT WHEN DELETING RECORD: ');
+    console.log(record);
+    
     let targetNode: any = null;
+    if (!record || !this.gridApi) return;
+    
     this.gridApi.forEachNode(node => {
-      if (node.data?.ocifId === ecifId) {
+      if (node.data?.ocifId === record.ocifId) {
         targetNode = node;
       }
     });
+  
     if (targetNode) {
+      // Update the data object directly — your custom checkbox reads from node.data
       targetNode.setSelected(false, false, 'api');
-      this.gridApi.redrawRows({ rowNodes: [targetNode] });
+      targetNode.data.sel = false;        // ← this is what your custom checkbox reads
+      targetNode.data._selected = false;  // ← in case you use this flag too
+      this.gridApi.refreshCells({ rowNodes: [targetNode], force: true });
     }
     this.cdr.detectChanges();
   }
