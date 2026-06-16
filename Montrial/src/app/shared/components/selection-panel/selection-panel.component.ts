@@ -79,3 +79,5 @@ deleteByIndex(users, 1);
 console.log(users); 
 // Output: [{ id: 1, name: 'Alice' }, { id: 3, name: 'Charlie' }]
 }
+
+
