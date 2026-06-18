@@ -17,7 +17,8 @@ this.customerSearchForm = this.fb.group({
     province: [''],
     dob: [''],
     phone: ['', ValidatorUtils.phoneValidator],
-    caseId: ['', [Validators.pattern('^[0-9]*$')]], // 🟢 FIXED: Removed the broken bracket typos
+    //caseId: ['', [Validators.pattern('^[0-9]*$')]],
+    caseId: ['', [Validators.pattern('^[0-9]{0,8}$')]], // 🟢 FIXED: Removed the broken bracket typos
   });
 
 
@@ -30,7 +31,8 @@ this.customerSearchForm = this.fb.group({
       if (!caseIdControl) return;
 
       // 1. STRIP ALPHABETS INSTANTLY: Keep only numbers 0-9
-      const sanitizedValue = (value || '').replace(/[^0-9]/g, '');
+      //const sanitizedValue = (value || '').replace(/[^0-9]/g, '');
+      const sanitizedValue = (value || '').replace(/[^0-9]/g, '').slice(0, 8);
 
       // 2. Overwrite the input text box quietly if letters were filtered out
       if (value !== sanitizedValue) {
