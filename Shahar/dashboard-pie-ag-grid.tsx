@@ -12,6 +12,9 @@ async function handleDrillDown(
     region: regionFilter || undefined,
     size: 1000,
   };
+
+  const resolvedStatus = statusOverride !== undefined ? statusOverride : undefined;
+
   switch (type) {
     case 'status':
       params.status = rawKey;
@@ -21,17 +24,22 @@ async function handleDrillDown(
       break;
     case 'source':
       params.instructionSource = sourceDisplayToCode[rawKey] || rawKey;
-      // apply status filter if grid is open and status is selected
-      const srcStatus = statusOverride !== undefined ? statusOverride : sourceStatusFilter;
-      if (srcStatus) params.status = srcStatus;
+      if (resolvedStatus !== undefined) {
+        params.status = resolvedStatus;
+      } else if (sourceStatusFilter) {
+        params.status = sourceStatusFilter;
+      }
       break;
     case 'country':
       params.country = rawKey;
-      // apply status filter if grid is open and status is selected
-      const cntStatus = statusOverride !== undefined ? statusOverride : countryStatusFilter;
-      if (cntStatus) params.status = cntStatus;
+      if (resolvedStatus !== undefined) {
+        params.status = resolvedStatus;
+      } else if (countryStatusFilter) {
+        params.status = countryStatusFilter;
+      }
       break;
   }
+
   try {
     const res = await getInstructions(params as Parameters<typeof getInstructions>[0]);
     const items = res.data?.content ?? [];
@@ -53,7 +61,6 @@ async function handleDrillDown(
     // silently fail - the user still sees the chart
   }
 }
-
 
 // Change 2 — Re-trigger source grid when dropdowns change while grid is open
 //Find your existing useEffect that resets sourceStatusFilter when sourceFilter changes. It currently looks something like:
