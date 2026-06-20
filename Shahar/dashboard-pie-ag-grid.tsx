@@ -1,126 +1,35 @@
-// Change 1 — Fix handleDrillDown to include the status filter (lines 1058–1098)
-//The function needs to accept an optional status override, and apply sourceStatusFilter/countryStatusFilter when building params.
-//Replace lines 1058–1098 with:
 
-async function handleDrillDown(
-  type: 'status' | 'assignee' | 'source' | 'country',
-  rawKey: string,
-  displayValue: string,
-  statusOverride?: string
-) {
-  const params: Record<string, unknown> = {
-    region: regionFilter || undefined,
-    size: 1000,
-  };
 
-  const resolvedStatus = statusOverride !== undefined ? statusOverride : undefined;
+// Fix 1 — Add key to the status-breakdown slices (lines 772–780)
 
-  switch (type) {
-    case 'status':
-      params.status = rawKey;
-      break;
-    case 'assignee':
-      params.createdBy = rawKey;
-      break;
-    case 'source':
-      params.instructionSource = sourceDisplayToCode[rawKey] || rawKey;
-      if (resolvedStatus !== undefined) {
-        params.status = resolvedStatus;
-      } else if (sourceStatusFilter) {
-        params.status = sourceStatusFilter;
-      }
-      break;
-    case 'country':
-      params.country = rawKey;
-      if (resolvedStatus !== undefined) {
-        params.status = resolvedStatus;
-      } else if (countryStatusFilter) {
-        params.status = countryStatusFilter;
-      }
-      break;
+return Object.entries(counts)
+  .filter(([, v]) => v > 0)
+  .map(([status, globalCount]) => ({
+    key: status,
+    label: status.replace(/_/g, ' ').toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase()),
+    value: Math.round(globalCount * ratio),
+    color: STATUS_COLORS[status] || getStableColor(status),
+  }))
+  .filter(s => s.value > 0);
+
+
+  // search for
+  type PieSlice = { label: string; value: number; color: string };
+
+
+  // and replace with 
+  type PieSlice = { key?: string; label: string; value: number; color: string };
+
+  // Fix 3 — onSliceClick for the status-breakdown view
+
+  onSliceClick={(s) => handleDrillDown('source', s.key ?? s.label, s.label)}
+
+
+  // replace above with 
+
+  onSliceClick={(s) => 
+    sourceFilter
+      ? handleDrillDown('source', sourceFilter, sourceFilter, s.key)
+      : handleDrillDown('source', s.key ?? s.label, s.label)
   }
-
-  try {
-    const res = await getInstructions(params as Parameters<typeof getInstructions>[0]);
-    const items = res.data?.content ?? [];
-    switch (type) {
-      case 'status':
-        setStatusDrillDown({ value: displayValue, data: items });
-        break;
-      case 'assignee':
-        setAssigneeDrillDown({ value: displayValue, data: items });
-        break;
-      case 'source':
-        setSourceDrillDown({ value: displayValue, data: items });
-        break;
-      case 'country':
-        setCountryDrillDown({ value: displayValue, data: items });
-        break;
-    }
-  } catch {
-    // silently fail - the user still sees the chart
-  }
-}
-
-// Change 2 — Re-trigger source grid when dropdowns change while grid is open
-//Find your existing useEffect that resets sourceStatusFilter when sourceFilter changes. It currently looks something like:
-
-useEffect(() => {
-  setSourceStatusFilter('');
-}, [sourceFilter]);
-
-// Replace it with:
-
-useEffect(() => {
-  setSourceStatusFilter('');
-  if (sourceDrillDown && sourceFilter) {
-    handleDrillDown('source', sourceFilter, sourceFilter);
-  } else if (sourceDrillDown && !sourceFilter) {
-    setSourceDrillDown(null);
-  }
-}, [sourceFilter]);
-
-
-// Change 3 — Re-trigger source grid when status dropdown changes while grid is open
-//Find where sourceStatusFilter is used in effects, or add this new useEffect right after the one above:
-
-useEffect(() => {
-  if (sourceDrillDown && sourceFilter) {
-    handleDrillDown('source', sourceFilter, sourceFilter, sourceStatusFilter || undefined);
-  }
-}, [sourceStatusFilter]);
-
-
-// Change 4 — Same two effects for Country
-//Find the existing country reset effect (resets countryStatusFilter when countryFilter changes):
-
-useEffect(() => {
-  setCountryStatusFilter('');
-}, [countryFilter]);
-
-// Replace it with:
-
-useEffect(() => {
-  setCountryStatusFilter('');
-  if (countryDrillDown && countryFilter) {
-    handleDrillDown('country', countryFilter, countryFilter);
-  } else if (countryDrillDown && !countryFilter) {
-    setCountryDrillDown(null);
-  }
-}, [countryFilter]);
-
-
-// And add after it:
-
-useEffect(() => {
-  if (countryDrillDown && countryFilter) {
-    handleDrillDown('country', countryFilter, countryFilter, countryStatusFilter || undefined);
-  }
-}, [countryStatusFilter]);
-
-
-// Change 5 — Fix the pie onSliceClick to pass status through (images 3 & 6, lines 1447 & 1534)
-// Currently:
-
-onSliceClick={(s) => handleDrillDown('source', s.key ?? s.label, s.label)}
-
