@@ -1,77 +1,40 @@
-// 1. Replace all four dropdown-effects (lines ~530–561)
-//Current code (confirmed from your screenshots):
+// Fix — Source: replace the getCountsBySource effect (lines ~487–502)
+///Replace:
 
 useEffect(() => {
-  setSourceStatusFilter('');
-  if (sourceDrillDown && sourceFilter) {
-    handleDrillDown('source', sourceFilter, sourceFilter);
-  } else if (sourceDrillDown && !sourceFilter) {
-    setSourceDrillDown(null);
+  const filters = {
+    fromDate: toLocalDateString(fromDate),
+    toDate: toLocalDateString(toDate),
+    region: regionFilter || undefined,
+  };
+  if (!sourceFilter && sourceStatusFilter) {
+    getCountsBySource(sourceStatusFilter, filters)
+      .then(res => setSourceCounts(res.data ?? {}))
+      .catch(() => {/* keep existing */});
+  } else if (!sourceStatusFilter) {
+    getCountsBySource(undefined, filters)
+      .then(res => setSourceCounts(res.data ?? {}))
+      .catch(() => {/* keep existing */});
   }
-}, [sourceFilter]);
+}, [sourceStatusFilter, sourceFilter, fromDate, toDate, regionFilter]);
+
+
+// With:
 
 useEffect(() => {
-  if (sourceDrillDown && sourceFilter) {
-    handleDrillDown('source', sourceFilter, sourceFilter, sourceStatusFilter || undefined);
-  }
-}, [sourceStatusFilter]);
-
-useEffect(() => {
-  setCountryStatusFilter('');
-  if (countryDrillDown && countryFilter) {
-    handleDrillDown('country', countryFilter, countryFilter);
-  } else if (countryDrillDown && !countryFilter) {
-    setCountryDrillDown(null);
-  }
-}, [countryFilter]);
-
-useEffect(() => {
-  if (countryDrillDown && countryFilter) {
-    handleDrillDown('country', countryFilter, countryFilter, countryStatusFilter || undefined);
-  }
-}, [countryStatusFilter]);
+  const filters = {
+    fromDate: toLocalDateString(fromDate),
+    toDate: toLocalDateString(toDate),
+    region: regionFilter || undefined,
+  };
+  getCountsBySource(sourceStatusFilter || undefined, filters)
+    .then(res => setSourceCounts(res.data ?? {}))
+    .catch(() => {/* keep existing */});
+}, [sourceStatusFilter, fromDate, toDate, regionFilter]);
 
 
-
-// Replace with:
-
-useEffect(() => {
-  setSourceStatusFilter('');
-  setSourceDrillDown(null);
-}, [sourceFilter]);
-
-useEffect(() => {
-  setSourceDrillDown(null);
-}, [sourceStatusFilter]);
-
-useEffect(() => {
-  setCountryStatusFilter('');
-  setCountryDrillDown(null);
-}, [countryFilter]);
-
-useEffect(() => {
-  setCountryDrillDown(null);
-}, [countryStatusFilter]);
-
-// 2. sourceSlices — breakdown branch (lines 763–775), add key
-
-if (sourceFilter && !sourceStatusFilter) {
-  const sourceTotal = sourceCounts[sourceFilter] ?? 0;
-  const ratio = grandTotal > 0 ? sourceTotal / grandTotal : 0;
-  return Object.entries(counts)
-    .filter(([, v]) => v > 0)
-    .map(([status, globalCount]) => ({
-      key: status,
-      label: status.replace(/_/g, ' ').toLowerCase()
-        .replace(/\b\w/g, c => c.toUpperCase()),
-      value: Math.round(globalCount * ratio),
-      color: STATUS_COLORS[status] || getStableColor(status),
-    }))
-    .filter(s => s.value > 0);
-}
-
-//(only addition: key: status, as the first property)
-//3. sourceSlices — single-slice branch (lines 777–792), add key
+// Fix — Source: replace the single-slice branch in sourceSlices (lines 777–792)
+//Replace:
 
 if (sourceFilter && sourceStatusFilter) {
   const sourceTotal = sourceCounts[sourceFilter] ?? 0;
@@ -91,25 +54,62 @@ if (sourceFilter && sourceStatusFilter) {
   }];
 }
 
-//4. countrySlices — breakdown branch (lines 712–724), add key
 
-if (countryFilter && !countryStatusFilter) {
-  const countryTotal = countryCounts[countryFilter] ?? 0;
-  const ratio = grandTotal > 0 ? countryTotal / grandTotal : 0;
-  return Object.entries(counts)
-    .filter(([, v]) => v > 0)
-    .map(([status, globalCount]) => ({
-      key: status,
-      label: status.replace(/_/g, ' ').toLowerCase()
-        .replace(/\b\w/g, c => c.toUpperCase()),
-      value: Math.round(globalCount * ratio),
-      color: STATUS_COLORS[status] || getStableColor(status),
-    }))
-    .filter(s => s.value > 0);
+// With:
+
+if (sourceFilter && sourceStatusFilter) {
+  // sourceCounts is already scoped to sourceStatusFilter by the effect above —
+  // this is the real, exact count, not an estimate
+  const realCount = sourceCounts[sourceFilter] ?? 0;
+  const displayLabel = sourceStatusFilter.replace(/_/g, ' ')
+    .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const displaySource = sourceFilter.toLowerCase() === 'email_poller'
+    ? 'Email' : sourceFilter;
+  if (realCount === 0) return [];
+  return [{
+    key: sourceStatusFilter,
+    label: `${displayLabel} — ${displaySource}`,
+    value: realCount,
+    color: STATUS_COLORS[sourceStatusFilter] || getStableColor(sourceStatusFilter),
+  }];
 }
 
-// 5. countrySlices — single-slice branch (lines 726–740), add key
+// Fix — Country: replace the getCountsByCountry effect (lines ~504–519)
+//Replace:
 
+useEffect(() => {
+  const filters = {
+    fromDate: toLocalDateString(fromDate),
+    toDate: toLocalDateString(toDate),
+    region: regionFilter || undefined,
+  };
+  if (!countryFilter && countryStatusFilter) {
+    getCountsByCountry(countryStatusFilter, filters)
+      .then(res => setCountryCounts(res.data ?? {}))
+      .catch(() => {/* keep existing */});
+  } else if (!countryStatusFilter) {
+    getCountsByCountry(undefined, filters)
+      .then(res => setCountryCounts(res.data ?? {}))
+      .catch(() => {/* keep existing */});
+  }
+}, [countryStatusFilter, countryFilter, fromDate, toDate, regionFilter]);
+
+
+// With:
+
+useEffect(() => {
+  const filters = {
+    fromDate: toLocalDateString(fromDate),
+    toDate: toLocalDateString(toDate),
+    region: regionFilter || undefined,
+  };
+  getCountsByCountry(countryStatusFilter || undefined, filters)
+    .then(res => setCountryCounts(res.data ?? {}))
+    .catch(() => {/* keep existing */});
+}, [countryStatusFilter, fromDate, toDate, regionFilter]);
+
+// Fix — Country: replace the single-slice branch in countrySlices (lines 726–740)
+//Replace:
 
 if (countryFilter && countryStatusFilter) {
   const countryTotal = countryCounts[countryFilter] ?? 0;
@@ -121,58 +121,27 @@ if (countryFilter && countryStatusFilter) {
   const displayCountry = codeToName[countryFilter] ?? countryFilter;
   if (estimatedCount === 0) return [];
   return [{
-    key: countryStatusFilter,
     label: `${displayLabel} — ${displayCountry}`,
     value: estimatedCount,
     color: STATUS_COLORS[countryStatusFilter] || getStableColor(countryStatusFilter),
   }];
 }
 
-// 6. onSliceClick handlers and dropdown-hide JSX
+// With:
 
-<SimplePieChart slices={sourceSlices} onSliceClick={(s) => handleDrillDown('source', s.key ?? s.label, s.label)} />
-
-  // Replace both (source and the mirrored country one) with:
-
-  // source
-
-  <SimplePieChart
-  slices={sourceSlices}
-  onSliceClick={(s) => {
-    if (sourceFilter && sourceStatusFilter) {
-      handleDrillDown('source', sourceFilter, sourceFilter, sourceStatusFilter);
-    } else if (sourceFilter && !sourceStatusFilter) {
-      handleDrillDown('source', sourceFilter, sourceFilter, s.key);
-    } else {
-      handleDrillDown('source', s.key ?? s.label, s.label);
-    }
-  }}
-/>
+if (countryFilter && countryStatusFilter) {
+  const realCount = countryCounts[countryFilter] ?? 0;
+  const displayLabel = countryStatusFilter.replace(/_/g, ' ')
+    .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const displayCountry = codeToName[countryFilter] ?? countryFilter;
+  if (realCount === 0) return [];
+  return [{
+    key: countryStatusFilter,
+    label: `${displayLabel} — ${displayCountry}`,
+    value: realCount,
+    color: STATUS_COLORS[countryStatusFilter] || getStableColor(countryStatusFilter),
+  }];
+}
 
 
-// Country:
 
-<SimplePieChart
-  slices={countrySlices}
-  onSliceClick={(s) => {
-    if (countryFilter && countryStatusFilter) {
-      handleDrillDown('country', countryFilter, countryFilter, countryStatusFilter);
-    } else if (countryFilter && !countryStatusFilter) {
-      handleDrillDown('country', countryFilter, countryFilter, s.key);
-    } else {
-      handleDrillDown('country', s.key ?? s.label, s.label);
-    }
-  }}
-/>
-
-// And wrap each card's filter block (the <El className="dashboard-chart-filters">...</El> containing both dropdowns) with:
-
-{!sourceDrillDown && (
-  <El className="dashboard-chart-filters">
-    {/* existing dropdown content, unchanged */}
-  </El>
-)}
-
-// and the matching 
-// 
-{!countryDrillDown && (...)} for the country card.
