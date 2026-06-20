@@ -385,3 +385,25 @@ const countrySlices: PieSlice[] = useMemo(() => {
     )}
   </Card>
 </Card>
+
+
+// Replace both Source effects with:
+
+useEffect(() => {
+  setSourceStatusFilter('');
+  setSourceGridOpen(false);
+}, [sourceFilter]);
+
+useEffect(() => {
+  setSourceGridOpen(false);
+}, [sourceStatusFilter]);
+
+// Replace both Country effects with:
+useEffect(() => {
+  setCountryStatusFilter('');
+  setCountryGridOpen(false);
+}, [countryFilter]);
+
+useEffect(() => {
+  setCountryGridOpen(false);
+}, [countryStatusFilter]);
