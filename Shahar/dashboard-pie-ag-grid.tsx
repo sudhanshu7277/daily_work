@@ -1,35 +1,51 @@
+// replace below block 
+
+if (sourceFilter && sourceStatusFilter) {
+  const sourceTotal = sourceCounts[sourceFilter] ?? 0;
+  const ratio = grandTotal > 0 ? sourceTotal / grandTotal : 0;
+  const statusCount = counts[sourceStatusFilter] ?? 0;
+  const estimatedCount = Math.round(statusCount * ratio);
+  const displayLabel = sourceStatusFilter.replace(/_/g, ' ')
+    .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const displaySource = sourceFilter.toLowerCase() === 'email_poller'
+    ? 'Email' : sourceFilter;
+  if (estimatedCount === 0) return [];
+  return [{
+    label: `${displayLabel} — ${displaySource}`,
+    value: estimatedCount,
+    color: STATUS_COLORS[sourceStatusFilter] || getStableColor(sourceStatusFilter),
+  }];
+}
 
 
-// Fix 1 — Add key to the status-breakdown slices (lines 772–780)
+// with 
 
-return Object.entries(counts)
-  .filter(([, v]) => v > 0)
-  .map(([status, globalCount]) => ({
-    key: status,
-    label: status.replace(/_/g, ' ').toLowerCase()
-      .replace(/\b\w/g, c => c.toUpperCase()),
-    value: Math.round(globalCount * ratio),
-    color: STATUS_COLORS[status] || getStableColor(status),
-  }))
-  .filter(s => s.value > 0);
+if (sourceFilter && sourceStatusFilter) {
+  const sourceTotal = sourceCounts[sourceFilter] ?? 0;
+  const ratio = grandTotal > 0 ? sourceTotal / grandTotal : 0;
+  const statusCount = counts[sourceStatusFilter] ?? 0;
+  const estimatedCount = Math.round(statusCount * ratio);
 
+  // Prefer the real fetched count when the grid has already loaded data
+  // for this exact source + status combination
+  const isDrillDownCurrent =
+    sourceDrillDown &&
+    sourceDrillDown.data.every(
+      (item: any) => item.status === sourceStatusFilter
+    );
+  const finalCount = isDrillDownCurrent
+    ? sourceDrillDown!.data.length
+    : estimatedCount;
 
-  // search for
-  type PieSlice = { label: string; value: number; color: string };
-
-
-  // and replace with 
-  type PieSlice = { key?: string; label: string; value: number; color: string };
-
-  // Fix 3 — onSliceClick for the status-breakdown view
-
-  onSliceClick={(s) => handleDrillDown('source', s.key ?? s.label, s.label)}
-
-
-  // replace above with 
-
-  onSliceClick={(s) => 
-    sourceFilter
-      ? handleDrillDown('source', sourceFilter, sourceFilter, s.key)
-      : handleDrillDown('source', s.key ?? s.label, s.label)
-  }
+  const displayLabel = sourceStatusFilter.replace(/_/g, ' ')
+    .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const displaySource = sourceFilter.toLowerCase() === 'email_poller'
+    ? 'Email' : sourceFilter;
+  if (finalCount === 0) return [];
+  return [{
+    key: sourceStatusFilter,
+    label: `${displayLabel} — ${displaySource}`,
+    value: finalCount,
+    color: STATUS_COLORS[sourceStatusFilter] || getStableColor(sourceStatusFilter),
+  }];
+}
