@@ -21,3 +21,12 @@ filterSpecialCharacters(event: KeyboardEvent): void {
       event.preventDefault();
     }
   }
+
+
+  // text flowing out of the box
+
+  <p class="body-3" style="word-break: break-all; overflow-wrap: break-word; white-space: normal; display: block; width: 100%;">
+          {{ tasks[i].reason === "other" ? tasks[i].otherReason : 
+             ("case.stage2.reasonOfIrregularity.options." + tasks[i].reason | translate) 
+          }}
+        </p>
