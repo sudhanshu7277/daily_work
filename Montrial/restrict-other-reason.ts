@@ -6,27 +6,25 @@
 changedValueFromDopdown(event: any) {
     this.other = event;
     const otherReasonControl = this.form.get('otherReason');
-
     if (!otherReasonControl) return;
 
-    // Clean up any old subscription if the user changes dropdown selections to avoid leaks
+    // 1. Always clean up the previous subscription first to prevent memory leaks
     if (this.otherReasonSubscription) {
       this.otherReasonSubscription.unsubscribe();
     }
 
+    // 2. If 'Other' is selected, handle validation and live character filtering
     if (this.form.controls.reason.value === 'other' || event === 'other') {
-      // 1. Set the initial strict validation logic
-      otherReasonControl.setValidators([
-        Validators.required, 
-        Validators.pattern('^[a-zA-Z0-9]*$')
-      ]);
+      
+      // Set field as required
+      otherReasonControl.setValidators([Validators.required]);
 
-      // 2. 🟢 LIVE STRIPPER: Intercept typing and vaporize special characters immediately
+      // Listen to typing and strip out special characters instantly
       this.otherReasonSubscription = otherReasonControl.valueChanges.subscribe((value: string) => {
         if (!value) return;
 
-        // Strip everything except letters (a-z, A-Z) and numbers (0-9)
-        const sanitized = value.replace(/[^a-zA-Z0-9]/g, '');
+        // Allow only lower case letters, upper case letters, numbers, and standard spaces
+        const sanitized = value.replace(/[^a-zA-Z0-9 ]/g, '');
 
         if (value !== sanitized) {
           otherReasonControl.setValue(sanitized, { emitEvent: false });
@@ -34,11 +32,12 @@ changedValueFromDopdown(event: any) {
       });
 
     } else {
-      // Revert back to baseline validation state when 'Other' is deselected
-      otherReasonControl.setValidators([Validators.pattern('^[a-zA-Z0-9]*$')]);
+      // 3. Reset state completely if they select a different dropdown option
+      otherReasonControl.clearValidators();
       otherReasonControl.setValue('', { emitEvent: false });
     }
 
+    // Refresh control status
     otherReasonControl.updateValueAndValidity();
   }
 
