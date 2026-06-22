@@ -1,66 +1,119 @@
-// Fix 1 — Source effect (only the condition on this one line)
-//Find:
+// 1. New state (near your other useState declarations)
 
-if (!sourceFilter && sourceStatusFilter) {
+const [sourceStatusBreakdown, setSourceStatusBreakdown] = useState<Record<string, number>>({});
+const [countryStatusBreakdown, setCountryStatusBreakdown] = useState<Record<string, number>>({});
 
-  //Change to:
+// 2. New effect — Source
 
-  if (sourceStatusFilter) {
+useEffect(() => {
+  if (!sourceFilter) {
+    setSourceStatusBreakdown({});
+    return;
+  }
+  const params = {
+    instructionSource: sourceDisplayToCode[sourceFilter] || sourceFilter,
+    region: regionFilter || undefined,
+    size: 1000,
+  };
+  getInstructions(params as Parameters<typeof getInstructions>[0])
+    .then(res => {
+      const items = res.data?.content ?? [];
+      const tally: Record<string, number> = {};
+      items.forEach(item => {
+        if (item.status) tally[item.status] = (tally[item.status] ?? 0) + 1;
+      });
+      setSourceStatusBreakdown(tally);
+    })
+    .catch(() => setSourceStatusBreakdown({}));
+}, [sourceFilter, regionFilter]);
 
-    // Fix 2 — Country effect (mirror, same single-line change)
-//Find:
+// 3. New effect — Country (mirror)
 
-if (!countryFilter && countryStatusFilter) {
+useEffect(() => {
+  if (!countryFilter) {
+    setCountryStatusBreakdown({});
+    return;
+  }
+  const params = {
+    country: countryFilter,
+    region: regionFilter || undefined,
+    size: 1000,
+  };
+  getInstructions(params as Parameters<typeof getInstructions>[0])
+    .then(res => {
+      const items = res.data?.content ?? [];
+      const tally: Record<string, number> = {};
+      items.forEach(item => {
+        if (item.status) tally[item.status] = (tally[item.status] ?? 0) + 1;
+      });
+      setCountryStatusBreakdown(tally);
+    })
+    .catch(() => setCountryStatusBreakdown({}));
+}, [countryFilter, regionFilter]);
+
+// 4. sourceSlices — replace the breakdown branch
+// Find (lines ~749–762):
 
 
-  // Change to:
-
-  if (countryStatusFilter) {
-
-    /// Fix 3 — sourceSlices, single-slice branch — two small insertions, not a rewrite
-//Find:
-
-if (estimatedCount === 0) return [];
-return [{
-  key: sourceStatusFilter,
-  label: `${displayLabel} — ${displaySource}`,
-  value: estimatedCount,
-  color: STATUS_COLORS[sourceStatusFilter] || getStableColor(sourceStatusFilter),
-}];
-
+if (sourceFilter && !sourceStatusFilter) {
+  const sourceTotal = sourceCounts[sourceFilter] ?? 0;
+  const ratio = grandTotal > 0 ? sourceTotal / grandTotal : 0;
+  return Object.entries(counts)
+    .filter(([, v]) => v > 0)
+    .map(([status, globalCount]) => ({
+      key: status,
+      label: status.replace(/_/g, ' ').toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase()),
+      value: Math.round(globalCount * ratio),
+      color: STATUS_COLORS[status] || getStableColor(status),
+    }))
+    .filter(s => s.value > 0);
+}
 
 // Replace with:
 
-const realCount = sourceCounts[sourceFilter] ?? 0;
-if (realCount === 0) return [];
-return [{
-  key: sourceStatusFilter,
-  label: `${displayLabel} — ${displaySource}`,
-  value: realCount,
-  color: STATUS_COLORS[sourceStatusFilter] || getStableColor(sourceStatusFilter),
-}];
+if (sourceFilter && !sourceStatusFilter) {
+  return Object.entries(sourceStatusBreakdown)
+    .filter(([, v]) => v > 0)
+    .map(([status, count]) => ({
+      key: status,
+      label: status.replace(/_/g, ' ').toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase()),
+      value: count,
+      color: STATUS_COLORS[status] || getStableColor(status),
+    }));
+}
 
-// Fix 4 — countrySlices, single-slice branch — same two insertions
-//Find:
+// And add sourceStatusBreakdown to the dependency array at the bottom of this useMemo.
+//5. countrySlices — replace the breakdown branch (mirror)
+// Find (lines ~696–709):
 
-if (estimatedCount === 0) return [];
-return [{
-  key: countryStatusFilter,
-  label: `${displayLabel} — ${displayCountry}`,
-  value: estimatedCount,
-  color: STATUS_COLORS[countryStatusFilter] || getStableColor(countryStatusFilter),
-}];
+if (countryFilter && !countryStatusFilter) {
+  const countryTotal = countryCounts[countryFilter] ?? 0;
+  const ratio = grandTotal > 0 ? countryTotal / grandTotal : 0;
+  return Object.entries(counts)
+    .filter(([, v]) => v > 0)
+    .map(([status, globalCount]) => ({
+      key: status,
+      label: status.replace(/_/g, ' ').toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase()),
+      value: Math.round(globalCount * ratio),
+      color: STATUS_COLORS[status] || getStableColor(status),
+    }))
+    .filter(s => s.value > 0);
+}
 
 // Replace with:
 
-const realCount = countryCounts[countryFilter] ?? 0;
-if (realCount === 0) return [];
-return [{
-  key: countryStatusFilter,
-  label: `${displayLabel} — ${displayCountry}`,
-  value: realCount,
-  color: STATUS_COLORS[countryStatusFilter] || getStableColor(countryStatusFilter),
-}];
 
-
-
+if (countryFilter && !countryStatusFilter) {
+  return Object.entries(countryStatusBreakdown)
+    .filter(([, v]) => v > 0)
+    .map(([status, count]) => ({
+      key: status,
+      label: status.replace(/_/g, ' ').toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase()),
+      value: count,
+      color: STATUS_COLORS[status] || getStableColor(status),
+    }));
+}
