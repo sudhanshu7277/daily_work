@@ -20,13 +20,28 @@ const [sourceStatusCounts, setSourceStatusCounts] = useState<Record<string, numb
   // Step 3 — Add a useEffect that fetches real per-source status counts when sourceFilter changes:
 
 
+  // useEffect(() => {
+  //   if (!sourceFilter) {
+  //     setSourceStatusCounts({});
+  //     return;
+  //   }
+  //   const sourceCode = sourceDisplayToCode[sourceFilter] || sourceFilter;
+  //   getCountsBySourceStatus(sourceCode, { fromDate, toDate, region: regionFilter || undefined })
+  //     .then(res => setSourceStatusCounts(res.data ?? {}))
+  //     .catch(() => setSourceStatusCounts({}));
+  // }, [sourceFilter, fromDate, toDate, regionFilter]);
+
   useEffect(() => {
     if (!sourceFilter) {
       setSourceStatusCounts({});
       return;
     }
     const sourceCode = sourceDisplayToCode[sourceFilter] || sourceFilter;
-    getCountsBySourceStatus(sourceCode, { fromDate, toDate, region: regionFilter || undefined })
+    getCountsBySourceStatus(sourceCode, {
+      fromDate: fromDate ? new Date(fromDate) : undefined,
+      toDate: toDate ? new Date(toDate) : undefined,
+      region: regionFilter || undefined,
+    })
       .then(res => setSourceStatusCounts(res.data ?? {}))
       .catch(() => setSourceStatusCounts({}));
   }, [sourceFilter, fromDate, toDate, regionFilter]);
