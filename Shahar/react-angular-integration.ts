@@ -259,4 +259,16 @@ declare namespace JSX {
     }
   }
 
+// At the top of DashboardPage.tsx add the import:
+
+import SSPaymentFlow from '@/components/SSPaymentFlow';
+
+// Then somewhere in the JSX return, add it temporarily:
+
+<SSPaymentFlow
+  onPaymentSubmitted={(data) => console.log('Payment submitted:', data)}
+  onPaymentCancelled={() => console.log('Payment cancelled')}
+/>
+
+
 
