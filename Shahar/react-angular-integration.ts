@@ -144,5 +144,16 @@ $files = @(
   .\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
 
 
+  // Step 6 — Combine and copy to React project
+//The build output is in dist-element/. We need to concatenate runtime.js + main.js into a single file and copy it to the React project's public/ folder.
+// Run in PowerShell:
+
+# Combine runtime + main into one file
+Get-Content "dist-element\runtime.js", "dist-element\main.js" | Set-Content "dist-element\ss-payment-flow-element.js"
+
+# Copy to React project's public folder (adjust path if needed)
+Copy-Item "dist-element\ss-payment-flow-element.js" "C:\Users\SJ81534\Documents\GAB-REACT\179025.shared-services.gab-ui\public\ss-payment-flow-element.js"
+
+
 
 
