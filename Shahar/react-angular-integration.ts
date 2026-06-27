@@ -583,6 +583,94 @@ Get-Content "dist-element\runtime.js", "dist-element\main.js" | Set-Content "dis
 
 Copy-Item "dist-element\ss-payment-flow-element.js" "C:\Users\SJ81534\Documents\GAB-UI-DEVELOPMENT\179025.shared-services.gab-ui\public\ss-payment-flow-element.js"
 
+// Change 1 — Angular library: ss-payment-flow.component.ts line 46
+//From:
+
+@Input() paymentInput!: PaymentComponentInput;
+
+// To:
+
+@Input() paymentInput: PaymentComponentInput = {
+    applicationName: 'ADR',
+    applicationModule: 'ADR',
+    hideFieldsList: [],
+    currency: '',
+    dualBlindKeyFields: [],
+    dualBlindKeyFlag: 'N',
+    paymentModel: null,
+    rejectedFieldList: [],
+    paymentMode: 'maker',
+    hardcapLimitCheckBaseUrl: '',
+    makerSubmitUrl: '',
+    region: '',
+    useMockApi: false,
+  };
+
+  // Change 2 — Angular library: rebuild and recopy
+
+  .\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
+Get-Content "dist-element\runtime.js", "dist-element\main.js" | Set-Content "dist-element\ss-payment-flow-element.js"
+
+Copy-Item "dist-element\ss-payment-flow-element.js" "C:\Users\SJ81534\Documents\GAB-UI-DEVELOPMENT\179025.shared-services.gab-ui\public\ss-payment-flow-element.js"
+
+// Change 3 — React: src/pages/PaymentPage.tsx
+//Full file:
+
+import React from 'react';
+import SSPaymentFlow from '@/components/SSPaymentFlow';
+
+const PaymentPage: React.FC = () => {
+  return (
+    <div style={{ width: '100%', height: '100%' }}>
+      <SSPaymentFlow
+        paymentInput={{
+          applicationName: 'ADR',
+          applicationModule: 'ADR',
+          paymentMode: 'maker',
+          makerSubmitUrl: '/gab/api/payments/createMakerPayment',
+          currency: 'USD',
+          hideFieldsList: [],
+          dualBlindKeyFields: [],
+          dualBlindKeyFlag: 'N',
+          paymentModel: null,
+          rejectedFieldList: [],
+          region: '',
+          useMockApi: false,
+        }}
+        isMakerMode={true}
+        onPaymentOutput={(data) => console.log('Payment output:', data)}
+        onFormValidityChange={(data) => console.log('Form validity:', data)}
+        onFormChange={(data) => console.log('Form change:', data)}
+        onFailedFieldListChange={(fields) => console.log('Failed fields:', fields)}
+      />
+    </div>
+  );
+};
+
+export default PaymentPage;
+
+// Change 4 — React: update SSPaymentFlow.tsx interface
+//Update the PaymentInput interface to match the actual Angular @Input names:
+
+interface PaymentInput {
+    applicationName: string;
+    applicationModule: string;
+    hideFieldsList: string[];
+    currency?: string;
+    dualBlindKeyFields: string[];
+    dualBlindKeyFlag?: string;
+    paymentModel?: unknown;
+    rejectedFieldList: string[];
+    paymentMode: 'maker' | 'checker' | 'repair';
+    hardcapLimitCheckBaseUrl?: string;
+    makerSubmitUrl: string;
+    region?: string;
+    useMockApi?: boolean;
+  }
+
+  
+
 
 
 
