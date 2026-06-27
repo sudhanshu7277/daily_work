@@ -572,6 +572,17 @@ const SSPaymentFlow: React.FC<SSPaymentFlowProps> = ({
 
 export default SSPaymentFlow;
 
+//run below commands again
+
+// You need to rebuild and recopy. In the Angular lib project PowerShell:
+
+.\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
+// Then recopy:
+Get-Content "dist-element\runtime.js", "dist-element\main.js" | Set-Content "dist-element\ss-payment-flow-element.js"
+
+Copy-Item "dist-element\ss-payment-flow-element.js" "C:\Users\SJ81534\Documents\GAB-UI-DEVELOPMENT\179025.shared-services.gab-ui\public\ss-payment-flow-element.js"
+
 
 
 
