@@ -461,7 +461,7 @@ export default PaymentPage;
 
 // 5:28 PMClaude responded: Here is the complete src/components/SSPaymentFlow.Here is the complete src/components/SSPaymentFlow.tsx:
 
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useAngularElement } from '@/hooks/useAngularElement';
 
 interface PaymentInput {
@@ -510,29 +510,22 @@ const SSPaymentFlow: React.FC<SSPaymentFlowProps> = ({
   onFormValidityChange,
   onFailedFieldListChange,
 }) => {
-  const ref = useRef<HTMLElement>(null);
   const loaded = useAngularElement(
     `${import.meta.env.BASE_URL}ss-payment-flow-element.js`
   );
 
-  // Set complex object inputs via DOM properties after element loads
-  useEffect(() => {
-    const el = ref.current;
-    if (!loaded || !el) return;
+  const elRef = useRef<HTMLElement | null>(null);
 
-    const timer = setTimeout(() => {
-      (el as unknown as Record<string, unknown>)['paymentInput'] = paymentInput;
-      (el as unknown as Record<string, unknown>)['pacsFormVerbiages'] = pacsFormVerbiages;
-      (el as unknown as Record<string, unknown>)['isMakerMode'] = isMakerMode;
-      (el as unknown as Record<string, unknown>)['isCheckerMode'] = isCheckerMode;
-      (el as unknown as Record<string, unknown>)['isRepairMode'] = isRepairMode;
-      (el as unknown as Record<string, unknown>)['repairReviewFieldList'] = repairReviewFieldList;
-      (el as unknown as Record<string, unknown>)['repairNewlyModifyFieldList'] = repairNewlyModifyFieldList;
-    }, 100);
-
-    return () => clearTimeout(timer);
+  const setProperties = useCallback((el: HTMLElement) => {
+    const node = el as unknown as Record<string, unknown>;
+    node['paymentInput'] = paymentInput;
+    node['pacsFormVerbiages'] = pacsFormVerbiages;
+    node['isMakerMode'] = isMakerMode;
+    node['isCheckerMode'] = isCheckerMode;
+    node['isRepairMode'] = isRepairMode;
+    node['repairReviewFieldList'] = repairReviewFieldList;
+    node['repairNewlyModifyFieldList'] = repairNewlyModifyFieldList;
   }, [
-    loaded,
     paymentInput,
     pacsFormVerbiages,
     isMakerMode,
@@ -542,11 +535,14 @@ const SSPaymentFlow: React.FC<SSPaymentFlowProps> = ({
     repairNewlyModifyFieldList,
   ]);
 
-  // Wire up event listeners
-  useEffect(() => {
-    const el = ref.current;
-    if (!loaded || !el) return;
+  // Callback ref — fires synchronously when element mounts in DOM
+  const callbackRef = useCallback((el: HTMLElement | null) => {
+    if (!el) return;
+    elRef.current = el;
+    // Set properties immediately so Angular sees them on first render
+    setProperties(el);
 
+    // Also attach event listeners here
     const handlePaymentOutput = (e: Event) =>
       onPaymentOutput?.((e as CustomEvent).detail);
     const handleFormChange = (e: Event) =>
@@ -560,24 +556,18 @@ const SSPaymentFlow: React.FC<SSPaymentFlowProps> = ({
     el.addEventListener('formChange', handleFormChange);
     el.addEventListener('formValidityChange', handleFormValidityChange);
     el.addEventListener('failedFieldListChange', handleFailedFieldListChange);
+  }, [setProperties, onPaymentOutput, onFormChange, onFormValidityChange, onFailedFieldListChange]);
 
-    return () => {
-      el.removeEventListener('paymentOutput', handlePaymentOutput);
-      el.removeEventListener('formChange', handleFormChange);
-      el.removeEventListener('formValidityChange', handleFormValidityChange);
-      el.removeEventListener('failedFieldListChange', handleFailedFieldListChange);
-    };
-  }, [
-    loaded,
-    onPaymentOutput,
-    onFormChange,
-    onFormValidityChange,
-    onFailedFieldListChange,
-  ]);
+  // Update properties when props change after initial mount
+  useEffect(() => {
+    if (elRef.current) {
+      setProperties(elRef.current);
+    }
+  }, [setProperties]);
 
   if (!loaded) return <div>Loading payment form...</div>;
 
-  return <ss-payment-flow ref={ref} />;
+  return <ss-payment-flow ref={callbackRef} />;
 };
 
 export default SSPaymentFlow;
