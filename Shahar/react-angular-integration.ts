@@ -427,6 +427,37 @@ export default SSPaymentFlow;
 />
 
 
+// Step 1 — Create the page component
+//Create src/pages/PaymentPage.tsx:
+
+import React from 'react';
+import SSPaymentFlow from '@/components/SSPaymentFlow';
+
+const PaymentPage: React.FC = () => {
+  return (
+    <div style={{ width: '100%', height: '100%' }}>
+      <SSPaymentFlow
+        paymentInput={{
+          applicationName: 'ADR',
+          applicationModule: 'ADR',
+          paymentMode: 'maker',
+          makerSubmitUrl: '/gab/api/payments/createMakerPayment',
+          currency: 'USD',
+          region: '',
+          useMockApi: false,
+        }}
+        isMakerMode={true}
+        onPaymentOutput={(data) => console.log('Payment output:', data)}
+        onFormValidityChange={(data) => console.log('Form validity:', data)}
+        onFormChange={(data) => console.log('Form change:', data)}
+        onFailedFieldListChange={(fields) => console.log('Failed fields:', fields)}
+      />
+    </div>
+  );
+};
+
+export default PaymentPage;
+
 
 
 
