@@ -152,4 +152,111 @@ Get-Content "dist-element\runtime.js", "dist-element\main.js" | Set-Content "dis
 
 Copy-Item "dist-element\ss-payment-flow-element.js" "C:\Users\SJ81534\Documents\GAB-UI-DEVELOPMENT\179025.shared-services.gab-ui\public\ss-payment-flow-element.js"
 
+// Step 7 — Add zone.js import to main.tsxThis must be the very first line of the file. Your current main.tsx is:
+// This must be the very first line of the file. Your current main.tsx is:
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { CssProvider } from '@citi-icg-172888/icgds-react';
+import './citi-overrides.css';
+import App from './App';
+
+// Change it to:
+
+import 'zone.js';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { CssProvider } from '@citi-icg-172888/icgds-react';
+import './citi-overrides.css';
+import App from './App';
+
+// But first, install zone.js in the React project. In PowerShell, cd to the React project root and run:
+
+cd C:\Users\SJ81534\Documents\GAB-UI-DEVELOPMENT\179025.shared-services.gab-ui
+npm install zone.js
+
+// Step 8 — Create src/hooks/useAngularElement.ts
+//Create this file at src/hooks/useAngularElement.ts:
+
+import { useEffect, useState } from 'react';
+
+export function useAngularElement(scriptUrl: string): boolean {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (document.querySelector(`script[src="${scriptUrl}"]`)) {
+      setLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = scriptUrl;
+    script.type = 'text/javascript';
+    script.onload = () => setLoaded(true);
+    script.onerror = () => console.error(`Failed to load Angular element: ${scriptUrl}`);
+    document.body.appendChild(script);
+  }, [scriptUrl]);
+
+  return loaded;
+}
+
+// Step 9 — Create src/components/SSPaymentFlow.tsx
+//Create this file at src/components/SSPaymentFlow.tsx:
+
+import React, { useEffect, useRef } from 'react';
+import { useAngularElement } from '@/hooks/useAngularElement';
+
+interface SSPaymentFlowProps {
+  onPaymentSubmitted?: (data: unknown) => void;
+  onPaymentCancelled?: () => void;
+}
+
+const SSPaymentFlow: React.FC<SSPaymentFlowProps> = ({
+  onPaymentSubmitted,
+  onPaymentCancelled,
+}) => {
+  const ref = useRef<HTMLElement>(null);
+  const loaded = useAngularElement(`${import.meta.env.BASE_URL}ss-payment-flow-element.js`);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!loaded || !el) return;
+
+    const handleSubmit = (e: Event) => {
+      onPaymentSubmitted?.((e as CustomEvent).detail);
+    };
+    const handleCancel = () => {
+      onPaymentCancelled?.();
+    };
+
+    el.addEventListener('paymentSubmitted', handleSubmit);
+    el.addEventListener('paymentCancelled', handleCancel);
+
+    return () => {
+      el.removeEventListener('paymentSubmitted', handleSubmit);
+      el.removeEventListener('paymentCancelled', handleCancel);
+    };
+  }, [loaded, onPaymentSubmitted, onPaymentCancelled]);
+
+  if (!loaded) return <div>Loading payment form...</div>;
+
+  return (
+    <ss-payment-flow ref={ref} />
+  );
+};
+
+export default SSPaymentFlow;
+
+// Step 10 — Fix TypeScript: declare the custom element
+//Since <ss-payment-flow> is not a known HTML element, TypeScript will complain. Add this to src/types/ — create src/types/custom-elements.d.ts:
+
+declare namespace JSX {
+    interface IntrinsicElements {
+      'ss-payment-flow': React.DetailedHTMLProps
+        React.HTMLAttributes<HTMLElement>,
+        HTMLElement
+      >;
+    }
+  }
+
 
