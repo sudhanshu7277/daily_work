@@ -123,12 +123,26 @@ Get-ChildItem -Recurse -Path node_modules -Filter "absolutePath.js" | Select-Obj
 
 Get-ChildItem -Recurse -Path node_modules -Filter "absolutePath.js" | Select-Object -ExpandProperty FullName
 
+// Run this exact block:
 
-// step 6
+$files = @(
+    "node_modules\.pnpm\schema-utils@3.3.0\node_modules\schema-utils\dist\keywords\absolutePath.js",
+    "node_modules\.pnpm\schema-utils@4.3.3\node_modules\schema-utils\dist\keywords\absolutePath.js",
+    "node_modules\schema-utils\dist\keywords\absolutePath.js",
+    "node_modules\webpack\node_modules\schema-utils\dist\keywords\absolutePath.js"
+  )
+  
+  foreach ($file in $files) {
+    if (Test-Path $file) {
+      (Get-Content $file) -replace 'shouldBeAbsolute \?', 'false ?' | Set-Content $file
+      Write-Host "Patched: $file"
+    }
+  }
 
-// Go ahead and run it, then immediately after run:
+  // Share the output showing which files were patched, then run the build:
 
-.\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+  .\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
 
 
 
