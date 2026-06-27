@@ -113,29 +113,13 @@ architect: {
     build-element: { ... } ← NEW
   }
 
-  // Step 5 — Patch schema-utils (Windows absolute path fix)
-//Run in PowerShell inside the Angular lib project root:
-
-$file = "node_modules\.pnpm\schema-utils@3.3.0\node_modules\schema-utils\dist\keywords\absolutePath.js"
-if (Test-Path $file) {
-  (Get-Content $file) -replace 'shouldBeAbsolute \?', 'false ?' | Set-Content $file
-  Write-Host "Patched schema-utils@3.3.0"
-}
-
-$file2 = "node_modules\.pnpm\schema-utils@4.3.3\node_modules\schema-utils\dist\keywords\absolutePath.js"
-if (Test-Path $file2) {
-  (Get-Content $file2) -replace 'shouldBeAbsolute \?', 'false ?' | Set-Content $file2
-  Write-Host "Patched schema-utils@4.3.3"
-}
-
-/// If the paths don't exist exactly (version numbers may differ after a fresh npm install), run this first to find the actual paths:
+// Step 5 — Patch schema-utils
+//Run this in PowerShell inside the Angular lib project root:
 
 Get-ChildItem -Recurse -Path node_modules -Filter "absolutePath.js" | Select-Object FullName
 
+// step 6
 
-// Step 6 — Run the element build
+// Go ahead and run it, then immediately after run:
 
 .\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
-
-// If successful, you'll get output in dist-element/ — specifically a main.js file. We'll rename it to ss-payment-flow-element.js and copy it to the React project's public/ folder.
-
