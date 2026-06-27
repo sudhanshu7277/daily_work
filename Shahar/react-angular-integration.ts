@@ -280,4 +280,39 @@ Remove-Item -Force package-lock.json
 npm install
 
 
+// Update projects/payment-flow-ui-lib/src/main-element.ts to this:
+
+import { createApplication } from '@angular/platform-browser';
+import { createCustomElement } from '@angular/elements';
+import { provideHttpClient } from '@angular/common/http';
+import { SSPaymentMakerComponent } from './lib/components/ss-payment-flow/ss-payment-flow.component';
+import 'zone.js';
+
+(async () => {
+  const app = await createApplication({
+    providers: [
+      provideHttpClient(),
+    ],
+  });
+
+  const SSPaymentFlowElement = createCustomElement(SSPaymentMakerComponent, {
+    injector: app.injector,
+  });
+
+  customElements.define('ss-payment-flow', SSPaymentFlowElement);
+})();
+
+// After saving, rebuild the element in the Angular lib project:
+
+.\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
+// Then re-copy to the React project:
+
+Get-Content "dist-element\runtime.js", "dist-element\main.js" | Set-Content "dist-element\ss-payment-flow-element.js"
+
+Copy-Item "dist-element\ss-payment-flow-element.js" "C:\Users\SJ81534\Documents\GAB-UI-DEVELOPMENT\179025.shared-services.gab-ui\public\ss-payment-flow-element.js"
+
+
+
+
 
