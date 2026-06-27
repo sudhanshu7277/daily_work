@@ -459,6 +459,130 @@ const PaymentPage: React.FC = () => {
 export default PaymentPage;
 
 
+// 5:28 PMClaude responded: Here is the complete src/components/SSPaymentFlow.Here is the complete src/components/SSPaymentFlow.tsx:
+
+import React, { useEffect, useRef } from 'react';
+import { useAngularElement } from '@/hooks/useAngularElement';
+
+interface PaymentInput {
+  applicationName: string;
+  applicationModule: string;
+  hideFieldsList?: string[];
+  currency?: string;
+  dualBlindKeyFields?: string[];
+  dualBlindKeyFlag?: boolean;
+  currentPaymentModel?: unknown;
+  rejectedFieldList?: string[];
+  paymentMode: 'maker' | 'checker' | 'repair';
+  hardcapLimitCheckBaseUrl?: string;
+  makerSubmitUrl: string;
+  region?: string;
+  useMockApi?: boolean;
+}
+
+interface SSPaymentFlowProps {
+  paymentInput: PaymentInput;
+  pacsFormVerbiages?: Record<string, string>;
+  isMakerMode?: boolean;
+  isCheckerMode?: boolean;
+  isRepairMode?: boolean;
+  repairReviewFieldList?: string[];
+  repairNewlyModifyFieldList?: string[];
+  onPaymentOutput?: (data: unknown) => void;
+  onFormChange?: (data: Record<string, unknown>) => void;
+  onFormValidityChange?: (data: {
+    validForm?: boolean;
+    makerPayload?: Record<string, unknown>;
+  }) => void;
+  onFailedFieldListChange?: (fields: string[]) => void;
+}
+
+const SSPaymentFlow: React.FC<SSPaymentFlowProps> = ({
+  paymentInput,
+  pacsFormVerbiages = {},
+  isMakerMode = true,
+  isCheckerMode = false,
+  isRepairMode = false,
+  repairReviewFieldList = [],
+  repairNewlyModifyFieldList = [],
+  onPaymentOutput,
+  onFormChange,
+  onFormValidityChange,
+  onFailedFieldListChange,
+}) => {
+  const ref = useRef<HTMLElement>(null);
+  const loaded = useAngularElement(
+    `${import.meta.env.BASE_URL}ss-payment-flow-element.js`
+  );
+
+  // Set complex object inputs via DOM properties after element loads
+  useEffect(() => {
+    const el = ref.current;
+    if (!loaded || !el) return;
+
+    const timer = setTimeout(() => {
+      (el as unknown as Record<string, unknown>)['paymentInput'] = paymentInput;
+      (el as unknown as Record<string, unknown>)['pacsFormVerbiages'] = pacsFormVerbiages;
+      (el as unknown as Record<string, unknown>)['isMakerMode'] = isMakerMode;
+      (el as unknown as Record<string, unknown>)['isCheckerMode'] = isCheckerMode;
+      (el as unknown as Record<string, unknown>)['isRepairMode'] = isRepairMode;
+      (el as unknown as Record<string, unknown>)['repairReviewFieldList'] = repairReviewFieldList;
+      (el as unknown as Record<string, unknown>)['repairNewlyModifyFieldList'] = repairNewlyModifyFieldList;
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [
+    loaded,
+    paymentInput,
+    pacsFormVerbiages,
+    isMakerMode,
+    isCheckerMode,
+    isRepairMode,
+    repairReviewFieldList,
+    repairNewlyModifyFieldList,
+  ]);
+
+  // Wire up event listeners
+  useEffect(() => {
+    const el = ref.current;
+    if (!loaded || !el) return;
+
+    const handlePaymentOutput = (e: Event) =>
+      onPaymentOutput?.((e as CustomEvent).detail);
+    const handleFormChange = (e: Event) =>
+      onFormChange?.((e as CustomEvent).detail);
+    const handleFormValidityChange = (e: Event) =>
+      onFormValidityChange?.((e as CustomEvent).detail);
+    const handleFailedFieldListChange = (e: Event) =>
+      onFailedFieldListChange?.((e as CustomEvent).detail);
+
+    el.addEventListener('paymentOutput', handlePaymentOutput);
+    el.addEventListener('formChange', handleFormChange);
+    el.addEventListener('formValidityChange', handleFormValidityChange);
+    el.addEventListener('failedFieldListChange', handleFailedFieldListChange);
+
+    return () => {
+      el.removeEventListener('paymentOutput', handlePaymentOutput);
+      el.removeEventListener('formChange', handleFormChange);
+      el.removeEventListener('formValidityChange', handleFormValidityChange);
+      el.removeEventListener('failedFieldListChange', handleFailedFieldListChange);
+    };
+  }, [
+    loaded,
+    onPaymentOutput,
+    onFormChange,
+    onFormValidityChange,
+    onFailedFieldListChange,
+  ]);
+
+  if (!loaded) return <div>Loading payment form...</div>;
+
+  return <ss-payment-flow ref={ref} />;
+};
+
+export default SSPaymentFlow;
+
+
 
 
 
