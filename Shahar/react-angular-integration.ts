@@ -270,5 +270,14 @@ import SSPaymentFlow from '@/components/SSPaymentFlow';
   onPaymentCancelled={() => console.log('Payment cancelled')}
 />
 
+//Run these commands:
+
+# Remove package-lock and node_modules
+Remove-Item -Recurse -Force node_modules
+Remove-Item -Force package-lock.json
+
+# Reinstall
+npm install
+
 
 
