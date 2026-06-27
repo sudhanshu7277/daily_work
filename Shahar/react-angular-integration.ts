@@ -118,8 +118,17 @@ architect: {
 
 Get-ChildItem -Recurse -Path node_modules -Filter "absolutePath.js" | Select-Object FullName
 
+
+// run to get full paths 
+
+Get-ChildItem -Recurse -Path node_modules -Filter "absolutePath.js" | Select-Object -ExpandProperty FullName
+
+
 // step 6
 
 // Go ahead and run it, then immediately after run:
 
 .\node_modules\.bin\ng run payment-flow-ui-lib:build-element:production
+
+
+
