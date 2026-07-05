@@ -43,3 +43,29 @@ export class CustomerSearchResultComponent implements OnInit, OnDestroy {
     this.subscription.unsubscribe();
   }
 }
+
+
+// error handling
+
+
+this.subscriptions.add(
+    this.actionsSubject
+      .pipe(
+        ofType(
+          CustomerSearchActions.getResultFail,
+          CustomerSearchActions.getNextResultsFailure
+        )
+      )
+      .subscribe((action: any) => {
+        this.showError = true;
+
+        // 🟢 Extract and log the actual error message payload sent by the backend
+        if (action && action.error) {
+          console.log('Search API Failure payload caught in component:', action.error);
+          
+          // If the error message is a nested string inside an HTTP response object:
+          const errorMsg = action.error.message || action.error.error || action.error;
+          console.log('Extracted Error Message:', errorMsg);
+        }
+      })
+  );
