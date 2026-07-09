@@ -59,4 +59,30 @@ const handleContactPhoneNumberChange = (val: string) => {
     setSelectedParty(party || null);
   };
 
+  
+
+  // 🚀 Clean handler to capture phone input with a strict 10-digit limit
+const handleContactPhoneNumberChange = (val: string) => {
+    // 1. Clean invalid characters (only keep numbers, plus, brackets, spaces, hyphens)
+    const sanitizedVal = val.replace(/[^0-9+\(\)\s-]/g, '');
+  
+    // 2. Smart Truncation: Keep formatting, but cap at exactly 10 digits
+    let digitCount = 0;
+    let finalVal = '';
+  
+    for (const char of sanitizedVal) {
+      // If the character is a number, count it
+      if (/[0-9]/.test(char)) {
+        if (digitCount >= 10) break; // Stop accepting if we hit the 10-digit limit
+        digitCount++;
+      }
+      
+      // Add the character (whether it's a number or a valid symbol like a bracket)
+      finalVal += char;
+    }
+  
+    // 3. Direct State Update
+    setContactNumber(finalVal);
+  };
+
 
