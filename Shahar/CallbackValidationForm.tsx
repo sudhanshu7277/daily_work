@@ -23,15 +23,10 @@
       <Input
         placeholder="e.g., +1 (432) 123 1234"
         value={contactNumber}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const rawValue = e.target.value;
-
-          // 🚀 REGEX STRIPPER: Removes everything EXCEPT numbers, brackets, plus sign, and spaces
-          const sanitizedValue = rawValue.replace(/[^0-9+\(\)\s-]/g, '');
-
-          // Sets the clean state hook only
-          setContactNumber(sanitizedValue);
-        }}
+        // 🚀 Invoke the handler function directly on change
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+          handleContactNumberChange(e.target.value)
+        }
         style={{ width: '100%' }}
       />
     </El>
@@ -39,3 +34,29 @@
 </El>
 
 const [contactNumber, setContactNumber] = useState<string>('');
+
+// 🚀 Dedicated Change Handler for Contact Number Validation
+const handleContactPhoneNumberChange = (val: string) => {
+    const sanitizedVal = val.replace(/[^0-9+\(\)\s-]/g, '');
+    setContactNumber(sanitizedVal);
+    // ... lookup logic
+  };
+
+
+  const handleContactNameChange = (val: string) => {
+    setSelectedContactName(val);
+  
+    // Normalize input value for a safer lookup
+    const normalizedInput = val.trim().toLowerCase();
+  
+    // Find the party where the constructed name matches what was typed
+    const party = dealParties.find(p => {
+      const fullName = `${p.firstName} ${p.lastName}`.trim().toLowerCase();
+      return fullName === normalizedInput;
+    });
+  
+    // If a matching party is found, set it; otherwise, default to null
+    setSelectedParty(party || null);
+  };
+
+
