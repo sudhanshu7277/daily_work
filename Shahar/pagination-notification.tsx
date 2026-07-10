@@ -1,84 +1,99 @@
-//
+// Step 1: Add the Page State
+//At the top of your AppLayout component, you only need to add the currentPage state. Ensure you have deleted those extra unused variables (allReworkInstructions and ITEMS_PER_PAGE) from your previous screenshot.
 
-const [allReworkInstructions, setAllReworkInstructions] = useState<any[]>([]);
+//Add this around line 35:
+
 const [currentPage, setCurrentPage] = useState(1);
-const ITEMS_PER_PAGE = 10;
 
-// Replace lines 60 to 68 with this:
 
-getReworkInstructions()
-  .then(res => {
+// Update handleBellClick
+//Instead of slicing the first 10 items, we want to save the entire API response into your existing reworkInstructions state and reset the page back to 1.
+
+//Replace the .then block inside getReworkInstructions() (around line 60) with this:
+
+.then(res => {
     const completeArrayResponse = (res.data && res.data.length) ? res.data : [];
-    
-    // Store the complete array of 262 records
-    setAllReworkInstructions(completeArrayResponse);
-    
-    // Always reset to page 1 when opening the panel
+    setReworkInstructions(completeArrayResponse);
     setCurrentPage(1); 
   })
-  .catch(() => setAllReworkInstructions([]))
-  .finally(() => setAlertsLoading(false));
+
+  // Step 3: Update the Table and Add Buttons
+//Find where your table renders (around line 367). 
+// Replace the entire <table> block right down to just above 
+// {/* Team Alerts */} with this updated code. This handles slicing t
+// he data dynamically and includes the Previous/Next buttons.
 
 
-  // Step 3: Calculate the Current Slice
-// Right above your return statement in the component, 
-// //calculate exactly which 10 items should be shown based on the current page.
+<El tag="table" style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+  <El tag="tbody">
+    {/* 🚀 Slice the array dynamically based on the page */}
+    {reworkInstructions
+      .slice((currentPage - 1) * 10, currentPage * 10)
+      .map(instr => (
+      <El 
+        tag="tr" 
+        key={instr.instructionId} 
+        style={{ borderBottom: '1px solid var(--lmn-border-color, #eee)', cursor: 'pointer' }}
+        onClick={() => navigate(`/instructions/${instr.instructionId}`)}
+      >
+        <El tag="td" style={{ padding: '6px 4px' }}>
+          <El style={{ fontWeight: 600, color: 'var(--lmn-color-primary, #002D72)' }}>
+            {instr.instructionRef}
+          </El>
+          <El style={{ fontSize: 10, color: 'var(--lmn-text-weak, #888)' }}>
+            {instr.status.replace(/_/g, ' ')}
+          </El>
+        </El>
+      </El>
+    ))}
+  </El>
+</El>
 
-// Calculate total pages (e.g., 262 records / 10 = 27 pages)
-const totalPages = Math.ceil(allReworkInstructions.length / ITEMS_PER_PAGE);
-
-// Dynamically slice the full array for the current page
-const paginatedInstructions = allReworkInstructions.slice(
-  (currentPage - 1) * ITEMS_PER_PAGE,
-  currentPage * ITEMS_PER_PAGE
-);
-
-
-/// Step 4: Add the Next/Previous Controls
-
-
-{/* 🚀 PAGINATION CONTROLS: Only show if there is more than 1 page */}
-{totalPages > 1 && (
-    <El 
-      className="lmn-d-flex lmn-justify-content-between lmn-align-items-center" 
-      style={{ padding: '12px 16px', borderTop: '1px solid #e0e0e0', marginTop: 'auto' }}
+{/* 🚀 Pagination Controls */}
+{reworkInstructions.length > 10 && (
+  <El className="lmn-d-flex lmn-justify-content-between lmn-align-items-center" style={{ padding: '12px 4px 4px 4px', marginTop: '4px' }}>
+    <button
+      disabled={currentPage === 1}
+      onClick={(e) => { 
+        e.stopPropagation(); 
+        setCurrentPage(prev => Math.max(prev - 1, 1)); 
+      }}
+      style={{
+        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+        opacity: currentPage === 1 ? 0.5 : 1,
+        fontSize: '11px',
+        padding: '4px 8px',
+        border: '1px solid #ccc',
+        borderRadius: '3px',
+        background: '#fff',
+        color: '#333'
+      }}
     >
-      <button
-        disabled={currentPage === 1}
-        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-        style={{ 
-          cursor: currentPage === 1 ? 'not-allowed' : 'pointer', 
-          opacity: currentPage === 1 ? 0.5 : 1,
-          fontSize: '11px', 
-          padding: '4px 8px',
-          border: '1px solid #ccc',
-          borderRadius: '3px',
-          background: '#fff'
-        }}
-      >
-        Previous
-      </button>
-      
-      <span style={{ fontSize: '11px', fontWeight: 600 }}>
-        Page {currentPage} of {totalPages}
-      </span>
-      
-      <button
-        disabled={currentPage === totalPages}
-        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-        style={{ 
-          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', 
-          opacity: currentPage === totalPages ? 0.5 : 1,
-          fontSize: '11px', 
-          padding: '4px 8px',
-          border: '1px solid #ccc',
-          borderRadius: '3px',
-          background: '#fff'
-        }}
-      >
-        Next
-      </button>
-    </El>
-  )}
-
-  
+      Previous
+    </button>
+    
+    <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--lmn-text-weak, #666)' }}>
+      Page {currentPage} of {Math.ceil(reworkInstructions.length / 10)}
+    </span>
+    
+    <button
+      disabled={currentPage === Math.ceil(reworkInstructions.length / 10)}
+      onClick={(e) => { 
+        e.stopPropagation(); 
+        setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reworkInstructions.length / 10))); 
+      }}
+      style={{
+        cursor: currentPage === Math.ceil(reworkInstructions.length / 10) ? 'not-allowed' : 'pointer',
+        opacity: currentPage === Math.ceil(reworkInstructions.length / 10) ? 0.5 : 1,
+        fontSize: '11px',
+        padding: '4px 8px',
+        border: '1px solid #ccc',
+        borderRadius: '3px',
+        background: '#fff',
+        color: '#333'
+      }}
+    >
+      Next
+    </button>
+  </El>
+)}
