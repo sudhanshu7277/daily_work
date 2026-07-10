@@ -1,80 +1,35 @@
-// ApprovalQueuePage.tsx
+const [assigneeFilter, setAssigneeFilter] = useState<string[]>([]);
 
-const [countryFilter, setCountryFilter] = useState<string[]>([]); 
-const [sourceFilter, setSourceFilter] = useState<string[]>([]);
-
-
-{/* --- COUNTRY MULTI-SELECT --- */}
 <El style={{ flex: '1', minWidth: '110px' }} className="lmn-d-flex lmn-flex-column lmn-form-group lmn-mb-0">
   <El tag="label" className="lmn-form-label" style={{ fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>
-    Country
+    Assignee
   </El>
   {/* 🚀 Wrapper for relative positioning */}
   <El style={{ position: 'relative', width: '100%' }}>
     <Dropdown
       multiple
-      value={countryFilter}
-      onChange={(val: any) => { setCountryFilter(Array.isArray(val) ? val : [String(val)]); }}
+      value={assigneeFilter}
+      onChange={(val: any) => { setAssigneeFilter(Array.isArray(val) ? val : [String(val)]); }}
       placeholder="Any"
       style={{ width: '100%' }}
     >
-      {/* 🚀 Removed the hardcoded "__any__" item since an empty array handles this naturally */}
-      {countryOptions.map((countryOption) => (
-        <Dropdown.Item key={countryOption.key} value={countryOption.key}>
-          {countryOption.value}
+      {/* 🚀 Removed the hardcoded "__any__" item and the custom label prop */}
+      {userOptions.map((opt) => (
+        <Dropdown.Item key={opt.value} value={opt.value}>
+          {opt.label}
         </Dropdown.Item>
       ))}
     </Dropdown>
     
     {/* 🚀 Dynamic clear icon */}
-    {countryFilter.length > 0 && (
+    {assigneeFilter.length > 0 && (
       <Icon 
         type="close" 
         style={{ position: 'absolute', right: '26px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#999', zIndex: 10, padding: '4px' }} 
-        onClick={(e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); setCountryFilter([]); }}
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); setAssigneeFilter([]); }}
       />
     )}
   </El>
 </El>
 
-{/* --- SOURCE MULTI-SELECT --- */}
-<El style={{ flex: '1', minWidth: '110px' }} className="lmn-d-flex lmn-flex-column lmn-form-group lmn-mb-0">
-  <El tag="label" className="lmn-form-label" style={{ fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>
-    Source
-  </El>
-  <El style={{ position: 'relative', width: '100%' }}>
-    <Dropdown
-      multiple
-      value={sourceFilter}
-      onChange={(val: any) => { setSourceFilter(Array.isArray(val) ? val : [String(val)]); }}
-      placeholder="Any"
-      style={{ width: '100%' }}
-    >
-      {sourceOptions.map((sourceOption) => (
-        <Dropdown.Item key={sourceOption.key} value={sourceOption.key}>
-          {sourceOption.value}
-        </Dropdown.Item>
-      ))}
-    </Dropdown>
-
-    {sourceFilter.length > 0 && (
-      <Icon 
-        type="close" 
-        style={{ position: 'absolute', right: '26px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#999', zIndex: 10, padding: '4px' }} 
-        onClick={(e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); setSourceFilter([]); }}
-      />
-    )}
-  </El>
-</El>
-
-
-//latest error fix
-
-const countsRes = await getApprovalQueueCounts({
-    instructionType: instructionTypeParam,
-    // 🚀 FIX: Check length, and join the array into a comma-separated string
-    ...(sourceFilter && sourceFilter.length > 0 ? { instructionSource: sourceFilter.join(',') } : {}),
-    ...(countryFilter && countryFilter.length > 0 ? { country: countryFilter.join(',') } : {}),
-  });
-
-
+...(assigneeFilter && assigneeFilter.length > 0 ? { assignee: assigneeFilter.join(',') } : {}),
