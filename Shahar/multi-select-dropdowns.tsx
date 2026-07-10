@@ -68,4 +68,13 @@ const [sourceFilter, setSourceFilter] = useState<string[]>([]);
 </El>
 
 
+//latest error fix
+
+const countsRes = await getApprovalQueueCounts({
+    instructionType: instructionTypeParam,
+    // 🚀 FIX: Check length, and join the array into a comma-separated string
+    ...(sourceFilter && sourceFilter.length > 0 ? { instructionSource: sourceFilter.join(',') } : {}),
+    ...(countryFilter && countryFilter.length > 0 ? { country: countryFilter.join(',') } : {}),
+  });
+
 
