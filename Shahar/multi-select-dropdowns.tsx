@@ -49,3 +49,29 @@ const [overdueSourceFilter, setOverdueSourceFilter] = useState<string[]>([]);
 
 // Example downstream filter logic check:
 const matchesSource = overdueSourceFilter.length === 0 || overdueSourceFilter.includes(item.source);
+
+
+// 1. ASSIGNEE
+if (overdueAssigneeFilter && overdueAssigneeFilter.length > 0) {
+    data = data.filter(i => overdueAssigneeFilter.includes(i.primaryAssignee || ''));
+  }
+  
+  // 2. SOURCE
+  if (overdueSourceFilter && overdueSourceFilter.length > 0) {
+    data = data.filter(i => overdueSourceFilter.includes(i.instructionSourceDisplay || ''));
+  }
+  
+  // 3. STATUS
+  if (overdueStatusFilter && overdueStatusFilter.length > 0) {
+    data = data.filter(i => overdueStatusFilter.includes(i.status || ''));
+  }
+  
+  // 4. CLIENT
+  if (overdueClientFilter && overdueClientFilter.length > 0) {
+    data = data.filter(i => overdueClientFilter.includes(i.clientName || ''));
+  }
+  
+  // 5. COUNTRY
+  if (overdueCountryFilter && overdueCountryFilter.length > 0) {
+    data = data.filter(i => overdueCountryFilter.includes(i.countryDisplay || i.country || ''));
+  }
