@@ -32,4 +32,8 @@ const [assigneeFilter, setAssigneeFilter] = useState<string[]>([]);
   </El>
 </El>
 
-...(assigneeFilter && assigneeFilter.length > 0 ? { assignee: assigneeFilter.join(',') } : {}),
+// Replace lines 308 to 310 with this array-safe version:
+
+if (assigneeFilter && assigneeFilter.length > 0) {
+    result = result.filter(i => assigneeFilter.includes(i.primaryAssignee || ''));
+  }
