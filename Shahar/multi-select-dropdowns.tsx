@@ -123,3 +123,107 @@ if (overdueAssigneeFilter && overdueAssigneeFilter.length > 0) {
   if (overdueCountryFilter && overdueCountryFilter.length > 0) {
     data = data.filter(i => overdueCountryFilter.includes(i.countryDisplay || i.country || ''));
   }
+
+
+
+  // latest logic
+
+
+  // --- STATUS FILTER ---
+if (overdueStatusFilter && overdueStatusFilter.length > 0) {
+    data = data.filter(i => overdueStatusFilter.includes(i.status || ''));
+  }
+  
+  // --- CLIENT FILTER ---
+  if (overdueClientFilter && overdueClientFilter.length > 0) {
+    data = data.filter(i => overdueClientFilter.includes(i.clientName || ''));
+  }
+  
+  // --- COUNTRY FILTER ---
+  if (overdueCountryFilter && overdueCountryFilter.length > 0) {
+    data = data.filter(i => overdueCountryFilter.includes(i.countryDisplay || i.country || ''));
+  }
+
+
+  // html
+
+  {/* --- STATUS MULTI-SELECT --- */}
+<El className="lmn-d-flex lmn-flex-column">
+  <El tag="label" style={{ fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Status</El>
+  <El style={{ position: 'relative', width: 160 }}>
+    <Dropdown 
+      multiple 
+      value={overdueStatusFilter} 
+      onChange={(v: any) => setOverdueStatusFilter(Array.isArray(v) ? v : [String(v)])} 
+      placeholder="All" 
+      style={{ width: '100%' }} 
+      size="sm"
+    >
+      {/* Keeping your custom formatting for Status text intact */}
+      {overdueStatusOptions.map(o => (
+        <Dropdown.Item key={o} value={o}>
+          {o.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+        </Dropdown.Item>
+      ))}
+    </Dropdown>
+    {overdueStatusFilter.length > 0 && (
+      <Icon 
+        type="close" 
+        style={{ position: 'absolute', right: '26px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#999', zIndex: 10, padding: '4px' }} 
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); setOverdueStatusFilter([]); }}
+      />
+    )}
+  </El>
+</El>
+
+{/* --- CLIENT MULTI-SELECT --- */}
+<El className="lmn-d-flex lmn-flex-column">
+  <El tag="label" style={{ fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Client</El>
+  <El style={{ position: 'relative', width: 140 }}>
+    <Dropdown 
+      multiple 
+      value={overdueClientFilter} 
+      onChange={(v: any) => setOverdueClientFilter(Array.isArray(v) ? v : [String(v)])} 
+      placeholder="All" 
+      style={{ width: '100%' }} 
+      size="sm"
+    >
+      {overdueClientOptions.map(o => (
+        <Dropdown.Item key={o} value={o}>{o}</Dropdown.Item>
+      ))}
+    </Dropdown>
+    {overdueClientFilter.length > 0 && (
+      <Icon 
+        type="close" 
+        style={{ position: 'absolute', right: '26px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#999', zIndex: 10, padding: '4px' }} 
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); setOverdueClientFilter([]); }}
+      />
+    )}
+  </El>
+</El>
+
+{/* --- COUNTRY MULTI-SELECT --- */}
+<El className="lmn-d-flex lmn-flex-column">
+  <El tag="label" style={{ fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Country</El>
+  <El style={{ position: 'relative', width: 120 }}>
+    <Dropdown 
+      multiple 
+      value={overdueCountryFilter} 
+      onChange={(v: any) => setOverdueCountryFilter(Array.isArray(v) ? v : [String(v)])} 
+      placeholder="All" 
+      style={{ width: '100%' }} 
+      size="sm"
+    >
+      {overdueCountryOptions.map(o => (
+        <Dropdown.Item key={o} value={o}>{o}</Dropdown.Item>
+      ))}
+    </Dropdown>
+    {overdueCountryFilter.length > 0 && (
+      <Icon 
+        type="close" 
+        style={{ position: 'absolute', right: '26px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#999', zIndex: 10, padding: '4px' }} 
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); setOverdueCountryFilter([]); }}
+      />
+    )}
+  </El>
+</El>
