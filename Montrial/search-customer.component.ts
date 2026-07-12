@@ -194,3 +194,77 @@ filterPhoneCharacters(event: KeyboardEvent): void {
     </small>
   }
 </div>
+
+
+//Step 1: Update the Forms Group & updateValidators (TypeScript)
+//We will use the regex pattern ^[a-zA-Z\s\-'\p{L}]+$ (or a simpler standard character pattern /^([^0-9]*)$/ which explicitly catches and invalidates any digit strings).
+//  Let's use an explicit non-digit validation rule.
+
+// 1. Update the initial configuration in ngOnInit():
+
+this.searchForm = this.fb.group({
+    customerType: ['Individual'],
+    lastName: ['', [Validators.required, Validators.maxLength(30), Validators.pattern(/^([^0-9]*)$/)]], 🟢
+    middleName: ['', [Validators.maxLength(30)]],
+    firstName: ['', [Validators.required, Validators.maxLength(30), Validators.pattern(/^([^0-9]*)$/)]], 🟢
+    // ... rest of your form fields stay exactly the same
+
+
+    // 2. Update the dynamic rules inside your updateValidators() method:
+//Make sure that when switching back and forth between "Individual" and "Entity", 
+// the pattern validation stays appended when rebuilding validators:
+
+if (type === 'Individual') {
+    console.log('checking if we are landing in this block ....');
+    last?.setValidators([Validators.required, Validators.maxLength(30), Validators.pattern(/^([^0-9]*)$/)]); 🟢
+    first?.setValidators([Validators.required, Validators.maxLength(30), Validators.pattern(/^([^0-9]*)$/)]); 🟢
+    // ... rest of the individual block configuration
+}
+
+
+// Step 2: Add the Visual Error Elements to the Layout (HTML)
+//Now, let's update your template layout structure to display the exact error 
+// text matching your configuration. Locate the lastName and firstName fields 
+// inside search-customer.component.html:
+
+// For lastName (Around lines 14–20):
+
+<div class="form-field-group">
+  <label class="input-label">
+    {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
+  </label>
+  <input class="last-name"
+         [class.input-error]="searchForm.get('lastName')?.invalid && searchForm.get('lastName')?.touched"
+         type="text"
+         formControlName="lastName"
+         [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate" />
+  
+  <!-- Maxlength Error -->
+  @if (searchForm.get('lastName')?.hasError('maxlength')) {
+    <small class="error-text">{{searchCustomerVerbiage.lastNameError | translate}}</small>
+  }
+  
+  <!-- 🟢 Digit/Number Error Message Block -->
+  @if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.touched) {
+    <small class="error-text">Invalid characters entered in First/Last Name.</small>
+  }
+</div>
+
+/// For firstName:
+//Apply the exact same conditional block directly beneath your first 
+// name template element:
+
+<div class="form-field-group">
+  <!-- Your first name layout elements -->
+  <input class="first-name"
+         [class.input-error]="searchForm.get('firstName')?.invalid && searchForm.get('firstName')?.touched"
+         type="text"
+         formControlName="firstName" />
+
+  <!-- 🟢 Digit/Number Error Message Block -->
+  @if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.touched) {
+    <small class="error-text">Invalid characters entered in First/Last Name.</small>
+  }
+</div>
+
+
