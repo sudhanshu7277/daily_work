@@ -334,3 +334,44 @@ if (type === 'Individual') {
           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 </span>
+
+// ts code
+//Step 1: Initialize the Default State
+//Ensure that your state signals (or properties) are initialized to 
+//start with an ascending direction by default when the page lands:
+// Ensure your initial setup defaults to 'asc' instead of an empty string or null
+
+sortColumn = signal<SortColumn>('uploadDate'); // Or whichever your default column is
+sortDirection = signal<string>('asc');
+
+// Step 2: Update onSort and getSortIcon
+//Replace your existing onSort and getSortIcon methods with this updated version:
+
+// 🟢 Handles the toggle clicking state machine
+onSort(column: SortColumn): void {
+    if (this.sortColumn() === column) {
+      // If clicking the SAME column: Alternate strictly between 'desc' and 'asc'
+      const nextDirection = this.sortDirection() === 'asc' ? 'desc' : 'asc';
+      this.sortDirection.set(nextDirection);
+    } else {
+      // If clicking a NEW column: Set it as the active column and default its order to 'asc'
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+
+    // Trigger your existing data sorting array engine
+    this.applySortAndPaginate();
+  }
+
+  // 🟢 Returns the current active direction string used by your template HTML attributes
+  getSortIcon(column: SortColumn): string {
+    // If this column is the one currently being sorted, return its active direction ('asc' or 'desc')
+    if (this.sortColumn() === column) {
+      return this.sortDirection();
+    }
+    
+    // If it's an unsorted column, return 'none' or a default state so paths don't highlight gray/blue
+    return 'none';
+  }
+
+
