@@ -19,15 +19,13 @@ ngOnInit(): void {
       manager: ['']
     });
 
-    // 🟢 UPDATED: Integrated reset logic cleanly inside your existing subscription
+    // 🟢 FIXED: Removed the broken .pipe() typo 
     this.searchForm.get('customerType')?.valueChanges.subscribe((value: string) => {
       // 1. Run your existing custom dynamic validation swapping logic
       this.updateValidators(value);
 
       // 2. Clear out all advanced search input choices across layout toggles
-      this.searchForm.pipe(
-        // Use a quiet patch value to prevent infinite event circular loops
-      ).patchValue({
+      this.searchForm.patchValue({
         streetName: '',
         streetNumber: '',
         unitNumber: '',
@@ -40,7 +38,7 @@ ngOnInit(): void {
         manager: '',
         country: 'Canada', // Reset back to default template selection state
         province: ''
-      }, { emitEvent: false });
+      }, { emitEvent: false }); // Quietly update values without circular loops
 
       // 3. Reset type-specific fields so old data won't persist into the payload
       if (value === 'entity') {
