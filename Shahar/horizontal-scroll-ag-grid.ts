@@ -48,3 +48,9 @@ private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) =>
     height: 14px !important;
   }
 
+  // check and change
+
+  .grid-section {
+    overflow-x: auto;   // change from overflow: hidden
+  }
+
