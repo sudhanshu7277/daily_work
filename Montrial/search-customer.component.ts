@@ -54,3 +54,21 @@ ngOnInit(): void {
     this.canadianProvinceList = this.countryProvinceService.canadianProvinceListUtility();
     this.usaStatesList = this.countryProvinceService.usaStatesListUtility();
   }
+
+  ///// on clear
+
+  onClear(): void {
+    // 1. Capture the currently selected tab type ('Individual' or 'entity')
+    const currentCustomerType = this.searchForm.get('customerType')?.value || 'Individual';
+
+    // 2. Pass the captured tab selection dynamically into the form reset layout
+    this.searchForm.reset({ 
+      customerType: currentCustomerType, 
+      country: 'Canada' 
+    });
+
+    // 3. Keep your existing supporting state resets completely unchanged
+    this.formattedDateDisplay = '';
+    this.isDatePickerActive = false;
+    this.searchTriggered.emit('');
+  }
