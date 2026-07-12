@@ -269,24 +269,54 @@ if (type === 'Individual') {
 
 // fixing first name and last name error handling
 
-<!-- Maxlength Error takes high priority -->
-  @if (searchForm.get('lastName')?.hasError('maxlength')) {
-    <small class="error-text">{{searchCustomerVerbiage.lastNameError | translate}}</small>
-  }
-  <!-- Only check pattern violation if length is valid -->
-  @else if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.touched) {
-    <small class="error-text">Invalid characters entered in First/Last Name.</small>
-  }
+// 1. For Last Name
 
-  // first name
+<div class="form-field-group">
+  <label class="input-label">
+    {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
+  </label>
+  <input class="last-name"
+         [class.input-error]="searchForm.get('lastName')?.invalid && searchForm.get('lastName')?.touched"
+         type="text"
+         formControlName="lastName"
+         [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate" />
+  
+  <!-- 🟢 Flexbox column container prevents text overlapping -->
+  <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+    <!-- First Line: Pattern Error Message -->
+    @if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.touched) {
+      <small class="error-text" style="display: block; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
+    }
+    
+    <!-- Second Line: Maxlength Error Message -->
+    @if (searchForm.get('lastName')?.hasError('maxlength')) {
+      <small class="error-text" style="display: block; line-height: 1.2;">{{searchCustomerVerbiage.lastNameError | translate}}</small>
+    }
+  </div>
+</div>
 
-  <!-- Maxlength Error takes high priority -->
-  @if (searchForm.get('firstName')?.hasError('maxlength')) {
-    <small class="error-text">{{searchCustomerVerbiage.firstNameError | translate}}</small>
-  }
-  <!-- Only check pattern violation if length is valid -->
-  @else if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.touched) {
-    <small class="error-text">Invalid characters entered in First/Last Name.</small>
-  }
+// 2. For First Name
 
+<div class="form-field-group">
+  <label class="input-label">
+    {{searchCustomerVerbiage.firstName | translate}} <span class="required-star">*</span>
+  </label>
+  <input class="first-name"
+         [class.input-error]="searchForm.get('firstName')?.invalid && searchForm.get('firstName')?.touched"
+         type="text"
+         formControlName="firstName"
+         [placeholder]="searchCustomerVerbiage.firstNamePlaceholder | translate" />
 
+  <!-- 🟢 Flexbox column container prevents text overlapping -->
+  <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+    <!-- First Line: Pattern Error Message -->
+    @if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.touched) {
+      <small class="error-text" style="display: block; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
+    }
+    
+    <!-- Second Line: Maxlength Error Message -->
+    @if (searchForm.get('firstName')?.hasError('maxlength')) {
+      <small class="error-text" style="display: block; line-height: 1.2;">{{searchCustomerVerbiage.firstNameError | translate}}</small>
+    }
+  </div>
+</div>
