@@ -275,44 +275,40 @@ if (type === 'Individual') {
     {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
   </label>
   <input class="last-name"
-         [class.input-error]="searchForm.get('lastName')?.invalid && searchForm.get('lastName')?.touched"
+         [class.input-error]="searchForm.get('lastName')?.invalid && (searchForm.get('lastName')?.touched || searchForm.get('lastName')?.dirty)"
          type="text"
          formControlName="lastName"
          [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate" />
 
-  <!-- 🟢 Clean Flexbox block container with position overrides -->
   <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
-    <!-- First Line: Pattern Error Message -->
-    @if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.touched) {
+    <!-- 🟢 CHANGED: Uses .dirty for instant character typing detection -->
+    @if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.dirty) {
       <small class="error-text" style="display: block; position: relative; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
     }
     
-    <!-- Second Line: Maxlength Error Message -->
     @if (searchForm.get('lastName')?.hasError('maxlength')) {
       <small class="error-text" style="display: block; position: relative; line-height: 1.2;">{{searchCustomerVerbiage.lastNameError | translate}}</small>
     }
   </div>
 </div>
 
-// 2. For First Name
+// 2. Update for First Name
 <div class="form-field-group">
   <label class="input-label">
     {{searchCustomerVerbiage.firstName | translate}} <span class="required-star">*</span>
   </label>
   <input class="first-name"
-         [class.input-error]="searchForm.get('firstName')?.invalid && searchForm.get('firstName')?.touched"
+         [class.input-error]="searchForm.get('firstName')?.invalid && (searchForm.get('firstName')?.touched || searchForm.get('firstName')?.dirty)"
          type="text"
          formControlName="firstName"
          [placeholder]="searchCustomerVerbiage.firstNamePlaceholder | translate" />
 
-  <!-- 🟢 Clean Flexbox block container with position overrides to prevent overlaps -->
   <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
-    <!-- First Line: Pattern Error Message -->
-    @if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.touched) {
+    <!-- 🟢 CHANGED: Uses .dirty for instant character typing detection -->
+    @if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.dirty) {
       <small class="error-text" style="display: block; position: relative; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
     }
     
-    <!-- Second Line: Maxlength Error Message -->
     @if (searchForm.get('firstName')?.hasError('maxlength')) {
       <small class="error-text" style="display: block; position: relative; line-height: 1.2;">{{searchCustomerVerbiage.firstNameError | translate}}</small>
     }
