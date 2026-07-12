@@ -267,4 +267,26 @@ if (type === 'Individual') {
   }
 </div>
 
+// fixing first name and last name error handling
+
+<!-- Maxlength Error takes high priority -->
+  @if (searchForm.get('lastName')?.hasError('maxlength')) {
+    <small class="error-text">{{searchCustomerVerbiage.lastNameError | translate}}</small>
+  }
+  <!-- Only check pattern violation if length is valid -->
+  @else if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.touched) {
+    <small class="error-text">Invalid characters entered in First/Last Name.</small>
+  }
+
+  // first name
+
+  <!-- Maxlength Error takes high priority -->
+  @if (searchForm.get('firstName')?.hasError('maxlength')) {
+    <small class="error-text">{{searchCustomerVerbiage.firstNameError | translate}}</small>
+  }
+  <!-- Only check pattern violation if length is valid -->
+  @else if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.touched) {
+    <small class="error-text">Invalid characters entered in First/Last Name.</small>
+  }
+
 
