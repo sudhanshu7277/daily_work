@@ -270,7 +270,6 @@ if (type === 'Individual') {
 // fixing first name and last name error handling
 
 // 1. For Last Name
-
 <div class="form-field-group">
   <label class="input-label">
     {{searchCustomerVerbiage.lastName | translate}} <span class="required-star">*</span>
@@ -280,23 +279,22 @@ if (type === 'Individual') {
          type="text"
          formControlName="lastName"
          [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate" />
-  
-  <!-- 🟢 Flexbox column container prevents text overlapping -->
+
+  <!-- 🟢 Clean Flexbox block container with position overrides -->
   <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
     <!-- First Line: Pattern Error Message -->
     @if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.touched) {
-      <small class="error-text" style="display: block; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
+      <small class="error-text" style="display: block; position: relative; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
     }
     
     <!-- Second Line: Maxlength Error Message -->
     @if (searchForm.get('lastName')?.hasError('maxlength')) {
-      <small class="error-text" style="display: block; line-height: 1.2;">{{searchCustomerVerbiage.lastNameError | translate}}</small>
+      <small class="error-text" style="display: block; position: relative; line-height: 1.2;">{{searchCustomerVerbiage.lastNameError | translate}}</small>
     }
   </div>
 </div>
 
 // 2. For First Name
-
 <div class="form-field-group">
   <label class="input-label">
     {{searchCustomerVerbiage.firstName | translate}} <span class="required-star">*</span>
@@ -307,16 +305,16 @@ if (type === 'Individual') {
          formControlName="firstName"
          [placeholder]="searchCustomerVerbiage.firstNamePlaceholder | translate" />
 
-  <!-- 🟢 Flexbox column container prevents text overlapping -->
+  <!-- 🟢 Clean Flexbox block container with position overrides to prevent overlaps -->
   <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
     <!-- First Line: Pattern Error Message -->
     @if (searchForm.get('firstName')?.hasError('pattern') && searchForm.get('firstName')?.touched) {
-      <small class="error-text" style="display: block; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
+      <small class="error-text" style="display: block; position: relative; line-height: 1.2;">Invalid characters entered in First/Last Name.</small>
     }
     
     <!-- Second Line: Maxlength Error Message -->
     @if (searchForm.get('firstName')?.hasError('maxlength')) {
-      <small class="error-text" style="display: block; line-height: 1.2;">{{searchCustomerVerbiage.firstNameError | translate}}</small>
+      <small class="error-text" style="display: block; position: relative; line-height: 1.2;">{{searchCustomerVerbiage.firstNameError | translate}}</small>
     }
   </div>
 </div>
