@@ -72,3 +72,41 @@ ngOnInit(): void {
     this.isDatePickerActive = false;
     this.searchTriggered.emit('');
   }
+
+
+  // phone number entry
+
+  // 🟢 Update line 145 to use this precise pattern:
+phoneNumber: ['', [Validators.pattern("^\\+?[1-9]\\d{10,12}$")]],
+
+//
+
+<div class="form-field-group">
+  <label>{{searchCustomerVerbiage.phone | translate}}</label>
+  <input 
+    class="advanced-inputs" 
+    type="text" 
+    formControlName="phoneNumber" 
+    placeholder="+14165551234"
+    maxlength="14"
+    (keydown)="filterPhoneCharacters($event)" 🟢 <!-- Added hardware interceptor -->
+  />
+</div>
+
+// 
+
+filterPhoneCharacters(event: KeyboardEvent): void {
+    // 1. Allow functional navigation and modification keys
+    const functionalKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'];
+    if (functionalKeys.includes(event.key)) {
+      return;
+    }
+
+    // 2. Allow numbers (0-9) and the plus sign (+)
+    const allowedPhoneRegex = /^[0-9+]$/;
+
+    // 3. Prevent anything else from rendering in the field
+    if (!allowedPhoneRegex.test(event.key)) {
+      event.preventDefault();
+    }
+  }
