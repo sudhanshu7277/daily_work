@@ -314,3 +314,23 @@ if (type === 'Individual') {
     }
   </div>
 </div>
+
+
+// The Clean SVG Fix
+//Open your component HTML template file and swap the old 
+// triangle-based SVG structures inside your <th> elements with this 
+// dual-arrow configuration:
+
+
+<span class="sort-icon" [attr.data-dir]="getSortIcon(column: 'profileName')">
+  <!-- 🟢 Fixed: Dual-arrow path structure matching the target layout -->
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-left: 6px;">
+    <!-- Up Arrow (Left Side) -->
+    <path class="sort-asc" d="M7 20V4M7 4L3 8M7 4L11 8" 
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Down Arrow (Right Side) -->
+    <path class="sort-desc" d="M17 4V20M17 20L13 16M17 20L21 16" 
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</span>
