@@ -110,3 +110,87 @@ filterPhoneCharacters(event: KeyboardEvent): void {
       event.preventDefault();
     }
   }
+
+
+  // updateValidators function
+
+
+  private updateValidators(type: string): void {
+    const last = this.searchForm.get('lastName');
+    const first = this.searchForm.get('firstName');
+    const middle = this.searchForm.get('middleName');
+    const streetName = this.searchForm.get('streetName');
+    const streetNumber = this.searchForm.get('streetNumber');
+    const unitNumber = this.searchForm.get('unitNumber');
+    const city = this.searchForm.get('city');
+    const entity = this.searchForm.get('entityTradeName');
+    const dob = this.searchForm.get('dateOfBirth');
+    const postalCode = this.searchForm.get('postalCode');
+    
+    // 1. Grab references for our optional formatted fields
+    const phone = this.searchForm.get('phoneNumber');
+    const email = this.searchForm.get('emailAddress');
+
+    if (type === 'Individual') {
+      console.log('checking if we are landing in this block ....');
+      last?.setValidators([Validators.required, Validators.maxLength(30)]);
+      first?.setValidators([Validators.required, Validators.maxLength(30)]);
+      middle?.setValidators([Validators.maxLength(30)]);
+      streetName?.setValidators([Validators.maxLength(40)]);
+      streetNumber?.setValidators([Validators.maxLength(40)]);
+      unitNumber?.setValidators([Validators.maxLength(40)]);
+      city?.setValidators([Validators.maxLength(40)]);
+      postalCode?.setValidators([Validators.maxLength(7)]);
+      
+      entity?.clearValidators();
+
+      // 2. Set format-only rules for optional fields (No Validators.required)
+      phone?.setValidators([Validators.pattern("^\\+?[1-9]\\d{10,12}$")]);
+      email?.setValidators([Validators.email]);
+
+    } else if (type === 'entity') {
+      // Note: your existing code has a patchValue loop here, keep it intact
+      last?.clearValidators();
+      first?.clearValidators();
+      middle?.clearValidators();
+      streetName?.setValidators([Validators.maxLength(40)]);
+      streetNumber?.setValidators([Validators.maxLength(40)]);
+      unitNumber?.setValidators([Validators.maxLength(40)]);
+      city?.setValidators([Validators.maxLength(40)]);
+      postalCode?.setValidators([Validators.maxLength(7)]);
+      
+      entity?.setValidators([Validators.required, Validators.maxLength(30)]);
+
+      // 3. Keep format rules active for optional fields in entity mode too
+      phone?.setValidators([Validators.pattern("^\\+?[1-9]\\d{10,12}$")]);
+      email?.setValidators([Validators.email]);
+    }
+
+    // 4. Update validity loops at the bottom
+    [
+      last, first, middle, streetName, streetNumber, 
+      unitNumber, city, entity, dob, postalCode, phone, email
+    ].forEach(control => control?.updateValueAndValidity());
+  }
+
+
+  // html below
+
+  <div class="form-field-group">
+  <label>{{searchCustomerVerbiage.email | translate}}</label>
+  <input 
+    class="advanced-inputs" 
+    type="email" 
+    formControlName="emailAddress" 
+    placeholder="example@123mail.com"
+    [class.input-error]="searchForm.get('emailAddress')?.hasError('email') && searchForm.get('emailAddress')?.touched"
+  />
+  
+  <!-- 🟢 Format Error Message block -->
+  @if (searchForm.get('emailAddress')?.hasError('email') && searchForm.get('emailAddress')?.touched) {
+    <small class="error-text">
+      <!-- You can use your direct string or bind it to your translation file structure -->
+      {{ 'Enter a valid email address' }}
+    </small>
+  }
+</div>
