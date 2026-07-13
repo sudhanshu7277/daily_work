@@ -35,18 +35,22 @@ private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) =>
 
   // css to be added to authorization queue component
 
-  .ag-body-horizontal-scroll-viewport {
+
+
+  :host ::ng-deep .ag-body-horizontal-scroll-viewport {
     overflow-x: scroll !important;
   }
   
-  .ag-body-horizontal-scroll {
+  :host ::ng-deep .ag-body-horizontal-scroll {
     height: 14px !important;
     min-height: 14px !important;
   }
   
-  .ag-body-horizontal-scroll-container {
+  :host ::ng-deep .ag-body-horizontal-scroll-container {
     height: 14px !important;
   }
+
+  
 
   // check and change
 
