@@ -96,3 +96,10 @@ private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) =>
       }
     }
   }
+
+  .ag-theme-alpine .ag-body-horizontal-scroll {
+    display: block;
+    height: 14px !important;
+    min-height: 14px !important;
+    overflow-x: auto !important;   // ADD THIS — this is what actually made it appear
+  }
