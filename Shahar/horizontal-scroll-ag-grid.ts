@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'url';
 // dummy data
 
 private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) => ({
@@ -74,5 +75,24 @@ private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) =>
   
     .ag-body-horizontal-scroll-container {
       height: 14px !important;
+    }
+  }
+
+
+  // add to atis scss
+   
+   .ag-theme-alpine .ag-body-horizontal-scroll-viewport {
+    &::-webkit-scrollbar {
+      height: 14px;
+    }
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 7px;
+      &:hover {
+        background: #555;
+      }
     }
   }
