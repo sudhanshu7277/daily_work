@@ -50,7 +50,7 @@ private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) =>
     height: 14px !important;
   }
 
-  
+
 
   // check and change
 
@@ -58,3 +58,21 @@ private mockCheckerData: CheckerDetails[] = Array.from({ length: 15 }, (_, i) =>
     overflow-x: auto;   // change from overflow: hidden
   }
 
+
+  // atis scss
+
+  .ag-theme-alpine {
+    .ag-body-horizontal-scroll {
+      display: block;
+      height: 14px !important;
+      min-height: 14px !important;
+    }
+  
+    .ag-body-horizontal-scroll-viewport {
+      overflow-x: scroll !important;
+    }
+  
+    .ag-body-horizontal-scroll-container {
+      height: 14px !important;
+    }
+  }
