@@ -71,3 +71,40 @@ filterOptions = [
   // 🟢 Safely read the field name, defaulting to an empty string if undefined
 const fieldName = col.field || '';
 const filterId = dynamicColumnsMap[fieldName];
+
+
+// Step 1: Define the Mandatory Column IDs
+
+// Columns that are always selected, always visible, and can never be unchecked
+readonly mandatoryColumnIds = [
+    'profileName',
+    'ocifId',
+    'status',
+    'holdName',
+    'lifecycle',
+    'role',
+    'address'
+  ];
+
+  // Step 2: Initialize selectedFilterIds on Component Load
+
+  // 🟢 Update your initial state configuration:
+this.selectedFilterIds = [...this.mandatoryColumnIds];
+
+// Step 3: Update your resetFilters() Function
+
+resetFilters(): void {
+    // 🟢 Set the selection strictly back to the 7 default mandatory columns
+    this.selectedFilterIds = [...this.mandatoryColumnIds];
+    
+    // Sync columns to hide the 4 dynamic columns on the AG-Grid
+    this.syncColumns();
+  }
+
+
+// Step 4: Keep disableOptionsAndChips Clean
+
+disableOptionsAndChips(id: string): boolean {
+    // Returns true (disabled/gray) if it belongs to the 7 mandatory items
+    return this.mandatoryColumnIds.includes(id);
+  }
