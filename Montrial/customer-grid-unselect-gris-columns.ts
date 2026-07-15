@@ -65,3 +65,9 @@ filterOptions = [
       this.gridApi.setGridOption('columnDefs', this.columnDefs);
     }
   }
+
+  // line 442
+
+  // 🟢 Safely read the field name, defaulting to an empty string if undefined
+const fieldName = col.field || '';
+const filterId = dynamicColumnsMap[fieldName];
