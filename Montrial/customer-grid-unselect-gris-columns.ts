@@ -74,7 +74,6 @@ const filterId = dynamicColumnsMap[fieldName];
 
 
 // Step 1: Define the Mandatory Column IDs
-
 // Columns that are always selected, always visible, and can never be unchecked
 readonly mandatoryColumnIds = [
     'profileName',
@@ -86,23 +85,36 @@ readonly mandatoryColumnIds = [
     'address'
   ];
 
-  // Step 2: Initialize selectedFilterIds on Component Load
+  // Step 2: Update the Constructor Setup
+//Currently, on line 315 of image_38.png, you have:
 
-  // 🟢 Update your initial state configuration:
+this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
+
+// This is what automatically selects all 11 columns on load.
+
+//Replace that line with:
+
+// 🟢 Set only the 7 mandatory columns as selected on load
 this.selectedFilterIds = [...this.mandatoryColumnIds];
 
-// Step 3: Update your resetFilters() Function
+// Step 3: Run syncColumns() inside ngOnChanges
 
-resetFilters(): void {
-    // 🟢 Set the selection strictly back to the 7 default mandatory columns
-    this.selectedFilterIds = [...this.mandatoryColumnIds];
-    
-    // Sync columns to hide the 4 dynamic columns on the AG-Grid
-    this.syncColumns();
+ngOnChanges(changes: SimpleChanges): void {
+    if (changes['customerGridData'] && this.customerGridData && this.customerGridData.length) {
+      this.isLoading = true;
+      this.loadError = false;
+      console.log('CHECKING OLD RESPONSE : ');
+      console.log(this.customerGridData);
+      
+      this.handleResponse(this.mapApiResponse(this.customerGridData));
+      
+      // 🟢 Force AG-Grid to apply the default column visibility immediately
+      this.syncColumns();
+    }
   }
 
-
-// Step 4: Keep disableOptionsAndChips Clean
+  // Step 4: Keep disableOptionsAndChips Clean
+// Use the class property array to keep your layout disabling logic completely aligned:
 
 disableOptionsAndChips(id: string): boolean {
     // Returns true (disabled/gray) if it belongs to the 7 mandatory items
