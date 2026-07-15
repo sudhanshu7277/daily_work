@@ -1,60 +1,66 @@
-// Step 1: Update the TS Method Controlling the Gray "Disabled" State
-//Open customer-search-grid.component.ts and locate the disableOptionsAndChips(id: string) helper method.
+// 1. Fix the ID Typos in Your Code First
 
-//By default, it is likely checking if the column ID is not 'eDiscoveryProjectManager'. You need to update this function to return false (meaning "do not disable/lock") for your three new fields:
+filterOptions = [
+    { id: 'profileName', label: 'Profile Name' },
+    { id: 'ocifId', label: 'Proxy OCIF ID' },
+    { id: 'status', label: 'Legal Hold Status' },
+    { id: 'holdName', label: 'Legal Hold Name' },
+    { id: 'lifecycle', label: 'Customer Lifecycle Status' },
+    { id: 'role', label: 'Role Type' },
+    { id: 'address', label: 'Address' },
+    // 🟢 FIXED SPACING & TYPOS HERE:
+    { id: 'eDiscoveryProjectManager', label: 'eDiscovery Project Manager' },
+    { id: 'responsibleLawyerEmail', label: 'Responsible Lawyer Email' },
+    { id: 'legalHoldAppliedDate', label: 'Legal Hold Applied Date' },
+    { id: 'legalHoldReleaseDate', label: 'Legal Hold Release Date' }
+  ];
 
-// 🟢 Update this method to allow the 3 new columns to be selectable/removable
-disableOptionsAndChips(id: string): boolean {
-    // Add your target IDs to the list of columns that should NOT be disabled
-    const removableColumnIds = [
-      'eDiscoveryProjectManager',
-      'responsibleLawyerEmail',
-      'legalHoldAppliedDate',
-      'legalHoldReleaseDate'
+  // 2. The Clean disableOptionsAndChips Function
+
+  disableOptionsAndChips(id: string): boolean {
+    // Columns that are mandatory/permanent and CANNOT be unselected (remain gray)
+    const mandatoryColumns = [
+      'profileName', 
+      'ocifId', 
+      'status', 
+      'holdName', 
+      'lifecycle', 
+      'role', 
+      'address'
     ];
   
-    if (removableColumnIds.includes(id)) {
-      return false; // Do not disable (displays blue, removable)
-    }
-  
-    // Fallback default: Lock all other essential columns as gray/disabled
-    return true; 
+    // Return true (disabled/gray) if it's a mandatory column, false (interactive/blue) otherwise
+    return mandatoryColumns.includes(id);
   }
 
+  // 3. Ensure the Grid Columns Show/Hide on Toggle
 
-  // Step 2: Handle Column Definition Visibility on Filter Changes
-
-  // 🟢 Call this method whenever the selected filter IDs change (e.g. onFilterChange / removeFilter)
-applyColumnVisibility(): void {
-    const selectedIds = this.selectedFilterIds; // Your active selected filter IDs array
+  syncColumns(): void {
+    const selectedIds = this.selectedFilterIds;
   
     this.columnDefs = this.columnDefs.map(col => {
-      // If it's one of the removable columns, determine visibility based on selection state
-      if (col.field === 'eDiscoveryProjectManager' || 
-          col.field === 'responsibleLawyerEmail' || 
-          col.field === 'holdApplyDate' || 
-          col.field === 'holdReleaseDate') {
-        
-        // Match the col.field with the respective filter option ID
-        const filterIdMap: { [key: string]: string } = {
-          'eDiscoveryProjectManager': 'eDiscoveryProjectManager',
-          'responsibleLawyerEmail': 'responsibleLawyerEmail',
-          'holdApplyDate': 'legalHoldAppliedDate',
-          'holdReleaseDate': 'legalHoldReleaseDate'
-        };
+      // 1. Identify your toggleable columns
+      const dynamicColumnsMap: { [key: string]: string } = {
+        'eDiscoveryProjectManager': 'eDiscoveryProjectManager',
+        'responsibleLawyerEmail': 'responsibleLawyerEmail',
+        'holdApplyDate': 'legalHoldAppliedDate',     // Maps col field to filter ID
+        'holdReleaseDate': 'legalHoldReleaseDate'    // Maps col field to filter ID
+      };
   
-        const correspondingFilterId = filterIdMap[col.field];
-        const isVisible = selectedIds.includes(correspondingFilterId);
+      const filterId = dynamicColumnsMap[col.field];
   
+      if (filterId) {
+        // If the filter ID is not in the selection array, hide it
         return {
           ...col,
-          hide: !isVisible // Hide the column if its filter chip is not selected
+          hide: !selectedIds.includes(filterId)
         };
       }
+  
       return col;
     });
   
-    // Notify AG-Grid to refresh its column headers and sizes
+    // 2. Notify AG-Grid of the column definition change
     if (this.gridApi) {
       this.gridApi.setGridOption('columnDefs', this.columnDefs);
     }
