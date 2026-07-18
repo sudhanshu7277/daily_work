@@ -128,3 +128,18 @@ isAllColumnsSelected(): boolean {
       }
     }
   }
+
+
+  /* 🟢 FOCUS ONLY ON MANDATORY/DISABLED ROWS */
+.mat-mdc-option:not(.select-all-option) {
+  
+    /* Target the outermost host when it carries the Angular Material disabled flag */
+    &.mat-mdc-option-disabled {
+      
+      /* Drill straight down into the child checkbox canvas container */
+      .mat-pseudo-checkbox-full {
+        background-color: #707070 !important;
+        border-color: #707070 !important;
+      }
+    }
+  }
