@@ -28,24 +28,27 @@ isAllColumnsSelected(): boolean {
       background-color: $bmo-blue !important;
       border-color: $bmo-blue !important;
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
       
       &::after {
+        /* 🟢 FORCE VISIBILITY: Overrides Material's unselected opacity: 0 hidden state */
         content: "" !important;
-        position: absolute !important;
+        opacity: 1 !important;
+        display: block !important;
         
-        /* 🟢 THE FIX: Explicitly nullify the rotation and border layout properties */
+        /* Strip out standard diagonal checkmark rules */
         border: none !important;
         transform: none !important;
         
-        /* Shape the line cleanly */
+        /* Dimensions of the horizontal minus line */
         width: 10px !important;
         height: 2px !important;
         background-color: white !important;
         
-        /* Center it perfectly within the blue container square */
+        /* Absolute crisp positioning directly in the dead center */
+        position: absolute !important;
         top: 50% !important;
         left: 50% !important;
         margin-top: -1px !important;
