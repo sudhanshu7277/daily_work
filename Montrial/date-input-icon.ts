@@ -24,7 +24,8 @@ isAllColumnsSelected(): boolean {
 
 // Step 3: Verify the SCSS Selectors
 
-&.is-indeterminate {
+/* 🟢 FIXED: Changed from &.is-indeterminate to a flat combined class rule */
+.select-all-option.is-indeterminate {
     .mat-pseudo-checkbox {
       background-color: $bmo-blue !important;
       border-color: $bmo-blue !important;
@@ -41,8 +42,8 @@ isAllColumnsSelected(): boolean {
         background-color: white !important;
         border: none !important;
         transform: none !important;
-        top: calc(50% - 1px); /* Centers the horizontal line vertically */
-        left: calc(50% - 5px); /* Centers the horizontal line horizontally */
+        top: calc(50% - 1px);  /* Centers the line vertically */
+        left: calc(50% - 5px); /* Centers the line horizontally */
       }
     }
   }
