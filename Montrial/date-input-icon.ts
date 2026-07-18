@@ -99,3 +99,27 @@ isAllColumnsSelected(): boolean {
       }
     }
   }
+
+
+  ////
+
+
+  /* Target standard toggleable dropdown items when they are active/selected */
+.mat-mdc-option:not(.select-all-option) {
+  
+    /* When the option row is active/selected and NOT disabled */
+    &.mdc-list-item--selected:not(.mat-mdc-option-disabled) {
+      .mat-pseudo-checkbox-full {
+        background-color: $bmo-blue !important;
+        border-color: $bmo-blue !important;
+      }
+    }
+  
+    /* Explicitly maintain the gray locked state for your 7 mandatory options */
+    &.mat-mdc-option-disabled {
+      .mat-pseudo-checkbox-full {
+        background-color: #707070 !important;
+        border-color: #707070 !important;
+      }
+    }
+  }
