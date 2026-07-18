@@ -1,43 +1,55 @@
 ///  scss
 
-// File: customer-search-grid.component.scss
+/* --- Cleaned & Consolidated Date Picker Styles --- */
 
-// 1. Core prerequisite: Ensure parent is relatively positioned
 .date-input-wrapper {
     position: relative;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  
+    .custom-date-input {
+      width: 100%;
+      height: 40px;
+      padding: 0 44px 0 12px; /* Right padding of 44px ensures text never overlaps the icon */
+      border: 1px solid #000000;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: #ffffff;
+      box-sizing: border-box;
+      cursor: pointer;
+  
+      /* Makes the native HTML5 transparent overlay capture clicks across the whole element */
+      &::-webkit-calendar-picker-indicator {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+    }
+  
+    .custom-calendar-icon {
+      position: absolute;
+      right: 14px; /* Perfectly positions the icon cleanly inside the right edge */
+      top: 50%;
+      transform: translateY(-50%);
+      
+      width: 18px;
+      height: 18px;
+      z-index: 2;
+      pointer-events: none; /* Lets clicks pass straight through to the transparent native layer underneath */
+      
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='4' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' x2='16' y1='2' y2='6'%3E%3C/line%3E%3Cline x1='8' x2='8' y1='2' y2='6'%3E%3C/line%3E%3Cline x1='3' x2='21' y1='10' y2='10'%3E%3C/line%3E%3C/svg%3E"); // Re-insert your exact SVG background-image URL string here
+    }
   }
-  
-  // 2. Padding to prevent text overlap
-  .custom-date-input {
-    padding-right: 48px; /* 16px margin + 18px width + ~14px safe extra space */
-  }
-  
-  // 3. New robust positioning for the icon
-  .custom-calendar-icon {
-    position: absolute;
-    right: 16px; /* Distance from the inside-right border of the input box */
-  
-    /* More robust vertical centering */
-    top: 0;
-    bottom: 0;
-    margin: auto 0;
-  
-    width: 18px;
-    height: 18px;
-  
-    /* This allows clicks to pass through to the input field,
-       making the explicit click handler in HTML redundant (fixed in Step 2). */
-    pointer-events: none;
-  
-    z-index: 2;
-  
-    /* Keep all background property changes from the "fix" from image_38.png */
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    background-image: url("data:image/svg+xml,..."); // Keep the original SVG data from image_38.png
-  }
-
   // html
 
   <span class="custom-calendar-icon"></span>
