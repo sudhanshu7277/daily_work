@@ -106,9 +106,11 @@ isAllColumnsSelected(): boolean {
 
   /* Target standard toggleable dropdown items when they are active/selected */
 /* Target standard toggleable dropdown items */
+
+/* Target standard toggleable dropdown items */
 .mat-mdc-option:not(.select-all-option) {
   
-    /* 1. When an OPTIONAL item is clicked and selected -> Make it Blue */
+    /* 1. KEEP: When an OPTIONAL item is selected -> Make it Blue */
     &.mdc-list-item--selected:not(.mat-mdc-option-disabled) {
       .mat-pseudo-checkbox-full {
         background-color: $bmo-blue !important;
@@ -116,11 +118,12 @@ isAllColumnsSelected(): boolean {
       }
     }
   
-    /* 2. Mandatory checkboxes -> Keep your working original state exactly as is */
+    /* 2. 🟢 FIXED/ROLLED BACK: Let mandatory items revert back to their native look */
     &.mat-mdc-option-disabled {
       .mat-pseudo-checkbox-full {
-        background-color: #707070 !important;
-        border-color: #707070 !important;
+        /* Stripping out custom overrides entirely allows them to render exactly as they did before */
+        background-color: unset !important;
+        border-color: unset !important;
       }
     }
   }
