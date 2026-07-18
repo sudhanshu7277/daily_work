@@ -110,7 +110,7 @@ isAllColumnsSelected(): boolean {
 /* Target standard toggleable dropdown items */
 .mat-mdc-option:not(.select-all-option) {
 
-    /* 1. MANDATORY ITEMS: Targeted via the explicit disabled class name */
+    /* 1. 🔘 MANDATORY ITEMS: Explicitly targeted via Material's generated disabled class */
     &.mat-mdc-option-disabled {
       .mat-pseudo-checkbox-full {
         background-color: #707070 !important;
@@ -118,7 +118,7 @@ isAllColumnsSelected(): boolean {
       }
     }
   
-    /* 2. OPTIONAL ITEMS: Target active rows that do NOT have the disabled class */
+    /* 2. 🔵 OPTIONAL ITEMS: Explicitly target selected items that are NOT disabled */
     &:not(.mat-mdc-option-disabled) {
       &.mdc-list-item--selected {
         .mat-pseudo-checkbox-full {
