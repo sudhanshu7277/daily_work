@@ -107,10 +107,9 @@ isAllColumnsSelected(): boolean {
   /* Target standard toggleable dropdown items when they are active/selected */
 /* Target standard toggleable dropdown items */
 
-/* Target standard toggleable dropdown items */
 .mat-mdc-option:not(.select-all-option) {
 
-    /* 1. 🟢 MANDATORY ITEMS: Explicitly targeting rows with the disabled attribute */
+    /* 1. MANDATORY ITEMS: Explicitly targeting rows with the disabled attribute */
     &[disabled] {
       .mat-pseudo-checkbox-full {
         background-color: #707070 !important;
@@ -118,7 +117,7 @@ isAllColumnsSelected(): boolean {
       }
     }
   
-    /* 2. 🔵 OPTIONAL ITEMS: Explicitly targeting active rows that do NOT have the disabled attribute */
+    /* 2. OPTIONAL ITEMS: Explicitly targeting active rows that do NOT have the disabled attribute */
     &:not([disabled]) {
       &.mdc-list-item--selected {
         .mat-pseudo-checkbox-full {
@@ -128,3 +127,5 @@ isAllColumnsSelected(): boolean {
       }
     }
   }
+  
+  /* 🛑 LINE 513 REMOVED ENTIRELY TO PREVENT THE OVERRIDE FILTER LEAK */
