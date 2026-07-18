@@ -23,67 +23,36 @@ isAllColumnsSelected(): boolean {
 
 
 // Step 3: Verify the SCSS Selectors
-
-::ng-deep .bmo-custom-dropdown-panel {
-  
-    .select-all-option {
-      border-bottom: 1px solid #e0e0e0;
-  
-      /* Base setup for the checkbox container to allow perfect centering */
-      .mat-pseudo-checkbox {
-        position: relative !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-      }
-  
-      /* 1. STATE ONE: All Selected (White Checkmark on Blue) */
-      &.is-checked {
-        .mat-pseudo-checkbox {
-          background-color: $bmo-blue !important;
-          border-color: $bmo-blue !important;
-  
-          /* Strip any default Material checkmark styles */
-          &::after {
-            content: "" !important;
-            position: absolute !important;
-            left: 5px !important;
-            top: 2px !important;
-            width: 5px !important;
-            height: 9px !important;
-            border: solid white !important;
-            border-width: 0 2px 2px 0 !important;
-            transform: rotate(45deg) !important;
-            background: none !important;
-            display: block !important;
-          }
-        }
-      }
-  
-      /* 2. STATE TWO: Mandatory Fields Only (White Horizontal Minus Line on Blue) */
-      &.is-indeterminate {
-        .mat-pseudo-checkbox {
-          background-color: $bmo-blue !important;
-          border-color: $bmo-blue !important;
-  
-          /* Enforce a clean horizontal line graphic */
-          &::after {
-            content: "" !important;
-            position: absolute !important;
-            width: 10px !important;
-            height: 2px !important;
-            background-color: white !important;
-            border: none !important;
-            transform: none !important;
-            top: calc(50% - 1px) !important;
-            left: calc(50% - 5px) !important;
-            display: block !important;
-          }
-        }
+&.is-indeterminate {
+    .mat-pseudo-checkbox {
+      background-color: $bmo-blue !important;
+      border-color: $bmo-blue !important;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &::after {
+        content: "" !important;
+        position: absolute !important;
+        
+        /* 🟢 THE FIX: Explicitly nullify the rotation and border layout properties */
+        border: none !important;
+        transform: none !important;
+        
+        /* Shape the line cleanly */
+        width: 10px !important;
+        height: 2px !important;
+        background-color: white !important;
+        
+        /* Center it perfectly within the blue container square */
+        top: 50% !important;
+        left: 50% !important;
+        margin-top: -1px !important;
+        margin-left: -5px !important;
       }
     }
   }
-
 
   // 
   onFilterChange(): void {
