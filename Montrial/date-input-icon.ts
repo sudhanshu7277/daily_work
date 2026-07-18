@@ -25,25 +25,57 @@ isAllColumnsSelected(): boolean {
 // Step 3: Verify the SCSS Selectors
 
 /* 🟢 FIXED: Changed from &.is-indeterminate to a flat combined class rule */
-.select-all-option.is-indeterminate {
-    .mat-pseudo-checkbox {
-      background-color: $bmo-blue !important;
-      border-color: $bmo-blue !important;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+
+
+::ng-deep .bmo-custom-dropdown-panel {
+    /* ... your existing code ... */
   
-      &::after {
-        content: "";
-        position: absolute;
-        width: 10px;
-        height: 2px;
-        background-color: white !important;
-        border: none !important;
-        transform: none !important;
-        top: calc(50% - 1px);  /* Centers the line vertically */
-        left: calc(50% - 5px); /* Centers the line horizontally */
+    .select-all-option {
+      border-bottom: 1px solid #e0e0e0;
+  
+      /* State 1: All Selected (Checkmark) */
+      &.is-checked {
+        .mat-pseudo-checkbox {
+          background-color: $bmo-blue !important;
+          border-color: $bmo-blue !important;
+        }
+        .mat-pseudo-checkbox::after {
+          content: "";
+          position: absolute;
+          left: 3px;
+          top: 0;
+          width: 6px;
+          height: 10px;
+          border: solid $bmo-white;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+      }
+  
+      /* State 2: Mandatories Only Selected (Horizontal Minus Line) */
+      /* 🟢 NESTED PROPERLY HERE: Resolves both the compiler error and view encapsulation failure */
+      &.is-indeterminate {
+        .mat-pseudo-checkbox {
+          background-color: $bmo-blue !important;
+          border-color: $bmo-blue !important;
+          position: relative;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+  
+          &::after {
+            content: "" !important;
+            position: absolute !important;
+            width: 10px !important;
+            height: 2px !important;
+            background-color: white !important;
+            border: none !important;
+            transform: none !important;
+            top: calc(50% - 1px) !important;
+            left: calc(50% - 5px) !important;
+            display: block !important;
+          }
+        }
       }
     }
   }
