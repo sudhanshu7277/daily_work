@@ -116,7 +116,7 @@ isAllColumnsSelected(): boolean {
       }
     }
   
-    /* 2. When a MANDATORY item is selected -> Keep it exactly as is (Your original gray) */
+    /* 2. Mandatory checkboxes -> Keep your working original state exactly as is */
     &.mat-mdc-option-disabled {
       .mat-pseudo-checkbox-full {
         background-color: #707070 !important;
