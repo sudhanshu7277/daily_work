@@ -66,3 +66,36 @@ isAllColumnsSelected(): boolean {
     // Explicitly trigger a change detection cycle to force the dropdown template to repaint
     this.cdr.detectChanges();
   }
+
+
+  // white tick
+
+  /* 1. STATE ONE: All Selected (White Checkmark on Blue Background) */
+  &.is-checked {
+    .mat-pseudo-checkbox {
+      background-color: $bmo-blue !important;
+      border-color: $bmo-blue !important;
+      position: relative;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      /* 🟢 FORCE VISIBILITY & STRUCTURE: Overrides Material's unselected opacity: 0 state */
+      &::after {
+        content: "" !important;
+        opacity: 1 !important;
+        display: block !important;
+        position: absolute !important;
+        
+        /* Enforce standard checkmark dimensions & borders */
+        left: 5px !important;
+        top: 2px !important;
+        width: 5px !important;
+        height: 9px !important;
+        border: solid white !important;
+        border-width: 0 2px 2px 0 !important;
+        transform: rotate(45deg) !important;
+        background: none !important;
+      }
+    }
+  }
