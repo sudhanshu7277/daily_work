@@ -107,20 +107,24 @@ isAllColumnsSelected(): boolean {
   /* Target standard toggleable dropdown items when they are active/selected */
 /* Target standard toggleable dropdown items */
 
-/* 1. LEAVE YOUR ORIGINAL BLOCK EXACTLY AS IT WAS */
+/* Target standard toggleable dropdown items */
 .mat-mdc-option:not(.select-all-option) {
-    &.mdc-list-item--selected {
+
+    /* 1. 🟢 MANDATORY ITEMS: Explicitly targeting rows with the disabled attribute */
+    &[disabled] {
       .mat-pseudo-checkbox-full {
         background-color: #707070 !important;
         border-color: #707070 !important;
       }
     }
-  }
   
-  /* 2. 🟢 ADD THIS RIGHT BELOW IT: Targets ONLY the active, optional selected items */
-  .mat-mdc-option:not(.select-all-option).mdc-list-item--selected:not(.mat-mdc-option-disabled) {
-    .mat-pseudo-checkbox-full {
-      background-color: $bmo-blue !important;
-      border-color: $bmo-blue !important;
+    /* 2. 🔵 OPTIONAL ITEMS: Explicitly targeting active rows that do NOT have the disabled attribute */
+    &:not([disabled]) {
+      &.mdc-list-item--selected {
+        .mat-pseudo-checkbox-full {
+          background-color: $bmo-blue !important;
+          border-color: $bmo-blue !important;
+        }
+      }
     }
   }
