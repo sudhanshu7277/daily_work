@@ -105,9 +105,10 @@ isAllColumnsSelected(): boolean {
 
 
   /* Target standard toggleable dropdown items when they are active/selected */
+/* Target standard toggleable dropdown items */
 .mat-mdc-option:not(.select-all-option) {
   
-    /* When the option row is active/selected and NOT disabled */
+    /* 1. When an OPTIONAL item is clicked and selected -> Make it Blue */
     &.mdc-list-item--selected:not(.mat-mdc-option-disabled) {
       .mat-pseudo-checkbox-full {
         background-color: $bmo-blue !important;
@@ -115,7 +116,7 @@ isAllColumnsSelected(): boolean {
       }
     }
   
-    /* Explicitly maintain the gray locked state for your 7 mandatory options */
+    /* 2. When a MANDATORY item is selected -> Keep it exactly as is (Your original gray) */
     &.mat-mdc-option-disabled {
       .mat-pseudo-checkbox-full {
         background-color: #707070 !important;
