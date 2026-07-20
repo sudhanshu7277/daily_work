@@ -113,3 +113,6 @@ export function applyToForm(
 ): Map<string, FieldValidationResult> {
   return fieldResults;
 }
+
+export const genericValidator = { evaluateAllFields, evaluateFormRules, applyToForm };
+export default genericValidator;
