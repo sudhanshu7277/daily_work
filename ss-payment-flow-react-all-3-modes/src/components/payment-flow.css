@@ -1,0 +1,135 @@
+/*
+  Base styling for PaymentChild/PaymentParent. This is a functional
+  reconstruction, NOT a pixel-for-pixel port of ss-payment-flow.component.scss.
+  The real .scss (503 lines, fully captured in an earlier chat — see memory:
+  ss-payment-flow-scss-capture.md) contains several duplicate/conflicting
+  selector blocks (.section-main-body, .section-main-header, .section-body
+  each declared 2-3 times with different rules) that were flagged as needing
+  reconciliation even in the Angular original. Rather than guess which
+  duplicate "wins," this file provides clean, working equivalents for every
+  class name used in the JSX. Swap in the real .scss (converted to plain CSS
+  / CSS modules) once that reconciliation is done, for exact visual fidelity.
+
+  Theme note: white surfaces throughout, blue accordion headers (pinned so
+  hover/focus/active never shift color), persistent light-grey borders on
+  every input regardless of focus/readonly/disabled state, and grey
+  placeholders on every field — matches the approved chat preview.
+*/
+
+.sample-container { display: flex; flex-direction: column; gap: 16px; padding: 16px; background: #ffffff; }
+.ss-payment-flow { display: flex; flex-direction: column; gap: 16px; background: #ffffff; }
+
+.section-main { border: 1px solid #d8d8d8; border-radius: 12px; overflow: hidden; background: #ffffff; }
+.section-main-header {
+  background-color: #185fa5 !important; color: #ffffff !important; padding: 10px 16px; font-weight: 500; cursor: pointer;
+}
+.section-main-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #ffffff; }
+.section-main-body.collapsed { display: none !important; }
+
+.section { border: 1px solid #d8d8d8; border-radius: 6px; background: #ffffff; overflow: hidden; }
+.section-header {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background-color: #185fa5 !important; color: #ffffff !important;
+  padding: 10px 12px; font-weight: 500; font-size: 0.95em; cursor: pointer; border: none; text-align: left;
+}
+.section-header:hover, .section-header:focus, .section-header:active {
+  background-color: #185fa5 !important; color: #ffffff !important;
+}
+/* Chevron direction is handled at the JSX level — the component swaps
+   between two different characters (▾ open / ▴ collapsed) based on state,
+   so no CSS rotation is needed or wanted here. (A leftover `transform:
+   rotate(180deg)` rule from an earlier single-icon design used to live
+   here — it was being applied unconditionally to every chevron, flipping
+   the already-correct character upside down, so every section's chevron
+   showed the opposite of its real state. Removed.) */
+.section-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; background: #ffffff; border-top: 1px solid #eaeaea; }
+.section-body.collapsed, .section.collapsed .section-body { display: none !important; }
+
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field input, .form-field select, .form-field textarea {
+  background-color: #ffffff !important; color: #1a1a1a;
+  border: 1px solid #c7c7c7 !important; border-radius: 8px;
+  padding: 8px 10px; font-size: 0.95em;
+}
+.form-field input[readonly], .form-field input:disabled, .form-field select:disabled {
+  background-color: #ffffff !important; color: #1a1a1a; opacity: 1;
+  -webkit-text-fill-color: #1a1a1a; border: 1px solid #c7c7c7 !important;
+}
+.form-field input:focus, .form-field textarea:focus {
+  border-color: #c7c7c7 !important; outline: none;
+}
+.form-field input::placeholder, .form-field textarea::placeholder { color: #9a9a9a; opacity: 1; }
+
+.field-label { font-size: 0.85em; font-weight: 600; color: #4a4a4a; }
+.field-label.rejected { color: #b42318; }
+.mandatory-indicator { color: #b42318; }
+
+.field-error { color: #b42318; font-size: 0.8em; }
+.dual-blind-error { color: #b54708; font-size: 0.8em; }
+.success-message { color: #15803d; font-size: 0.8em; }
+.hint { color: #6a6a6a; font-size: 0.8em; }
+
+.form-field.rejected input { border-color: #b42318 !important; }
+.form-field.failed-field { background: #fef3f2; }
+.form-field.repair-review-field input { border-color: #f79009 !important; }
+.form-field.repair-newly-modify-field input { border-color: #7f56d9 !important; }
+
+.toast-container { position: fixed; bottom: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+.toast { padding: 10px 16px; border-radius: 8px; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.toast-success { background: #15803d; }
+.toast-error { background: #b42318; }
+
+.action-bar, .action-container { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #ffffff; }
+.lmn-btn { padding: 10px 20px; border-radius: 8px; border: 1.5px solid #1a1a1a; cursor: pointer; font-weight: 500; }
+.lmn-btn-primary { background: #ffffff; color: #1a1a1a; }
+.lmn-btn-primary:disabled { background: #f2f2f2; color: #a0a0a0; border-color: #e0e0e0; cursor: not-allowed; }
+.lmn-form-control { width: 100%; padding: 8px 10px; border: 1px solid #c7c7c7 !important; border-radius: 8px; background-color: #ffffff !important; }
+
+.btn-reject, .btn-approve { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.btn-reject { background: #fbeaea; color: #b42318; border: 1.5px solid #f0c9c9; }
+.btn-approve { background: #e9f7ef; color: #15803d; border: 1.5px solid #bfe8cf; }
+.btn-reject:disabled, .btn-approve:disabled { background: #f2f2f2; color: #a0a0a0; border-color: #e0e0e0; cursor: not-allowed; }
+
+.modal { position: fixed; inset: 0; z-index: 2000; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; }
+.modal-container { background: #ffffff; border-radius: 8px; width: 420px; max-width: 90vw; overflow: hidden; border: 1px solid #d8d8d8; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #185fa5; color: #ffffff; }
+.modal-header h1 { font-size: 1.1em; margin: 0; }
+.close-btn { background: none; border: none; color: #ffffff; font-size: 1.4em; cursor: pointer; }
+.modal-body { padding: 16px; background: #ffffff; }
+.details-card { display: flex; flex-direction: column; gap: 8px; }
+.detail-row { display: flex; justify-content: space-between; font-size: 0.9em; }
+.detail-row .label { color: #6a6a6a; }
+.detail-row .value.status-pending { color: #b54708; font-weight: 500; }
+.modal-footer { padding: 12px 16px; display: flex; justify-content: flex-end; border-top: 1px solid #eaeaea; background: #ffffff; }
+.btn-primary { background: #ffffff; color: #1a1a1a; padding: 8px 20px; border: 1.5px solid #1a1a1a; border-radius: 8px; cursor: pointer; }
+
+/* Reconstructed ParentSectionPreview (app-parent-section stand-in) */
+.parent-section-heading { font-size: 1.1em; font-weight: 600; color: #1a1a1a; padding: 4px 0; }
+.parent-section-checker-info { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #ffffff; border: 1px solid #d8d8d8; border-radius: 8px; }
+.parent-section-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.85em; color: #4a4a4a; }
+.parent-section-meta strong { color: #1a1a1a; font-weight: 600; }
+
+/* PaymentWorkflow / PaymentQueueList — RECONSTRUCTED, see queueService.ts */
+.payment-workflow { display: flex; flex-direction: column; gap: 16px; background: #ffffff; padding: 16px; }
+.workflow-nav { display: flex; gap: 8px; }
+.workflow-nav button { padding: 8px 16px; border-radius: 6px; border: 1px solid #185fa5; background: #ffffff; color: #185fa5; cursor: pointer; font-size: 14px; }
+.workflow-nav button.active { background: #185fa5; color: #ffffff; }
+.workflow-back { background: none; border: none; color: #185fa5; cursor: pointer; font-size: 14px; padding: 8px 0; text-align: left; }
+
+.queue-list { display: flex; flex-direction: column; gap: 8px; }
+.queue-list-row {
+  display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 12px; align-items: center;
+  padding: 12px 16px; border: 1px solid #d8d8d8; border-radius: 8px; background: #ffffff;
+  cursor: pointer; text-align: left; font-size: 0.9em;
+}
+.queue-list-row:hover { background: #f5f8fb; border-color: #185fa5; }
+.queue-list-txn { font-weight: 600; color: #1a1a1a; }
+.queue-list-parties { color: #4a4a4a; }
+.queue-list-amount { color: #1a1a1a; font-weight: 500; }
+.queue-list-date { color: #6a6a6a; font-size: 0.9em; }
+.queue-list-state { padding: 16px; color: #6a6a6a; }
+.queue-error { color: #b42318; margin-bottom: 8px; }
