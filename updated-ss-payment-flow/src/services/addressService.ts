@@ -54,3 +54,14 @@ export async function lookupCreditorAddesss(
   }
   return response.json();
 }
+
+// FIX (same integration issue as hardCapService): previously only exported
+// the two loose functions. Adding a named service-object export for
+// projects that import it the class-instance way
+// (`addressService.lookupDebtorAddesss(...)`), plus a default export, so
+// whichever import convention your project uses will resolve. The typo'd
+// method names are preserved on the object too — do not "fix" them, they
+// match the real Angular source.
+export const addressService = { lookupDebtorAddesss, lookupCreditorAddesss };
+
+export default addressService;
