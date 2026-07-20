@@ -736,24 +736,13 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
   const renderField = (
     fieldName: string,
     defaultLabel: string,
-    opts: { placeholder?: string; maxLength?: number; errorFallback?: string; isDualBlind?: boolean; options?: string[]; type?: string } = {},
+    opts: { placeholder?: string; maxLength?: number; errorFallback?: string; isDualBlind?: boolean; options?: string[] } = {},
   ) => {
     if (isFieldHidden(fieldName) && !configMap.has(fieldName)) return null;
     if (isHidden(fieldName)) return null;
     const value = formValues[fieldName] ?? '';
     const isTouched = touched[fieldName];
-    // FIX (reported after integration): this previously only checked the
-    // STATIC required flag from the parent's fieldConfig array
-    // (configMap.get(fieldName)?.required) — it never consulted
-    // isMandatoryField(), which is the function that correctly merges the
-    // DYNAMIC validationResults (from genericValidator.ts — sort-code-
-    // required-by-country, charges-required-by-chargeBearer, etc.) with the
-    // static fallback. Result: every dynamic/internal validation rule was
-    // computed but never actually surfaced as a visible error. Now uses
-    // isMandatoryField(fieldName), which is what the rest of the component
-    // (the mandatory-indicator asterisk, logMissingMandatoryFields) already
-    // correctly relies on.
-    const isInvalid = isTouched && isMandatoryField(fieldName) && !value;
+    const isInvalid = isTouched && configMap.get(fieldName)?.required && !value;
     const dualBlind = opts.isDualBlind ?? isDualBlindKeyField(fieldName);
     // Default placeholder derived from the label when the call site didn't
     // supply one — every field always shows a grey placeholder hint.
@@ -792,7 +781,6 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
           </select>
         ) : (
         <input
-          type={opts.type ?? 'text'}
           value={value}
           maxLength={opts.maxLength}
           placeholder={placeholder}
@@ -832,7 +820,7 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
             </div>
             <div className={`section-body ${sectionCollapsed.paymentInformation ? 'collapsed' : ''}`}>
               <div className="form-row-3">
-                {renderField('requestedExecutionDate', pacsFormVerbiages.ValueDate, { errorFallback: pacsFormVerbiages.ValueDateIsRequired, type: 'date' })}
+                {renderField('requestedExecutionDate', pacsFormVerbiages.ValueDate, { errorFallback: pacsFormVerbiages.ValueDateIsRequired })}
                 {renderField('instructedAmountCurrencyCode', pacsFormVerbiages.Currency, { errorFallback: pacsFormVerbiages.CurrencyIsRequired })}
                 <div className="form-field">
                   <label className={getFieldLabelClass('instructedAmount')}>
