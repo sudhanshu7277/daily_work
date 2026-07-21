@@ -1,14 +1,13 @@
-/* --- BMO Info Banner (Matching Figma Spec) --- */
+/* --- BMO Info Banner (Exact Figma Spec) --- */
 
 .bmo-info-banner {
     display: flex;
     align-items: center;
     justify-content: space-between;
     
-    /* Background & Border matching Figma */
-    background-color: #EBF3FA; // Soft light blue fill
-    border-bottom: 2px solid $bmo-blue; // Solid dark blue line across bottom
-    border-radius: 4px 4px 0 0; // Soft top corners
+    background-color: #EBF3FA; // Soft light blue container background
+    border-bottom: 2px solid $bmo-blue; // Solid dark blue line across the bottom
+    border-radius: 4px 4px 0 0;
     
     padding: 12px 20px;
     margin-bottom: 24px;
@@ -22,12 +21,15 @@
     }
   }
   
-  /* 24-announcement.svg Icon Styling */
-  .bmo-info-icon {
+  /* 🟢 Announcement Icon: Forces your imported SVG to take exact $bmo-blue token */
+  .bmo-info-icon-announcement {
     width: 24px;
     height: 24px;
+    display: inline-block;
     flex-shrink: 0;
-    display: block;
+    background-color: $bmo-blue;
+    -webkit-mask: url('/assets/img/icons/24/24-announcement.svg') no-repeat center / contain;
+    mask: url('/assets/img/icons/24/24-announcement.svg') no-repeat center / contain;
   }
   
   /* Typography Group */
@@ -39,14 +41,14 @@
   
   .bmo-info-title {
     font-size: 14px;
-    font-weight: 700; // Bold title
+    font-weight: 700; // Bold heading
     color: #000000;
     line-height: 1.3;
   }
   
   .bmo-info-description {
     font-size: 13px;
-    font-weight: 400; // Regular body text
+    font-weight: 400; // Regular body subtext
     color: #333333;
     line-height: 1.3;
   }
