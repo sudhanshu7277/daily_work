@@ -1,37 +1,27 @@
-<!-- BMO Light Blue Info Banner -->
+<!-- BMO Info Banner -->
 <div class="bmo-info-banner">
   
-  <div class="bmo-info-banner__content">
+  <div class="bmo-info-banner__left-content">
+    <!-- Announcement Icon from local img path -->
+    <img 
+      src="assets/img/icons/24/24-announcement.svg" 
+      alt="Announcement" 
+      class="bmo-info-icon" 
+    />
     
-    <!-- Microphone / Megaphone Icon (Inline SVG styled with $bmo-blue) -->
-    <div class="bmo-info-icon-wrapper">
-      <svg 
-        class="bmo-info-icon" 
-        xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 24 24" 
-        fill="currentColor">
-        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H4V4h16v10z"/>
-        <path d="M11 5h2v6h-2zm0 8h2v2h-2z"/>
-      </svg>
+    <!-- Text Section -->
+    <div class="bmo-info-text-group">
+      <span class="bmo-info-title">Check the History tab for Legal Hold status</span>
+      <span class="bmo-info-description">Check the status of processing Legal Holds in the History tab</span>
     </div>
-    
-    <!-- Text Block -->
-    <div class="bmo-info-text-block">
-      <h4 class="bmo-info-text-block__heading">Check the History tab for Legal Hold status</h4>
-      <p class="bmo-info-text-block__subtext">Check the status of processing Legal Holds in the History tab</p>
-    </div>
-
   </div>
 
   <!-- Right Close Button -->
-  <button class="bmo-close-button" type="button" aria-label="Close notification">
-    <svg 
-      class="bmo-close-icon" 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      fill="currentColor">
-      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+  <button type="button" class="bmo-info-close-btn" aria-label="Close message">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
-  
+
 </div>
