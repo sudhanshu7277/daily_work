@@ -1,57 +1,71 @@
-// Change 1 — customer-search-grid.component.scss (add at the bottom):
+// Step 1 — NameHeaderComponent class (complete replacement of the class body)
 
-/* ── Header: remove grey column separator lines ── */
-::ng-deep {
-    .ag-header-cell {
-      border-right: none !important;
-    }
-    .ag-header-cell-resize::after {
-      display: none !important;
+export class NameHeaderComponent {
+    state: 'none' | 'some' | 'all' = 'none';
+    sort: 'asc' | 'desc' | null = null;
+    private onSelectAll!: (v: boolean) => void;
+    private params: any;
+  
+    constructor(private readonly cdr: ChangeDetectorRef) {}
+  
+    agInit(p: any): void {
+      this.params      = p;
+      this.state       = p.state ?? 'none';
+      this.onSelectAll = p.onSelectAll;
+      this.sort        = p.column?.getSort() ?? null;
+      p.column?.addEventListener('sortChanged', () => {
+        this.sort = this.params.column.getSort() ?? null;
+        this.cdr.detectChanges();
+      });
+      this.cdr.detectChanges();
     }
   
-    /* ── Ensure sort icons are visible on sortable columns ── */
-    .ag-sort-indicator-container {
-      display: flex !important;
-      opacity: 1 !important;
+    refresh(p: any): boolean {
+      this.params = p;
+      this.state  = p.state ?? 'none';
+      this.sort   = p.column?.getSort() ?? null;
+      this.cdr.detectChanges();
+      return true;
     }
-    .ag-sort-order {
-      display: none; /* hide the "1" number next to sort icon */
+  
+    onClick(e: MouseEvent): void {
+      e.stopPropagation();
+      this.onSelectAll?.(this.state !== 'all');
+    }
+  
+    onSortClick(e: MouseEvent): void {
+      e.stopPropagation();
+      this.params?.progressSort(e.shiftKey);
     }
   }
 
+  // Step 2 — NameHeaderComponent template
 
-  // Change 2 — columnDefs in the constructor (two targeted edits only):
+//Find where .hdr-label is in your template. It'll look something like:
 
-  // Profile Name column — add unSortIcon + sort params (lines 322–338, add 3 lines)
+<span class="hdr-label">Profile Name</span>
+
+// Add the sort SVG immediately after it:
+
+<span class="hdr-label">Profile Name</span>
+<svg (click)="onSortClick($event)"
+     class="cs-sort-icon" width="10" height="14"
+     viewBox="0 0 10 14" fill="none"
+     style="cursor:pointer;flex-shrink:0;margin-left:4px;">
+  <path d="M5 1L1 5H9L5 1Z"
+        [attr.fill]="sort === 'asc' ? '#1a1a1a' : '#BDBDBD'"/>
+  <path d="M5 13L9 9H1L5 13Z"
+        [attr.fill]="sort === 'desc' ? '#1a1a1a' : '#BDBDBD'"/>
+</svg>
+
+// Step 3 — Legal Hold Status columnDef (replace the existing entry)
+
 {
-    headerName: '',
-    field: 'profileName',
-    sortable: true,
-    unSortIcon: true,          // ← ADD: always show ↑↓ even when unsorted
-    sort: null,                // ← ADD: start unsorted
-    minWidth: 260,
-    flex: 2,
-    cellRenderer: NameCellComponent,
-    cellRendererParams: {
-      onCheck:  (uid: string) => this.onCheckboxClick(uid),
-      onToggle: (uid: string) => this.toggleExpand(uid),
-    },
-    headerComponent: NameHeaderComponent,
-    headerComponentParams: {
-      state: 'none' as 'none' | 'some' | 'all',
-      onSelectAll: (select: boolean) => this.onSelectAll(select),
-      showSort: true,          // ← ADD: flag for NameHeaderComponent to render sort icon
-    },
-  },
-  
-  // Legal Hold Status column — add unSortIcon (lines 340–351, add 1 line)
-  {
     headerName: 'Legal Hold Status',
     field: 'status',
     sortable: true,
-    unSortIcon: true,          // ← ADD
-    sort: null,
     width: 170,
+    headerComponent: SortHeaderComponent,
     cellRenderer: (p: ICellRendererParams) =>
       p.value === 'LEGAL HOLD'
         ? '<span class="cs-lh-pill">LEGAL HOLD</span>'
@@ -59,3 +73,20 @@
         ? '<span class="cs-lh-processing">PROCESSING</span>'
         : '<span class="cs-lh-na">N/A</span>',
   },
+
+  // Step 4 — customer-search-grid.component.scss (append at bottom)
+
+  ::ng-deep {
+    /* Remove grey column separator lines from header */
+    .ag-header-cell {
+      border-right: none !important;
+    }
+    .ag-header-cell-resize::after {
+      display: none !important;
+    }
+  }
+  
+  /* Sort icon alignment inside custom header */
+  .cs-sort-icon {
+    vertical-align: middle;
+  }
