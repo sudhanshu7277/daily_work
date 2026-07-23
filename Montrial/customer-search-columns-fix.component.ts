@@ -90,3 +90,79 @@ export class NameHeaderComponent {
   .cs-sort-icon {
     vertical-align: middle;
   }
+
+  // sort-header/sort-header.component.ts (create this file inside the customer-search-grid feature folder):
+
+
+  import { Component, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { IHeaderAngularComp } from 'ag-grid-angular';
+import { IHeaderParams } from 'ag-grid-community';
+
+@Component({
+  selector: 'app-sort-header',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="cs-sort-header" (click)="onSort($event)">
+      <span class="cs-sort-header__text">{{ params.displayName }}</span>
+      <svg class="cs-sort-icon" width="10" height="14" viewBox="0 0 10 14" fill="none">
+        <path d="M5 1L1 5H9L5 1Z"
+              [attr.fill]="sort === 'asc' ? '#1a1a1a' : '#BDBDBD'"/>
+        <path d="M5 13L9 9H1L5 13Z"
+              [attr.fill]="sort === 'desc' ? '#1a1a1a' : '#BDBDBD'"/>
+      </svg>
+    </div>
+  `,
+  styles: [`
+    .cs-sort-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      width: 100%;
+      height: 100%;
+    }
+    .cs-sort-icon { flex-shrink: 0; }
+  `]
+})
+export class SortHeaderComponent implements IHeaderAngularComp {
+  params!: IHeaderParams;
+  sort: 'asc' | 'desc' | null = null;
+
+  agInit(params: IHeaderParams): void {
+    this.params = params;
+    this.sort = params.column.getSort() ?? null;
+    params.column.addEventListener('sortChanged', () => {
+      this.sort = this.params.column.getSort() ?? null;
+    });
+  }
+
+  refresh(params: IHeaderParams): boolean {
+    this.params = params;
+    return true;
+  }
+
+  onSort(event: MouseEvent): void {
+    this.params.progressSort(event.shiftKey);
+  }
+}
+
+// Then in customer-search-grid.component.ts, import it at the top:
+
+import { SortHeaderComponent } from './sort-header/sort-header.component';
+
+// And add it to the @Component imports array:
+
+imports: [
+    CommonModule,
+    FormsModule,
+    AgGridAngular,
+    TranslateModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatIconModule,
+    MatButtonModule,
+    SortHeaderComponent,   // ← ADD
+  ],
