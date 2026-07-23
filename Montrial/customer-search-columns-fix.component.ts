@@ -338,16 +338,24 @@ onSortChanged(): void {
     const field = sortState.colId;
     const dir   = sortState.sort as 'asc' | 'desc';
   
-    // Sort root nodes only directly in this.tree
-    // Children follow automatically when flattenTree() rebuilds
-    (this.tree as any[]).sort((a, b) => {
+    const sortFn = (a: any, b: any) => {
       const valA = (a[field] ?? '').toLowerCase();
       const valB = (b[field] ?? '').toLowerCase();
       return dir === 'asc'
         ? valA.localeCompare(valB)
         : valB.localeCompare(valA);
+    };
+  
+    // Sort root nodes (handles multiple clusters)
+    (this.tree as any[]).sort(sortFn);
+  
+    // Sort children within each cluster
+    (this.tree as any[]).forEach((n: any) => {
+      if (n._isParent && n.children?.length > 0) {
+        n.children.sort(sortFn);
+      }
     });
   
     this.currentPage = 1;
-    this.refresh();
+    this.refresh(); // flattenTree reads sorted this.tree → rowData
   }
