@@ -211,3 +211,56 @@ onSortChanged(): void {
     // _isClusterEnd marks are recalculated correctly by buildFlat
     this.refresh();
   }
+
+
+  // Step 1 — Profile Name columnDef, add one line:
+
+  {
+    headerName: '',
+    field: 'profileName',
+    sortable: true,
+    comparator: () => 0,   // ← ADD: prevent AG Grid native reorder
+    minWidth: 260,
+    flex: 2,
+    cellRenderer: NameCellComponent,
+    // ... rest unchanged
+  }
+
+
+  // Step 2 — Legal Hold Status columnDef, add one line:
+
+  {
+    headerName: 'Legal Hold Status',
+    field: 'status',
+    sortable: true,
+    comparator: () => 0,   // ← ADD: prevent AG Grid native reorder
+    width: 170,
+    headerComponent: SortHeaderComponent,
+    // ... rest unchanged
+  }
+
+  // Step 3 — onSortChanged (keep exactly as last given, delete sortTree):
+
+  onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState()
+      .find(s => s.sort != null);
+  
+    if (!sortState) {
+      this.refresh();
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir   = sortState.sort as 'asc' | 'desc';
+  
+    // Sort only root nodes — children follow via buildFlat
+    this.tree.sort((a, b) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
+  
+    this.refresh(); // buildFlat rebuilds clusters correctly
+  }
