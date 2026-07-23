@@ -361,66 +361,108 @@ onSortChanged(): void {
   }
 
 
-  // replace entire file
-  import { Component } from '@angular/core';
-  import { CommonModule } from '@angular/common';
-  import { IHeaderAngularComp } from 'ag-grid-angular';
-  import { IHeaderParams } from 'ag-grid-community';
+  // Fix 1 — SortHeaderComponent — use ElementRef instead of eGridHeader:
+
+  import { Component, ElementRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { IHeaderAngularComp } from 'ag-grid-angular';
+import { IHeaderParams } from 'ag-grid-community';
+
+@Component({
+  selector: 'app-sort-header',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="cs-sort-header">
+      <span class="cs-sort-header__text">{{ params.displayName }}</span>
+      <svg width="10" height="13" viewBox="0 0 10 13" fill="none"
+           style="flex-shrink:0; margin-left:4px;">
+        <path d="M1.5 5L5 1.5L8.5 5"
+              stroke="#1C2333" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M1.5 8L5 11.5L8.5 8"
+              stroke="#1C2333" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  `,
+  styles: [`
+    .cs-sort-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      width: 100%;
+      height: 100%;
+    }
+    .cs-sort-header__text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1c2333;
+      white-space: nowrap;
+    }
+  `]
+})
+export class SortHeaderComponent implements IHeaderAngularComp {
+  params!: IHeaderParams;
+  private clickListener!: (e: MouseEvent) => void;
+
+  constructor(private el: ElementRef) {}
+
+  agInit(params: IHeaderParams): void {
+    this.params = params;
+    this.clickListener = (e: MouseEvent) => {
+      e.stopPropagation();
+      this.params.progressSort(e.shiftKey);
+    };
+    // Attach to component's own native element — guaranteed to work
+    this.el.nativeElement.addEventListener('click', this.clickListener);
+  }
+
+  refresh(params: IHeaderParams): boolean {
+    this.params = params;
+    return true;
+  }
+
+  destroy(): void {
+    this.el.nativeElement.removeEventListener('click', this.clickListener);
+  }
+}
+
+// Fix 2 — onSortChanged — handle clusters, standalone parents, and leaf nodes:
+
+onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState()
+      .find(s => s.sort != null);
   
-  @Component({
-    selector: 'app-sort-header',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
-      <div class="cs-sort-header">
-        <span class="cs-sort-header__text">{{ params.displayName }}</span>
-        <svg width="10" height="13" viewBox="0 0 10 13" fill="none"
-             style="flex-shrink:0; margin-left:4px;">
-          <path d="M1.5 5L5 1.5L8.5 5"
-                stroke="#1C2333" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M1.5 8L5 11.5L8.5 8"
-                stroke="#1C2333" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    `,
-    styles: [`
-      .cs-sort-header {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        cursor: pointer;
-        user-select: none;
-        width: 100%;
-        height: 100%;
+    if (!sortState) {
+      this.currentPage = 1;
+      this.refresh();
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir   = sortState.sort as 'asc' | 'desc';
+  
+    const sortFn = (a: any, b: any) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    };
+  
+    // Sort root nodes — handles clusters AND standalone records
+    (this.tree as any[]).sort(sortFn);
+  
+    // Sort children within each cluster
+    (this.tree as any[]).forEach((n: any) => {
+      if (n._isParent && n.children?.length > 0) {
+        n.children.sort(sortFn);
       }
-      .cs-sort-header__text {
-        font-size: 13px;
-        font-weight: 700;
-        color: #1c2333;
-        white-space: nowrap;
-      }
-    `]
-  })
-  export class SortHeaderComponent implements IHeaderAngularComp {
-    params!: IHeaderParams;
-    private clickListener!: (e: MouseEvent) => void;
+    });
   
-    agInit(params: IHeaderParams): void {
-      this.params = params;
-      this.clickListener = (e: MouseEvent) => {
-        this.params.progressSort(e.shiftKey);
-      };
-      params.eGridHeader?.addEventListener('click', this.clickListener);
-    }
-  
-    refresh(params: IHeaderParams): boolean {
-      this.params = params;
-      return true;
-    }
-  
-    destroy(): void {
-      this.params.eGridHeader?.removeEventListener('click', this.clickListener);
-    }
+    this.currentPage = 1;
+    this.refresh();
   }
