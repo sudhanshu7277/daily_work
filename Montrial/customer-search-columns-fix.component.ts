@@ -149,9 +149,7 @@ private sortTree(data: any[], field: string, direction: 'asc' | 'desc'): any[] {
 
 // lets see if this svg works
 
-const sortIconSvg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle; margin-left: 6px; display: inline-block;">
-    <path d="M8 2l3.5 4h-7L8 2z"/>
-    <path d="M8 14l-3.5-4h7L8 14z"/>
-  </svg>
-`;
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="sort-icon">
+  <path d="M6 16.5V7.83l-2.88 2.88L1.71 9.3 7 4l5.29 5.3-1.41 1.41L8 7.83v8.67H6z"/>
+  <path d="M16 7.5v8.67l2.88-2.88 1.41 1.41L15 20l-5.29-5.3 1.41-1.41 2.88 2.88V7.5h2z"/>
+</svg>
