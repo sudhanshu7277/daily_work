@@ -330,7 +330,7 @@ onSortChanged(): void {
       .find(s => s.sort != null);
   
     if (!sortState) {
-      this.currentPage = 1;  // reset to page 1 on clear
+      this.currentPage = 1;
       this.refresh();
       return;
     }
@@ -338,8 +338,8 @@ onSortChanged(): void {
     const field = sortState.colId;
     const dir   = sortState.sort as 'asc' | 'desc';
   
-    // Sort root nodes only in this.tree
-    // flattenTree() reads this.tree directly so clusters stay intact
+    // Sort root nodes only directly in this.tree
+    // Children follow automatically when flattenTree() rebuilds
     (this.tree as any[]).sort((a, b) => {
       const valA = (a[field] ?? '').toLowerCase();
       const valB = (b[field] ?? '').toLowerCase();
@@ -348,7 +348,6 @@ onSortChanged(): void {
         : valB.localeCompare(valA);
     });
   
-    this.currentPage = 1;  // ← KEY: reset to page 1 after sort
-    this.refresh();         // flattenTree → slice → rowData
+    this.currentPage = 1;
+    this.refresh();
   }
-  
