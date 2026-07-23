@@ -326,11 +326,11 @@ onSortChanged(): void {
 
 
 onSortChanged(): void {
-    const sortState = this.gridApi
-      ?.getColumnState()
+    const sortState = this.gridApi?.getColumnState()
       .find(s => s.sort != null);
   
     if (!sortState) {
+      this.currentPage = 1;  // reset to page 1 on clear
       this.refresh();
       return;
     }
@@ -338,8 +338,9 @@ onSortChanged(): void {
     const field = sortState.colId;
     const dir   = sortState.sort as 'asc' | 'desc';
   
-    // Sort root nodes only directly in this.tree
-    this.tree.sort((a, b) => {
+    // Sort root nodes only in this.tree
+    // flattenTree() reads this.tree directly so clusters stay intact
+    (this.tree as any[]).sort((a, b) => {
       const valA = (a[field] ?? '').toLowerCase();
       const valB = (b[field] ?? '').toLowerCase();
       return dir === 'asc'
@@ -347,6 +348,7 @@ onSortChanged(): void {
         : valB.localeCompare(valA);
     });
   
-    // refresh() → buildFlat rebuilds clusters correctly
-    this.refresh();
+    this.currentPage = 1;  // ← KEY: reset to page 1 after sort
+    this.refresh();         // flattenTree → slice → rowData
   }
+  
