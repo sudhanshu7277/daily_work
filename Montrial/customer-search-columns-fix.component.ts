@@ -146,3 +146,12 @@ private sortTree(data: any[], field: string, direction: 'asc' | 'desc'): any[] {
         stroke-linejoin="round"/>
 </svg>
 
+
+// lets see if this svg works
+
+const sortIconSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle; margin-left: 6px; display: inline-block;">
+    <path d="M8 2l3.5 4h-7L8 2z"/>
+    <path d="M8 14l-3.5-4h7L8 14z"/>
+  </svg>
+`;
