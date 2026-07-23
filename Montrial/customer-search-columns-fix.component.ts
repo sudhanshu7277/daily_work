@@ -246,14 +246,16 @@ onSortChanged(): void {
       .find(s => s.sort != null);
   
     if (!sortState) {
-      this.refresh();
+      // No active sort — rebuild original order
+      this.rowData = [...this.buildFlat(this.tree)];
+      this.cdr.detectChanges();
       return;
     }
   
     const field = sortState.colId;
     const dir   = sortState.sort as 'asc' | 'desc';
   
-    // Sort only root nodes — children follow via buildFlat
+    // Sort root nodes only in this.tree
     this.tree.sort((a, b) => {
       const valA = (a[field] ?? '').toLowerCase();
       const valB = (b[field] ?? '').toLowerCase();
@@ -262,5 +264,7 @@ onSortChanged(): void {
         : valB.localeCompare(valA);
     });
   
-    this.refresh(); // buildFlat rebuilds clusters correctly
+    // NEW array reference — critical for AG Grid to detect the change
+    this.rowData = [...this.buildFlat(this.tree)];
+    this.cdr.detectChanges();
   }
