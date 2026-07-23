@@ -1,100 +1,6 @@
-// Step 1 — NameHeaderComponent class (complete replacement of the class body)
+// Step 1 — sort-header.component.ts (full file)
 
-export class NameHeaderComponent {
-    state: 'none' | 'some' | 'all' = 'none';
-    sort: 'asc' | 'desc' | null = null;
-    private onSelectAll!: (v: boolean) => void;
-    private params: any;
-  
-    constructor(private readonly cdr: ChangeDetectorRef) {}
-  
-    agInit(p: any): void {
-      this.params      = p;
-      this.state       = p.state ?? 'none';
-      this.onSelectAll = p.onSelectAll;
-      this.sort        = p.column?.getSort() ?? null;
-      p.column?.addEventListener('sortChanged', () => {
-        this.sort = this.params.column.getSort() ?? null;
-        this.cdr.detectChanges();
-      });
-      this.cdr.detectChanges();
-    }
-  
-    refresh(p: any): boolean {
-      this.params = p;
-      this.state  = p.state ?? 'none';
-      this.sort   = p.column?.getSort() ?? null;
-      this.cdr.detectChanges();
-      return true;
-    }
-  
-    onClick(e: MouseEvent): void {
-      e.stopPropagation();
-      this.onSelectAll?.(this.state !== 'all');
-    }
-  
-    onSortClick(e: MouseEvent): void {
-      e.stopPropagation();
-      this.params?.progressSort(e.shiftKey);
-    }
-  }
-
-  // Step 2 — NameHeaderComponent template
-
-//Find where .hdr-label is in your template. It'll look something like:
-
-<span class="hdr-label">Profile Name</span>
-
-// Add the sort SVG immediately after it:
-
-<span class="hdr-label">Profile Name</span>
-<svg (click)="onSortClick($event)"
-     class="cs-sort-icon" width="10" height="14"
-     viewBox="0 0 10 14" fill="none"
-     style="cursor:pointer;flex-shrink:0;margin-left:4px;">
-  <path d="M5 1L1 5H9L5 1Z"
-        [attr.fill]="sort === 'asc' ? '#1a1a1a' : '#BDBDBD'"/>
-  <path d="M5 13L9 9H1L5 13Z"
-        [attr.fill]="sort === 'desc' ? '#1a1a1a' : '#BDBDBD'"/>
-</svg>
-
-// Step 3 — Legal Hold Status columnDef (replace the existing entry)
-
-{
-    headerName: 'Legal Hold Status',
-    field: 'status',
-    sortable: true,
-    width: 170,
-    headerComponent: SortHeaderComponent,
-    cellRenderer: (p: ICellRendererParams) =>
-      p.value === 'LEGAL HOLD'
-        ? '<span class="cs-lh-pill">LEGAL HOLD</span>'
-        : p.value === 'PROCESSING'
-        ? '<span class="cs-lh-processing">PROCESSING</span>'
-        : '<span class="cs-lh-na">N/A</span>',
-  },
-
-  // Step 4 — customer-search-grid.component.scss (append at bottom)
-
-  ::ng-deep {
-    /* Remove grey column separator lines from header */
-    .ag-header-cell {
-      border-right: none !important;
-    }
-    .ag-header-cell-resize::after {
-      display: none !important;
-    }
-  }
-  
-  /* Sort icon alignment inside custom header */
-  .cs-sort-icon {
-    vertical-align: middle;
-  }
-
-  // sort-header/sort-header.component.ts (create this file inside the customer-search-grid feature folder):
-
-
-  import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IHeaderAngularComp } from 'ag-grid-angular';
 import { IHeaderParams } from 'ag-grid-community';
@@ -106,11 +12,20 @@ import { IHeaderParams } from 'ag-grid-community';
   template: `
     <div class="cs-sort-header" (click)="onSort($event)">
       <span class="cs-sort-header__text">{{ params.displayName }}</span>
-      <svg class="cs-sort-icon" width="10" height="14" viewBox="0 0 10 14" fill="none">
-        <path d="M5 1L1 5H9L5 1Z"
-              [attr.fill]="sort === 'asc' ? '#1a1a1a' : '#BDBDBD'"/>
-        <path d="M5 13L9 9H1L5 13Z"
-              [attr.fill]="sort === 'desc' ? '#1a1a1a' : '#BDBDBD'"/>
+      <svg width="10" height="16" viewBox="0 0 10 16" fill="none"
+           style="flex-shrink:0; margin-left:4px; cursor:pointer;">
+        <path d="M2 6L5 2L8 6"
+              stroke="#1C2333" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="5" y1="2" x2="5" y2="9"
+              stroke="#1C2333" stroke-width="1.5"
+              stroke-linecap="round"/>
+        <path d="M2 10L5 14L8 10"
+              stroke="#1C2333" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="5" y1="7" x2="5" y2="14"
+              stroke="#1C2333" stroke-width="1.5"
+              stroke-linecap="round"/>
       </svg>
     </div>
   `,
@@ -124,19 +39,13 @@ import { IHeaderParams } from 'ag-grid-community';
       width: 100%;
       height: 100%;
     }
-    .cs-sort-icon { flex-shrink: 0; }
   `]
 })
 export class SortHeaderComponent implements IHeaderAngularComp {
   params!: IHeaderParams;
-  sort: 'asc' | 'desc' | null = null;
 
   agInit(params: IHeaderParams): void {
     this.params = params;
-    this.sort = params.column.getSort() ?? null;
-    params.column.addEventListener('sortChanged', () => {
-      this.sort = this.params.column.getSort() ?? null;
-    });
   }
 
   refresh(params: IHeaderParams): boolean {
@@ -149,20 +58,72 @@ export class SortHeaderComponent implements IHeaderAngularComp {
   }
 }
 
-// Then in customer-search-grid.component.ts, import it at the top:
+// Step 2 — NameHeaderComponent template SVG replacement
 
-import { SortHeaderComponent } from './sort-header/sort-header.component';
+//Find the old <svg> next to .hdr-label and replace with:
 
-// And add it to the @Component imports array:
+<svg (click)="onSortClick($event)"
+     width="10" height="16" viewBox="0 0 10 16" fill="none"
+     style="flex-shrink:0; margin-left:4px; cursor:pointer;">
+  <path d="M2 6L5 2L8 6"
+        stroke="#1C2333" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="5" y1="2" x2="5" y2="9"
+        stroke="#1C2333" stroke-width="1.5"
+        stroke-linecap="round"/>
+  <path d="M2 10L5 14L8 10"
+        stroke="#1C2333" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="5" y1="7" x2="5" y2="14"
+        stroke="#1C2333" stroke-width="1.5"
+        stroke-linecap="round"/>
+</svg>
 
-imports: [
-    CommonModule,
-    FormsModule,
-    AgGridAngular,
-    TranslateModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatIconModule,
-    MatButtonModule,
-    SortHeaderComponent,   // ← ADD
-  ],
+
+// Step 3 — customer-search-grid.component.ts — add two methods
+
+private sortTree(data: any[], field: string, direction: 'asc' | 'desc'): any[] {
+    // Separate parents and children
+    const parents  = data.filter(r => !r._isChild);
+    const children = data.filter(r =>  r._isChild);
+  
+    // Sort only parents alphabetically
+    parents.sort((a, b) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return direction === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
+  
+    // Re-attach each parent's children immediately after it
+    return parents.flatMap(parent => [
+      parent,
+      ...children.filter(c => c._parentUid === parent._uid)
+    ]);
+  }
+  
+  onSortChanged(): void {
+    const sortState = this.gridApi
+      .getColumnState()
+      .find(s => s.sort != null);
+  
+    if (!sortState) {
+      // No sort active — reset to original order
+      this.refresh();
+      return;
+    }
+  
+    this.rowData = this.sortTree(
+      this.rowData,
+      sortState.colId,
+      sortState.sort as 'asc' | 'desc'
+    );
+  }
+
+  // Step 4 — grid HTML, add one event binding
+
+// Find <ag-grid-angular in customer-search-grid.component.html and add:
+
+(sortChanged)="onSortChanged()"
+
