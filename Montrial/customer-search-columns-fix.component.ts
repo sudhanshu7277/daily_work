@@ -180,3 +180,34 @@ onSortChanged(): void {
     // Rebuild flat array — clusters stay intact since we sorted the tree
     this.refresh();
   }
+
+
+  // Fix — replace onSortChanged completely and delete sortTree:
+
+  onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState()
+      .find(s => s.sort != null);
+  
+    if (!sortState) {
+      this.refresh(); // no active sort — rebuild as-is
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir   = sortState.sort as 'asc' | 'desc';
+  
+    // Sort ONLY root nodes in this.tree
+    // Children automatically follow since buildFlat
+    // adds them immediately after their parent
+    this.tree.sort((a, b) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
+  
+    // Rebuild flat rowData — clusters stay intact
+    // _isClusterEnd marks are recalculated correctly by buildFlat
+    this.refresh();
+  }
