@@ -2,9 +2,9 @@
 
 this.columnDefs = [
     {
-      headerName: '',
+      headerName: 'Profile Name', // Set headerName explicitly if not handled internally by NameHeaderComponent
       field: 'profileName',
-      sortable: true,
+      sortable: true, // 🟢 Enabled sorting for Profile Name
       minWidth: 260,
       flex: 2,
       cellRenderer: NameCellComponent,
@@ -18,16 +18,16 @@ this.columnDefs = [
         onSelectAll: (select: boolean) => this.onSelectAll(select),
       },
     },
-    {
-      headerName: 'Proxy OCIF ID',
-      field: 'ocifId',
-      sortable: true, // Enable sorting
-      width: 205
+    { 
+      headerName: 'Proxy OCIF ID', 
+      field: 'ocifId', 
+      sortable: false, // Disabled
+      width: 205 
     },
     {
       headerName: 'Legal Hold Status',
       field: 'status',
-      sortable: true,
+      sortable: true, // 🟢 Enabled sorting for Legal Hold Status
       width: 170,
       cellRenderer: (p: ICellRendererParams) => {
         if (p.value === 'LEGAL HOLD') return '<span class="cs-lh-pill">LEGAL HOLD</span>';
@@ -35,31 +35,31 @@ this.columnDefs = [
         return '<span class="cs-lh-na">N/A</span>';
       }
     },
-    { headerName: 'Legal Hold Name', field: 'holdName', sortable: true, width: 200 },
-    { headerName: 'Customer Lifecycle Status', field: 'lifecycle', sortable: true, width: 190 },
-    { headerName: 'Role Type', field: 'roleType', sortable: true, width: 130 },
+    { headerName: 'Legal Hold Name', field: 'holdName', sortable: false, width: 200 },
+    { headerName: 'Customer Lifecycle Status', field: 'lifecycle', sortable: false, width: 190 },
+    { headerName: 'Role Type', field: 'roleType', sortable: false, width: 130 },
     {
       headerName: 'Address',
       field: 'address',
-      sortable: true,
+      sortable: false,
       flex: 1,
       minWidth: 200,
       wrapText: true,
       autoHeight: false
     },
-    { headerName: 'eDiscovery Project Manager', field: 'eDiscoveryProjectManager', sortable: true, width: 200 },
-    { headerName: 'Responsible Lawyer Email', field: 'responsibleLawyerEmail', sortable: true, width: 200 },
+    { headerName: 'eDiscovery Project Manager', field: 'eDiscoveryProjectManager', sortable: false, width: 200 },
+    { headerName: 'Responsible Lawyer Email', field: 'responsibleLawyerEmail', sortable: false, width: 200 },
     { 
       headerName: 'Legal Hold Applied Date', 
       field: 'holdApplyDate', 
-      sortable: true,
+      sortable: false, 
       width: 200, 
       valueFormatter: (p: any) => this.formatDateTime(p.value) 
     },
     { 
       headerName: 'Legal Hold Release Date', 
       field: 'holdReleaseDate', 
-      sortable: true,
+      sortable: false, 
       width: 200, 
       valueFormatter: (p: any) => this.formatDateTime(p.value) 
     }
@@ -68,53 +68,40 @@ this.columnDefs = [
   // Step 2: SCSS Fixes (customer-search-grid.component.scss)
 
   /* --- AG-GRID HEADER CUSTOMIZATION --- */
+/* --- AG-GRID CUSTOM HEADER & SORT ICON STYLING --- */
 
 ::ng-deep .ag-theme-alpine,
 ::ng-deep .ag-theme-balham {
 
-  /* 1. Remove grey vertical dividing lines between headers */
+  /* 1. Remove vertical grey column dividers */
   .ag-header-cell::after,
   .ag-header-group-cell::after {
     display: none !important;
     border-right: none !important;
   }
 
-  /* 2. Header Container Styling */
-  .ag-header {
-    background-color: #f8f9fa !important; // Clean light background
-    border-bottom: 1px solid #e0e0e0 !important;
-  }
-
-  .ag-header-cell {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-    border-right: none !important; // Remove any additional grid border
-  }
-
-  .ag-header-cell-text {
-    font-size: 13px !important;
-    font-weight: 700 !important; // Bold headers matching Figma
-    color: #000000 !important;
-  }
-
-  /* 3. Custom Up/Down Sort Icon Styling */
+  /* 2. Style Sortable Headers & Custom Up/Down Arrows */
   .ag-header-cell-sortable {
     cursor: pointer;
 
-    /* Hide AG-Grid default sort icons if custom arrows are preferred */
+    /* Unsorted state icon */
+    .ag-header-icon.ag-sort-none-icon {
+      display: inline-block !important;
+      opacity: 0.7;
+      margin-left: 4px;
+    }
+
+    /* Active sort icons */
+    .ag-header-icon.ag-sort-ascending-icon,
+    .ag-header-icon.ag-sort-descending-icon {
+      opacity: 1;
+      color: #000000 !important;
+      margin-left: 4px;
+    }
+
+    /* Prevent default sort order numbers from showing */
     .ag-sort-order {
       display: none !important;
-    }
-
-    .ag-sort-ascending-icon,
-    .ag-sort-descending-icon,
-    .ag-sort-none-icon {
-      color: #333333 !important;
-      opacity: 0.7;
-    }
-
-    &:hover .ag-sort-none-icon {
-      opacity: 1;
     }
   }
 }
