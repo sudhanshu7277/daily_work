@@ -153,3 +153,30 @@ private sortTree(data: any[], field: string, direction: 'asc' | 'desc'): any[] {
   <path d="M6 16.5V7.83l-2.88 2.88L1.71 9.3 7 4l5.29 5.3-1.41 1.41L8 7.83v8.67H6z"/>
   <path d="M16 7.5v8.67l2.88-2.88 1.41 1.41L15 20l-5.29-5.3 1.41-1.41 2.88 2.88V7.5h2z"/>
 </svg>
+
+// onSortChanged
+
+onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState()
+      .find(s => s.sort != null);
+  
+    if (!sortState) {
+      this.refresh(); // no sort active — reset to original order
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir   = sortState.sort as 'asc' | 'desc';
+  
+    // Sort only ROOT nodes in this.tree — children follow their parent automatically
+    this.tree.sort((a, b) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
+  
+    // Rebuild flat array — clusters stay intact since we sorted the tree
+    this.refresh();
+  }
