@@ -466,3 +466,72 @@ onSortChanged(): void {
     this.currentPage = 1;
     this.refresh();
   }
+
+
+  /////////////////
+
+
+  import { Component, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { IHeaderAngularComp } from 'ag-grid-angular';
+import { IHeaderParams } from 'ag-grid-community';
+
+@Component({
+  selector: 'app-sort-header',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="cs-sort-header">
+      <span class="cs-sort-header__text">{{ params?.displayName }}</span>
+      <svg (click)="onSort($event)"
+           width="10" height="13" viewBox="0 0 10 13" fill="none"
+           style="flex-shrink:0; margin-left:4px; cursor:pointer;">
+        <path d="M1.5 5L5 1.5L8.5 5"
+              stroke="#1C2333" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M1.5 8L5 11.5L8.5 8"
+              stroke="#1C2333" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  `,
+  styles: [`
+    .cs-sort-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      width: 100%;
+      height: 100%;
+    }
+    .cs-sort-header__text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1c2333;
+      white-space: nowrap;
+    }
+  `]
+})
+export class SortHeaderComponent implements IHeaderAngularComp {
+  params!: IHeaderParams;
+
+  constructor(private readonly cdr: ChangeDetectorRef) {}
+
+  agInit(params: IHeaderParams): void {
+    this.params = params;
+    this.cdr.detectChanges(); // ← critical for AG Grid v32 standalone
+  }
+
+  refresh(params: IHeaderParams): boolean {
+    this.params = params;
+    this.cdr.detectChanges();
+    return true;
+  }
+
+  onSort(event: MouseEvent): void {
+    event.stopPropagation();
+    this.params?.progressSort(event.shiftKey);
+  }
+}
+
