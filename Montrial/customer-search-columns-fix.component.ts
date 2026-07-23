@@ -268,3 +268,85 @@ onSortChanged(): void {
     this.rowData = [...this.buildFlat(this.tree)];
     this.cdr.detectChanges();
   }
+
+  //// buildFlat — add this private method:
+
+  private buildFlat(nodes: any[]): any[] {
+    const out: any[] = [];
+    for (const n of nodes) {
+      n._isClusterEnd = false;
+      out.push({ ...n });
+      if (n._isParent && n._expanded) {
+        n.children.forEach((c: any, idx: number) => {
+          c._isClusterEnd = idx === n.children.length - 1;
+          out.push({ ...c });
+        });
+      } else if (n._isParent && !n._expanded) {
+        out[out.length - 1]._isClusterEnd = true;
+      }
+    }
+    return out;
+  }
+
+  // refresh — replace your existing one:
+
+  private refresh(): void {
+    // Always assign NEW array reference so AG Grid detects the change
+    this.rowData = [...this.buildFlat(this.tree)];
+    this.updateHeaderCheckbox();
+    this.cdr.detectChanges();
+  }
+
+
+  // onSortChanged — replace your existing one:
+
+//   onSortChanged(): void {
+//     const sortState = this.gridApi?.getColumnState()
+//       .find(s => s.sort != null);
+  
+//     if (!sortState) {
+//       this.refresh();
+//       return;
+//     }
+  
+//     const field = sortState.colId;
+//     const dir   = sortState.sort as 'asc' | 'desc';
+  
+//     // Sort root nodes only — children follow automatically via buildFlat
+//     this.tree.sort((a, b) => {
+//       const valA = (a[field] ?? '').toLowerCase();
+//       const valB = (b[field] ?? '').toLowerCase();
+//       return dir === 'asc'
+//         ? valA.localeCompare(valB)
+//         : valB.localeCompare(valA);
+//     });
+  
+//     this.refresh();
+//   }
+
+
+onSortChanged(): void {
+    const sortState = this.gridApi
+      ?.getColumnState()
+      .find(s => s.sort != null);
+  
+    if (!sortState) {
+      this.refresh();
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir   = sortState.sort as 'asc' | 'desc';
+  
+    // Sort root nodes only directly in this.tree
+    this.tree.sort((a, b) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
+  
+    // refresh() → buildFlat rebuilds clusters correctly
+    this.refresh();
+  }
