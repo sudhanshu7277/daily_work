@@ -127,3 +127,22 @@ private sortTree(data: any[], field: string, direction: 'asc' | 'desc'): any[] {
 
 (sortChanged)="onSortChanged()"
 
+
+//SI=ORTING ICONS SVGs
+
+<svg width="10" height="13" viewBox="0 0 10 13" fill="none"
+     style="flex-shrink:0; margin-left:4px; cursor:pointer;">
+  <!-- Up chevron -->
+  <path d="M1.5 5L5 1.5L8.5 5"
+        stroke="#1C2333"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+  <!-- Down chevron -->
+  <path d="M1.5 8L5 11.5L8.5 8"
+        stroke="#1C2333"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
+
