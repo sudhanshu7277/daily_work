@@ -597,3 +597,78 @@ export class SortHeaderComponent implements IHeaderAngularComp {
     }
   }
 
+// Step 1 — Add showCheckbox to NameHeaderComponent:
+
+export class NameHeaderComponent {
+    state: 'none' | 'some' | 'all' = 'none';
+    sort: 'asc' | 'desc' | null = null;
+    showCheckbox = true;                        // ← ADD
+    private onSelectAll!: (v: boolean) => void;
+    private params: any;
+  
+    constructor(private readonly cdr: ChangeDetectorRef) {}
+  
+    agInit(p: any): void {
+      this.params       = p;
+      this.state        = p.state ?? 'none';
+      this.onSelectAll  = p.onSelectAll;
+      this.showCheckbox = p.showCheckbox ?? true; // ← ADD
+      this.sort         = p.column?.getSort() ?? null;
+      p.column?.addEventListener('sortChanged', () => {
+        this.sort = this.params.column.getSort() ?? null;
+        this.cdr.detectChanges();
+      });
+      this.cdr.detectChanges();
+    }
+  
+    refresh(p: any): boolean {
+      this.params       = p;
+      this.state        = p.state ?? 'none';
+      this.showCheckbox = p.showCheckbox ?? true; // ← ADD
+      this.sort         = p.column?.getSort() ?? null;
+      this.cdr.detectChanges();
+      return true;
+    }
+  
+    onClick(e: MouseEvent): void {
+      e.stopPropagation();
+      this.onSelectAll?.(this.state !== 'all');
+    }
+  
+    onSortClick(e: MouseEvent): void {
+      e.stopPropagation();
+      this.params?.progressSort(e.shiftKey);
+    }
+  }
+
+  // Step 2 — NameHeaderComponent template — wrap checkbox with *ngIf:
+
+//Find the checkbox section and wrap it:
+
+<span *ngIf="showCheckbox" class="cb-wrap" (click)="onClick($event)">
+  <!-- existing checkbox markup unchanged -->
+</span>
+<span class="hdr-label">{{ params?.displayName }}</span>
+<svg (click)="onSortClick($event)" ...existing SVG...>
+
+// Step 3 — Legal Hold Status colDef:
+
+{
+    headerName: 'Legal Hold Status',
+    field: 'status',
+    sortable: true,
+    comparator: () => 0,
+    width: 170,
+    headerComponent: NameHeaderComponent,       // ← same component
+    headerComponentParams: {
+      showCheckbox: false,                       // ← hide checkbox
+      state: 'none',
+      onSelectAll: null,
+    },
+    cellRenderer: (p: ICellRendererParams) =>
+      p.value === 'LEGAL HOLD'
+        ? '<span class="cs-lh-pill">LEGAL HOLD</span>'
+        : p.value === 'PROCESSING'
+        ? '<span class="cs-lh-processing">PROCESSING</span>'
+        : '<span class="cs-lh-na">N/A</span>',
+  },
