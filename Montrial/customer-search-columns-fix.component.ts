@@ -672,3 +672,21 @@ export class NameHeaderComponent {
         ? '<span class="cs-lh-processing">PROCESSING</span>'
         : '<span class="cs-lh-na">N/A</span>',
   },
+
+
+
+  // Fix 1 — NameHeaderComponent template, find the .hdr-label span and change:
+
+  <!-- BEFORE — hardcoded -->
+<span class="hdr-label">Profile Name</span>
+
+<!-- AFTER — dynamic -->
+<span class="hdr-label">{{ params?.displayName }}</span>
+
+// Fix 2 — Add console.log to onSortClick in NameHeaderComponent:
+
+onSortClick(e: MouseEvent): void {
+    e.stopPropagation();
+    console.log('onSortClick fired', this.params?.column?.getColId());
+    this.params?.progressSort(e.shiftKey);
+  }
