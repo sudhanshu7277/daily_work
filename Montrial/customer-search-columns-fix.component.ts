@@ -743,3 +743,14 @@ onSortChanged(): void {
     this.refresh();
   }
   
+
+  // history date dd/mm/yyyy
+
+  formatToDisplayDate(dateStr: string): string {
+    if (!dateStr) return '';
+    if (dateStr.includes('-')) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    return dateStr;
+  }
