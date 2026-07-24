@@ -19,3 +19,32 @@ ngOnChanges(changes: SimpleChanges): void {
       this.syncColumns();
     }
   }
+
+
+
+  // Add class property
+private lastRawSearchResults: any[] = [];
+
+// Right where you currently set customerGridData after a search
+this.customerGridData = [...results];
+this.lastRawSearchResults = [...results]; // ← ADD: keep raw copy
+  // 
+
+
+  displayHistoryMsgOnTop(msg: any): void {
+    if (msg.showHistoryMsg) {
+      const appRoot = document.querySelector('app-root');
+      if (appRoot) appRoot.removeAttribute('aria-hidden');
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+  
+      // Restore grid from last raw search — skip loadCached entirely
+      if (this.lastRawSearchResults.length) {
+        this.customerGridData = [...this.lastRawSearchResults];
+      }
+  
+      this.checkInHistoryMsg = true;
+      this.cdr.detectChanges();
+    }
+  }
