@@ -109,21 +109,31 @@ export class CustomerSearchGridComponent implements OnChanges {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['customerGridData']) {
+    if (changes['customerGridData'] && this.customerGridData && this.customerGridData.length) {
+      // 🛑 REMOVE or set to false so the grid container isn't hidden by template bindings!
+      this.isLoading = false; 
+      this.loadError = false;
+  
       const prev = changes['customerGridData'].previousValue;
       const curr = changes['customerGridData'].currentValue;
-
-      // 🟢 Compare references or lengths to ensure valid incoming data
+  
       if (curr && curr !== prev) {
         console.log('🔄 customer-search-grid ngOnChanges detected data update:', curr.length);
-        
+  
         // Re-assign your rowData/tree using a fresh reference
         this.rowData = [...curr];
         this.tree = [...curr];
-
+  
+        if (this.gridApi) {
+          this.gridApi.setRowData(this.rowData);
+        }
+  
         // Trigger local change detection so AG-Grid immediately re-renders
         this.cdr.detectChanges();
       }
+  
+      // Call your existing mapping methods if needed
+      this.handleResponse(this.mapApiResponse(this.customerGridData));
+      this.syncColumns();
     }
   }
-}
