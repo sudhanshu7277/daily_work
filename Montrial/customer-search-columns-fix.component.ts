@@ -94,3 +94,36 @@ ngOnChanges(changes: SimpleChanges): void {
 if (this.customerGridData?.length > 0 && (!this.entityGridData || this.entityGridData.length === 0)) {
     this.activeTab = 'INDIVIDUAL'; // or whatever property tracks your active tab
   }
+
+  // 
+
+  import { Component, Input, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
+
+export class CustomerSearchGridComponent implements OnChanges {
+  @Input() customerGridData: any[] = [];
+  
+  // Your grid data properties
+  rowData: any[] = [];
+  tree: any[] = []; // If you use tree or another structured format for AG-Grid
+
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['customerGridData']) {
+      const prev = changes['customerGridData'].previousValue;
+      const curr = changes['customerGridData'].currentValue;
+
+      // 🟢 Compare references or lengths to ensure valid incoming data
+      if (curr && curr !== prev) {
+        console.log('🔄 customer-search-grid ngOnChanges detected data update:', curr.length);
+        
+        // Re-assign your rowData/tree using a fresh reference
+        this.rowData = [...curr];
+        this.tree = [...curr];
+
+        // Trigger local change detection so AG-Grid immediately re-renders
+        this.cdr.detectChanges();
+      }
+    }
+  }
+}
