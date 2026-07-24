@@ -1,3 +1,5 @@
+// The fix — guard handleResponse with a mapped data check in ngOnChanges:
+
 ngOnChanges(changes: SimpleChanges): void {
     if (changes['customerGridData'] && 
         this.customerGridData && 
@@ -7,44 +9,19 @@ ngOnChanges(changes: SimpleChanges): void {
       const prev = changes['customerGridData'].previousValue;
       const curr = changes['customerGridData'].currentValue;
       if (curr && curr !== prev) {
-        let temp = curr;
-        this.customerGridData = temp;
-        this.cdr.detectChanges();
+        // Map first — only proceed if mapping produces real data
+        const mapped = this.mapApiResponse(this.customerGridData);
+        
+        if (mapped?.data?.length > 0) {
+          // Real data — re-render grid
+          this.handleResponse(mapped);
+          this.syncColumns();
+        } else {
+          // Mapping produced empty — data format mismatch from session storage
+          // Keep grid exactly as is, just stop loading
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
       }
-    }
-  
-    // ← ADD THIS GUARD — only run if there's actual data
-    if (this.customerGridData && this.customerGridData.length) {
-      this.handleResponse(this.mapApiResponse(this.customerGridData));
-      this.syncColumns();
-    }
-  }
-
-
-
-  // Add class property
-private lastRawSearchResults: any[] = [];
-
-// Right where you currently set customerGridData after a search
-this.customerGridData = [...results];
-this.lastRawSearchResults = [...results]; // ← ADD: keep raw copy
-  // 
-
-
-  displayHistoryMsgOnTop(msg: any): void {
-    if (msg.showHistoryMsg) {
-      const appRoot = document.querySelector('app-root');
-      if (appRoot) appRoot.removeAttribute('aria-hidden');
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-  
-      // Restore grid from last raw search — skip loadCached entirely
-      if (this.lastRawSearchResults.length) {
-        this.customerGridData = [...this.lastRawSearchResults];
-      }
-  
-      this.checkInHistoryMsg = true;
-      this.cdr.detectChanges();
     }
   }
