@@ -779,3 +779,31 @@ onSortChanged(): void {
   
     return dateStr;
   }
+
+
+  // enhanced load cached data
+
+  loadCachedIndividualAndEntityProfiles(): void {
+    const individualValues = this.sessionStorageService.getItem<any>('individualSearchResult');
+    if (individualValues && (Array.isArray(individualValues) ? individualValues.length : individualValues?.data?.length)) {
+      console.log('checking if loadCachedIndividualAndEntityProfiles lands in IndividualValues : ');
+      console.log(individualValues);
+      
+      // 🟢 Extract array and spread into a NEW array reference so Angular ngOnChanges/ChangeDetection picks it up
+      const rawData = Array.isArray(individualValues) ? individualValues : (individualValues.data || []);
+      this.customerGridData = [...rawData];
+    }
+  
+    const entityValues = this.sessionStorageService.getItem<any>('entitySearchResult');
+    if (entityValues && (Array.isArray(entityValues) ? entityValues.length : entityValues?.data?.length)) {
+      console.log('checking if loadCachedIndividualAndEntityProfiles lands in entityValues : ');
+      console.log(entityValues);
+      
+      // 🟢 Guarantee new array reference for entity grid
+      const rawEntityData = Array.isArray(entityValues) ? entityValues : (entityValues.data || []);
+      this.entityGridData = [...rawEntityData];
+    }
+  
+    // Ensure ChangeDetectorRef forces the view update down to child grid inputs
+    this.cdr.detectChanges();
+  }
