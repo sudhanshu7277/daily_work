@@ -59,3 +59,38 @@ ngOnChanges(changes: SimpleChanges): void {
       this.cdr.detectChanges();
     }
   }
+
+  //Update displayHistoryMsgOnTop() in legal-hold-shell.component.ts:
+
+  displayHistoryMsgOnTop(msg: any): void {
+    console.log('showHistoryMsg : ', msg.showHistoryMsg);
+  
+    if (msg.showHistoryMsg) {
+      // 1. Force remove aria-hidden from app-root/DOM if a modal left it locked
+      const appRoot = document.querySelector('app-root');
+      if (appRoot) {
+        appRoot.removeAttribute('aria-hidden');
+      }
+  
+      // 2. Unfocus active button so DOM focus doesn't lock the app shell
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+  
+      // 3. Load the cached data
+      this.loadCachedIndividualAndEntityProfiles();
+  
+      // 4. Show banner
+      this.checkInHistoryMsg = true;
+  
+      // 5. Force Change Detection
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Add this check in loadCachedIndividualAndEntityProfiles():
+
+  // If individual data is present but entity is empty, ensure the view stays on Individual tab
+if (this.customerGridData?.length > 0 && (!this.entityGridData || this.entityGridData.length === 0)) {
+    this.activeTab = 'INDIVIDUAL'; // or whatever property tracks your active tab
+  }
