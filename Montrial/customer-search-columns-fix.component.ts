@@ -25,3 +25,34 @@ ngOnChanges(changes: SimpleChanges): void {
       }
     }
   }
+
+  // updated ng on changes for selected profiles component
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (this.selectedCustomerList || this.selectedLegalHoldList || this.selectedEntityList) {
+      
+      // 🟢 Safely extract arrays (defaulting to empty array [] if null/undefined)
+      const customersSelectedData = Array.isArray(this.selectedCustomerList) ? this.selectedCustomerList : [];
+      const holdSelectedData = Array.isArray(this.selectedLegalHoldList) ? this.selectedLegalHoldList : [];
+      const entitySelectedData = Array.isArray(this.selectedEntityList) ? this.selectedEntityList : [];
+  
+      // 🟢 Merge all active selections into selectedProfiles
+      const mergedProfiles = [
+        ...customersSelectedData,
+        ...holdSelectedData,
+        ...entitySelectedData
+      ];
+  
+      // Optional: Deduplicate by unique profile ID/key if profiles could overlap
+      // const uniqueProfiles = Array.from(new Map(mergedProfiles.map(item => [item.uid || item.id, item])).values());
+      
+      this.selectedProfiles = [...mergedProfiles];
+  
+      let cachedTrueInChangesBlock = this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
+      if (cachedTrueInChangesBlock) {
+        this.loadCachedProfiles();
+      }
+  
+      // this.pruneInvalidProfileMarkers();
+    }
+  }
