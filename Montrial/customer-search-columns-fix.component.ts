@@ -1,69 +1,26 @@
-import { Component, OnInit, Output, EventEmitter, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
-
-export class SearchCustomerComponent implements OnInit, OnDestroy {
-  @Output() customerTypeChange = new EventEmitter<string>();
-  private customerTypeSub!: Subscription;
-
-  ngOnInit(): void {
-    // 🟢 Subscribe to radio group value flips
-    this.customerTypeSub = this.searchForm.get('customerType')?.valueChanges.subscribe((value: string) => {
-      console.log('Radio button flipped to:', value);
-      
-      // Emit to parent shell or trigger internal state logic
-      this.onCustomerTypeChange(value);
-    })!;
-  }
-
-  onCustomerTypeChange(selectedType: string): void {
-    // Perform any state reset, grid clearing, or parent notification
-    this.customerTypeChange.emit(selectedType);
-  }
-
-  ngOnDestroy(): void {
-    if (this.customerTypeSub) {
-      this.customerTypeSub.unsubscribe();
+handleSelectionChange(selectedRows: any): void {
+    if (selectedRows.identifier === 'customer') {
+      // Replace with current grid selection — panel diff handles accumulation
+      this.selectedCustomerList = [...(selectedRows.selected || [])];
+      this.cacheIndividualAndEntityProfiles(
+        'selectedCustomerList', 
+        this.selectedCustomerList
+      );
     }
-  }
-}
-
-
-<mat-radio-group 
-  formControlName="customerType" 
-  class="radio-group"
-  (change)="onCustomerTypeChange($event.value)">
   
-  <mat-radio-button value="Individual">
-    {{ searchCustomerVerbiage.Individual | translate }}
-  </mat-radio-button>
-
-  <mat-radio-button value="Entity">
-    {{ searchCustomerVerbiage.Entity | translate }}
-  </mat-radio-button>
-
-</mat-radio-group>
-
-
-onCustomerTypeChange(value: string): void {
-    console.log('Customer type changed:', value);
-    // Handle the new value ('Individual' or 'Entity')
-  }
-
-
-  // search legal hold
-
-  getLegalHoldNameList(): Observable<string[]> {
-    return this.getAllLegalHoldData().pipe(
-      map((data: any) => {
-        // 🟢 Safely unwrap data array regardless of backend structure
-        const rawRecords = Array.isArray(data) ? data : (data?.data || data?.result || []);
-        
-        const names = rawRecords
-          .map((item: any) => item?.holdName)
-          .filter((name: any) => !!name && typeof name === 'string' && name.trim() !== '');
+    if (selectedRows.identifier === 'entity') {
+      this.selectedEntityList = [...(selectedRows.selected || [])];
+      this.cacheIndividualAndEntityProfiles(
+        'selectedEntityList', 
+        this.selectedEntityList
+      );
+    }
   
-        return Array.from(new Set(names)) as string[];
-      }),
-      catchError(() => of([])) // Optional: Return empty array on stream error (requires import { of } from 'rxjs')
-    );
+    if (selectedRows.identifier === 'hold') {
+      this.selectedLegalHoldList = [...(selectedRows.selected || [])];
+      this.cacheIndividualAndEntityProfiles(
+        'selectedLegalHoldList', 
+        this.selectedLegalHoldList
+      );
+    }
   }
