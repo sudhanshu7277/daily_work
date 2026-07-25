@@ -48,3 +48,22 @@ onCustomerTypeChange(value: string): void {
     console.log('Customer type changed:', value);
     // Handle the new value ('Individual' or 'Entity')
   }
+
+
+  // search legal hold
+
+  getLegalHoldNameList(): Observable<string[]> {
+    return this.getAllLegalHoldData().pipe(
+      map((data: any) => {
+        // 🟢 Safely unwrap data array regardless of backend structure
+        const rawRecords = Array.isArray(data) ? data : (data?.data || data?.result || []);
+        
+        const names = rawRecords
+          .map((item: any) => item?.holdName)
+          .filter((name: any) => !!name && typeof name === 'string' && name.trim() !== '');
+  
+        return Array.from(new Set(names)) as string[];
+      }),
+      catchError(() => of([])) // Optional: Return empty array on stream error (requires import { of } from 'rxjs')
+    );
+  }
