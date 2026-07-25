@@ -1,34 +1,62 @@
+// Add three tracking properties to the class:
+
+private prevCustomerList: any[] = [];
+private prevLegalHoldList: any[] = [];
+private prevEntityList: any[] = [];
+
+// Replace ngOnChanges entirely:
+
 ngOnChanges(changes: SimpleChanges): void {
-    if (!changes['selectedCustomerList'] && 
-        !changes['selectedLegalHoldList'] && 
-        !changes['selectedEntityList']) return;
+    if (changes['selectedCustomerList']) {
+      this.applyDiff(this.prevCustomerList, this.selectedCustomerList || [], 'customer');
+      if (this.selectedCustomerList?.length) {
+        this.prevCustomerList = [...this.selectedCustomerList];
+      }
+    }
+    if (changes['selectedLegalHoldList']) {
+      this.applyDiff(this.prevLegalHoldList, this.selectedLegalHoldList || [], 'legalHold');
+      if (this.selectedLegalHoldList?.length) {
+        this.prevLegalHoldList = [...this.selectedLegalHoldList];
+      }
+    }
+    if (changes['selectedEntityList']) {
+      this.applyDiff(this.prevEntityList, this.selectedEntityList || [], 'entity');
+      if (this.selectedEntityList?.length) {
+        this.prevEntityList = [...this.selectedEntityList];
+      }
+    }
   
-    // For each source: use new list if it has items,
-    // otherwise preserve whatever was already selected from that source
-    const customerItems = (this.selectedCustomerList?.length
-      ? this.selectedCustomerList
-      : this.selectedProfiles.filter((p: any) => p._source === 'customer'))
-      .map((p: any) => ({...p, _source: 'customer'}));
-  
-    const legalHoldItems = (this.selectedLegalHoldList?.length
-      ? this.selectedLegalHoldList
-      : this.selectedProfiles.filter((p: any) => p._source === 'legalHold'))
-      .map((p: any) => ({...p, _source: 'legalHold'}));
-  
-    const entityItems = (this.selectedEntityList?.length
-      ? this.selectedEntityList
-      : this.selectedProfiles.filter((p: any) => p._source === 'entity'))
-      .map((p: any) => ({...p, _source: 'entity'}));
-  
-    this.selectedProfiles = [
-      ...customerItems,
-      ...legalHoldItems,
-      ...entityItems
-    ];
-  
-    const cachedTrue = this.cacheSelectedProfiles(
-      'profilesSelected',
-      this.selectedProfiles
-    );
+    const cachedTrue = this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
     if (cachedTrue) this.loadCachedProfiles();
+  }
+
+  // Add applyDiff method:
+
+  private applyDiff(prev: any[], curr: any[], source: string): void {
+    // Skip empty arrays — these are tab-switch resets, not real deselections
+    if (!curr.length) return;
+  
+    const getKey = (p: any) => p.ocifId || p.ecifId || p.proxyOcifId || p.fileNetId || JSON.stringify(p);
+  
+    const prevKeys = new Set(prev.map(getKey));
+    const currKeys = new Set(curr.map(getKey));
+  
+    // Add newly selected profiles
+    curr.forEach(p => {
+      if (!prevKeys.has(getKey(p))) {
+        this.selectedProfiles = [
+          ...this.selectedProfiles,
+          { ...p, _source: source }
+        ];
+      }
+    });
+  
+    // Remove explicitly deselected profiles
+    prev.forEach(p => {
+      if (!currKeys.has(getKey(p))) {
+        this.selectedProfiles = this.selectedProfiles.filter(
+          sp => getKey(sp) !== getKey(p)
+        );
+      }
+    });
   }
