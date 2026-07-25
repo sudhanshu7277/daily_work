@@ -1,37 +1,33 @@
 /**
- * Removes objects from an array where multiple objects share the exact same `ecifId`.
- * Items without an `ecifId` or with unique `ecifId` values are preserved.
- *
- * @param list - The input array of records
- * @returns Filtered array containing only objects with non-duplicate `ecifId`s
+ * Deduplicates an array of objects by `ocifId`.
+ * Ensures the returned array contains only unique objects per `ocifId`.
  */
-removeDuplicateEcifIdRecords<T extends Record<string, any>>(list: T[]): T[] {
-    if (!Array.isArray(list) || !list.length) {
+deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
+    if (!Array.isArray(list) || list.length === 0) {
       return [];
     }
   
-    // Step 1: Count frequency of each ecifId
-    const ecifIdCounts = new Map<string | number, number>();
+    const seenOcifIds = new Set<string | number>();
   
-    list.forEach(item => {
-      const id = item?.ecifId;
-      if (id !== undefined && id !== null && id !== '') {
-        ecifIdCounts.set(id, (ecifIdCounts.get(id) || 0) + 1);
-      }
-    });
-  
-    // Step 2: Filter out any item whose ecifId appears more than once
     return list.filter(item => {
       if (!item) return false;
   
-      const id = item.ecifId;
+      // Grab ocifId (or fallback to ecifId if present)
+      const id = item.ocifId ?? item.ecifId;
   
-      // If item has an ecifId, keep it ONLY if it appears exactly once
+      // If ocifId exists, check if we've already included it
       if (id !== undefined && id !== null && id !== '') {
-        return ecifIdCounts.get(id) === 1;
+        if (seenOcifIds.has(id)) {
+          return false; // Skip duplicate
+        }
+        seenOcifIds.add(id);
+        return true; // Keep first unique instance
       }
   
-      // Keep items without an ecifId
+      // Keep items without an ocifId
       return true;
     });
   }
+
+  // Pass localCustomerList through the function
+this.selectedCustomerList = this.deduplicateByOcifId(localCustomerList);
