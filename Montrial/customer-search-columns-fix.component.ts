@@ -4,61 +4,52 @@ ngOnChanges(changes: SimpleChanges): void {
     const hasEntityChange = !!changes['selectedEntityList'];
   
     if (hasCustomerChange || hasHoldChange || hasEntityChange) {
-  
-      // 1. Get current active profiles
       let currentProfiles = [...(this.selectedProfiles || [])];
   
-      // Helper unique key generator
+      // Unique key generator
       const getKey = (item: any) => item.uid || item.ocifId || item.id || item.profileName;
   
-      // Helper to sync incoming changes for a specific category
-      const syncCategory = (incomingList: any[], categoryType: string) => {
+      // Helper to merge incoming items into selectedProfiles without clearing existing ones
+      const mergeIncoming = (incomingList: any[]) => {
         const incomingArray = Array.isArray(incomingList) ? incomingList : [];
-        const incomingKeys = new Set(incomingArray.map(item => getKey(item)));
-  
-        // Step A: Remove profiles belonging to this category that are NO LONGER in the incoming list (Unchecked)
-        currentProfiles = currentProfiles.filter(profile => {
-          if (profile._category === categoryType) {
-            return incomingKeys.has(getKey(profile));
-          }
-          return true; // Keep profiles from other categories intact!
-        });
-  
-        // Step B: Add or update newly selected profiles for this category
+        
         incomingArray.forEach(incomingItem => {
           const itemKey = getKey(incomingItem);
           const existingIndex = currentProfiles.findIndex(p => getKey(p) === itemKey);
   
-          const taggedItem = { ...incomingItem, _category: categoryType };
-  
           if (existingIndex > -1) {
-            // Update existing item in place
-            currentProfiles[existingIndex] = taggedItem;
+            // Update existing profile details in place
+            currentProfiles[existingIndex] = { ...currentProfiles[existingIndex], ...incomingItem };
           } else {
-            // Add newly checked item
-            currentProfiles.push(taggedItem);
+            // Push new selection onto the accumulated array
+            currentProfiles.push(incomingItem);
           }
         });
       };
   
-      // 2. Synchronize each list whenever its input updates
-      if (hasCustomerChange) {
-        syncCategory(this.selectedCustomerList, 'CUSTOMER');
-      }
-      if (hasHoldChange) {
-        syncCategory(this.selectedLegalHoldList, 'HOLD');
-      }
-      if (hasEntityChange) {
-        syncCategory(this.selectedEntityList, 'ENTITY');
-      }
+      // Merge incoming arrays without wiping existing state
+      if (hasCustomerChange) mergeIncoming(this.selectedCustomerList);
+      if (hasHoldChange) mergeIncoming(this.selectedLegalHoldList);
+      if (hasEntityChange) mergeIncoming(this.selectedEntityList);
   
-      // 3. Update component state
+      // Update selectedProfiles reference
       this.selectedProfiles = [...currentProfiles];
   
-      // 4. Cache updated state
+      // Cache updated selection state
       let cachedTrueInChangesBlock = this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
       if (cachedTrueInChangesBlock) {
         this.loadCachedProfiles();
       }
     }
+  }
+
+    // // Call this when trash icon in Profile(s) Selected is clicked or grid checkbox is toggled off
+removeProfile(profileToRemove: any): void {
+    const getKey = (item: any) => item.uid || item.ocifId || item.id || item.profileName;
+    const removeKey = getKey(profileToRemove);
+  
+    this.selectedProfiles = this.selectedProfiles.filter(p => getKey(p) !== removeKey);
+  
+    this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
+    this.loadCachedProfiles();
   }
