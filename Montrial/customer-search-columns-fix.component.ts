@@ -1,39 +1,61 @@
 ngOnChanges(changes: SimpleChanges): void {
-    // Check if any of the selection lists changed
-    if (changes['selectedCustomerList'] || changes['selectedLegalHoldList'] || changes['selectedEntityList']) {
-      
-      // 1. Extract non-empty lists from current @Inputs
-      const newCustomerItems = Array.isArray(this.selectedCustomerList) ? this.selectedCustomerList : [];
-      const newHoldItems = Array.isArray(this.selectedLegalHoldList) ? this.selectedLegalHoldList : [];
-      const newEntityItems = Array.isArray(this.selectedEntityList) ? this.selectedEntityList : [];
+    const hasCustomerChange = !!changes['selectedCustomerList'];
+    const hasHoldChange = !!changes['selectedLegalHoldList'];
+    const hasEntityChange = !!changes['selectedEntityList'];
   
-      // Combine incoming items from inputs
-      const incomingSelections = [...newCustomerItems, ...newHoldItems, ...newEntityItems];
+    if (hasCustomerChange || hasHoldChange || hasEntityChange) {
   
-      if (incomingSelections.length > 0) {
-        // 2. Load existing/cached profiles so we don't lose previous tab selections
-        const existingProfiles = this.selectedProfiles || [];
+      // 1. Get current active profiles
+      let currentProfiles = [...(this.selectedProfiles || [])];
   
-        // 3. Merge existing + incoming items, avoiding duplicate profile IDs
-        const profileMap = new Map<string, any>();
+      // Helper unique key generator
+      const getKey = (item: any) => item.uid || item.ocifId || item.id || item.profileName;
   
-        // Keep previously selected profiles
-        existingProfiles.forEach(item => {
-          const key = item.uid || item.ocifId || item.id || item.profileName;
-          if (key) profileMap.set(key, item);
+      // Helper to sync incoming changes for a specific category
+      const syncCategory = (incomingList: any[], categoryType: string) => {
+        const incomingArray = Array.isArray(incomingList) ? incomingList : [];
+        const incomingKeys = new Set(incomingArray.map(item => getKey(item)));
+  
+        // Step A: Remove profiles belonging to this category that are NO LONGER in the incoming list (Unchecked)
+        currentProfiles = currentProfiles.filter(profile => {
+          if (profile._category === categoryType) {
+            return incomingKeys.has(getKey(profile));
+          }
+          return true; // Keep profiles from other categories intact!
         });
   
-        // Append/update newly selected profiles
-        incomingSelections.forEach(item => {
-          const key = item.uid || item.ocifId || item.id || item.profileName;
-          if (key) profileMap.set(key, item);
-        });
+        // Step B: Add or update newly selected profiles for this category
+        incomingArray.forEach(incomingItem => {
+          const itemKey = getKey(incomingItem);
+          const existingIndex = currentProfiles.findIndex(p => getKey(p) === itemKey);
   
-        // Convert Map back to Array
-        this.selectedProfiles = Array.from(profileMap.values());
+          const taggedItem = { ...incomingItem, _category: categoryType };
+  
+          if (existingIndex > -1) {
+            // Update existing item in place
+            currentProfiles[existingIndex] = taggedItem;
+          } else {
+            // Add newly checked item
+            currentProfiles.push(taggedItem);
+          }
+        });
+      };
+  
+      // 2. Synchronize each list whenever its input updates
+      if (hasCustomerChange) {
+        syncCategory(this.selectedCustomerList, 'CUSTOMER');
+      }
+      if (hasHoldChange) {
+        syncCategory(this.selectedLegalHoldList, 'HOLD');
+      }
+      if (hasEntityChange) {
+        syncCategory(this.selectedEntityList, 'ENTITY');
       }
   
-      // 4. Cache updated selected profiles
+      // 3. Update component state
+      this.selectedProfiles = [...currentProfiles];
+  
+      // 4. Cache updated state
       let cachedTrueInChangesBlock = this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
       if (cachedTrueInChangesBlock) {
         this.loadCachedProfiles();
