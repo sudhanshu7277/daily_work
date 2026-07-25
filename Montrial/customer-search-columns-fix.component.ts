@@ -1,32 +1,50 @@
-ngOnChanges(changes: SimpleChanges): void {
-    const getKey = (p: any): string =>
-      p.ocifId ?? p.ecifId ?? p.proxyOcifId ?? p.fileNetId ?? JSON.stringify(p);
+import { Component, OnInit, Output, EventEmitter, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+
+export class SearchCustomerComponent implements OnInit, OnDestroy {
+  @Output() customerTypeChange = new EventEmitter<string>();
+  private customerTypeSub!: Subscription;
+
+  ngOnInit(): void {
+    // 🟢 Subscribe to radio group value flips
+    this.customerTypeSub = this.searchForm.get('customerType')?.valueChanges.subscribe((value: string) => {
+      console.log('Radio button flipped to:', value);
+      
+      // Emit to parent shell or trigger internal state logic
+      this.onCustomerTypeChange(value);
+    })!;
+  }
+
+  onCustomerTypeChange(selectedType: string): void {
+    // Perform any state reset, grid clearing, or parent notification
+    this.customerTypeChange.emit(selectedType);
+  }
+
+  ngOnDestroy(): void {
+    if (this.customerTypeSub) {
+      this.customerTypeSub.unsubscribe();
+    }
+  }
+}
+
+
+<mat-radio-group 
+  formControlName="customerType" 
+  class="radio-group"
+  (change)="onCustomerTypeChange($event.value)">
   
-    ['selectedCustomerList', 'selectedLegalHoldList', 'selectedEntityList']
-      .forEach(key => {
-        if (!changes[key]) return;
-        const prev: any[] = changes[key].previousValue || [];
-        const curr: any[] = changes[key].currentValue || [];
-  
-        // ADD new selections
-        curr.forEach(p => {
-          if (!this.selectedProfiles.some((sp: any) => getKey(sp) === getKey(p))) {
-            this.selectedProfiles.push(p);
-          }
-        });
-  
-        // REMOVE unchecked items
-        const currKeys = new Set(curr.map(getKey));
-        prev.forEach(p => {
-          if (!currKeys.has(getKey(p))) {
-            const idx = this.selectedProfiles
-              .findIndex((sp: any) => getKey(sp) === getKey(p));
-            if (idx > -1) this.selectedProfiles.splice(idx, 1);
-          }
-        });
-      });
-  
-    this.selectedProfiles = [...this.selectedProfiles];
-    const cached = this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
-    if (cached) this.loadCachedProfiles();
+  <mat-radio-button value="Individual">
+    {{ searchCustomerVerbiage.Individual | translate }}
+  </mat-radio-button>
+
+  <mat-radio-button value="Entity">
+    {{ searchCustomerVerbiage.Entity | translate }}
+  </mat-radio-button>
+
+</mat-radio-group>
+
+
+onCustomerTypeChange(value: string): void {
+    console.log('Customer type changed:', value);
+    // Handle the new value ('Individual' or 'Entity')
   }
