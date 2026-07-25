@@ -1,32 +1,37 @@
 /**
- * Deduplicates objects in an array based on `ecifId`.
- * Items without an `ecifId` are preserved as-is.
- * 
- * @param list - The array of records to filter
- * @returns Array with duplicates removed for records that have an ecifId
+ * Removes objects from an array where multiple objects share the exact same `ecifId`.
+ * Items without an `ecifId` or with unique `ecifId` values are preserved.
+ *
+ * @param list - The input array of records
+ * @returns Filtered array containing only objects with non-duplicate `ecifId`s
  */
-deduplicateByEcifId<T extends Record<string, any>>(list: T[]): T[] {
+removeDuplicateEcifIdRecords<T extends Record<string, any>>(list: T[]): T[] {
     if (!Array.isArray(list) || !list.length) {
       return [];
     }
   
-    const seenEcifIds = new Set<string | number>();
+    // Step 1: Count frequency of each ecifId
+    const ecifIdCounts = new Map<string | number, number>();
   
+    list.forEach(item => {
+      const id = item?.ecifId;
+      if (id !== undefined && id !== null && id !== '') {
+        ecifIdCounts.set(id, (ecifIdCounts.get(id) || 0) + 1);
+      }
+    });
+  
+    // Step 2: Filter out any item whose ecifId appears more than once
     return list.filter(item => {
       if (!item) return false;
   
-      const ecifId = item.ecifId;
+      const id = item.ecifId;
   
-      // If ecifId exists, check for duplicates
-      if (ecifId !== undefined && ecifId !== null && ecifId !== '') {
-        if (seenEcifIds.has(ecifId)) {
-          return false; // Omit duplicate ecifId
-        }
-        seenEcifIds.add(ecifId);
-        return true;
+      // If item has an ecifId, keep it ONLY if it appears exactly once
+      if (id !== undefined && id !== null && id !== '') {
+        return ecifIdCounts.get(id) === 1;
       }
   
-      // Keep items that don't have an ecifId
+      // Keep items without an ecifId
       return true;
     });
   }
