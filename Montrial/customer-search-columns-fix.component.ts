@@ -1,33 +1,33 @@
-handleSelectionChange(selectedRows: any): void {
-    const getKey = (p: any) => 
-      p.ocifId ?? p.ecifId ?? p.proxyOcifId ?? p.fileNetId ?? JSON.stringify(p);
-    const curr: any[] = selectedRows.selected || [];
-  
-    if (selectedRows.identifier === 'customer') {
-      const existing = this.selectedCustomerList || [];
-      const newItems = curr.filter(p => 
-        !existing.some((sp: any) => getKey(sp) === getKey(p))
-      );
-      this.selectedCustomerList = [...existing, ...newItems];
-      this.cacheIndividualAndEntityProfiles('selectedCustomerList', this.selectedCustomerList);
-    }
-  
-    if (selectedRows.identifier === 'entity') {
-      const existing = this.selectedEntityList || [];
-      const newItems = curr.filter(p => 
-        !existing.some((sp: any) => getKey(sp) === getKey(p))
-      );
-      this.selectedEntityList = [...existing, ...newItems];
-      this.cacheIndividualAndEntityProfiles('selectedEntityList', this.selectedEntityList);
-    }
-  
-    if (selectedRows.identifier === 'hold') {
-      const existing = this.selectedLegalHoldList || [];
-      const newItems = curr.filter(p => 
-        !existing.some((sp: any) => getKey(sp) === getKey(p))
-      );
-      this.selectedLegalHoldList = [...existing, ...newItems];
-      this.cacheIndividualAndEntityProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
-    }
-    // Lines 1133-1137 removed entirely
-  }
+//Looking at the current handleSelectionChange (image 1), the only issue is duplicates. The simplest tweak — just add a duplicate check before spreading:
+
+// Change lines 1117-1118 for customer:
+// BEFORE
+this.selectedCustomerList = [...this.selectedCustomerList, ...newCustData];
+
+// AFTER
+const newCustItems = newCustData.filter((p: any) => 
+  !this.selectedCustomerList.some((sp: any) => sp.ocifId === p.ocifId));
+this.selectedCustomerList = [...this.selectedCustomerList, ...newCustItems];
+
+
+// Change line 1124 for entity:
+
+// BEFORE
+this.selectedEntityList = [...this.selectedEntityList, ...newEntityData];
+
+// AFTER
+const newEntityItems = newEntityData.filter((p: any) => 
+  !this.selectedEntityList.some((sp: any) => sp.ocifId === p.ocifId));
+this.selectedEntityList = [...this.selectedEntityList, ...newEntityItems];
+
+
+// Change line 1131 for hold:
+
+// BEFORE
+this.selectedLegalHoldList = [...this.selectedLegalHoldList, ...newLegalHoldData];
+
+// AFTER
+const newHoldItems = newLegalHoldData.filter((p: any) => 
+  !this.selectedLegalHoldList.some((sp: any) => sp.ocifId === p.ocifId));
+this.selectedLegalHoldList = [...this.selectedLegalHoldList, ...newHoldItems];
+
