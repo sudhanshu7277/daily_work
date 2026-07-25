@@ -1,60 +1,58 @@
-
-// new props
-// Add to class (3 lines):
-private prevCustSel: any[] = [];
-private prevEntitySel: any[] = [];
-private prevHoldSel: any[] = [];
-
-// Customer block — tweak only the assignment line:
-
-if(selectedRows.identifier === 'customer') {
-    const newCustData = selectedRows.selected;
-    // Remove unchecked items from current search session
-    if (this.prevCustSel.length > 0) {
-      const currKeys = new Set(newCustData.map((p: any) => p.ocifId));
-      this.selectedCustomerList = this.selectedCustomerList.filter((sp: any) =>
-        !this.prevCustSel.some((p: any) => p.ocifId === sp.ocifId) || currKeys.has(sp.ocifId)
-      );
+handleSelectionChange(selectedRows: any): void {
+    console.log('checking for selectedRows.identifier : ', selectedRows.identifier);
+    if (!selectedRows || !selectedRows.identifier) return;
+  
+    const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
+    
+    // Helper to get unique key
+    const getKey = (item: any) => item.uid || item.ocifId || item.id || item.profileName;
+    const incomingKeys = new Set(incomingSelected.map(item => getKey(item)));
+  
+    // Core reconciliation logic
+    const reconcileList = (currentList: any[], keyInStorage: string): any[] => {
+      const existingList = Array.isArray(currentList) ? [...currentList] : [];
+      
+      // 1. Get all profile keys present in the current active grid (if passed by the event)
+      // If your grid event passes `selectedRows.allGridRows` or `selectedRows.currentSearchResults`, use that set.
+      // Otherwise, we sync incomingSelected directly for the active category while preserving other categories.
+      const resultMap = new Map<string, any>();
+  
+      // Keep existing items from previous searches that aren't part of this current grid reset
+      existingList.forEach(item => {
+        const key = getKey(item);
+        if (key) resultMap.set(key, item);
+      });
+  
+      // If the event provides the list of all rows in the current active grid view:
+      if (Array.isArray(selectedRows.activeGridRows)) {
+        const activeGridKeys = new Set(selectedRows.activeGridRows.map((r: any) => getKey(r)));
+        
+        // Remove items that ARE in the active grid but ARE NOT in incomingSelected (user unchecked them)
+        activeGridKeys.forEach(key => {
+          if (!incomingKeys.has(key)) {
+            resultMap.delete(key);
+          }
+        });
+      }
+  
+      // Add or update all currently selected items
+      incomingSelected.forEach(item => {
+        const key = getKey(item);
+        if (key) resultMap.set(key, item);
+      });
+  
+      const updatedList = Array.from(resultMap.values());
+      this.cacheIndividualAndEntityProfiles(keyInStorage, updatedList);
+      return updatedList;
+    };
+  
+    if (selectedRows.identifier === 'customer') {
+      this.selectedCustomerList = reconcileList(this.selectedCustomerList, 'selectedCustomerList');
+    } else if (selectedRows.identifier === 'entity') {
+      this.selectedEntityList = reconcileList(this.selectedEntityList, 'selectedEntityList');
+    } else if (selectedRows.identifier === 'hold') {
+      this.selectedLegalHoldList = reconcileList(this.selectedLegalHoldList, 'selectedLegalHoldList');
     }
-    // Add new items only
-    const toAdd = newCustData.filter((p: any) =>
-      !this.selectedCustomerList.some((sp: any) => sp.ocifId === p.ocifId));
-    this.selectedCustomerList = [...this.selectedCustomerList, ...toAdd];
-    this.prevCustSel = [...newCustData];
-    this.cacheIndividualAndEntityProfiles('selectedCustomerList', this.selectedCustomerList);
+  
+    this.cdr.detectChanges();
   }
-
-  //Entity block — same pattern:
-
-  if(selectedRows.identifier === 'entity') {
-    const newEntityData = selectedRows.selected;
-    if (this.prevEntitySel.length > 0) {
-      const currKeys = new Set(newEntityData.map((p: any) => p.ocifId));
-      this.selectedEntityList = this.selectedEntityList.filter((sp: any) =>
-        !this.prevEntitySel.some((p: any) => p.ocifId === sp.ocifId) || currKeys.has(sp.ocifId)
-      );
-    }
-    const toAdd = newEntityData.filter((p: any) =>
-      !this.selectedEntityList.some((sp: any) => sp.ocifId === p.ocifId));
-    this.selectedEntityList = [...this.selectedEntityList, ...toAdd];
-    this.prevEntitySel = [...newEntityData];
-    this.cacheIndividualAndEntityProfiles('selectedEntityList', this.selectedEntityList);
-  }
-
-  //Hold block — same pattern:
-
-  if(selectedRows.identifier === 'hold') {
-    const newHoldData = selectedRows.selected;
-    if (this.prevHoldSel.length > 0) {
-      const currKeys = new Set(newHoldData.map((p: any) => p.ocifId));
-      this.selectedLegalHoldList = this.selectedLegalHoldList.filter((sp: any) =>
-        !this.prevHoldSel.some((p: any) => p.ocifId === sp.ocifId) || currKeys.has(sp.ocifId)
-      );
-    }
-    const toAdd = newHoldData.filter((p: any) =>
-      !this.selectedLegalHoldList.some((sp: any) => sp.ocifId === p.ocifId));
-    this.selectedLegalHoldList = [...this.selectedLegalHoldList, ...toAdd];
-    this.prevHoldSel = [...newHoldData];
-    this.cacheIndividualAndEntityProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
-  }
-
