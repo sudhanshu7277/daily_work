@@ -1,84 +1,52 @@
-private prevCustomerList: any[] = [];
-private prevLegalHoldList: any[] = [];
-private prevEntityList: any[] = [];
-
-private getKey = (p: any): string => 
-  p.ocifId ?? p.ecifId ?? p.proxyOcifId ?? p.fileNetId ?? JSON.stringify(p);
-
-private syncSource(
-  prev: any[], 
-  curr: any[], 
-  source: string
-): any[] {
-  // Empty incoming = new search reset or tab switch
-  // Preserve selectedProfiles, just reset tracking
-  if (!curr.length) return prev.length ? [] : prev;
-
-  const prevKeys = new Set(prev.map(this.getKey));
-  const currKeys = new Set(curr.map(this.getKey));
-
-  // Add newly checked items
-  curr.forEach(p => {
-    const key = this.getKey(p);
-    if (!prevKeys.has(key) && 
-        !this.selectedProfiles.find(sp => this.getKey(sp) === key)) {
-      this.selectedProfiles = [
-        ...this.selectedProfiles, 
-        { ...p, _source: source }
-      ];
-    }
-  });
-
-  // Remove explicitly unchecked items
-  // Only diff when prev was also non-empty (real uncheck, not reset)
-  if (prev.length > 0) {
-    prev.forEach(p => {
-      if (!currKeys.has(this.getKey(p))) {
-        this.selectedProfiles = this.selectedProfiles.filter(
-          sp => this.getKey(sp) !== this.getKey(p)
-        );
-      }
-    });
-  }
-
-  return [...curr];
-}
-
 ngOnChanges(changes: SimpleChanges): void {
-  let updated = false;
-
-  if (changes['selectedCustomerList']) {
-    this.prevCustomerList = this.syncSource(
-      this.prevCustomerList,
-      this.selectedCustomerList || [],
-      'customer'
-    );
-    updated = true;
-  }
-
-  if (changes['selectedLegalHoldList']) {
-    this.prevLegalHoldList = this.syncSource(
-      this.prevLegalHoldList,
-      this.selectedLegalHoldList || [],
-      'legalHold'
-    );
-    updated = true;
-  }
-
-  if (changes['selectedEntityList']) {
-    this.prevEntityList = this.syncSource(
-      this.prevEntityList,
-      this.selectedEntityList || [],
-      'entity'
-    );
-    updated = true;
-  }
-
-  if (updated) {
-    const cachedTrue = this.cacheSelectedProfiles(
-      'profilesSelected', 
-      this.selectedProfiles
-    );
+    const getKey = (p: any): string =>
+      p.ocifId ?? p.ecifId ?? p.proxyOcifId ?? p.fileNetId ?? JSON.stringify(p);
+  
+    if (changes['selectedCustomerList']) {
+      const prev: any[] = changes['selectedCustomerList'].previousValue || [];
+      const curr: any[] = changes['selectedCustomerList'].currentValue || [];
+      this.syncDiff(prev, curr, getKey);
+    }
+  
+    if (changes['selectedLegalHoldList']) {
+      const prev: any[] = changes['selectedLegalHoldList'].previousValue || [];
+      const curr: any[] = changes['selectedLegalHoldList'].currentValue || [];
+      this.syncDiff(prev, curr, getKey);
+    }
+  
+    if (changes['selectedEntityList']) {
+      const prev: any[] = changes['selectedEntityList'].previousValue || [];
+      const curr: any[] = changes['selectedEntityList'].currentValue || [];
+      this.syncDiff(prev, curr, getKey);
+    }
+  
+    const cachedTrue = this.cacheSelectedProfiles('profilesSelected', this.selectedProfiles);
     if (cachedTrue) this.loadCachedProfiles();
   }
-}
+  
+  private syncDiff(prev: any[], curr: any[], getKey: (p: any) => string): void {
+    // Skip empty — tab switch reset, not a real deselection
+    if (!curr.length) return;
+  
+    const prevKeys = new Set(prev.map(getKey));
+    const currKeys = new Set(curr.map(getKey));
+  
+    // Add newly selected
+    curr.forEach(p => {
+      if (!prevKeys.has(getKey(p)) &&
+          !this.selectedProfiles.find((sp: any) => getKey(sp) === getKey(p))) {
+        this.selectedProfiles = [...this.selectedProfiles, p];
+      }
+    });
+  
+    // Remove explicitly deselected (only when prev had items)
+    if (prev.length > 0) {
+      prev.forEach(p => {
+        if (!currKeys.has(getKey(p))) {
+          this.selectedProfiles = this.selectedProfiles.filter(
+            (sp: any) => getKey(sp) !== getKey(p)
+          );
+        }
+      });
+    }
+  }
