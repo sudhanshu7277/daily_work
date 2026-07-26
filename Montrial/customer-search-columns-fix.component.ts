@@ -1,63 +1,67 @@
-/**
- * Deduplicates an array by ocifId (or ecifId).
- */
-deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
-    if (!Array.isArray(list) || list.length === 0) return [];
-    const map = new Map<string | number, T>();
+// Add this property at the top of LegalHoldShellComponent class
+private lastEmittedSelections: { [key: string]: any[] } = {
+    customer: [],
+    entity: [],
+    hold: []
+  };
+  
+  handleSelectionChange(selectedRows: any): void {
+    if (!selectedRows || !selectedRows.identifier) return;
+  
+    const category = selectedRows.identifier; // 'customer' | 'entity' | 'hold'
+    const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
     
-    list.forEach(item => {
-      const id = item?.ocifId ?? item?.ecifId;
-      if (id !== undefined && id !== null && id !== '') {
-        map.set(id, item);
+    const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
+  
+    const deduplicate = (list: any[]) => {
+      const seen = new Set();
+      return list.filter(item => {
+        const id = getId(item);
+        if (id) {
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        }
+        return true;
+      });
+    };
+  
+    // 1. Identify items UNCHECKED in this grid session
+    const previousGridState = this.lastEmittedSelections[category] || [];
+    const incomingIds = new Set(incomingSelected.map(r => getId(r)));
+    
+    const uncheckedIds = new Set<string | number>();
+    previousGridState.forEach(item => {
+      const id = getId(item);
+      if (id && !incomingIds.has(id)) {
+        uncheckedIds.add(id); // User unchecked this row
       }
     });
   
-    return Array.from(map.values());
-  }
+    // 2. Save current grid emission for the next toggle diff
+    this.lastEmittedSelections[category] = incomingSelected;
   
-  /**
-   * handleRemoveProfile remains 100% UNTOUCHED
-   */
-  handleRemoveProfile(deselectedProfile: any): void {
-    if (!deselectedProfile) return;
-    const targetId = deselectedProfile.ocifId || deselectedProfile.ecifId;
+    // Helper to reconcile unchecks and additions
+    const syncCategoryList = (currentStoredList: any[], storageKey: string) => {
+      let list = Array.isArray(currentStoredList) ? [...currentStoredList] : [];
   
-    this.selectedCustomerList = (this.selectedCustomerList || []).filter(p => (p.ocifId || p.ecifId) !== targetId);
-    this.selectedLegalHoldList = (this.selectedLegalHoldList || []).filter(p => (p.ocifId || p.ecifId) !== targetId);
-    this.selectedEntityList = (this.selectedEntityList || []).filter(p => (p.ocifId || p.ecifId) !== targetId);
+      // Step A: Remove records explicitly unchecked in current grid session
+      if (uncheckedIds.size > 0) {
+        list = list.filter(item => !uncheckedIds.has(getId(item)));
+      }
   
-    this.deletedProfileEcifId = deselectedProfile;
-    this.cdr.detectChanges();
-  }
-  
-  /**
-   * Complete, error-free handleSelectionChange
-   */
-  handleSelectionChange(selectedRows: any): void {
-    console.log('checking for selectedRows.identifier : ', selectedRows?.identifier);
-    if (!selectedRows || !selectedRows.identifier) return;
-  
-    const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
-    const getId = (item: any) => item?.ocifId || item?.ecifId;
-  
-    // Helper to merge new selections into stored list without losing past tab selections
-    const reconcileCategoryList = (currentStoredList: any[]) => {
-      const list = Array.isArray(currentStoredList) ? [...currentStoredList] : [];
-      
-      // If incomingSelected has items, append and deduplicate by ocifId
-      const combined = [...list, ...incomingSelected];
-      return this.deduplicateByOcifId(combined);
+      // Step B: Merge current grid selections and deduplicate
+      const updated = deduplicate([...list, ...incomingSelected]);
+      this.cacheIndividualAndEntityProfiles(storageKey, updated);
+      return updated;
     };
   
-    if (selectedRows.identifier === 'customer') {
-      this.selectedCustomerList = reconcileCategoryList(this.selectedCustomerList);
-      this.cacheIndividualAndEntityProfiles('selectedCustomerList', this.selectedCustomerList);
-    } else if (selectedRows.identifier === 'entity') {
-      this.selectedEntityList = reconcileCategoryList(this.selectedEntityList);
-      this.cacheIndividualAndEntityProfiles('selectedEntityList', this.selectedEntityList);
-    } else if (selectedRows.identifier === 'hold') {
-      this.selectedLegalHoldList = reconcileCategoryList(this.selectedLegalHoldList);
-      this.cacheIndividualAndEntityProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
+    if (category === 'customer') {
+      this.selectedCustomerList = syncCategoryList(this.selectedCustomerList, 'selectedCustomerList');
+    } else if (category === 'entity') {
+      this.selectedEntityList = syncCategoryList(this.selectedEntityList, 'selectedEntityList');
+    } else if (category === 'hold') {
+      this.selectedLegalHoldList = syncCategoryList(this.selectedLegalHoldList, 'selectedLegalHoldList');
     }
   
     this.cdr.detectChanges();
