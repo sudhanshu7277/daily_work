@@ -42,3 +42,38 @@ handleSelectionChange(selectedRows: any): void {
   
     this.cdr.detectChanges();
   }
+
+
+
+  /**
+ * Deduplicates an array of objects by `ocifId` (with fallback to `ecifId`, `uid`, or `id`).
+ * Ensures only unique objects remain in the list based on their primary identifier.
+ *
+ * @param list - Array of records to deduplicate
+ * @returns Filtered array containing unique objects
+ */
+deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
+    if (!Array.isArray(list) || list.length === 0) {
+      return [];
+    }
+  
+    const seenIds = new Set<string | number>();
+  
+    return list.filter(item => {
+      if (!item) return false;
+  
+      // Extract primary key
+      const id = item.ocifId ?? item.ecifId ?? item.uid ?? item.id;
+  
+      if (id !== undefined && id !== null && id !== '') {
+        if (seenIds.has(id)) {
+          return false; // Skip duplicate
+        }
+        seenIds.add(id);
+        return true; // Retain first unique instance
+      }
+  
+      // Retain items without an explicit ID property
+      return true;
+    });
+  }
