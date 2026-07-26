@@ -1,62 +1,61 @@
-// // Helper to deduplicate array by ocifId
-deduplicateByOcifId(list: any[]): any[] {
-    if (!Array.isArray(list)) return [];
-    const map = new Map();
-    list.forEach(item => {
-      if (item && item.ocifId) {
-        map.set(item.ocifId, item);
-      }
-    });
-    return Array.from(map.values());
-  }
-  
-  // Your original handleRemoveProfile function remains UNTOUCHED
-  handleRemoveProfile(deselectedProfile: any): void {
-    this.selectedCustomerList = this.selectedCustomerList.filter(p => p.ocifId !== deselectedProfile.ocifId);
-    this.selectedLegalHoldList = this.selectedLegalHoldList.filter(p => p.ocifId !== deselectedProfile.ocifId);
-    this.selectedEntityList = this.selectedEntityList.filter(p => p.ocifId !== deselectedProfile.ocifId);
+handleRemoveProfile(deselectedProfile: any): void {
+    const idToRemove = deselectedProfile?.ocifId || deselectedProfile?.ecifId;
+    this.selectedCustomerList = this.selectedCustomerList.filter(p => (p.ocifId || p.ecifId) !== idToRemove);
+    this.selectedLegalHoldList = this.selectedLegalHoldList.filter(p => (p.ocifId || p.ecifId) !== idToRemove);
+    this.selectedEntityList = this.selectedEntityList.filter(p => (p.ocifId || p.ecifId) !== idToRemove);
     this.deletedProfileEcifId = deselectedProfile;
     this.cdr.detectChanges();
   }
-  
+
+
   handleSelectionChange(selectedRows: any): void {
-    console.log('checking for selectedRows:', selectedRows);
     if (!selectedRows || !selectedRows.identifier) return;
   
-    // 1. If grid explicitly fires a deselected profile on uncheck, use your working handleRemoveProfile!
-    if (selectedRows.deselectedProfile) {
-      this.handleRemoveProfile(selectedRows.deselectedProfile);
-      return;
-    }
-  
     const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
+    const getId = (item: any) => item?.ocifId || item?.ecifId;
   
-    // Helper to sync incoming selections with stored list:
-    // - Retains selections from other searches/tabs
-    // - Handles unchecking for items visible in current search
-    // - Deduplicates by ocifId
-    const updateList = (currentList: any[], storageKey: string) => {
-      let list = Array.isArray(currentList) ? [...currentList] : [];
+    // Set of IDs currently checked in the grid emission
+    const incomingIds = new Set(incomingSelected.map(item => getId(item)));
   
-      // If incomingSelected is empty or smaller, remove items that were unchecked in current grid
-      const incomingMap = new Map(incomingSelected.map(item => [item.ocifId, item]));
+    // All IDs currently visible in the search results grid (to identify what can be unchecked)
+    const currentGridResults = this.searchResults || []; // Replace with your component's search results array if named differently
+    const activeGridIds = new Set(currentGridResults.map((item: any) => getId(item)));
   
-      // Append new incoming selected rows
-      list = [...list, ...incomingSelected];
+    const reconcileList = (currentStoredList: any[]) => {
+      const list = Array.isArray(currentStoredList) ? [...currentStoredList] : [];
+      const resultMap = new Map<string, any>();
   
-      // Deduplicate by ocifId
-      const uniqueList = this.deduplicateByOcifId(list);
+      // 1. Keep items from PREVIOUS searches/tabs (not currently visible in this search grid)
+      list.forEach(item => {
+        const id = getId(item);
+        if (id && !activeGridIds.has(id)) {
+          resultMap.set(id, item);
+        }
+      });
   
-      this.cacheIndividualAndEntityProfiles(storageKey, uniqueList);
-      return uniqueList;
+      // 2. Add ALL currently checked items from the active grid emission
+      incomingSelected.forEach(item => {
+        const id = getId(item);
+        if (id) {
+          resultMap.set(id, item);
+        }
+      });
+  
+      // Note: Items that WERE in activeGridIds BUT ARE NOT in incomingIds (user unchecked them) 
+      // are naturally excluded from resultMap!
+  
+      return Array.from(resultMap.values());
     };
   
     if (selectedRows.identifier === 'customer') {
-      this.selectedCustomerList = updateList(this.selectedCustomerList, 'selectedCustomerList');
+      this.selectedCustomerList = reconcileList(this.selectedCustomerList);
+      this.cacheIndividualAndEntityProfiles('selectedCustomerList', this.selectedCustomerList);
     } else if (selectedRows.identifier === 'entity') {
-      this.selectedEntityList = updateList(this.selectedEntityList, 'selectedEntityList');
+      this.selectedEntityList = reconcileList(this.selectedEntityList);
+      this.cacheIndividualAndEntityProfiles('selectedEntityList', this.selectedEntityList);
     } else if (selectedRows.identifier === 'hold') {
-      this.selectedLegalHoldList = updateList(this.selectedLegalHoldList, 'selectedLegalHoldList');
+      this.selectedLegalHoldList = reconcileList(this.selectedLegalHoldList);
+      this.cacheIndividualAndEntityProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
     }
   
     this.cdr.detectChanges();
