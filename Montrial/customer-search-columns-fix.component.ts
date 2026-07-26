@@ -1,56 +1,7 @@
-handleSelectionChange(selectedRows: any): void {
-    console.log('checking for selectedRows.identifier : ', selectedRows.identifier);
-    if (!selectedRows || !selectedRows.identifier) return;
-  
-    const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
-    
-    // 1. Get incoming selected IDs
-    const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
-    const incomingIds = new Set(incomingSelected.map(item => getId(item)));
-  
-    // 2. Fallback to active grid rows OR your current search results array if activeGridRows is undefined
-    const activeGridRows: any[] = selectedRows.activeGridRows || this.customerGridData || this.gridApi?.getRenderedNodes?.().map(n => n.data) || [];
-    const activeGridIds = new Set(activeGridRows.map(item => getId(item)));
-  
-    const syncList = (currentList: any[], storageKey: string) => {
-      let list = Array.isArray(currentList) ? [...currentList] : [];
-  
-      if (activeGridIds.size > 0) {
-        // Filter out items that are present in the current grid view BUT unchecked by the user
-        list = list.filter(item => {
-          const id = getId(item);
-          if (activeGridIds.has(id)) {
-            return incomingIds.has(id); // Keep ONLY if still checked in incomingSelected
-          }
-          return true; // Keep items selected from other searches/pages
-        });
-      }
-  
-      // Combine remaining list with newly checked incoming items
-      const updated = this.deduplicateByOcifId([...list, ...incomingSelected]);
-      this.cacheIndividualAndEntityProfiles(storageKey, updated);
-      return updated;
-    };
-  
-    if (selectedRows.identifier === 'customer') {
-      this.selectedCustomerList = syncList(this.selectedCustomerList, 'selectedCustomerList');
-    } else if (selectedRows.identifier === 'entity') {
-      this.selectedEntityList = syncList(this.selectedEntityList, 'selectedEntityList');
-    } else if (selectedRows.identifier === 'hold') {
-      this.selectedLegalHoldList = syncList(this.selectedLegalHoldList, 'selectedLegalHoldList');
-    }
-  
-    this.cdr.detectChanges();
-  }
+// Step 1: Helper Function for ocifId Deduplication
 
-
-
-  /**
- * Deduplicates an array of objects by `ocifId` (with fallback to `ecifId`, `uid`, or `id`).
- * Ensures only unique objects remain in the list based on their primary identifier.
- *
- * @param list - Array of records to deduplicate
- * @returns Filtered array containing unique objects
+/**
+ * Deduplicates an array of profile objects using `ocifId` (with fallbacks for ecifId/uid).
  */
 deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
     if (!Array.isArray(list) || list.length === 0) {
@@ -62,7 +13,7 @@ deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
     return list.filter(item => {
       if (!item) return false;
   
-      // Extract primary key
+      // Target ocifId
       const id = item.ocifId ?? item.ecifId ?? item.uid ?? item.id;
   
       if (id !== undefined && id !== null && id !== '') {
@@ -70,10 +21,106 @@ deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
           return false; // Skip duplicate
         }
         seenIds.add(id);
-        return true; // Retain first unique instance
+        return true; // Keep first unique instance
       }
   
-      // Retain items without an explicit ID property
-      return true;
+      return true; // Keep items without explicit IDs
     });
+  }
+
+  // Step 2: Keep handleRemoveProfile (Untouched)
+
+  handleRemoveProfile(deselectedProfile: any): void {
+    if (!deselectedProfile) return;
+  
+    const targetId = deselectedProfile.ocifId || deselectedProfile.ecifId;
+  
+    this.selectedCustomerList = (this.selectedCustomerList || []).filter(p => (p.ocifId || p.ecifId) !== targetId);
+    this.selectedLegalHoldList = (this.selectedLegalHoldList || []).filter(p => (p.ocifId || p.ecifId) !== targetId);
+    this.selectedEntityList = (this.selectedEntityList || []).filter(p => (p.ocifId || p.ecifId) !== targetId);
+  
+    this.deletedProfileEcifId = deselectedProfile;
+    this.cdr.detectChanges();
+  }
+
+  // Step 3: Complete handleSelectionChange
+
+  handleSelectionChange(selectedRows: any): void {
+    console.log('checking for selectedRows:', selectedRows);
+    if (!selectedRows || !selectedRows.identifier) return;
+  
+    // 🔴 1. DESELECTION: Grid unchecked a profile -> Delegate directly to handleRemoveProfile
+    if (selectedRows.deselectedProfile) {
+      this.handleRemoveProfile(selectedRows.deselectedProfile);
+      return;
+    }
+  
+    const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
+    const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
+  
+    // 🟢 2. CUSTOMER SEARCH SELECTIONS
+    if (selectedRows.identifier === 'customer') {
+      let currentList = Array.isArray(this.selectedCustomerList) ? [...this.selectedCustomerList] : [];
+  
+      // Diff against current grid emission: remove items present in active grid but omitted from selected
+      if (Array.isArray(selectedRows.activeGridRows) && selectedRows.activeGridRows.length > 0) {
+        const activeGridIds = new Set(selectedRows.activeGridRows.map((r: any) => getId(r)));
+        const incomingIds = new Set(incomingSelected.map((r: any) => getId(r)));
+  
+        currentList = currentList.filter(item => {
+          const id = getId(item);
+          if (activeGridIds.has(id)) {
+            return incomingIds.has(id); // Keep only if checked in current emission
+          }
+          return true; // Retain selections from previous searches/tabs!
+        });
+      }
+  
+      this.selectedCustomerList = this.deduplicateByOcifId([...currentList, ...incomingSelected]);
+      this.cacheIndividualAndEntityProfiles('selectedCustomerList', this.selectedCustomerList);
+    }
+  
+    // 🟢 3. ENTITY SEARCH SELECTIONS
+    if (selectedRows.identifier === 'entity') {
+      let currentList = Array.isArray(this.selectedEntityList) ? [...this.selectedEntityList] : [];
+  
+      if (Array.isArray(selectedRows.activeGridRows) && selectedRows.activeGridRows.length > 0) {
+        const activeGridIds = new Set(selectedRows.activeGridRows.map((r: any) => getId(r)));
+        const incomingIds = new Set(incomingSelected.map((r: any) => getId(r)));
+  
+        currentList = currentList.filter(item => {
+          const id = getId(item);
+          if (activeGridIds.has(id)) {
+            return incomingIds.has(id);
+          }
+          return true;
+        });
+      }
+  
+      this.selectedEntityList = this.deduplicateByOcifId([...currentList, ...incomingSelected]);
+      this.cacheIndividualAndEntityProfiles('selectedEntityList', this.selectedEntityList);
+    }
+  
+    // 🟢 4. HOLD SEARCH SELECTIONS
+    if (selectedRows.identifier === 'hold') {
+      let currentList = Array.isArray(this.selectedLegalHoldList) ? [...this.selectedLegalHoldList] : [];
+  
+      if (Array.isArray(selectedRows.activeGridRows) && selectedRows.activeGridRows.length > 0) {
+        const activeGridIds = new Set(selectedRows.activeGridRows.map((r: any) => getId(r)));
+        const incomingIds = new Set(incomingSelected.map((r: any) => getId(r)));
+  
+        currentList = currentList.filter(item => {
+          const id = getId(item);
+          if (activeGridIds.has(id)) {
+            return incomingIds.has(id);
+          }
+          return true;
+        });
+      }
+  
+      this.selectedLegalHoldList = this.deduplicateByOcifId([...currentList, ...incomingSelected]);
+      this.cacheIndividualAndEntityProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
+    }
+  
+    this.cdr.detectChanges();
   }
