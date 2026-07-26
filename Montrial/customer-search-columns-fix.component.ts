@@ -7,25 +7,19 @@ handleRemoveProfile(deselectedProfile: any): void {
     this.cdr.detectChanges();
   }
 
-
   handleSelectionChange(selectedRows: any): void {
     if (!selectedRows || !selectedRows.identifier) return;
   
     const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
     const getId = (item: any) => item?.ocifId || item?.ecifId;
   
-    // Set of IDs currently checked in the grid emission
-    const incomingIds = new Set(incomingSelected.map(item => getId(item)));
-  
-    // All IDs currently visible in the search results grid (to identify what can be unchecked)
-    const currentGridResults = this.searchResults || []; // Replace with your component's search results array if named differently
-    const activeGridIds = new Set(currentGridResults.map((item: any) => getId(item)));
-  
-    const reconcileList = (currentStoredList: any[]) => {
+    // Function to reconcile previous selections with current grid state
+    const reconcileList = (currentStoredList: any[], activeSearchResults: any[]) => {
       const list = Array.isArray(currentStoredList) ? [...currentStoredList] : [];
+      const activeGridIds = new Set((activeSearchResults || []).map(item => getId(item)));
       const resultMap = new Map<string, any>();
   
-      // 1. Keep items from PREVIOUS searches/tabs (not currently visible in this search grid)
+      // 1. Keep items from PREVIOUS searches/tabs (not currently visible in this grid)
       list.forEach(item => {
         const id = getId(item);
         if (id && !activeGridIds.has(id)) {
@@ -33,7 +27,7 @@ handleRemoveProfile(deselectedProfile: any): void {
         }
       });
   
-      // 2. Add ALL currently checked items from the active grid emission
+      // 2. Add ALL currently checked items from the active grid
       incomingSelected.forEach(item => {
         const id = getId(item);
         if (id) {
@@ -41,20 +35,25 @@ handleRemoveProfile(deselectedProfile: any): void {
         }
       });
   
-      // Note: Items that WERE in activeGridIds BUT ARE NOT in incomingIds (user unchecked them) 
-      // are naturally excluded from resultMap!
-  
+      // Unchecked items in the active grid are omitted from resultMap automatically!
       return Array.from(resultMap.values());
     };
   
     if (selectedRows.identifier === 'customer') {
-      this.selectedCustomerList = reconcileList(this.selectedCustomerList);
+      // 🟢 Replace 'this.customerSearchResult' with your actual search results array name
+      const currentResults = this.customerSearchResult || this.searchResult || []; 
+      this.selectedCustomerList = reconcileList(this.selectedCustomerList, currentResults);
       this.cacheIndividualAndEntityProfiles('selectedCustomerList', this.selectedCustomerList);
+  
     } else if (selectedRows.identifier === 'entity') {
-      this.selectedEntityList = reconcileList(this.selectedEntityList);
+      // 🟢 Replace 'this.entitySearchResult' with your actual entity search array name
+      const currentResults = this.entitySearchResult || this.searchResult || [];
+      this.selectedEntityList = reconcileList(this.selectedEntityList, currentResults);
       this.cacheIndividualAndEntityProfiles('selectedEntityList', this.selectedEntityList);
+  
     } else if (selectedRows.identifier === 'hold') {
-      this.selectedLegalHoldList = reconcileList(this.selectedLegalHoldList);
+      const currentResults = this.holdSearchResult || this.searchResult || [];
+      this.selectedLegalHoldList = reconcileList(this.selectedLegalHoldList, currentResults);
       this.cacheIndividualAndEntityProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
     }
   
