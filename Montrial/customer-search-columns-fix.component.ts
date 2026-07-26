@@ -1,4 +1,4 @@
-// Step 1: Helper Function for ocifId Deduplication
+//Step 1: Helper Function for ocifId Deduplication
 
 /**
  * Deduplicates an array of profile objects using `ocifId` (with fallbacks for ecifId/uid).
@@ -43,7 +43,8 @@ deduplicateByOcifId<T extends Record<string, any>>(list: T[]): T[] {
     this.cdr.detectChanges();
   }
 
-  // Step 3: Complete handleSelectionChange
+
+  //Step 3: Complete handleSelectionChange
 
   handleSelectionChange(selectedRows: any): void {
     console.log('checking for selectedRows:', selectedRows);
