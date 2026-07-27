@@ -1,20 +1,17 @@
-// 1. Update fetchRecords()
+// Option B: Complete Code for Client-Side Pagination
 
 fetchRecords(): void {
     this.isLoading.set(true);
     this.showApiError.set(false);
   
-    // Call API without page indexes
     this.historyService.getHistoryRecords()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response: any) => {
-          const allRecords = Array.isArray(response) 
-            ? response 
-            : (response?.records || []);
+          const allRecords = Array.isArray(response) ? response : (response?.records || []);
   
           this.records.set(allRecords);
-          this.totalRows.set(allRecords.length); // Sets total to full dataset count
+          this.totalRows.set(allRecords.length); // Total is full dataset length
   
           this.applySortAndPaginate();
           this.isLoading.set(false);
@@ -25,15 +22,12 @@ fetchRecords(): void {
         }
       });
   }
-
-  // 2. Update applySortAndPaginate()
-
+  
   private applySortAndPaginate(): void {
     const col = this.sortColumn();
     const dir = this.sortDirection();
     let sorted = [...this.records()];
   
-    // 1. Sort
     if (col) {
       sorted.sort((a, b) => {
         let valA = (a as any)[col] ?? '';
@@ -49,29 +43,25 @@ fetchRecords(): void {
       });
     }
   
-    // 2. Calculate Total Pages based on full dataset
-    const calcTotal = Math.ceil(sorted.length / this.pageSize());
-    this.totalPages.set(calcTotal > 0 ? calcTotal : 1);
+    // Calculate total pages based on complete dataset
+    const total = Math.ceil(sorted.length / this.pageSize());
+    this.totalPages.set(total > 0 ? total : 1);
   
-    // 3. Slice array for active page view
+    // 🟢 Slice local array for active page view
     const start = (this.currentPage() - 1) * this.pageSize();
     const end = start + this.pageSize();
   
     this.displayedRecords.set(sorted.slice(start, end));
     this.pageNumbers.set(this.buildPageNumbers());
   }
-
-  // 3. Update goPage()
-
+  
   goPage(page: number): void {
     if (page < 1 || page > this.totalPages()) return;
     this.currentPage.set(page);
-    this.applySortAndPaginate();
+    this.applySortAndPaginate(); // Local slice
   }
-
-  // 4. Update onPageSizeChange()
-
+  
   onPageSizeChange(): void {
     this.currentPage.set(1);
-    this.applySortAndPaginate();
+    this.applySortAndPaginate(); // Local slice
   }
