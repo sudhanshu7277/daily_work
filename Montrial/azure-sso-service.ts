@@ -1,3 +1,5 @@
+// Updated azure-sso.service.ts with Persistent Caching
+
 import { Inject, inject, Injectable, signal, computed } from '@angular/core';
 import {
   MSAL_GUARD_CONFIG,
@@ -16,6 +18,8 @@ import { environment } from '../../../environments/environment';
 import { filter } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 
+const USER_CACHE_KEY = 'app_user_login_info';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -24,11 +28,11 @@ export class AzureSsoService {
   public static accessToken: string;
   private static authSvc: MsalService;
 
-  // 1. Reactive Stores (Signal + BehaviorSubject for backward/forward compatibility)
-  private currentUserSignal = signal<AccountInfo | null>(this.getInitialUser());
-  private currentUserSubject = new BehaviorSubject<AccountInfo | null>(this.getInitialUser());
+  // 1. Reactive state initialized directly from persistent cache
+  private currentUserSignal = signal<AccountInfo | null>(this.getCachedUser());
+  private currentUserSubject = new BehaviorSubject<AccountInfo | null>(this.getCachedUser());
 
-  // Public readonly state for components
+  // Public state exposed to components
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly currentUser$ = this.currentUserSubject.asObservable();
   readonly isUserLoggedIn = computed(() => !!this.currentUserSignal());
@@ -40,26 +44,26 @@ export class AzureSsoService {
   ) {
     AzureSsoService.authSvc = authService;
 
-    // A. Sync initial user on app bootstrap
-    this.syncUser();
+    // A. Sync user on app bootstrap
+    this.syncUserSession();
 
-    // B. Listen for fresh login events
+    // B. Cache user info on successful login event
     this.msalBroadcastService.msalSubject$
       .pipe(filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS))
       .subscribe((result: EventMessage) => {
         const payload = result.payload as any;
         const account = payload?.account || this.authService.instance.getAllAccounts()[0];
         if (account) {
-          console.log('🟢 MSAL LOGIN_SUCCESS Event:', account);
+          console.log('🟢 MSAL LOGIN_SUCCESS Event - Caching User:', account);
           this.setLoginUser(account);
         }
       });
 
-    // C. Listen for MSAL interaction complete (handles redirects & refresh cycles)
+    // C. Re-sync session when MSAL completes background token checks
     this.msalBroadcastService.inProgress$
       .pipe(filter((status: InteractionStatus) => status === InteractionStatus.None))
       .subscribe(() => {
-        this.syncUser();
+        this.syncUserSession();
       });
   }
 
@@ -97,92 +101,186 @@ export class AzureSsoService {
   }
 
   public logout(): void {
-    sessionStorage.removeItem('loggedInUser');
-    this.currentUserSignal.set(null);
-    this.currentUserSubject.next(null);
+    // Clear persistent cache on logout
+    this.clearUserCache();
     this.authService.logoutRedirect();
   }
 
   /**
-   * Reads from MSAL cache first, fallback to sessionStorage
+   * 🟢 READ FROM CACHE: Pulls user info directly from localStorage or MSAL account store
    */
-  private getInitialUser(): AccountInfo | null {
+  private getCachedUser(): AccountInfo | null {
     try {
-      // 1. Try MSAL Cache directly
+      // 1. Try reading from custom localStorage cache
+      const cachedData = localStorage.getItem(USER_CACHE_KEY);
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
+
+      // 2. Fallback to MSAL instance cache if available
       const accounts = this.authService?.instance?.getAllAccounts();
       if (accounts && accounts.length > 0) {
         return accounts[0];
       }
-      
-      // 2. Fallback to SessionStorage
-      const stored = sessionStorage.getItem('loggedInUser');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
+    } catch (e) {
+      console.error('Error reading user cache:', e);
     }
+    return null;
   }
 
   /**
-   * Synchronizes MSAL active account state across application memory
-   */
-  private syncUser(): void {
-    const accounts = this.authService.instance.getAllAccounts();
-    if (accounts.length > 0) {
-      this.setLoginUser(accounts[0]);
-    } else {
-      const stored = this.getInitialUser();
-      if (stored) {
-        this.setLoginUser(stored);
-      }
-    }
-  }
-
-  /**
-   * Stores user state in memory and persists to sessionStorage
+   * 🟢 WRITE TO CACHE: Updates signals, RxJS streams, and localStorage
    */
   private setLoginUser(account: AccountInfo | null): void {
     if (account) {
       this.currentUserSignal.set(account);
       this.currentUserSubject.next(account);
-      sessionStorage.setItem('loggedInUser', JSON.stringify(account));
-      console.log(`👤 Active User Persisted: ${account.username} (${account.name})`);
+      try {
+        localStorage.setItem(USER_CACHE_KEY, JSON.stringify(account));
+        console.log(`👤 User cached in localStorage: ${account.username}`);
+      } catch (e) {
+        console.error('Error saving user to localStorage:', e);
+      }
     } else {
-      this.currentUserSignal.set(null);
-      this.currentUserSubject.next(null);
-      sessionStorage.removeItem('loggedInUser');
+      this.clearUserCache();
     }
   }
 
   /**
-   * Synchronous getter for non-reactive needs
+   * 🟢 CLEAR CACHE: Removes cached data from memory and storage
+   */
+  private clearUserCache(): void {
+    this.currentUserSignal.set(null);
+    this.currentUserSubject.next(null);
+    try {
+      localStorage.removeItem(USER_CACHE_KEY);
+    } catch (e) {
+      console.error('Error clearing user cache:', e);
+    }
+  }
+
+  /**
+   * Syncs active MSAL accounts with the local cache
+   */
+  private syncUserSession(): void {
+    const accounts = this.authService.instance.getAllAccounts();
+    if (accounts.length > 0) {
+      this.setLoginUser(accounts[0]);
+    } else {
+      const cached = this.getCachedUser();
+      if (cached) {
+        this.setLoginUser(cached);
+      }
+    }
+  }
+
+  /**
+   * Direct synchronous access for non-reactive needs
    */
   public getCurrentUser(): AccountInfo | null {
-    return this.currentUserSignal() || this.getInitialUser();
+    return this.currentUserSignal() || this.getCachedUser();
   }
 }
 
+// HISTORY COMPONENT CHANGES
 
-// usage in other component
-// readonly user = this.azureSsoService.currentUser;
 
-import { Component, OnInit, inject } from '@angular/core';
-import { AzureSsoService } from '../shared/services/azure-sso.service';
-import { AccountInfo } from '@azure/msal-browser';
+import { Component, ChangeDetectionStrategy, OnInit, DestroyRef, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HistoryService } from '../shared/services/history.service';
+import { AzureSsoService } from '../shared/services/azure-sso.service'; // 1. Import AzureSsoService
 
 @Component({
-  selector: 'app-legal-hold-shell',
-  templateUrl: './legal-hold-shell.component.html'
+  selector: 'app-history',
+  standalone: true,
+  imports: [CommonModule, FormsModule, TranslateModule],
+  templateUrl: './history.component.html',
+  styleUrls: ['./history.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LegalHoldShellComponent implements OnInit {
-  private azureSsoService = inject(AzureSsoService);
-  currentUser: AccountInfo | null = null;
+export class HistoryComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly historyService = inject(HistoryService);
+  private readonly azureSsoService = inject(AzureSsoService); // 2. Inject AzureSsoService
+  private readonly cdr = inject(ChangeDetectorRef);
 
-  ngOnInit() {
-    this.azureSsoService.currentUser$.subscribe((user) => {
-      if (user) {
-        this.currentUser = user;
-        console.log('User in LegalHoldShell:', user.username);
-      }
-    });
+  readonly isLoading = signal(false);
+  readonly records = signal<any[]>([]);
+  readonly displayedRecords = signal<any[]>([]);
+  readonly showApiError = signal(false);
+
+  // Pagination state
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(25);
+  readonly totalRows = signal(0);
+  readonly totalPages = signal(1);
+  readonly pageNumbers = signal<(number | string)[]>([]);
+
+  ngOnInit(): void {
+    this.fetchRecords();
+  }
+
+  fetchRecords(): void {
+    this.isLoading.set(true);
+    this.showApiError.set(false);
+
+    // 🟢 3. Get the cached user directly from AzureSsoService
+    const currentUser = this.azureSsoService.getCurrentUser();
+    const userId = currentUser?.username || currentUser?.name || '';
+
+    console.log(`Fetching history records for user: ${userId}`);
+
+    const start = (this.currentPage() - 1) * this.pageSize() + 1;
+    const end = this.currentPage() * this.pageSize();
+
+    // 🟢 4. Pass userId (or currentUser object) into historyService
+    this.historyService.getHistoryRecords(start, end, userId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response: any) => {
+          const fetchedRecords = response?.records || [];
+          const count = response?.totalCount ?? fetchedRecords.length;
+
+          this.records.set(fetchedRecords);
+          this.totalRows.set(count);
+
+          const calcPages = Math.ceil(count / this.pageSize());
+          this.totalPages.set(calcPages > 0 ? calcPages : 1);
+
+          this.displayedRecords.set(fetchedRecords);
+          this.pageNumbers.set(this.buildPageNumbers());
+
+          this.isLoading.set(false);
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error('Failed to fetch history records:', err);
+          this.isLoading.set(false);
+          this.showApiError.set(true);
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  private buildPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const total = this.totalPages();
+    const current = this.currentPage();
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+    }
+    return pages;
   }
 }
