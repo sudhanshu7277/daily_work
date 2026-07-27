@@ -78,4 +78,75 @@ private getPaginationIndexes() {
     this.fetchRecords();
   }
 
+
+
+  //////////////////////////////////////////////
+
+  // 1. Helper to build page number array for pagination UI
+private buildPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const total = this.totalPages();
+    const current = this.currentPage();
   
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+    }
+    return pages;
+  }
+  
+  // 2. Helper to parse DD/MM/YYYY into YYYY/MM/DD for proper string sorting
+  private parseDateForSort(dateStr: string): string {
+    if (!dateStr) return '';
+    const parts = dateStr.split('/');
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+  }
+  
+  // 3. Sorting & Display method (Error-Free)
+  private applySortAndPaginate(): void {
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    let sorted = [...this.records()];
+  
+    if (col) {
+      sorted.sort((a: any, b: any) => {
+        let valA: string = String(a?.[col] ?? '');
+        let valB: string = String(b?.[col] ?? '');
+  
+        if (col === 'requestDate') {
+          valA = this.parseDateForSort(valA);
+          valB = this.parseDateForSort(valB);
+        }
+  
+        const cmp = valA.localeCompare(valB, undefined, { sensitivity: 'base' });
+        return dir === 'asc' ? cmp : -cmp;
+      });
+    }
+  
+    // Set current page display records directly (backend handles page slicing)
+    this.displayedRecords.set(sorted);
+    this.pageNumbers.set(this.buildPageNumbers());
+  }
+  
+  updatePagination(): void {
+    this.applySortAndPaginate();
+  }
+  
+  goPage(page: number): void {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
+    this.fetchRecords();
+  }
+  
+  onPageSizeChange(): void {
+    this.currentPage.set(1);
+    this.fetchRecords();
+  }
+
