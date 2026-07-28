@@ -7,57 +7,49 @@ handleSelectionChange(selectedRows: any): void {
                      : 'selectedLegalHoldList';
   
     const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
-    
-    // 🟢 FIX 1: Expanded ID list based on standard BMO/AG-Grid data structures
-    const getId = (item: any) => 
-      item?.ocifId || item?.ecifId || item?.uid || item?.id || item?.profileId || item?.proxyOcifId;
   
-    // 🟢 FIX 2: Bulletproof deduplication using JSON stringification as a fallback
-    const deduplicate = (list: any[]) => {
-      const seen = new Set();
-      return list.filter(item => {
-        const id = getId(item);
-        const uniqueKey = id !== undefined && id !== null ? id : JSON.stringify(item);
-        
-        if (seen.has(uniqueKey)) return false;
-        seen.add(uniqueKey);
-        return true;
-      });
+    // 1. Comprehensive ID Extractor
+    const getId = (item: any): string => {
+      if (!item) return '';
+      const rawId = item.ocifId || item.ecifId || item.uid || item.id || item.profileId || item.proxyOcifId;
+      return rawId !== undefined && rawId !== null ? String(rawId) : JSON.stringify(item);
     };
   
-    const masterListFromSession = this.getStoredProfiles(storageKey);
-    const previousGridState = this.lastEmittedSelections[category] || [];
+    // 2. Load current Master Map from Session Storage
+    const currentList = this.getStoredProfiles(storageKey);
+    const profileMap = new Map<string, any>();
     
-    // Create a Set of unique keys for incoming rows
-    const incomingIds = new Set(incomingSelected.map(r => {
-      const id = getId(r);
-      return id !== undefined && id !== null ? id : JSON.stringify(r);
-    }));
-  
-    // Find what was unchecked in THIS specific grid interaction
-    const uncheckedIds = new Set<string | number>();
-    previousGridState.forEach(item => {
+    // Populate map with existing stored items
+    currentList.forEach(item => {
       const id = getId(item);
-      const uniqueKey = id !== undefined && id !== null ? id : JSON.stringify(item);
-      if (!incomingIds.has(uniqueKey)) {
-        uncheckedIds.add(uniqueKey);
+      if (id) profileMap.set(id, item);
+    });
+  
+    // 3. Identify all rows present in the CURRENT grid view (from lastEmitted or API dataset)
+    const currentGridRows: any[] = this.lastEmittedSelections[category] || [];
+    const incomingIds = new Set(incomingSelected.map(item => getId(item)));
+  
+    // Remove rows that were displayed in this grid session but are NO LONGER checked
+    currentGridRows.forEach(item => {
+      const id = getId(item);
+      if (id && !incomingIds.has(id)) {
+        profileMap.delete(id); // Explicit uncheck
       }
     });
   
-    // Update active grid tracking memory
+    // Add/Update all currently checked rows from AG-Grid
+    incomingSelected.forEach(item => {
+      const id = getId(item);
+      if (id) profileMap.set(id, item); // Overwrites cleanly if already present, preventing duplicates!
+    });
+  
+    // 4. Update memory tracking for active grid
     this.lastEmittedSelections[category] = incomingSelected;
   
-    // Reconcile master session list
-    let updatedList = masterListFromSession.filter(item => {
-      const id = getId(item);
-      const uniqueKey = id !== undefined && id !== null ? id : JSON.stringify(item);
-      return !uncheckedIds.has(uniqueKey);
-    });
-    
-    // Deduplicate and merge
-    updatedList = deduplicate([...updatedList, ...incomingSelected]);
+    // 5. Convert Map values back to Array
+    const updatedList = Array.from(profileMap.values());
   
-    // Update Component State
+    // 6. Update Component State
     if (category === 'customer') {
       this.selectedCustomerList = updatedList;
     } else if (category === 'entity') {
@@ -66,10 +58,9 @@ handleSelectionChange(selectedRows: any): void {
       this.selectedLegalHoldList = updatedList;
     }
   
-    // Persist to session storage
+    // 7. Persist to Session Storage
     this.setStoredProfiles(storageKey, updatedList);
-    
-    // Only call caching if this method exists in your component
+  
     if (typeof this.cacheIndividualAndEntityProfiles === 'function') {
       this.cacheIndividualAndEntityProfiles(storageKey, updatedList);
     }
@@ -78,11 +69,31 @@ handleSelectionChange(selectedRows: any): void {
   }
 
 
-  onTabChange(): void {
-    // Reset grid emission memory so AG-Grid init doesn't trigger false unchecks
-    this.lastEmittedSelections = {
-      customer: [],
-      entity: [],
-      hold: []
+  // Step 2: Ensure handleRemoveProfile Uses the Same ID Logic
+
+  handleRemoveProfile(deselectedProfile: any): void {
+    if (!deselectedProfile) return;
+  
+    const getId = (item: any): string => {
+      if (!item) return '';
+      const rawId = item.ocifId || item.ecifId || item.uid || item.id || item.profileId || item.proxyOcifId;
+      return rawId !== undefined && rawId !== null ? String(rawId) : JSON.stringify(item);
     };
+  
+    const targetId = getId(deselectedProfile);
+  
+    const removeFromList = (list: any[]) => 
+      (list || []).filter(p => getId(p) !== targetId);
+  
+    this.selectedCustomerList = removeFromList(this.selectedCustomerList);
+    this.selectedEntityList = removeFromList(this.selectedEntityList);
+    this.selectedLegalHoldList = removeFromList(this.selectedLegalHoldList);
+  
+    // Sync back to Session Storage
+    this.setStoredProfiles('selectedCustomerList', this.selectedCustomerList);
+    this.setStoredProfiles('selectedEntityList', this.selectedEntityList);
+    this.setStoredProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
+  
+    this.deletedProfileEcifId = deselectedProfile;
+    this.cdr.detectChanges();
   }
