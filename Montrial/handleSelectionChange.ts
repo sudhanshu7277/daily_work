@@ -6,50 +6,53 @@ handleSelectionChange(selectedRows: any): void {
                      : category === 'entity' ? 'selectedEntityList' 
                      : 'selectedLegalHoldList';
   
+    // Extract raw incoming selection array from AG-Grid
     const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
   
-    // 1. Comprehensive ID Extractor
+    // Robust ID Extractor
     const getId = (item: any): string => {
       if (!item) return '';
-      const rawId = item.ocifId || item.ecifId || item.uid || item.id || item.profileId || item.proxyOcifId;
-      return rawId !== undefined && rawId !== null ? String(rawId) : JSON.stringify(item);
+      const rawId = item.ocifId ?? item.ecifId ?? item.uid ?? item.id ?? item.profileId ?? item.proxyOcifId;
+      return rawId !== undefined && rawId !== null ? String(rawId) : '';
     };
   
-    // 2. Load current Master Map from Session Storage
-    const currentList = this.getStoredProfiles(storageKey);
+    // 1. Build a map of items from OTHER categories currently in session storage
+    // (Preserves multi-tab selections without mixing them up)
+    const existingStoredList = this.getStoredProfiles(storageKey);
+  
+    // 2. Build a fresh Map for the CURRENT category
     const profileMap = new Map<string, any>();
-    
-    // Populate map with existing stored items
-    currentList.forEach(item => {
-      const id = getId(item);
-      if (id) profileMap.set(id, item);
-    });
   
-    // 3. Identify all rows present in the CURRENT grid view (from lastEmitted or API dataset)
-    const currentGridRows: any[] = this.lastEmittedSelections[category] || [];
-    const incomingIds = new Set(incomingSelected.map(item => getId(item)));
+    // Optional: If you want to keep selections from PREVIOUS searches that are NOT in the current grid page:
+    // First, identify IDs that belong to the current active grid page/data view
+    const activeGridData: any[] = selectedRows.gridApi ? [] : []; // Or your component's grid row data array
+    const activeGridIds = new Set(
+      (selectedRows.allGridRows || []).map((row: any) => getId(row)).filter((id: string) => id !== '')
+    );
   
-    // Remove rows that were displayed in this grid session but are NO LONGER checked
-    currentGridRows.forEach(item => {
+    // Keep stored items that belong to OTHER searches (not present on the current grid view)
+    existingStoredList.forEach(item => {
       const id = getId(item);
-      if (id && !incomingIds.has(id)) {
-        profileMap.delete(id); // Explicit uncheck
+      if (id && activeGridIds.size > 0 && !activeGridIds.has(id)) {
+        profileMap.set(id, item);
       }
     });
   
-    // Add/Update all currently checked rows from AG-Grid
+    // 3. Directly set ALL currently selected rows emitted by AG-Grid for this grid view
     incomingSelected.forEach(item => {
       const id = getId(item);
-      if (id) profileMap.set(id, item); // Overwrites cleanly if already present, preventing duplicates!
+      if (id) {
+        profileMap.set(id, item); // Overwrites cleanly, mathematically preventing duplicate keys
+      } else {
+        // Fallback if item lacks an explicit ID property
+        profileMap.set(JSON.stringify(item), item);
+      }
     });
   
-    // 4. Update memory tracking for active grid
-    this.lastEmittedSelections[category] = incomingSelected;
-  
-    // 5. Convert Map values back to Array
+    // 4. Convert Map values directly to updated array
     const updatedList = Array.from(profileMap.values());
   
-    // 6. Update Component State
+    // 5. Assign updated state
     if (category === 'customer') {
       this.selectedCustomerList = updatedList;
     } else if (category === 'entity') {
@@ -58,7 +61,7 @@ handleSelectionChange(selectedRows: any): void {
       this.selectedLegalHoldList = updatedList;
     }
   
-    // 7. Persist to Session Storage
+    // 6. Save to Session Storage
     this.setStoredProfiles(storageKey, updatedList);
   
     if (typeof this.cacheIndividualAndEntityProfiles === 'function') {
@@ -69,31 +72,10 @@ handleSelectionChange(selectedRows: any): void {
   }
 
 
-  // Step 2: Ensure handleRemoveProfile Uses the Same ID Logic
+  // In your component or gridOptions:
+getRowId = (params: any) => {
+    return params.data.ocifId || params.data.ecifId || params.data.uid || params.data.id;
+  };
 
-  handleRemoveProfile(deselectedProfile: any): void {
-    if (!deselectedProfile) return;
-  
-    const getId = (item: any): string => {
-      if (!item) return '';
-      const rawId = item.ocifId || item.ecifId || item.uid || item.id || item.profileId || item.proxyOcifId;
-      return rawId !== undefined && rawId !== null ? String(rawId) : JSON.stringify(item);
-    };
-  
-    const targetId = getId(deselectedProfile);
-  
-    const removeFromList = (list: any[]) => 
-      (list || []).filter(p => getId(p) !== targetId);
-  
-    this.selectedCustomerList = removeFromList(this.selectedCustomerList);
-    this.selectedEntityList = removeFromList(this.selectedEntityList);
-    this.selectedLegalHoldList = removeFromList(this.selectedLegalHoldList);
-  
-    // Sync back to Session Storage
-    this.setStoredProfiles('selectedCustomerList', this.selectedCustomerList);
-    this.setStoredProfiles('selectedEntityList', this.selectedEntityList);
-    this.setStoredProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
-  
-    this.deletedProfileEcifId = deselectedProfile;
-    this.cdr.detectChanges();
-  }
+
+    [suppressRowClickSelection]="true"
