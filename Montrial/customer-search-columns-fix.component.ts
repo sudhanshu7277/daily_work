@@ -1,4 +1,4 @@
-const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
+
 
 handleSelectionChange(selectedRows: any): void {
   if (!selectedRows || !selectedRows.identifier) return;
@@ -9,7 +9,19 @@ handleSelectionChange(selectedRows: any): void {
                    : 'selectedLegalHoldList';
 
   const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
-  const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
+  const getId = (item: any) => {
+    if (!item) return '';
+    // Check proxyOcifId and standard primary keys
+    const baseId = item.proxyOcifId || item.ocifId || item.ecifId || item.uid || item.id;
+    
+    // If multiple holds/rows share the same proxyOcifId, differentiate them using hold/tree attributes
+    const rowQualifier = item._uid || item.legalHoldName || item.rowId;
+    
+    if (baseId && rowQualifier) {
+      return `${baseId}_${rowQualifier}`;
+    }
+    return baseId ? String(baseId) : (item._uid ? String(item._uid) : '');
+  };
 
   const deduplicate = (list: any[]) => {
     const seen = new Set();
