@@ -1,36 +1,3 @@
-// Change 1: customer-search-grid.component.ts
-
-private emitSelected(): void {
-  // Filter out parent cluster header rows so ONLY the checked child/standalone profiles are emitted
-  const selected = this.allNodes().filter(n => {
-    if (!n._selected) return false;
-    // Skip parent container rows that have children
-    if (n._isParent && n.children && n.children.length > 0) {
-      return false;
-    }
-    return true;
-  }) as unknown as CustomerNode[];
-
-  const customerSelection = {
-    identifier: 'customer',
-    selected: selected
-  };
-
-  this.selectionChanged.emit(customerSelection);
-}
-
-// Change 2: legal-hold-shell.component.ts (Parent Shell)
-
-private getProfileId(item: any): string {
-  if (!item) return '';
-  // Use node's unique tree instance ID (_uid) if present, otherwise fallback to business key
-  if (item._uid) return String(item._uid);
-  const id = item.proxyOcifId ?? item.ocifId ?? item.ecifId ?? item.uid ?? item.id;
-  return id !== undefined && id !== null ? String(id) : '';
-}
-
-// Then, replace handleSelectionChange in legal-hold-shell.component.ts with this direct assignment:
-
 handleSelectionChange(event: { identifier: string; selected: any[] }): void {
   if (!event || !event.identifier) return;
 
@@ -39,21 +6,63 @@ handleSelectionChange(event: { identifier: string; selected: any[] }): void {
                    : category === 'entity' ? 'selectedEntityList' 
                    : 'selectedLegalHoldList';
 
-  const incomingSelected = Array.isArray(event.selected) ? event.selected : [];
+  const incomingSelected: any[] = Array.isArray(event.selected) ? event.selected : [];
 
-  // Deduplicate incoming items using getProfileId
-  const profileMap = new Map<string, any>();
-  incomingSelected.forEach(item => {
+  // 1. Read existing saved profiles from session storage
+  const masterListFromSession = this.getStoredProfiles(storageKey) || [];
+  const previousGridState = this.lastEmittedSelections[category] || [];
+
+  // 2. Map incoming emitted IDs
+  const incomingIds = new Set(incomingSelected.map(r => this.getProfileId(r)).filter(Boolean));
+
+  // 3. Track items explicitly unchecked in current AG-Grid view
+  const uncheckedIds = new Set<string>();
+  previousGridState.forEach((item: any) => {
     const id = this.getProfileId(item);
-    if (id) profileMap.set(id, item);
+    if (id && !incomingIds.has(id)) {
+      uncheckedIds.add(id);
+    }
+  });
+
+  // 4. Update memory snapshot for next diff
+  this.lastEmittedSelections[category] = incomingSelected;
+
+  // 5. Deduplicate & Merge (preserves previously selected records from other searches)
+  const profileMap = new Map<string, any>();
+
+  // Add existing stored items (excluding items unchecked in this active view)
+  masterListFromSession.forEach((item: any) => {
+    const id = this.getProfileId(item);
+    if (id && !uncheckedIds.has(id)) {
+      profileMap.set(id, item);
+    }
+  });
+
+  // Merge currently selected items from grid
+  incomingSelected.forEach((item: any) => {
+    const id = this.getProfileId(item);
+    if (id) {
+      profileMap.set(id, item);
+    }
   });
 
   const updatedList = Array.from(profileMap.values());
 
-  if (category === 'customer') this.selectedCustomerList = updatedList;
-  else if (category === 'entity') this.selectedEntityList = updatedList;
-  else if (category === 'hold') this.selectedLegalHoldList = updatedList;
+  // 6. Update state variables
+  if (category === 'customer') {
+    this.selectedCustomerList = updatedList;
+  } else if (category === 'entity') {
+    this.selectedEntityList = updatedList;
+  } else if (category === 'hold') {
+    this.selectedLegalHoldList = updatedList;
+  }
 
+  // 7. Save back to SessionStorage & trigger caching
   this.setStoredProfiles(storageKey, updatedList);
+  
+  if (typeof this.cacheIndividualAndEntityProfiles === 'function') {
+    this.cacheIndividualAndEntityProfiles(storageKey, updatedList);
+  }
+
   this.cdr.detectChanges();
 }
