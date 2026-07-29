@@ -8,14 +8,14 @@ handleSelectionChange(event: { identifier: string; selected: any[] }): void {
 
   const incomingSelected: any[] = Array.isArray(event.selected) ? event.selected : [];
 
-  // 1. Read existing saved profiles from session storage
+  // 1. Fetch master list from sessionStorage to preserve past searches
   const masterListFromSession = this.getStoredProfiles(storageKey) || [];
   const previousGridState = this.lastEmittedSelections[category] || [];
 
-  // 2. Map incoming emitted IDs
+  // 2. Collect incoming IDs from active grid selection
   const incomingIds = new Set(incomingSelected.map(r => this.getProfileId(r)).filter(Boolean));
 
-  // 3. Track items explicitly unchecked in current AG-Grid view
+  // 3. Identify items explicitly UNCHECKED in current grid view
   const uncheckedIds = new Set<string>();
   previousGridState.forEach((item: any) => {
     const id = this.getProfileId(item);
@@ -24,13 +24,13 @@ handleSelectionChange(event: { identifier: string; selected: any[] }): void {
     }
   });
 
-  // 4. Update memory snapshot for next diff
+  // 4. Update memory snapshot for diff tracking
   this.lastEmittedSelections[category] = incomingSelected;
 
   // 5. Deduplicate & Merge (preserves previously selected records from other searches)
   const profileMap = new Map<string, any>();
 
-  // Add existing stored items (excluding items unchecked in this active view)
+  // Add existing stored items (excluding items explicitly unchecked in this active view)
   masterListFromSession.forEach((item: any) => {
     const id = this.getProfileId(item);
     if (id && !uncheckedIds.has(id)) {
@@ -48,18 +48,13 @@ handleSelectionChange(event: { identifier: string; selected: any[] }): void {
 
   const updatedList = Array.from(profileMap.values());
 
-  // 6. Update state variables
-  if (category === 'customer') {
-    this.selectedCustomerList = updatedList;
-  } else if (category === 'entity') {
-    this.selectedEntityList = updatedList;
-  } else if (category === 'hold') {
-    this.selectedLegalHoldList = updatedList;
-  }
+  // 6. Update local component state
+  if (category === 'customer') this.selectedCustomerList = updatedList;
+  else if (category === 'entity') this.selectedEntityList = updatedList;
+  else if (category === 'hold') this.selectedLegalHoldList = updatedList;
 
-  // 7. Save back to SessionStorage & trigger caching
+  // 7. Persist to SessionStorage & Cache
   this.setStoredProfiles(storageKey, updatedList);
-  
   if (typeof this.cacheIndividualAndEntityProfiles === 'function') {
     this.cacheIndividualAndEntityProfiles(storageKey, updatedList);
   }
