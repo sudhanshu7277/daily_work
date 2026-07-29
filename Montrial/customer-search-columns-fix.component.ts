@@ -1,150 +1,121 @@
-private getProfileId(item: any): string {
-  if (!item) return '';
+// Step 1: Session Storage Helpers
 
-  // 1. Check primary OCIF / Entity identifiers
-  const primaryId = item.proxyOcifId || item.ocifId || item.ecifId || item.profileId;
-  if (primaryId) return String(primaryId).trim();
-
-  // 2. Fallback to instance / record identifiers if proxyOcifId is missing
-  const secondaryId = item.uid || item.id || item._uid || item.rowId;
-  if (secondaryId) return String(secondaryId).trim();
-
-  // 3. Last resort fallback: generate a stable unique string from profile attributes
-  if (item.profileName || item.firstName) {
-    return `${item.profileName || item.firstName}_${item.legalHoldName || ''}`.trim();
+  // Helper to get items from session storage safely
+  getStoredProfiles(key: string): any[] {
+    try {
+      const data = sessionStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error(`Error reading ${key} from sessionStorage`, e);
+      return [];
+    }
   }
-
-  return '';
-}
-
-handleSelectionChange(selectedRows: any): void {
-  if (!selectedRows || !selectedRows.identifier) return;
-
-  const category = selectedRows.identifier;
-  const storageKey = category === 'customer' ? 'selectedCustomerList' 
-                   : category === 'entity' ? 'selectedEntityList' 
-                   : 'selectedLegalHoldList';
-
-  const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
-
-  // Helper deduplicator using our bulletproof ID extractor
-  const deduplicate = (list: any[]) => {
-    const seen = new Set<string>();
-    return list.filter(item => {
-      const id = this.getProfileId(item);
-      if (!id) return true; // Keep if no ID to be safe
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
-  };
-
-  // 1. Load existing session data for THIS active category only
-  const masterListFromSession = this.getStoredProfiles(storageKey) || [];
-  const previousGridState = this.lastEmittedSelections[category] || [];
   
-  // Create Set of valid IDs coming from the current emission
-  const incomingIds = new Set(
-    incomingSelected.map(r => this.getProfileId(r)).filter(id => id !== '')
-  );
-
-  // 2. Determine items explicitly unchecked in active view
-  const uncheckedIds = new Set<string>();
-  previousGridState.forEach((item: any) => {
-    const id = this.getProfileId(item);
-    if (id && !incomingIds.has(id)) {
-      uncheckedIds.add(id);
+  // Helper to save items to session storage cleanly
+  setStoredProfiles(key: string, list: any[]): void {
+    try {
+      sessionStorage.setItem(key, JSON.stringify(list || []));
+    } catch (e) {
+      console.error(`Error saving ${key} to sessionStorage`, e);
     }
-  });
-
-  // 3. Save memory snapshot
-  this.lastEmittedSelections[category] = incomingSelected;
-
-  // 4. Merge stored items (excluding unchecked) with newly selected items
-  let updatedList = masterListFromSession.filter((item: any) => {
-    const id = this.getProfileId(item);
-    return !id || !uncheckedIds.has(id);
-  });
-
-  updatedList = deduplicate([...updatedList, ...incomingSelected]);
-
-  // 5. Update local state for active category ONLY
-  if (category === 'customer') {
-    this.selectedCustomerList = updatedList;
-  } else if (category === 'entity') {
-    this.selectedEntityList = updatedList;
-  } else if (category === 'hold') {
-    this.selectedLegalHoldList = updatedList;
   }
-
-  // 6. Persist state
-  this.setStoredProfiles(storageKey, updatedList);
-
-  if (typeof this.cacheIndividualAndEntityProfiles === 'function') {
-    this.cacheIndividualAndEntityProfiles(storageKey, updatedList);
-  }
-
-  this.cdr.detectChanges();
-}
-
-sessionStorage.clear();
-
-
-
-
-// let c if this rools back and fixes
-
-handleSelectionChange(selectedRows: any): void {
-  if (!selectedRows || !selectedRows.identifier) return;
-
-  const category = selectedRows.identifier;
-  const storageKey = category === 'customer' ? 'selectedCustomerList'
-                   : category === 'entity' ? 'selectedEntityList'
-                   : 'selectedLegalHoldList';
-
-  const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
-  const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
-
-  const deduplicate = (list: any[]) => {
-    const seen = new Set();
-    return list.filter(item => {
-      const id = getId(item);
-      if (id) {
-        if (seen.has(id)) return false;
-        seen.add(id);
+  
+  // Step 2: Session-Aware handleSelectionChange
+  
+  handleSelectionChange(selectedRows: any): void {
+    if (!selectedRows || !selectedRows.identifier) return;
+  
+    const category = selectedRows.identifier; // 'customer' | 'entity' | 'hold'
+    const storageKey = category === 'customer' ? 'selectedCustomerList' 
+                     : category === 'entity' ? 'selectedEntityList' 
+                     : 'selectedLegalHoldList';
+  
+    const incomingSelected: any[] = Array.isArray(selectedRows.selected) ? selectedRows.selected : [];
+    const getId = (item: any) => item?.ocifId || item?.ecifId || item?.uid || item?.id;
+  
+    const deduplicate = (list: any[]) => {
+      const seen = new Set();
+      return list.filter(item => {
+        const id = getId(item);
+        if (id) {
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        }
         return true;
+      });
+    };
+  
+    // 1. Pull the absolute latest state from Session Storage (preserves multi-tab/multi-search selections)
+    const masterListFromSession = this.getStoredProfiles(storageKey);
+  
+    // 2. Diff against previous emission for this specific active grid session
+    const previousGridState = this.lastEmittedSelections[category] || [];
+    const incomingIds = new Set(incomingSelected.map(r => getId(r)));
+  
+    const uncheckedIds = new Set<string | number>();
+    previousGridState.forEach(item => {
+      const id = getId(item);
+      if (id && !incomingIds.has(id)) {
+        uncheckedIds.add(id); // User unchecked this row in the active grid view
       }
-      return true;
     });
-  };
-
-  const masterListFromSession = this.getStoredProfiles(storageKey);
-  const previousGridState = this.lastEmittedSelections[category] || [];
-  const incomingIds = new Set(incomingSelected.map(r => getId(r)));
-
-  const uncheckedIds = new Set<string | number>();
-  previousGridState.forEach(item => {
-    const id = getId(item);
-    if (id && !incomingIds.has(id)) {
-      uncheckedIds.add(id);
+  
+    // 3. Update active grid tracking memory
+    this.lastEmittedSelections[category] = incomingSelected;
+  
+    // 4. Reconcile master session list against active unchecks & new incoming checks
+    let updatedList = masterListFromSession.filter(item => !uncheckedIds.has(getId(item)));
+    updatedList = deduplicate([...updatedList, ...incomingSelected]);
+  
+    // 5. Update Component State & Sync back to Session Storage
+    if (category === 'customer') {
+      this.selectedCustomerList = updatedList;
+    } else if (category === 'entity') {
+      this.selectedEntityList = updatedList;
+    } else if (category === 'hold') {
+      this.selectedLegalHoldList = updatedList;
     }
-  });
-
-  this.lastEmittedSelections[category] = incomingSelected;
-
-  let updatedList = masterListFromSession.filter(item => !uncheckedIds.has(getId(item)));
-  updatedList = deduplicate([...updatedList, ...incomingSelected]);
-
-  if (category === 'customer') {
-    this.selectedCustomerList = updatedList;
-  } else if (category === 'entity') {
-    this.selectedEntityList = updatedList;
-  } else if (category === 'hold') {
-    this.selectedLegalHoldList = updatedList;
+  
+    // Persist to session storage & cache
+    this.setStoredProfiles(storageKey, updatedList);
+    this.cacheIndividualAndEntityProfiles(storageKey, updatedList);
+  
+    this.cdr.detectChanges();
   }
-
-  this.setStoredProfiles(storageKey, updatedList);
-  this.cacheIndividualAndEntityProfiles(storageKey, updatedList);
-
-  this.cdr.detectChanges();
-}
+  
+  
+  
+  // Step 3: Update handleRemoveProfile to Sync with Session Storage
+  
+  handleRemoveProfile(deselectedProfile: any): void {
+    if (!deselectedProfile) return;
+    const targetId = deselectedProfile.ocifId || deselectedProfile.ecifId || deselectedProfile.uid || deselectedProfile.id;
+  
+    const removeFromList = (list: any[]) => (list || []).filter(p => (p.ocifId || p.ecifId || p.uid || p.id) !== targetId);
+  
+    this.selectedCustomerList = removeFromList(this.selectedCustomerList);
+    this.selectedEntityList = removeFromList(this.selectedEntityList);
+    this.selectedLegalHoldList = removeFromList(this.selectedLegalHoldList);
+  
+    // Sync updated lists directly with sessionStorage
+    this.setStoredProfiles('selectedCustomerList', this.selectedCustomerList);
+    this.setStoredProfiles('selectedEntityList', this.selectedEntityList);
+    this.setStoredProfiles('selectedLegalHoldList', this.selectedLegalHoldList);
+  
+    this.deletedProfileEcifId = deselectedProfile;
+    this.cdr.detectChanges();
+  }
+  
+  // Step 4: Clear Session Active Grid Tracking on New Search
+  
+  onSearchClick(): void {
+    // Reset grid emission memory for fresh search grid session
+    this.lastEmittedSelections = {
+      customer: [],
+      entity: [],
+      hold: []
+    };
+  
+    // ... execute existing search API logic ...
+  }
