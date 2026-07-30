@@ -1,156 +1,139 @@
-private mapPlayer = (p: any): any => ({
-    profileName: p.profileName ?? '',
-    ocifId: this.extractOcifId(p),
-    status: mapLegalHoldStatusToUi(p.legalHoldStatus),
-    holdName: p.holdName ?? p.legalHoldName ?? '',
-    lifecycle: p.customerLifecycleStatus ?? 'N/A',
-    roleType: p.roleType ?? '',
-    address: this.formatAddress(p.address),
-    customerStatus: p.customerLifecycleStatus ?? '',
-    eDiscoveryProjectManager: p.eDiscoveryProjectManager ?? '',
-    responsibleLawyerEmail: p.responsibleLawyerEmail ?? '',
-    phoneNumber: p.phoneNumber ?? '',
-    holdId: p.holdId ?? '',
-    holdsIdPk: p.holdsIdPk ?? '',
-    holdApplyDateTime: p.holdApplyDateTime ?? p.holdApplyDate ?? '',
-    holdReleaseDate: p.holdReleaseDate ?? p.holdReleaseDateTime ?? '',
-    holdLastUpdateDate: p.holdLastUpdateDate ?? p.holdLastUpdateDateTime ?? '',
-    identifier: p.identifier ?? [],
-    fileNetId: p.fileNetId ?? null,
-    suspectProfile: p.suspectProfile === 'Yes',
-    partyType: p.partyType ?? '',
-    firstName: p.firstName ?? '',
-    lastName: p.lastName ?? '',
-    dateOfBirth: p.dateOfBirth ?? '',
-    isParent: Array.isArray(p.rolePlayers) && p.rolePlayers.length > 0,
-    isExpanded: false,
-    children: (p.rolePlayers ?? []).map((rp: any) => this.mapPlayer(rp)),
-  });
-  
-  
-  
-  
-  private flattenTree(): GridRow[] {
+// 1 — GridRow interface — add one field:
+
+_level?: number;
+
+// 2 — stampTree — add level stamping (keep everything else in it as is):
+
+private stampTree(nodes: GridRow[], parentUid: string, level: number = 0): void {
+    nodes.forEach((n, i) => {
+      n._uid = parentUid ? `${parentUid}-${i}` : `${i}`;
+      n._level = level;                                   // ← ADD
+      n._selected = false;
+      n._isClusterEnd = false;
+      if (n._isParent) this.stampTree(n.children!, n._uid, level + 1);  // ← pass level+1
+    });
+  }
+
+
+  // (Keep any lines your current version has that I haven't shown — only add _level and the third parameter.)
+
+//3 — flattenTree — replace entirely (one-level → recursive):
+
+private flattenTree(): GridRow[] {
     const rows: GridRow[] = [];
     const walk = (nodes: GridRow[]) => {
       for (const n of nodes) {
         n._isClusterEnd = false;
         rows.push({ ...n });
-        if (n._isParent) {
-          if (n._expanded) {
-            n.children!.forEach((c, idx) => {
-              c._isClusterEnd = idx === n.children!.length - 1;
-            });
-            walk(n.children!);
-          } else {
-            rows[rows.length - 1]._isClusterEnd = true;
-          }
-        }
+        if (n._isParent && n._expanded) walk(n.children!);
       }
     };
-    walk(this.tree);
+    for (const root of this.tree) {
+      walk([root]);
+      if (rows.length) rows[rows.length - 1]._isClusterEnd = true;
+    }
     return rows;
   }
-  
-  private findNode(
-    uid: string,
-    nodes: GridRow[] = this.tree,
-    parent?: GridRow
-  ): { node: GridRow; parent?: GridRow } | null {
+
+  // 4 — replace findNode with findNodePath (returns full ancestor chain):
+
+  private findNodePath(uid: string, nodes: GridRow[] = this.tree, path: GridRow[] = []): GridRow[] | null {
     for (const n of nodes) {
-      if (n._uid === uid) return { node: n, parent };
+      if (n._uid === uid) return [...path, n];
       if (n.children?.length) {
-        const found = this.findNode(uid, n.children, n);
-        if (found) return found;
+        const p = this.findNodePath(uid, n.children, [...path, n]);
+        if (p) return p;
       }
     }
     return null;
   }
   
+  private setSelectedDeep(n: GridRow, val: boolean): void {
+    n._selected = val;
+    (n.children ?? []).forEach(c => this.setSelectedDeep(c, val));
+  }
+
+  //5 — onCheckboxClick — replace body:
+
+  onCheckboxClick(uid: string): void {
+    const path = this.findNodePath(uid);
+    if (!path) return;
+    const node = path[path.length - 1];
+    this.setSelectedDeep(node, !node._selected);
+    for (let i = path.length - 2; i >= 0; i--) {
+      path[i]._selected = (path[i].children ?? []).every((c: any) => c._selected);
+    }
+    this.refresh();
+    this.emitSelected();
+  }
+
+
+  // 6 — toggleExpand — replace body:
+
+  toggleExpand(uid: string): void {
+    const path = this.findNodePath(uid);
+    if (!path) return;
+    path[path.length - 1]._expanded = !path[path.length - 1]._expanded;
+    this.refresh();
+  }
+
+  //7 — allNodes — replace body:
+
   private allNodes(): GridRow[] {
     const out: GridRow[] = [];
-    const walk = (nodes: GridRow[]) => {
-      for (const n of nodes) {
-        out.push(n);
-        if (n.children?.length) walk(n.children);
-      }
-    };
+    const walk = (ns: GridRow[]) => ns.forEach(n => { out.push(n); walk(n.children ?? []); });
     walk(this.tree);
     return out;
   }
-  
-  private emitSelected(): void {
-    const selected: GridRow[] = [];
-    const walk = (nodes: GridRow[]) => {
-      for (const n of nodes) {
-        if (n._selected) selected.push(n);
-        if (n.children?.length) walk(n.children);
-      }
-    };
-    walk(this.tree);
-    this.selectionChanged.emit({ identifier: 'customer', selected });
+
+  // (emitSelected and syncHeaderCheckbox need no changes — they use allNodes().)
+
+//8 — onSelectAll — replace body:
+
+onSelectAll(select: boolean): void {
+    this.tree.forEach(n => this.setSelectedDeep(n, select));
+    this.refresh();
+    this.emitSelected();
   }
-  
-  onCheckboxClick(uid: string): void {
-    const found = this.findNode(uid);
-    if (!found) return;
-    const { node } = found;
-    node._selected = !node._selected;
-  
-    const cascadeDown = (n: GridRow) =>
-      n.children?.forEach(c => { c._selected = n._selected; cascadeDown(c); });
-    cascadeDown(node);
-  
-    const bubbleUp = (nodes: GridRow[]) => {
+
+  //9 — onSortChanged — make the children sort recursive (only change the forEach after the root sort):
+
+  const sortChildren = (n: any) => {
+    if (n.children?.length) {
+      n.children.sort(sortFn);
+      n.children.forEach(sortChildren);
+    }
+  };
+  (this.tree as any[]).sort(sortFn);
+  (this.tree as any[]).forEach(sortChildren);
+
+  //10 — deselectByOcifId setter — replace body (X-button must reach any depth):
+
+  @Input() set deselectByOcifId(ocifId: string | null) {
+    if (!ocifId) return;
+    const findByOcif = (nodes: GridRow[], path: GridRow[] = []): GridRow[] | null => {
       for (const n of nodes) {
+        if (n.ocifId === ocifId) return [...path, n];
         if (n.children?.length) {
-          bubbleUp(n.children);
-          n._selected = n.children.every(c => c._selected);
+          const p = findByOcif(n.children, [...path, n]);
+          if (p) return p;
         }
       }
+      return null;
     };
-    bubbleUp(this.tree);
-  
-    this.refresh();
-    this.emitSelected();
-  }
-  
-  onSelectAll(select: boolean): void {
-    const walk = (nodes: GridRow[]) => {
-      for (const n of nodes) {
-        n._selected = select;
-        if (n.children?.length) walk(n.children);
-      }
-    };
-    walk(this.tree);
-    this.refresh();
-    this.emitSelected();
-  }
-  
-  onSortChanged(): void {
-    const sortState = this.gridApi?.getColumnState().find(s => s.sort != null);
-    if (!sortState) {
-      this.currentPage = 1;
-      this.refresh();
-      return;
+    const path = findByOcif(this.tree);
+    if (!path) return;
+    this.setSelectedDeep(path[path.length - 1], false);
+    for (let i = path.length - 2; i >= 0; i--) {
+      path[i]._selected = (path[i].children ?? []).every((c: any) => c._selected);
     }
-  
-    const field = sortState.colId;
-    const dir = sortState.sort as 'asc' | 'desc';
-  
-    const sortFn = (a: any, b: any) => {
-      const valA = (a[field] ?? '').toLowerCase();
-      const valB = (b[field] ?? '').toLowerCase();
-      return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    };
-  
-    const sortRecursive = (nodes: GridRow[]) => {
-      (nodes as any[]).sort(sortFn);
-      nodes.forEach(n => { if (n._isParent && n.children?.length) sortRecursive(n.children); });
-    };
-    sortRecursive(this.tree);
-  
-    this.currentPage = 1;
     this.refresh();
   }
-  
+
+  // 11 — NameCellComponent — indentation for nesting depth. In sync() add:
+
+  this.level = (d as any)?._level ?? 0;
+
+  //Add level = 0; as a class field, and on the outer name-cell div in its template:
+
+  [style.paddingLeft.px]="level * 24"
