@@ -137,3 +137,45 @@ onSelectAll(select: boolean): void {
   //Add level = 0; as a class field, and on the outer name-cell div in its template:
 
   [style.paddingLeft.px]="level * 24"
+
+
+
+
+
+  // complete onSortChnages func
+
+
+  onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState()
+      .find(s => s.sort != null);
+  
+    if (!sortState) {
+      this.currentPage = 1;
+      this.refresh();
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir   = sortState.sort as 'asc' | 'desc';
+  
+    const sortFn = (a: any, b: any) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    };
+  
+    // ─── REPLACE FROM HERE ───
+    (this.tree as any[]).sort(sortFn);
+  
+    (this.tree as any[]).forEach((n: any) => {
+      if (n._isParent && n.children?.length > 0) {
+        n.children.sort(sortFn);
+      }
+    });
+    // ─── TO HERE ───
+  
+    this.currentPage = 1;
+    this.refresh();
+  }
