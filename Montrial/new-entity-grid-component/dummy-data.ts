@@ -1,0 +1,281 @@
+/**
+ * Dummy data for entity-grid component.
+ * Shape mirrors the real BMO API response — uses rolePlayers, ecifId,
+ * customerLifecycleStatus, roleType, and double-nested address.
+ * Pass this array directly as @Input() entityGridData.
+ */
+
+const ADDR_TORONTO   = { address: { addressLineOne: '570 CHANTENAY DR',   city: 'MISSISSAUGA', zipPostalCode: 'L5A1G2', provinceStateTypeValue: 'ON', countryTypeValue: 'CA' } };
+const ADDR_MONTREAL  = { address: { addressLineOne: '1000 DE LA GAUCHETIÈRE ST W', city: 'MONTREAL', zipPostalCode: 'H3B4W5', provinceStateTypeValue: 'QC', countryTypeValue: 'CA' } };
+const ADDR_VANCOUVER = { address: { addressLineOne: '200 GRANVILLE ST',   city: 'VANCOUVER', zipPostalCode: 'V6C1S4', provinceStateTypeValue: 'BC', countryTypeValue: 'CA' } };
+const ADDR_CALGARY   = { address: { addressLineOne: '707 8 AVE SW',       city: 'CALGARY',   zipPostalCode: 'T2P1H5', provinceStateTypeValue: 'AB', countryTypeValue: 'CA' } };
+const ADDR_OTTAWA    = { address: { addressLineOne: '150 ELGIN ST',       city: 'OTTAWA',    zipPostalCode: 'K2P1L4', provinceStateTypeValue: 'ON', countryTypeValue: 'CA' } };
+
+// ── Leaf helper (no rolePlayers)
+const leaf = (
+  ecifId: string,
+  firstName: string,
+  lastName: string,
+  legalHoldStatus: string,
+  holdId: string,
+  holdName: string,
+  roleType: string,
+  address: object,
+  extraFields: Record<string, any> = {},
+) => ({
+  ecifId,
+  identifier: [{ idType: 'ECIF ID', idValue: ecifId }],
+  legalHoldStatus,
+  holdId,
+  firstName,
+  lastName,
+  partyType: 'P',
+  customerLifecycleStatus: 'Active Customer',
+  holdName,
+  roleType,
+  address,
+  eDiscoveryProjectManager: 'NA',
+  responsibleLawyerEmail: 'NA',
+  rolePlayers: [],
+  ...extraFields,
+});
+
+export const ENTITY_GRID_DUMMY_DATA: any[] = [
+
+  // ── Root 1: KIPTON DURAN — Owner, LEGAL HOLD, 3-level deep tree
+  {
+    profileName: 'KIPTON DURAN',
+    ecifId: '5483785156524285112026072708484844421',
+    identifier: [{ idType: 'ECIF ID', idValue: '5483785156524285112026072708484844421' }],
+    legalHoldStatus: 'released',
+    holdId: '746294529',
+    partyType: 'P',
+    firstName: 'KIPTON',
+    lastName: 'DURAN',
+    fileNetId: { identificationNumber: '046161694473662', identificationType: '100057', identificationTypeValue: 'FileNet ID' },
+    address: ADDR_TORONTO,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'LHTEST888',
+    holdApplyDateTime: '2026-07-28T13:41:25.070000Z',
+    holdReleaseDateTime: '2026-07-29T15:14:14.826000Z',
+    eDiscoveryProjectManager: 'nikki',
+    responsibleLawyerEmail: 'nikki12@gmail.com',
+    roleType: 'Owner',
+    rolePlayers: [
+      {
+        profileName: 'AKIRA GALVAN',
+        ecifId: '4126785162254026112026072710241464',
+        identifier: [{ idType: 'ECIF ID', idValue: '4126785162254026112026072710241464' }],
+        legalHoldStatus: 'released',
+        holdId: '599767865',
+        partyType: 'P',
+        firstName: 'AKIRA',
+        lastName: 'GALVAN',
+        address: ADDR_TORONTO,
+        customerLifecycleStatus: 'Active Customer',
+        holdName: 'LHTESTAPPLY178',
+        holdApplyDateTime: '2026-07-29T23:56:13.347000Z',
+        holdReleaseDateTime: '2026-07-29T15:14:14.573000Z',
+        eDiscoveryProjectManager: 'dinesh',
+        responsibleLawyerEmail: 'dinesh@gmail.com',
+        roleType: 'Joint Owner',
+        rolePlayers: [
+          leaf('2748785156565780122026072708492589', 'VINAY',   'MEHTA', 'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_MONTREAL),
+          leaf('4718785156568575112026072708492866', 'RITESTH', 'SINGH', 'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_TORONTO),
+        ],
+      },
+      leaf('5761785156534523122026072708485460', 'VINAY',   'MEHTA', 'released', '746294529', 'LHTEST888', 'Has Trusted Contact Person', ADDR_VANCOUVER, { eDiscoveryProjectManager: 'nikki', responsibleLawyerEmail: 'nikki12@gmail.com' }),
+      leaf('4641785156537313112026072708485742', 'RITESTH', 'SINGH', 'released', '1912729532', 'LHTest168', 'Has Trusted Contact Person', ADDR_TORONTO, { eDiscoveryProjectManager: 'Himeth', responsibleLawyerEmail: 'din.man@gmail.com' }),
+    ],
+  },
+
+  // ── Root 2: MARGARET CHEN — Owner, LEGAL HOLD, 2-level
+  {
+    profileName: 'MARGARET CHEN',
+    ecifId: '6123456789012345678901234567890123456',
+    identifier: [{ idType: 'ECIF ID', idValue: '6123456789012345678901234567890123456' }],
+    legalHoldStatus: 'released',
+    holdId: '887654321',
+    partyType: 'P',
+    firstName: 'MARGARET',
+    lastName: 'CHEN',
+    address: ADDR_VANCOUVER,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'LHTEST_CHEN_001',
+    holdApplyDateTime: '2026-06-15T09:00:00.000000Z',
+    holdReleaseDateTime: '2026-07-01T12:00:00.000000Z',
+    eDiscoveryProjectManager: 'sarah.jones',
+    responsibleLawyerEmail: 'sjones@law.com',
+    roleType: 'Owner',
+    rolePlayers: [
+      leaf('7234567890123456789012345678901234567', 'JAMES',   'WONG',   'N/A', 'NA', 'NA', 'Authorized Signatory',     ADDR_VANCOUVER),
+      leaf('8345678901234567890123456789012345678', 'LINDA',   'PARK',   'released', '887654322', 'LHTEST_CHEN_001', 'Authorized Signatory of ABC Ltd.', ADDR_MONTREAL),
+      leaf('9456789012345678901234567890123456789', 'MICHAEL', 'KUMAR',  'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_CALGARY),
+    ],
+  },
+
+  // ── Root 3: DAVID OKONKWO — Owner, N/A (no hold), 1-level
+  {
+    profileName: 'DAVID OKONKWO',
+    ecifId: '1029384756102938475610293847561029384',
+    identifier: [{ idType: 'ECIF ID', idValue: '1029384756102938475610293847561029384' }],
+    legalHoldStatus: 'N/A',
+    holdId: 'NA',
+    partyType: 'P',
+    firstName: 'DAVID',
+    lastName: 'OKONKWO',
+    address: ADDR_MONTREAL,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'NA',
+    eDiscoveryProjectManager: 'NA',
+    responsibleLawyerEmail: 'NA',
+    roleType: 'Owner',
+    rolePlayers: [
+      leaf('2038475619283746502938475619283746502', 'SOPHIE',    'TREMBLAY', 'N/A', 'NA', 'NA', 'Authorized Signatory',     ADDR_MONTREAL),
+      leaf('3047586720394857603947586720394857603', 'EMMANUEL',  'ASANTE',   'N/A', 'NA', 'NA', 'Authorized Signatory',     ADDR_OTTAWA),
+    ],
+  },
+
+  // ── Root 4: PATRICIA NGUYEN — Joint Owner, LEGAL HOLD, 4-level deep
+  {
+    profileName: 'PATRICIA NGUYEN',
+    ecifId: '4056697831405669783140566978314056697',
+    identifier: [{ idType: 'ECIF ID', idValue: '4056697831405669783140566978314056697' }],
+    legalHoldStatus: 'released',
+    holdId: '112233445',
+    partyType: 'P',
+    firstName: 'PATRICIA',
+    lastName: 'NGUYEN',
+    address: ADDR_CALGARY,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'LHTEST_NGUYEN_2026',
+    holdApplyDateTime: '2026-05-01T08:00:00.000000Z',
+    holdReleaseDateTime: '2026-07-20T16:00:00.000000Z',
+    eDiscoveryProjectManager: 'robert.lee',
+    responsibleLawyerEmail: 'rlee@firm.com',
+    roleType: 'Joint Owner',
+    rolePlayers: [
+      {
+        profileName: 'NGUYEN HOLDINGS INC.',
+        ecifId: '5067708942516780894251678089425167808',
+        identifier: [{ idType: 'ECIF ID', idValue: '5067708942516780894251678089425167808' }],
+        legalHoldStatus: 'released',
+        holdId: '112233446',
+        partyType: 'C',
+        address: ADDR_CALGARY,
+        customerLifecycleStatus: 'Active Customer',
+        holdName: 'LHTEST_NGUYEN_2026',
+        roleType: 'Authorized Signatory',
+        eDiscoveryProjectManager: 'robert.lee',
+        responsibleLawyerEmail: 'rlee@firm.com',
+        rolePlayers: [
+          {
+            profileName: 'NGUYEN REALTY TRUST',
+            ecifId: '6078819053627891905362789190536278919',
+            identifier: [{ idType: 'ECIF ID', idValue: '6078819053627891905362789190536278919' }],
+            legalHoldStatus: 'released',
+            holdId: '112233447',
+            partyType: 'C',
+            address: ADDR_OTTAWA,
+            customerLifecycleStatus: 'Active Customer',
+            holdName: 'LHTEST_NGUYEN_2026',
+            roleType: 'Authorized Signatory of ABC Ltd.',
+            eDiscoveryProjectManager: 'robert.lee',
+            responsibleLawyerEmail: 'rlee@firm.com',
+            rolePlayers: [
+              leaf('7089920164738902016473890201647389020', 'ANNA',  'TRAN', 'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_OTTAWA),
+              leaf('8090031275849013127584901312758490131', 'FELIX', 'DUMONT', 'released', '112233448', 'LHTEST_NGUYEN_2026', 'Beneficiary', ADDR_MONTREAL),
+            ],
+          },
+        ],
+      },
+      leaf('9101142386950124238695012423869501242', 'HENRY', 'PHAM', 'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_VANCOUVER),
+    ],
+  },
+
+  // ── Root 5: ROBERT LAFLEUR — Owner, N/A, leaf only (no children)
+  {
+    profileName: 'ROBERT LAFLEUR',
+    ecifId: '0112253497061235349706123534970612353',
+    identifier: [{ idType: 'ECIF ID', idValue: '0112253497061235349706123534970612353' }],
+    legalHoldStatus: 'N/A',
+    holdId: 'NA',
+    partyType: 'P',
+    firstName: 'ROBERT',
+    lastName: 'LAFLEUR',
+    address: ADDR_OTTAWA,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'NA',
+    eDiscoveryProjectManager: 'NA',
+    responsibleLawyerEmail: 'NA',
+    roleType: 'Owner',
+    rolePlayers: [],
+  },
+
+  // ── Root 6: AISHA OKAFOR — Joint Owner, LEGAL HOLD, 2-level, isSuspect
+  {
+    profileName: 'AISHA OKAFOR',
+    ecifId: '1223364508172346508172346508172346508',
+    identifier: [{ idType: 'ECIF ID', idValue: '1223364508172346508172346508172346508' }],
+    legalHoldStatus: 'released',
+    holdId: '556677889',
+    isSuspect: true,
+    partyType: 'P',
+    firstName: 'AISHA',
+    lastName: 'OKAFOR',
+    address: ADDR_MONTREAL,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'LHTEST_OKAFOR_007',
+    holdApplyDateTime: '2026-07-01T10:00:00.000000Z',
+    holdReleaseDateTime: '2026-07-28T10:00:00.000000Z',
+    eDiscoveryProjectManager: 'alex.smith',
+    responsibleLawyerEmail: 'asmith@law.ca',
+    roleType: 'Joint Owner',
+    rolePlayers: [
+      leaf('2334475619283457619283457619283457619', 'CHIDI',   'OKAFOR', 'released', '556677890', 'LHTEST_OKAFOR_007', 'Authorized Signatory', ADDR_TORONTO, { isSuspect: true }),
+      leaf('3445586720394568720394568720394568720', 'FATIMA',  'DIALLO', 'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_MONTREAL),
+      leaf('4556697831405679831405679831405679831', 'IBRAHIM', 'SALL',   'N/A', 'NA', 'NA', 'Has Trusted Contact Person', ADDR_OTTAWA),
+    ],
+  },
+
+  // ── Root 7: CHEN ENTERPRISES LTD. — Corporate entity, LEGAL HOLD
+  {
+    profileName: 'CHEN ENTERPRISES LTD.',
+    ecifId: '5667808942516790942516790942516790942',
+    identifier: [{ idType: 'ECIF ID', idValue: '5667808942516790942516790942516790942' }],
+    legalHoldStatus: 'released',
+    holdId: '998877665',
+    partyType: 'C',
+    address: ADDR_VANCOUVER,
+    customerLifecycleStatus: 'Active Customer',
+    holdName: 'LHTEST_CHEN_CORP_2026',
+    holdApplyDateTime: '2026-04-10T09:00:00.000000Z',
+    holdReleaseDateTime: '2026-07-15T17:00:00.000000Z',
+    eDiscoveryProjectManager: 'jennifer.wu',
+    responsibleLawyerEmail: 'jwu@legal.ca',
+    roleType: 'Owner',
+    rolePlayers: [
+      {
+        profileName: 'CHEN REALTY GROUP',
+        ecifId: '6778919053627801053362780105336278010',
+        identifier: [{ idType: 'ECIF ID', idValue: '6778919053627801053362780105336278010' }],
+        legalHoldStatus: 'released',
+        holdId: '998877666',
+        partyType: 'C',
+        address: ADDR_TORONTO,
+        customerLifecycleStatus: 'Active Customer',
+        holdName: 'LHTEST_CHEN_CORP_2026',
+        roleType: 'Authorized Signatory',
+        eDiscoveryProjectManager: 'jennifer.wu',
+        responsibleLawyerEmail: 'jwu@legal.ca',
+        rolePlayers: [
+          leaf('7889020164738912164473891216447389121', 'WILLIAM', 'CHEN',  'released', '998877667', 'LHTEST_CHEN_CORP_2026', 'Director', ADDR_VANCOUVER),
+          leaf('8990131275849023275584902327558490232', 'GRACE',   'LI',    'N/A', 'NA', 'NA', 'Director', ADDR_TORONTO),
+          leaf('9001242386950134386695013438669501343', 'OLIVER',  'ZHANG', 'N/A', 'NA', 'NA', 'Secretary', ADDR_MONTREAL),
+        ],
+      },
+      leaf('0112353497061245497706124549770612454', 'HELEN', 'CHEN', 'N/A', 'NA', 'NA', 'Beneficiary', ADDR_CALGARY),
+    ],
+  },
+
+];
