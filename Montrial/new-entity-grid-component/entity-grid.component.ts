@@ -33,6 +33,73 @@ import {
 
 import { EntityNode, EntityRowNode, EntitySelectionEvent } from './entity-grid.model';
 
+// ── EntityFieldMap ────────────────────────────────────────────────────────────
+// Each property is an ordered list of candidate field names tried at runtime.
+// The adapter picks the first truthy value found — nothing is hardcoded.
+// Override any entry by passing a custom fieldMap @Input() from the parent.
+
+export interface EntityFieldMap {
+  ocifId:             string[];   // direct id fields
+  identifierArray:    string[];   // array containing id objects
+  identifierIdType:   string[];   // key inside each id object that names the type
+  identifierIdValue:  string[];   // key inside each id object that holds the value
+  fileNetIdPath:      string[];   // dot-path to a nested id e.g. ['fileNetId','identificationNumber']
+  profileName:        string[];
+  firstName:          string[];
+  lastName:           string[];
+  legalHoldStatus:    string[];
+  holdId:             string[];
+  holdName:           string[];
+  lifecycle:          string[];
+  role:               string[];
+  isSuspect:          string[];
+  addressKey:         string[];   // top-level address field name(s)
+  streetLine:         string[];   // full street line inside address object
+  streetNumber:       string[];
+  streetName:         string[];
+  streetSuffix:       string[];
+  city:               string[];
+  province:           string[];
+  postal:             string[];
+  country:            string[];
+  childrenKeys:       string[];   // nesting key(s) tried in order; first non-empty array wins
+}
+
+/** Covers both the real BMO API shape and the mock EntityNode shape — no changes needed for either */
+export const DEFAULT_FIELD_MAP: EntityFieldMap = {
+  ocifId:            ['ecifId', 'ocifId'],
+  identifierArray:   ['identifier'],
+  identifierIdType:  ['idType'],
+  identifierIdValue: ['idValue'],
+  fileNetIdPath:     ['fileNetId', 'identificationNumber'],
+
+  profileName: ['profileName'],
+  firstName:   ['firstName'],
+  lastName:    ['lastName'],
+
+  legalHoldStatus: ['legalHoldStatus'],
+  holdId:          ['holdId'],
+  holdName:        ['holdName'],
+
+  lifecycle: ['customerLifecycleStatus', 'lifecycle'],
+  role:      ['roleType', 'role'],
+  isSuspect: ['isSuspect'],
+
+  addressKey:   ['address'],
+  streetLine:   ['addressLineOne'],
+  streetNumber: ['streetNumber'],
+  streetName:   ['streetName'],
+  streetSuffix: ['streetSuffix'],
+  city:         ['city'],
+  province:     ['provinceStateTypeValue', 'provinceStateType', 'province'],
+  postal:       ['zipPostalCode', 'postalCode'],
+  country:      ['countryTypeValue', 'countryType', 'country'],
+
+  childrenKeys: ['rolePlayers', 'children'],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Component({
   selector: 'app-entity-grid',
   standalone: true,
@@ -54,42 +121,50 @@ export class EntityGridComponent implements OnInit, OnChanges {
 
   private readonly destroyRef = inject(DestroyRef);
 
-  // ── Inputs ─────────────────────────────────────────────────────────────────
+  // ── Inputs ──────────────────────────────────────────────────────────────────
 
-  /** Raw tree data passed in from the parent (legal-hold-shell) */
-  @Input() entityGridData: EntityNode[] = [];
+  /**
+   * Raw tree data from the parent (legal-hold-shell).
+   * Accepts any shape: real API (rolePlayers / ecifId) or pre-mapped EntityNode[].
+   * The dynamic mapApiNode adapter handles both transparently.
+   */
+  @Input() entityGridData: any[] = [];
 
-  /** Search term used to build the search summary label */
-  @Input() searchTerm = '';
-
-  /** Summary string shown above the grid e.g. 'Showing 21 results for: "Corp 4"' */
+  /** Displayed in the search-summary line above the grid */
   @Input() searchSummary = '';
 
-  // ── Output ─────────────────────────────────────────────────────────────────
+  /**
+   * Optional field-mapping override.
+   * The parent can pass a custom EntityFieldMap to remap any field
+   * without touching the component.  Defaults to DEFAULT_FIELD_MAP.
+   */
+  @Input() fieldMap: EntityFieldMap = DEFAULT_FIELD_MAP;
+
+  // ── Output ──────────────────────────────────────────────────────────────────
 
   @Output() selectionChanged = new EventEmitter<EntitySelectionEvent | []>();
 
-  // ── Private state ──────────────────────────────────────────────────────────
+  // ── Private state ───────────────────────────────────────────────────────────
 
   private gridApi!: GridApi;
   private tree: EntityRowNode[] = [];
   private uidMap = new Map<string, EntityRowNode>();
   private updating = false;
 
-  // ── Signals ────────────────────────────────────────────────────────────────
+  // ── Signals ─────────────────────────────────────────────────────────────────
 
   showChipsSection = signal(false);
-  rowData         = signal<EntityRowNode[]>([]);
-  isLoading       = signal(true);
-  loadError       = signal(false);
-  pageSize        = signal(20);
-  currentPage     = signal(1);
-  totalPages      = signal(1);
-  totalRows       = signal(0);
+  rowData          = signal<EntityRowNode[]>([]);
+  isLoading        = signal(true);
+  loadError        = signal(false);
+  pageSize         = signal(20);
+  currentPage      = signal(1);
+  totalPages       = signal(1);
+  totalRows        = signal(0);
 
   readonly pageSizeOpts = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
 
-  // ── Filter options ─────────────────────────────────────────────────────────
+  // ── Filter options ───────────────────────────────────────────────────────────
 
   readonly filterOptions = [
     { id: 'ocifId',          label: 'Proxy OCIF ID' },
@@ -106,7 +181,7 @@ export class EntityGridComponent implements OnInit, OnChanges {
     return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
   }
 
-  // ── Computed signals ────────────────────────────────────────────────────────
+  // ── Computed signals ─────────────────────────────────────────────────────────
 
   rangeLabel = computed(() => {
     const total = this.totalRows();
@@ -140,7 +215,7 @@ export class EntityGridComponent implements OnInit, OnChanges {
     return result;
   });
 
-  // ── Column definitions ─────────────────────────────────────────────────────
+  // ── Column definitions ───────────────────────────────────────────────────────
 
   readonly columnDefs: ColDef[] = [
     {
@@ -164,8 +239,8 @@ export class EntityGridComponent implements OnInit, OnChanges {
           : '';
 
         if (node._isParent) {
-          const up   = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-          const down = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          const up   = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          const down = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           return `<span class="pn-parent">${name}${suspectHtml}<span class="pn-chevron">${node._expanded ? up : down}</span></span>`;
         }
         return `<span class="pn-child">${name}${suspectHtml}</span>`;
@@ -194,9 +269,10 @@ export class EntityGridComponent implements OnInit, OnChanges {
     cellStyle: { display: 'flex', alignItems: 'center' },
   };
 
-  readonly getRowId = (p: GetRowIdParams) => String((p.data as EntityRowNode)._uid);
+  readonly getRowId = (p: GetRowIdParams) =>
+    String((p.data as EntityRowNode)._uid);
 
-  // ── Lifecycle ───────────────────────────────────────────────────────────────
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
     this.processData(this.entityGridData);
@@ -206,16 +282,21 @@ export class EntityGridComponent implements OnInit, OnChanges {
     if (changes['entityGridData'] && !changes['entityGridData'].firstChange) {
       this.processData(this.entityGridData);
     }
+    if (changes['fieldMap'] && !changes['fieldMap'].firstChange) {
+      this.processData(this.entityGridData);
+    }
   }
 
-  // ── Data processing (replaces loadData / service call) ─────────────────────
+  // ── Data processing ──────────────────────────────────────────────────────────
+  // Public so the html Retry button can call it directly.
+  // Accepts raw API arrays of ANY shape — no field assumptions.
 
-  private processData(data: EntityNode[]): void {
+  processData(data: any[]): void {
     this.isLoading.set(true);
     this.loadError.set(false);
 
     try {
-      if (!data || !data.length) {
+      if (!data?.length) {
         this.tree = [];
         this.rowData.set([]);
         this.isLoading.set(false);
@@ -223,8 +304,10 @@ export class EntityGridComponent implements OnInit, OnChanges {
         return;
       }
 
+      const mapped: EntityNode[] = data.map(n => this.mapApiNode(n));
+
       this.uidMap.clear();
-      this.tree = this.stampTree(data, 0, '');
+      this.tree = this.stampTree(mapped, 0, '');
       this.rowData.set(this.buildFlat(this.tree));
       this.isLoading.set(false);
       this.showChipsSection.set(true);
@@ -234,7 +317,139 @@ export class EntityGridComponent implements OnInit, OnChanges {
     }
   }
 
-  // ── Tree helpers ────────────────────────────────────────────────────────────
+  // ── Dynamic API adapter ──────────────────────────────────────────────────────
+  // Maps any raw API node → EntityNode using EntityFieldMap.
+  // Every field resolution tries an ordered list of candidate keys —
+  // first truthy value wins.  Nothing is hardcoded.
+
+  private mapApiNode(raw: any): EntityNode {
+    const fm = { ...DEFAULT_FIELD_MAP, ...this.fieldMap };
+
+    const ocifId =
+      this.pick(raw, fm.ocifId) ||
+      this.extractFromIdentifier(raw, fm.identifierArray, fm.identifierIdType, fm.identifierIdValue) ||
+      this.pickNested(raw, fm.fileNetIdPath) ||
+      '';
+
+    const profileName =
+      this.pick(raw, fm.profileName) ||
+      [this.pick(raw, fm.firstName), this.pick(raw, fm.lastName)].filter(Boolean).join(' ') ||
+      '';
+
+    const rawStatus   = this.pick(raw, fm.legalHoldStatus) || '';
+    const holdIdVal   = this.pick(raw, fm.holdId) || '';
+    const legalHoldStatus: 'LEGAL HOLD' | 'N/A' =
+      rawStatus === 'N/A' || holdIdVal === 'NA' ? 'N/A' : 'LEGAL HOLD';
+
+    const rawHoldName = this.pick(raw, fm.holdName) || '';
+    const holdName    = rawHoldName === 'NA' ? '' : rawHoldName;
+
+    const lifecycle = this.pick(raw, fm.lifecycle) || '';
+    const role      = this.pick(raw, fm.role)      || '';
+    const address   = this.formatAddress(raw, fm);
+    const isSuspect = this.pick(raw, fm.isSuspect) ?? false;
+
+    const rawChildren: any[] = this.pickChildren(raw, fm.childrenKeys);
+    const children: EntityNode[] = rawChildren.map(c => this.mapApiNode(c));
+
+    return {
+      ocifId,
+      profileName,
+      legalHoldStatus,
+      holdName,
+      lifecycle,
+      role,
+      address,
+      isParent:   children.length > 0,
+      isExpanded: children.length > 0,
+      isSuspect,
+      children,
+    };
+  }
+
+  // ── Dynamic field helpers ────────────────────────────────────────────────────
+
+  /** Return the first truthy value found at any of the candidate keys on obj */
+  private pick(obj: any, keys: string[]): any {
+    if (!obj || !keys?.length) return undefined;
+    for (const k of keys) {
+      const v = obj[k];
+      if (v !== undefined && v !== null && v !== '') return v;
+    }
+    return undefined;
+  }
+
+  /** Read a deeply nested value via ordered path segments e.g. ['fileNetId','identificationNumber'] */
+  private pickNested(obj: any, path: string[]): any {
+    if (!obj || !path?.length) return undefined;
+    let cur = obj;
+    for (const seg of path) {
+      if (cur == null) return undefined;
+      cur = cur[seg];
+    }
+    return cur || undefined;
+  }
+
+  /** Find an ECIF-style id from an identifier array using configurable key names */
+  private extractFromIdentifier(
+    raw: any,
+    arrayKeys: string[],
+    idTypeKeys: string[],
+    idValueKeys: string[],
+  ): string | undefined {
+    const arr = this.pick(raw, arrayKeys);
+    if (!Array.isArray(arr)) return undefined;
+    const entry = arr.find((i: any) =>
+      idTypeKeys.some(k => String(i[k] ?? '').toUpperCase().includes('ECIF'))
+    );
+    return entry ? this.pick(entry, idValueKeys) : undefined;
+  }
+
+  /** Try each child key in order; return the first non-empty array found */
+  private pickChildren(raw: any, keys: string[]): any[] {
+    for (const k of keys) {
+      if (Array.isArray(raw[k]) && raw[k].length > 0) return raw[k];
+    }
+    return [];
+  }
+
+  /**
+   * Format an address field from any shape:
+   *   - double-nested object: raw.address.address.{ addressLineOne, city, ... }
+   *   - flat object:          raw.address.{ addressLineOne, city, ... }
+   *   - plain string:         raw.address
+   *   - absent:               ''
+   */
+  private formatAddress(raw: any, fm: EntityFieldMap): string {
+    const addrRaw = this.pick(raw, fm.addressKey);
+    if (!addrRaw) return '';
+    if (typeof addrRaw === 'string') return addrRaw;
+
+    // Unwrap double-nesting e.g. { addressUsageType: '...', address: { ...realFields } }
+    const inner =
+      addrRaw.address && typeof addrRaw.address === 'object'
+        ? addrRaw.address
+        : addrRaw;
+
+    const street =
+      this.pick(inner, fm.streetLine) ||
+      [
+        this.pick(inner, fm.streetNumber),
+        this.pick(inner, fm.streetName),
+        this.pick(inner, fm.streetSuffix),
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+    const city    = this.pick(inner, fm.city)     || '';
+    const prov    = this.pick(inner, fm.province)  || '';
+    const postal  = this.pick(inner, fm.postal)    || '';
+    const country = this.pick(inner, fm.country)   || '';
+
+    return [street, city, prov, postal, country].filter(Boolean).join(', ');
+  }
+
+  // ── Tree helpers ─────────────────────────────────────────────────────────────
 
   private stampTree(nodes: EntityNode[], level: number, parentUid: string): EntityRowNode[] {
     return nodes.map((n, i) => {
@@ -276,7 +491,7 @@ export class EntityGridComponent implements OnInit, OnChanges {
     return out;
   }
 
-  // ── Filter methods ──────────────────────────────────────────────────────────
+  // ── Filter methods ───────────────────────────────────────────────────────────
 
   removeFilter(id: string): void {
     this.selectedFilterIds = this.selectedFilterIds.filter(fId => fId !== id);
@@ -308,7 +523,7 @@ export class EntityGridComponent implements OnInit, OnChanges {
     this.gridApi.sizeColumnsToFit();
   }
 
-  // ── Grid events ─────────────────────────────────────────────────────────────
+  // ── Grid events ──────────────────────────────────────────────────────────────
 
   onGridReady(e: GridReadyEvent): void {
     this.gridApi = e.api;
@@ -320,7 +535,10 @@ export class EntityGridComponent implements OnInit, OnChanges {
     if (!node?._isParent) return;
 
     const target = e.event?.target as HTMLElement | null;
-    if (target?.closest('.ag-selection-checkbox') || target?.closest('.ag-checkbox-input-wrapper')) return;
+    if (
+      target?.closest('.ag-selection-checkbox') ||
+      target?.closest('.ag-checkbox-input-wrapper')
+    ) return;
 
     node._expanded = !node._expanded;
 
@@ -467,7 +685,7 @@ export class EntityGridComponent implements OnInit, OnChanges {
     return out;
   }
 
-  // ── Pagination ───────────────────────────────────────────────────────────────
+  // ── Pagination ────────────────────────────────────────────────────────────────
 
   onPaginationChanged(): void {
     if (!this.gridApi) return;
