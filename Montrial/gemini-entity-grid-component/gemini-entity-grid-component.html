@@ -1,0 +1,111 @@
+<div class="csg-container" *ngIf="tree.length">
+  <p class="search-summary" *ngIf="searchSummary">
+    Showing {{ tree.length }} results for: <strong>"{{ searchSummary }}"</strong>
+  </p>
+
+  <div class="results-header-row" *ngIf="showChipsSection">
+    <h2 class="results-title">{{ 'RESULTS.TITLE' | translate }}</h2>
+    <div class="filter-dropdown-container">
+      <div class="filter-label-container">
+        <div class="select-dropdown-label">
+          <span class="label-block">
+            <label class="filter-label">{{ 'RESULTS.FILTER_LABEL' | translate }}</label>
+          </span>
+        </div>
+      </div>
+
+      <div class="custom-select-wrapper">
+        <mat-form-field appearance="outline" class="bmo-select-field">
+          <mat-select multiple [(ngModel)]="selectedFilterIds" (selectionChange)="onFilterChange()" panelClass="bmo-custom-dropdown-panel">
+            <mat-select-trigger>Select</mat-select-trigger>
+
+            <mat-option class="select-all-option"
+              [class.is-checked]="isAllColumnsSelected()"
+              [class.is-indeterminate]="isIndeterminateColumnsSelected()"
+              value="SELECT_ALL"
+              (click)="toggleSelectAll($event)">
+              Select All
+            </mat-option>
+
+            @for (opt of filterOptions; track opt.id) {
+              <mat-option [value]="opt.id" [disabled]="disableOptionsAndChips(opt.id)">
+                {{ opt.label }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <span (click)="onFilterChange()" class="chevron-icon"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chips-row" *ngIf="showChipsSection">
+    <span class="showing-label">{{ 'RESULTS.SHOWING' | translate }}:</span>
+    <div class="chips-list">
+      @for (opt of activeFilters; track opt.id) {
+        <div [ngClass]="disableOptionsAndChips(opt.id) ? 'bmo-pill-disabled' : 'bmo-pill'">
+          {{ opt.label }}
+          <div [ngClass]="disableOptionsAndChips(opt.id) ? 'close-circle-disabled' : 'close-circle'">
+            <span [ngClass]="disableOptionsAndChips(opt.id) ? 'x-symbol-disabled' : 'x-symbol'" (click)="removeFilter(opt.id)">×</span>
+          </div>
+        </div>
+      }
+    </div>
+    <button mat-button class="reset-btn" (click)="resetFilters()">{{ 'RESULTS.RESET' | translate }}</button>
+  </div>
+
+  <div class="grid-overlay" [class.grid-overlay--hidden]="!isLoading && !loadError">
+    <ng-container *ngIf="isLoading">
+      <div class="spinner"></div>
+      <span>Loading...</span>
+    </ng-container>
+  </div>
+
+  <ag-grid-angular
+    class="ag-theme-alpine csg-grid"
+    [class.grid--hidden]="!tree.length"
+    style="width: 100%;"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [rowSelection]="rowSelection"
+    [rowHeight]="52"
+    [headerHeight]="44"
+    [suppressCellFocus]="true"
+    [animateRows]="false"
+    [getRowClass]="getRowClass"
+    (gridReady)="onGridReady($event)">
+  </ag-grid-angular>
+
+  <div class="cs-pagination" *ngIf="tree.length" [class.grid--hidden]="isLoading || loadError">
+    <div class="cs-pagination_left">
+      <span class="cs-pg-count">{{ paginationFrom }}-{{ paginationTo }} of {{ totalRows }}</span>
+      <span class="cs-pg-label"><strong>Items per page</strong></span>
+      <select class="cs-pg-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+        <option *ngFor="let opt of pageSizeOpts" [ngValue]="opt">{{ opt }}</option>
+      </select>
+    </div>
+
+    <div class="cs-pagination_right">
+      <button class="cs-pg-nav" [class.cs-pg-nav--disabled]="currentPage === 1" (click)="goPage(currentPage - 1)">
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M5 1L1 5l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Previous
+      </button>
+
+      <ng-container *ngFor="let p of pageNumbers">
+        <span *ngIf="p === '...'" class="cs-pg-dots">...</span>
+        <button *ngIf="p !== '...' && p === currentPage" class="cs-pg-active">{{ p }}</button>
+        <button *ngIf="p !== '...' && p !== currentPage" class="cs-pg-num" (click)="goPage(+p)">{{ p }}</button>
+      </ng-container>
+
+      <button class="cs-pg-nav" [class.cs-pg-nav--disabled]="currentPage === totalPages" (click)="goPage(currentPage + 1)">
+        Next
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

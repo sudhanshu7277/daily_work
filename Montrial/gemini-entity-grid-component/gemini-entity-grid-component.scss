@@ -1,0 +1,204 @@
+$bmo-blue: #0079C1;
+$bmo-black: #000000;
+$bmo-white: #ffffff;
+
+.csg-container {
+  width: 100%;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.search-summary {
+  font-size: 14px;
+  color: #333333;
+  margin-bottom: 12px;
+}
+
+.results-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .results-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1c2333;
+  }
+}
+
+.filter-dropdown-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+
+  .showing-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555555;
+  }
+
+  .chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.bmo-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1.4px solid $bmo-black;
+  border-radius: 25px;
+  font-size: 13px;
+  color: $bmo-blue;
+  background: $bmo-white;
+}
+
+.bmo-pill-disabled {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1.4px solid grey;
+  border-radius: 25px;
+  font-size: 13px;
+  color: grey;
+  background: $bmo-white;
+  cursor: default;
+}
+
+.close-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: 2px solid $bmo-blue;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.close-circle-disabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: 2px solid grey;
+  border-radius: 50%;
+  cursor: default;
+}
+
+.x-symbol {
+  color: $bmo-blue;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.x-symbol-disabled {
+  color: grey;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.reset-btn {
+  color: $bmo-blue;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 0;
+  min-width: unset;
+}
+
+.chevron-icon {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid $bmo-blue;
+  border-bottom: 2px solid $bmo-blue;
+  transform: rotate(45deg);
+  margin-top: 12px;
+  margin-left: -2rem;
+  transition: 0.2s;
+  cursor: pointer;
+}
+
+::ng-deep {
+  .csg-grid {
+    border: none !important;
+
+    .ag-header-cell {
+      border-right: none !important;
+    }
+  }
+
+  .bmo-custom-dropdown-panel {
+    background-color: $bmo-white !important;
+    border-radius: 4px;
+
+    .select-all-option {
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 600;
+    }
+
+    .mat-mdc-option:not(.select-all-option) {
+      &.mdc-list-item--disabled {
+        .mat-pseudo-checkbox-full {
+          background-color: #707070 !important;
+          border-color: #707070 !important;
+        }
+      }
+    }
+  }
+}
+
+.cs-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+
+  &_left, &_right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cs-pg-select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #cccccc;
+  }
+
+  .cs-pg-active {
+    background-color: $bmo-blue;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+  }
+
+  .cs-pg-num, .cs-pg-nav {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: $bmo-blue;
+
+    &--disabled {
+      color: #cccccc;
+      cursor: not-allowed;
+    }
+  }
+}
