@@ -24,7 +24,7 @@ import { mapLegalHoldStatusToUi } from '../../shared/services/utilities/legal-ho
 import { SortHeaderComponent } from './sort-header/sort-header.component';
 import { EntityNode, EntityRowNode, EntitySelectionEvent } from './entity-grid.model';
 
-// ── Custom Cell Renderer (from Customer Search Grid) ─────────────────────────
+// ── Name Cell Renderer (Exact Customer Search Grid styling & logic) ─────────
 @Component({
   selector: 'app-entity-name-cell',
   standalone: true,
@@ -40,7 +40,7 @@ import { EntityNode, EntityRowNode, EntitySelectionEvent } from './entity-grid.m
         </span>
       </span>
       <span class="name-text" [class.name-text--parent]="isParent">{{ name }}</span>
-      <span *ngIf="isSuspect" class="suspect-icon" title="Suspect profile(s) found for this profile">!</span>
+      <span *ngIf="isSuspect" class="suspect-icon" title="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are placed on hold">!</span>
       <button *ngIf="isParent" class="chevron-btn" (click)="onChevronClick($event)">
         <span class="chevron-icon" [class.chevron-icon--expanded]="expanded">
           <svg viewBox="0 0 18 18" fill="none" width="18" height="18">
@@ -59,7 +59,7 @@ import { EntityNode, EntityRowNode, EntitySelectionEvent } from './entity-grid.m
     .cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
     .name-text { color: #0079C1; font-size: 13px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
     .name-text--parent { font-weight: 700; }
-    .suspect-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background-color: #e68a00; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0; cursor: pointer; }
+    .suspect-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background-color: #e68a00; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; flex-shrink: 0; cursor: pointer; }
     .chevron-btn { background: none !important; border: none; padding: 2px; cursor: pointer; display: inline-flex; align-items: center; flex-shrink: 0; outline: none; margin-left: auto; }
     .chevron-icon { display: inline-flex; align-items: center; transform: rotate(0deg); transition: transform 0.2s ease; }
     .chevron-icon--expanded { transform: rotate(180deg); }
@@ -112,7 +112,7 @@ export class EntityNameCellComponent {
   }
 }
 
-// ── Custom Header Renderer (from Customer Search Grid) ───────────────────────
+// ── Header Renderer (Exact Customer Search Grid Header Checkbox) ────────────
 @Component({
   selector: 'app-entity-name-header',
   standalone: true,
@@ -189,7 +189,7 @@ export class EntityNameHeaderComponent {
   }
 }
 
-// ── Main Entity Grid Component (Customer Search Grid Base) ───────────────────
+// ── Main Entity Grid Component ────────────────────────────────────────────────
 @Component({
   selector: 'app-entity-grid',
   standalone: true,
@@ -230,11 +230,7 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
 
-    for (const parent of this.tree) {
-      if (parent._isParent && parent.children?.length) {
-        parent._selected = parent.children.every(c => c._selected);
-      }
-    }
+    this.recomputeAncestors(this.tree);
 
     if (changed) {
       this.refresh();
@@ -259,7 +255,32 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
   readonly pageSizeOpts = [10, 25, 50, 100];
 
   selectedFilterIds: any[] = [];
-  readonly mandatoryColumnIds = ['profileName', 'ocifId', 'status', 'holdName', 'lifecycle', 'role', 'address'];
+
+  // 🔴 7 Mandatory Columns (Always visible, disabled in dropdown)
+  readonly mandatoryColumnIds = [
+    'profileName',
+    'ocifId',
+    'status',
+    'holdName',
+    'lifecycle',
+    'role',
+    'address',
+  ];
+
+  // 🔵 All Filter Options (7 Mandatory + 4 Non-Mandatory)
+  readonly filterOptions = [
+    { id: 'profileName', label: 'Profile Name' },
+    { id: 'ocifId', label: 'Proxy OCIF ID' },
+    { id: 'status', label: 'Legal Hold Status' },
+    { id: 'holdName', label: 'Legal Hold Name' },
+    { id: 'lifecycle', label: 'Customer Lifecycle Status' },
+    { id: 'role', label: 'Role Type' },
+    { id: 'address', label: 'Address' },
+    { id: 'eDiscoveryProjectManager', label: 'eDiscovery Project Manager' },
+    { id: 'responsibleLawyerEmail', label: 'Responsible Lawyer Email' },
+    { id: 'legalHoldAppliedDate', label: 'Legal Hold Applied Date' },
+    { id: 'legalHoldReleaseDate', label: 'Legal Hold Release Date' },
+  ];
 
   columnDefs: ColDef[] = [];
   readonly defaultColDef: ColDef = {
@@ -274,16 +295,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     headerCheckbox: false,
     enableClickSelection: false,
   };
-
-  readonly filterOptions = [
-    { id: 'profileName', label: 'Profile Name' },
-    { id: 'ocifId', label: 'Proxy OCIF ID' },
-    { id: 'status', label: 'Legal Hold Status' },
-    { id: 'holdName', label: 'Legal Hold Name' },
-    { id: 'lifecycle', label: 'Customer Lifecycle Status' },
-    { id: 'role', label: 'Role Type' },
-    { id: 'address', label: 'Address' },
-  ];
 
   preserveGrid = false;
 
@@ -338,6 +349,20 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
         autoHeight: false,
         cellStyle: { display: 'flex', alignItems: 'center', whiteSpace: 'normal', lineHeight: '1.4' },
       },
+      { headerName: 'eDiscovery Project Manager', field: 'eDiscoveryProjectManager', width: 200 },
+      { headerName: 'Responsible Lawyer Email', field: 'responsibleLawyerEmail', width: 200 },
+      {
+        headerName: 'Legal Hold Applied Date',
+        field: 'holdApplyDateTime',
+        width: 200,
+        valueFormatter: (p: any) => this.formatDateTime(p.value),
+      },
+      {
+        headerName: 'Legal Hold Release Date',
+        field: 'holdReleaseDate',
+        width: 200,
+        valueFormatter: (p: any) => this.formatDateTime(p.value),
+      },
     ];
   }
 
@@ -350,10 +375,10 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
       this.preserveGrid = false;
       return;
     }
-    if (changes['entityGridData'] && this.entityGridData && this.entityGridData.length) {
+    if (changes['entityGridData'] && this.entityGridData) {
       const prev = changes['entityGridData'].previousValue;
       const curr = changes['entityGridData'].currentValue;
-      if (curr && curr !== prev && (!this.tree?.length || this.tree?.length)) {
+      if (curr && curr !== prev) {
         this.isLoading = true;
         this.loadError = false;
         this.handleResponse(this.mapApiResponse(curr));
@@ -366,6 +391,7 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
   }
 
+  // 🔒 Disables the 7 Mandatory Columns in Dropdown and Pills
   disableOptionsAndChips(id: string): boolean {
     return this.mandatoryColumnIds.includes(id);
   }
@@ -397,6 +423,10 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
       lifecycle: 'lifecycle',
       roleType: 'role',
       address: 'address',
+      eDiscoveryProjectManager: 'eDiscoveryProjectManager',
+      responsibleLawyerEmail: 'responsibleLawyerEmail',
+      holdApplyDateTime: 'legalHoldAppliedDate',
+      holdReleaseDate: 'legalHoldReleaseDate',
     };
 
     this.columnDefs = this.columnDefs.map(col => {
@@ -422,14 +452,45 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     this.refresh();
   }
 
+  private extractOcifId(p: any): string {
+    if (p?.fileNetId?.identificationNumber) return p.fileNetId.identificationNumber;
+    if (p.ecifId) return p.ecifId;
+    if (Array.isArray(p.identifier)) {
+      const match = p.identifier.find((i: any) =>
+        String(i?.idType ?? '').toUpperCase().includes('ECIF')
+      );
+      if (match?.idValue) return match.idValue;
+    }
+    return p.proxyOcifId || p.ocifId || '';
+  }
+
+  private formatDateTime(value: string | null): string {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(d);
+  }
+
   private mapPlayer = (p: any): any => ({
-    profileName: p.profileName ?? '',
-    ocifId: p.ocifId || p.proxyOcifId || p.ecifId || '',
+    profileName: p.profileName ?? `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+    ocifId: this.extractOcifId(p),
     status: mapLegalHoldStatusToUi(p.legalHoldStatus),
     holdName: p.holdName ?? p.legalHoldName ?? '',
-    lifecycle: p.customerLifecycleStatus ?? 'N/A',
+    lifecycle: p.customerLifecycleStatus ?? p.lifecycle ?? 'N/A',
     roleType: p.roleType ?? p.role ?? '',
-    address: p.address ?? '',
+    address: typeof p.address === 'string' ? p.address : (p.address?.addressLineOne || ''),
+    isSuspect: p.isSuspectProfile === 'Yes' || p.isSuspect === true,
+    eDiscoveryProjectManager: p.eDiscoveryProjectManager ?? '',
+    responsibleLawyerEmail: p.responsibleLawyerEmail ?? '',
+    holdApplyDateTime: p.holdApplyDateTime ?? p.holdAppliedDate ?? '',
+    holdReleaseDate: p.holdReleaseDate ?? '',
     isParent: Array.isArray(p.children || p.rolePlayers) && (p.children || p.rolePlayers).length > 0,
     isExpanded: false,
     children: (p.children || p.rolePlayers || []).map((rp: any) => this.mapPlayer(rp)),
@@ -441,7 +502,7 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     return { totalCount: data.length, data };
   }
 
-  // ── Multi-Nested Tree Mechanics Cherry-Picked from Entity Grid ────────────
+  // ── Multi-Nested Tree Stamping & Flattening ──────────────────────────────────
   private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
     nodes.forEach((n, i) => {
       n._uid = parentUid ? `${parentUid}-${i}` : `r${i}`;
@@ -538,15 +599,13 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
   onCheckboxClick(uid: string): void {
     const found = this.findNode(uid);
     if (!found) return;
-    const { node, parent } = found;
+    const { node } = found;
     node._selected = !node._selected;
 
     if (node._isParent && node.children?.length) {
       this.setDescendantsSelected(node.children, node._selected);
     }
-    if (parent) {
-      this.recomputeAncestors(this.tree);
-    }
+    this.recomputeAncestors(this.tree);
 
     this.refresh();
     this.emitSelected();
@@ -560,6 +619,7 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private recomputeAncestors(nodes: EntityRowNode[]): boolean {
+    if (!nodes.length) return true;
     let all = true;
     for (const n of nodes) {
       if (n._isParent && n.children?.length) {
@@ -609,7 +669,7 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     return '';
   }
 
-  // ── Pagination Mechanics ─────────────────────────────────────────────────────
+  // ── Pagination Controls ──────────────────────────────────────────────────────
   goPage(page: number): void {
     if (page < 1 || page > this.totalPages || page === this.currentPage) return;
     this.currentPage = page;

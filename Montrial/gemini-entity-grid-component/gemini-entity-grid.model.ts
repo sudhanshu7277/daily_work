@@ -1,18 +1,18 @@
 export interface EntityNode {
-  ocifId: string;
-  profileName: string;
-  legalHoldStatus: 'LEGAL HOLD' | 'N/A';
-  holdName: string;
-  lifecycle: string;
-  role: string;
-  address: string;
-  isParent: boolean;
-  isExpanded: boolean;
+  ocifId?: string;
+  profileName?: string;
+  legalHoldStatus?: 'LEGAL HOLD' | 'N/A';
+  holdName?: string;
+  lifecycle?: string;
+  role?: string;
+  address?: string;
+  isParent?: boolean;
+  isExpanded?: boolean;
   isSuspect?: boolean;
-  children: EntityNode[];
+  children?: EntityNode[];
+  [key: string]: any;
 }
 
-/** EntityNode enriched with view-state fields for the flat grid */
 export interface EntityRowNode extends EntityNode {
   _uid: string;
   _level: number;
@@ -24,8 +24,10 @@ export interface EntityRowNode extends EntityNode {
 }
 
 export interface EntitySelectionEvent {
-  selectedRows: EntityRowNode[];
-  selectedClusters: EntityRowNode[][];
+  identifier: 'entity';
+  selected: EntityRowNode[];
+  selectedRows?: EntityRowNode[];
+  selectedClusters?: EntityRowNode[][];
 }
 
 export interface EntityGridResponse {
