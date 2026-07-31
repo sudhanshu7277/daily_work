@@ -62,20 +62,21 @@
   </div>
 
   <ag-grid-angular
-    class="ag-theme-alpine csg-grid"
-    [class.grid--hidden]="!tree.length"
-    style="width: 100%;"
-    [rowData]="rowData"
-    [columnDefs]="columnDefs"
-    [defaultColDef]="defaultColDef"
-    [rowSelection]="rowSelection"
-    [rowHeight]="52"
-    [headerHeight]="44"
-    [suppressCellFocus]="true"
-    [animateRows]="false"
-    [getRowClass]="getRowClass"
-    (gridReady)="onGridReady($event)">
-  </ag-grid-angular>
+  class="ag-theme-alpine csg-grid"
+  [class.grid--hidden]="!tree.length"
+  style="width: 100%;"
+  [rowData]="rowData"
+  [columnDefs]="columnDefs"
+  [defaultColDef]="defaultColDef"
+  [rowSelection]="rowSelection"
+  [rowHeight]="52"
+  [headerHeight]="44"
+  [suppressCellFocus]="true"
+  [animateRows]="false"
+  [getRowClass]="getRowClass"
+  (gridReady)="onGridReady($event)"
+  (sortChanged)="onSortChanged()">
+</ag-grid-angular>
 
   <div class="cs-pagination" *ngIf="tree.length" [class.grid--hidden]="isLoading || loadError">
     <div class="cs-pagination_left">

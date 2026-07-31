@@ -24,7 +24,7 @@ import { mapLegalHoldStatusToUi } from '../../shared/services/utilities/legal-ho
 import { SortHeaderComponent } from './sort-header/sort-header.component';
 import { EntityNode, EntityRowNode, EntitySelectionEvent } from './entity-grid.model';
 
-// ── Name Cell Renderer (Exact Customer Search Grid styling & logic) ─────────
+// ── Name Cell Renderer (Updated Chevron SVG & Suspect Icon) ──────────────────
 @Component({
   selector: 'app-entity-name-cell',
   standalone: true,
@@ -59,7 +59,7 @@ import { EntityNode, EntityRowNode, EntitySelectionEvent } from './entity-grid.m
     .cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
     .name-text { color: #0079C1; font-size: 13px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
     .name-text--parent { font-weight: 700; }
-    .suspect-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background-color: #e68a00; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; flex-shrink: 0; cursor: pointer; }
+    .suspect-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background-color: #e68a00; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0; cursor: pointer; margin-left: 4px; }
     .chevron-btn { background: none !important; border: none; padding: 2px; cursor: pointer; display: inline-flex; align-items: center; flex-shrink: 0; outline: none; margin-left: auto; }
     .chevron-icon { display: inline-flex; align-items: center; transform: rotate(0deg); transition: transform 0.2s ease; }
     .chevron-icon--expanded { transform: rotate(180deg); }
@@ -112,7 +112,7 @@ export class EntityNameCellComponent {
   }
 }
 
-// ── Header Renderer (Exact Customer Search Grid Header Checkbox) ────────────
+// ── Header Renderer (With Sort Triggering) ───────────────────────────────────
 @Component({
   selector: 'app-entity-name-header',
   standalone: true,
@@ -132,19 +132,20 @@ export class EntityNameCellComponent {
       </span>
       <span class="hdr-label">{{ showCheckbox ? 'Profile Name' : 'Legal Hold Status' }}</span>
       <svg (click)="onSortClick($event)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="sort-icon">
-        <path d="M6 16.5V7.831-2.88 2.88L1.71 9.3 7 415.29 5.3-1.41L8 7.83v8.67H6z"/>
-        <path d="M16 7.5v8.6712 88-2.88 1.41 1.41L15 201-5.29-5.3 1.41-1.41 2.88 2.88V7.5h2z"/>
+        <path d="M6 16.5V7.83l-2.88 2.88L1.71 9.3 7 4l5.29 5.3-1.41 1.41L8 7.83v8.67H6z"/>
+        <path d="M16 7.5v8.67l2.88-2.88 1.41 1.41L15 20l-5.29-5.3 1.41-1.41 2.88 2.88V7.5h2z"/>
       </svg>
     </div>
   `,
   styles: [`
-    :host { display: flex; align-items: center; width: 100%; }
+    :host { display: flex; align-items: center; width: 100%; cursor: pointer; }
     .hdr-cell { display: flex; align-items: center; gap: 8px; width: 100%; }
     .cb-wrap { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; padding: 2px; }
     .cb-box { width: 18px; height: 18px; border-radius: 3px; border: 1.5px solid #96a6b4; background: #ffffff; display: flex; align-items: center; justify-content: center; transition: background 0.12s, border-color 0.12s; flex-shrink: 0; }
     .cb-wrap:hover .cb-box { border-color: #0079C1; }
     .cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
     .hdr-label { font-size: 13px; font-weight: 700; color: #1c2333; white-space: nowrap; }
+    .sort-icon { color: #0079C1; flex-shrink: 0; }
   `]
 })
 export class EntityNameHeaderComponent {
@@ -256,7 +257,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
 
   selectedFilterIds: any[] = [];
 
-  // 🔴 7 Mandatory Columns (Always visible, disabled in dropdown)
   readonly mandatoryColumnIds = [
     'profileName',
     'ocifId',
@@ -267,7 +267,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     'address',
   ];
 
-  // 🔵 All Filter Options (7 Mandatory + 4 Non-Mandatory)
   readonly filterOptions = [
     { id: 'profileName', label: 'Profile Name' },
     { id: 'ocifId', label: 'Proxy OCIF ID' },
@@ -305,7 +304,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
         headerName: '',
         field: 'profileName',
         sortable: true,
-        comparator: () => 0,
         minWidth: 260,
         flex: 2,
         cellRenderer: EntityNameCellComponent,
@@ -324,7 +322,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
         headerName: 'Legal Hold Status',
         field: 'status',
         sortable: true,
-        comparator: () => 0,
         width: 170,
         headerComponent: EntityNameHeaderComponent,
         headerComponentParams: {
@@ -391,7 +388,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     return this.filterOptions.filter(opt => this.selectedFilterIds.includes(opt.id));
   }
 
-  // 🔒 Disables the 7 Mandatory Columns in Dropdown and Pills
   disableOptionsAndChips(id: string): boolean {
     return this.mandatoryColumnIds.includes(id);
   }
@@ -441,6 +437,35 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     if (this.gridApi) {
       this.gridApi.setGridOption('columnDefs', this.columnDefs);
     }
+  }
+
+  // ── Hierarchical Sorting Implementation ──────────────────────────────────
+  onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState().find(s => s.sort != null);
+    if (!sortState) {
+      this.currentPage = 1;
+      this.refresh();
+      return;
+    }
+
+    const field = sortState.colId;
+    const dir = sortState.sort as 'asc' | 'desc';
+
+    const sortFn = (a: any, b: any) => {
+      const valA = (a[field] ?? '').toLowerCase();
+      const valB = (b[field] ?? '').toLowerCase();
+      return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    };
+
+    this.tree.sort(sortFn);
+    this.tree.forEach(n => {
+      if (n._isParent && n.children?.length) {
+        n.children.sort(sortFn);
+      }
+    });
+
+    this.currentPage = 1;
+    this.refresh();
   }
 
   private handleResponse(res: any): void {
@@ -502,7 +527,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     return { totalCount: data.length, data };
   }
 
-  // ── Multi-Nested Tree Stamping & Flattening ──────────────────────────────────
   private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
     nodes.forEach((n, i) => {
       n._uid = parentUid ? `${parentUid}-${i}` : `r${i}`;
@@ -669,7 +693,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     return '';
   }
 
-  // ── Pagination Controls ──────────────────────────────────────────────────────
   goPage(page: number): void {
     if (page < 1 || page > this.totalPages || page === this.currentPage) return;
     this.currentPage = page;
