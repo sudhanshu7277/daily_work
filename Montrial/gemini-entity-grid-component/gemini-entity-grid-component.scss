@@ -16,21 +16,29 @@ $bmo-white: #ffffff;
 
 .results-header-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 20px;
 
   .results-title {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
     color: #1c2333;
+    margin: 0 0 16px 0;
   }
 }
 
 .filter-dropdown-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+}
+
+.filter-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c2333;
+  white-space: nowrap;
 }
 
 .chips-row {
@@ -201,4 +209,56 @@ $bmo-white: #ffffff;
       cursor: not-allowed;
     }
   }
+}
+
+
+// ─── Custom select wrapper ────────────────────────────────────────────────────
+.custom-select-wrapper {
+  position: relative;
+  width: 220px;
+
+  ::ng-deep {
+    .bmo-select-field {
+      width: 100%;
+      margin-bottom: -1.25em; // Removes Angular Material bottom form-field padding space
+    }
+
+    // 🔴 Hide default Angular Material small arrow
+    .mat-mdc-select-arrow-wrapper,
+    .mat-mdc-select-arrow {
+      display: none !important;
+    }
+
+    .mat-mdc-text-field-wrapper {
+      background-color: $bmo-white !important;
+      border-radius: 4px;
+      height: 38px;
+      padding: 0 12px !important;
+    }
+
+    .mat-mdc-form-field-flex {
+      height: 38px;
+      align-items: center;
+    }
+
+    .mat-mdc-select-value {
+      font-size: 14px;
+      color: #1c2333;
+    }
+  }
+}
+
+// 🔵 Large Blue Dropdown Chevron Arrow
+.chevron-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid $bmo-blue;
+  border-bottom: 2px solid $bmo-blue;
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+  pointer-events: none;
 }

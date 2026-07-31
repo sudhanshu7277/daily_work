@@ -3,7 +3,7 @@
     Showing {{ tree.length }} results for: <strong>"{{ searchSummary }}"</strong>
   </p>
 
-  <div class="results-header-row" *ngIf="showChipsSection">
+  <!-- <div class="results-header-row" *ngIf="showChipsSection">
     <h2 class="results-title">{{ 'RESULTS.TITLE' | translate }}</h2>
     <div class="filter-dropdown-container">
       <div class="filter-label-container">
@@ -37,7 +37,47 @@
         <span (click)="onFilterChange()" class="chevron-icon"></span>
       </div>
     </div>
+  </div> -->
+
+  <!-- Results header + filter dropdown -->
+ <!-- Results header + filter dropdown -->
+ @if (showChipsSection()) {
+  <div class="results-header-row">
+    <h2 class="results-title">{{ 'RESULTS.TITLE' | translate }}</h2>
+
+    <div class="filter-dropdown-container">
+      <span class="filter-label">Search result filter</span>
+
+      <div class="custom-select-wrapper">
+        <mat-form-field appearance="outline" class="bmo-select-field">
+          <mat-select
+            multiple
+            [(ngModel)]="selectedFilterIds"
+            (selectionChange)="onFilterChange()"
+            panelClass="bmo-custom-dropdown-panel">
+            <mat-select-trigger>Select</mat-select-trigger>
+
+            <mat-option
+              class="select-all-option"
+              [class.is-checked]="isAllColumnsSelected()"
+              [class.is-indeterminate]="isIndeterminateColumnsSelected()"
+              value="SELECT_ALL"
+              (click)="toggleSelectAll($event)">
+              Select All
+            </mat-option>
+
+            @for (opt of filterOptions; track opt.id) {
+              <mat-option [value]="opt.id" [disabled]="disableOptionsAndChips(opt.id)">
+                {{ opt.label }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <span (click)="onFilterChange()" class="chevron-icon"></span>
+      </div>
+    </div>
   </div>
+}
 
   <div class="chips-row" *ngIf="showChipsSection">
     <span class="showing-label">{{ 'RESULTS.SHOWING' | translate }}:</span>
