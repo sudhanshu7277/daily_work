@@ -39,21 +39,23 @@ export function toTitleCase(str: string): string {
 
   toggleSelectAll(event: MouseEvent): void {
     event.stopPropagation();
-    
-    const normalized = this.normalizeSelectedFilters(this.selectedFilterIds);
+  
+    // 1. Get currently active optional column IDs
     const optionalIds = this.filterOptions
       .map(opt => opt.id)
       .filter(id => !this.mandatoryColumnIds.includes(id));
   
-    const allOptionalSelected = optionalIds.every(id => normalized.includes(id));
+    // 2. Check if all optional columns are currently selected
+    const isAllSelected = optionalIds.every(id => this.selectedFilterIds.includes(id));
   
-    if (allOptionalSelected) {
-      // Unselect all optional columns -> reset back to mandatory columns only
+    if (isAllSelected) {
+      // 🔴 DESELECT ALL: Reset to mandatory columns only
       this.selectedFilterIds = [...this.mandatoryColumnIds];
     } else {
-      // Select all available columns
+      // 🔵 SELECT ALL: Include mandatory + all optional columns
       this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
     }
   
+    // 3. Trigger column sync and change detection
     this.onFilterChange();
   }
