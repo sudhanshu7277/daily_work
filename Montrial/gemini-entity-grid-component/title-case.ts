@@ -34,3 +34,26 @@ export function toTitleCase(str: string): string {
       color: #004C7A; // Darker Blue on hover
     }
   }
+
+
+
+  toggleSelectAll(event: MouseEvent): void {
+    event.stopPropagation();
+    
+    const normalized = this.normalizeSelectedFilters(this.selectedFilterIds);
+    const optionalIds = this.filterOptions
+      .map(opt => opt.id)
+      .filter(id => !this.mandatoryColumnIds.includes(id));
+  
+    const allOptionalSelected = optionalIds.every(id => normalized.includes(id));
+  
+    if (allOptionalSelected) {
+      // Unselect all optional columns -> reset back to mandatory columns only
+      this.selectedFilterIds = [...this.mandatoryColumnIds];
+    } else {
+      // Select all available columns
+      this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
+    }
+  
+    this.onFilterChange();
+  }
