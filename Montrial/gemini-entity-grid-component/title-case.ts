@@ -37,25 +37,41 @@ export function toTitleCase(str: string): string {
 
 
 
+  
+
+  
   toggleSelectAll(event: MouseEvent): void {
     event.stopPropagation();
+    event.preventDefault();
   
-    // 1. Get currently active optional column IDs
+    // 1. Check if all optional columns are currently selected
     const optionalIds = this.filterOptions
       .map(opt => opt.id)
       .filter(id => !this.mandatoryColumnIds.includes(id));
   
-    // 2. Check if all optional columns are currently selected
-    const isAllSelected = optionalIds.every(id => this.selectedFilterIds.includes(id));
+    const allOptionalSelected = optionalIds.every(id => 
+      this.selectedFilterIds.includes(id)
+    );
   
-    if (isAllSelected) {
-      // 🔴 DESELECT ALL: Reset to mandatory columns only
+    if (allOptionalSelected) {
+      // 🔴 DESELECT ALL: Revert columns back to mandatory only
       this.selectedFilterIds = [...this.mandatoryColumnIds];
+      // Unselect all grid rows
+      this.onSelectAll(false);
     } else {
-      // 🔵 SELECT ALL: Include mandatory + all optional columns
+      // 🔵 SELECT ALL: Include all available columns
       this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
+      // Select all grid rows
+      this.onSelectAll(true);
     }
   
-    // 3. Trigger column sync and change detection
+    // Trigger grid column update and change detection
     this.onFilterChange();
   }
+
+  <mat-option class="select-all-option"
+  [class.is-checked]="isAllColumnsSelected()"
+  [class.is-indeterminate]="isIndeterminateColumnsSelected()"
+  (click)="toggleSelectAll($event)">
+  Select All
+</mat-option>
