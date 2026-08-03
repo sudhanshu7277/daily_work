@@ -1,77 +1,30 @@
-/**
- * Converts any string into Title Case (e.g., "KIPTON DURAN" or "kipton duran" -> "Kipton Duran").
- * Capitalizes the first letter of each word and lowers all remaining characters.
- */
-export function toTitleCase(str: string): string {
-    if (!str) return '';
-    return str
-      .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  // DELETE ICON
-
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Top Handle -->
-  <path d="M9.5 4H14.5C15.0523 4 15.5 4.44772 15.5 5V6H8.5V5C8.5 4.44772 8.94772 4 9.5 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-  <!-- Horizontal Rim/Lid -->
-  <path d="M4 6H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-  <!-- Tapered Body with Rounded Bottom -->
-  <path d="M6 6L6.85 18.325C6.93333 19.5333 7.93333 20.5 9.15 20.5H14.85C16.0667 20.5 17.0667 19.5333 17.15 18.325L18 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- 2 Inner Vertical Ribs -->
-  <path d="M10 10V16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M14 10V16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-</svg>
-
-.trash-icon {
-    color: #0079C1; // Set default BMO Blue
-    cursor: pointer;
-    transition: color 0.15s ease;
+toggleSelectAll(event: Event): void {
+    // If event comes from standard checkbox/MatOption
+    const isChecked = (event.target as HTMLInputElement)?.checked ?? true;
   
-    &:hover {
-      color: #004C7A; // Darker Blue on hover
-    }
-  }
-
-
-
-  
-
-  
-  toggleSelectAll(event: MouseEvent): void {
-    event.stopPropagation();
-    event.preventDefault();
-  
-    // 1. Check if all optional columns are currently selected
-    const optionalIds = this.filterOptions
-      .map(opt => opt.id)
-      .filter(id => !this.mandatoryColumnIds.includes(id));
-  
-    const allOptionalSelected = optionalIds.every(id => 
-      this.selectedFilterIds.includes(id)
-    );
-  
-    if (allOptionalSelected) {
-      // 🔴 DESELECT ALL: Revert columns back to mandatory only
-      this.selectedFilterIds = [...this.mandatoryColumnIds];
-      // Unselect all grid rows
-      this.onSelectAll(false);
+    if (this.isAllSelected()) {
+      // Unselect all current visible records
+      const currentIds = new Set(this.displayedResults.map(item => item.id));
+      this.selectedItems = this.selectedItems.filter(id => !currentIds.has(id));
     } else {
-      // 🔵 SELECT ALL: Include all available columns
-      this.selectedFilterIds = this.filterOptions.map(opt => opt.id);
-      // Select all grid rows
-      this.onSelectAll(true);
+      // Select all current visible records (preserving previously selected/cached records)
+      const newIds = this.displayedResults.map(item => item.id);
+      this.selectedItems = Array.from(new Set([...this.selectedItems, ...newIds]));
     }
-  
-    // Trigger grid column update and change detection
-    this.onFilterChange();
   }
+  
+  // Keep the header/option check synced
+  isAllSelected(): boolean {
+    return this.displayedResults?.length > 0 && 
+           this.displayedResults.every(item => this.selectedItems.includes(item.id));
+  }
+
+
 
   <mat-option class="select-all-option"
-  [class.is-checked]="isAllColumnsSelected()"
-  [class.is-indeterminate]="isIndeterminateColumnsSelected()"
+  [class.is-checked]="isAllSelected()"
+  [class.is-indeterminate]="isIndeterminate()"
+  value="SELECT_ALL"
   (click)="toggleSelectAll($event)">
   Select All
 </mat-option>
