@@ -188,6 +188,33 @@ if (!cancelled) { setWb(book); setRows(data); }
     defaultOpen?: boolean;
     children: React.ReactNode;
   }>) {
+
+
+
+    // div to button
+
+
+    <button
+  type="button"
+  onClick={() => setOpen(o => !o)}
+  style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 16px',
+    cursor: 'pointer',
+    userSelect: 'none',
+    fontWeight: 600,
+    background: open ? '#00247D' : '#00A3E0', // selected (open) = #00247D, collapsed (closed) = #00A3E0
+    color: '#ffffff',
+    border: 'none',
+    width: '100%',
+    textAlign: 'left',
+  }}
+>
+  <span>{title}</span>
+  <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+</button>
   
 
 
