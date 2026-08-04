@@ -220,7 +220,11 @@ if (!cancelled) { setWb(book); setRows(data); }
 
 /// This is S3776 — the validate callback is one long flat sequence of independent if
 
-function validateSelection(mode: PaymentDetailModalMode, paymentDetail: PaymentDetailResponse | null, selectedDeal: string | null): string | null {
+function validateSelection(
+    mode: PaymentDetailModalMode,
+    paymentDetail: PaymentDetailResponse | null,
+    selectedDeal: Deal | undefined,
+  ): string | null {
     if ((mode === 'verify' || mode === 'edit') && !paymentDetail) return 'No payment record selected';
     if (mode === 'verify' && !selectedDeal) return 'Please select a Deal Name';
     return null;
@@ -248,7 +252,7 @@ function validateSelection(mode: PaymentDetailModalMode, paymentDetail: PaymentD
     return null;
   }
   
-  // inside the component:
+  // replaces lines 373–396 inside VerifyPaymentDetailModal:
   const validate = useCallback((): string | null => {
     return (
       validateSelection(mode, paymentDetail, selectedDeal) ??
@@ -258,3 +262,4 @@ function validateSelection(mode: PaymentDetailModalMode, paymentDetail: PaymentD
       null
     );
   }, [mode, paymentDetail, selectedDeal, form, parties]);
+  
