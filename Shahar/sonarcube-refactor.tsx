@@ -140,3 +140,9 @@ const statusCodeToLabel = (code: string | null | undefined): string =>
 </El>
 
 
+// Minimal fix — just drop the cast:
+
+const data = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' });
+if (!cancelled) { setWb(book); setRows(data); }
+
+
