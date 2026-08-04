@@ -218,3 +218,43 @@ if (!cancelled) { setWb(book); setRows(data); }
   
 
 
+/// This is S3776 — the validate callback is one long flat sequence of independent if
+
+function validateSelection(mode: PaymentDetailModalMode, paymentDetail: PaymentDetailResponse | null, selectedDeal: string | null): string | null {
+    if ((mode === 'verify' || mode === 'edit') && !paymentDetail) return 'No payment record selected';
+    if (mode === 'verify' && !selectedDeal) return 'Please select a Deal Name';
+    return null;
+  }
+  
+  function validateCoreFields(mode: PaymentDetailModalMode, form: FormState): string | null {
+    if (mode === 'verify') return null;
+    if (!form.transactionDate.trim()) return 'Transaction Date is required';
+    if (!form.paymentAmount.trim()) return 'Payment Amount is required';
+    return null;
+  }
+  
+  function validatePartiesRouting(parties: number, form: FormState): string | null {
+    if (![2, 3, 4].includes(parties)) return 'Number of parties must be 2, 3 or 4';
+    if (parties === 2 && !form.beneBankRoutingCode.trim()) return 'Beneficiary bank routing code is required for a 2-party wire';
+    if (parties >= 3 && !form.firstIntRoutingCode.trim()) return 'First intermediary routing code is required for a 3- or 4-party wire';
+    if (parties === 4 && !form.secondIntBankName.trim()) return 'Second intermediary bank name is required for a 4-party wire';
+    return null;
+  }
+  
+  function validatePaymentAmount(form: FormState): string | null {
+    if (!form.paymentAmount.trim()) return null;
+    const amount = Number(form.paymentAmount);
+    if (!Number.isFinite(amount) || amount < 0) return 'Payment amount must be zero or greater';
+    return null;
+  }
+  
+  // inside the component:
+  const validate = useCallback((): string | null => {
+    return (
+      validateSelection(mode, paymentDetail, selectedDeal) ??
+      validateCoreFields(mode, form) ??
+      validatePartiesRouting(parties, form) ??
+      validatePaymentAmount(form) ??
+      null
+    );
+  }, [mode, paymentDetail, selectedDeal, form, parties]);
