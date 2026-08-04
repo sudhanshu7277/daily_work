@@ -47,3 +47,55 @@ const statusCodeToLabel = (code: string | null | undefined): string =>
       }
 
 
+
+      // fixing useMemo currentIdx
+
+      const findStageIdx = (stages: Stage[], key: string): number =>
+        stages.findIndex((s) => s.statusKey === key);
+      
+      // Statuses that map directly onto a target stage when that stage exists.
+      const STATUS_TO_STAGE_KEY: Record<string, string> = {
+        PAYMENT_REWORK: 'PAYMENT_MAKER',
+        ADMIN_PAYMENT_MAKER: 'PAYMENT_MAKER',
+        PENDING_DUPLICATE: 'ADMIN_CHECKER',
+        TO_BE_DELETED: 'ADMIN_CHECKER',
+        SENT_TO_XCEPTOR_FOR_PROCESSING: 'ADMIN_CHECKER',
+        XCEPTOR_PROCESSING_REQUEST_TIMEOUT: 'ADMIN_CHECKER',
+        XCEPTOR_RETRY_REQUIRED: 'ADMIN_MAKER',
+      };
+      
+      // PAYMENT_SUPER_CHECKER: fall back to Payment Checker, else last stage before
+      // Complete, never Admin Maker (index 0).
+      const resolvePaymentSuperChecker = (stages: Stage[]): number => {
+        const pcIdx = findStageIdx(stages, 'PAYMENT_CHECKER');
+        if (pcIdx >= 0) return pcIdx;
+        const completeIdx = findStageIdx(stages, 'COMPLETE');
+        return completeIdx > 0 ? completeIdx - 1 : stages.length - 1;
+      };
+      
+      const currentIdx = useMemo(() => {
+        const directIdx = findStageIdx(stages, status);
+        if (directIdx >= 0) return directIdx;
+      
+        // DUPLICATE is terminal too, same landing spot as TERMINAL_STATUSES.
+        if (TERMINAL_STATUSES.includes(status) || status === 'DUPLICATE') {
+          return stages.length - 1;
+        }
+      
+        if (status === 'PAYMENT_SUPER_CHECKER') {
+          return resolvePaymentSuperChecker(stages);
+        }
+      
+        const mappedKey = NAM_PAYMENT_MAKER_STATUSES.includes(status)
+          ? 'PAYMENT_MAKER'
+          : STATUS_TO_STAGE_KEY[status];
+      
+        if (mappedKey) {
+          const idx = findStageIdx(stages, mappedKey);
+          if (idx >= 0) return idx;
+        }
+      
+        return 0;
+      }, [stages, status]);
+
+
