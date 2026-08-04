@@ -583,3 +583,336 @@ describe('DashboardPage', () => {
     expect(getRefDataByType).toHaveBeenCalledWith('COUNTRY');
   });
 });
+
+
+
+
+//////////////// CompletedInstructionsPage.test.tsx
+
+
+
+
+
+
+
+
+
+
+
+
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import CompletedInstructionsPage from './CompletedInstructionsPage';
+
+// ---- react-router-dom ----
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
+// ---- API module ----
+vi.mock('../../api/instructions', () => ({
+  getInstructions: vi.fn(),
+}));
+import { getInstructions } from '../../api/instructions';
+
+// ---- StatusTag ----
+vi.mock('../../components/common/StatusTag', () => ({
+  default: ({ status, region }: { status: string; region?: string }) => (
+    <span data-testid="status-tag">
+      {status}-{region}
+    </span>
+  ),
+}));
+
+// ---- format util ----
+vi.mock('../../utils/format', () => ({
+  formatDate: (v: string) => `formatted:${v}`,
+}));
+
+// ---- icgds-react design system mock ----
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  Button: ({ children, onClick, title, ...rest }: any) => (
+    <button onClick={onClick} title={title} {...rest}>
+      {children}
+    </button>
+  ),
+  Icon: ({ type }: any) => <i data-testid={`icon-${type}`} />,
+  Loading: ({ tip }: any) => <div data-testid="loading">{tip}</div>,
+  Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
+  El: ({ children, ...rest }: any) => <div {...rest}>{children}</div>,
+  Card: Object.assign(
+    ({ children }: any) => <div data-testid="card">{children}</div>,
+    { body: ({ children }: any) => <div data-testid="card-body">{children}</div> }
+  ),
+  Dropdown: Object.assign(
+    ({ children, value, onChange, placeholder }: any) => (
+      <select
+        data-testid={`dropdown-${placeholder}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {children}
+      </select>
+    ),
+    { Item: ({ children, value }: any) => <option value={value}>{children}</option> }
+  ),
+  Input: ({ value, onChange, placeholder }: any) => (
+    <input placeholder={placeholder} value={value} onChange={onChange} />
+  ),
+  Tag: ({ children, color }: any) => <span data-testid={`tag-${color}`}>{children}</span>,
+}));
+
+// ---- AgGridReact mock: render rowData/columnDefs so cell renderers are inspectable ----
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => (
+    <div data-testid="ag-grid">
+      {rowData.map((row: any, i: number) => (
+        <div data-testid="ag-row" key={row.key ?? i}>
+          {columnDefs.map((col: any, j: number) => (
+            <div data-testid={`ag-cell-${col.field ?? col.headerName}`} key={j}>
+              {col.cellRenderer
+                ? col.cellRenderer({ value: row[col.field], data: row })
+                : col.valueFormatter
+                ? col.valueFormatter({ value: row[col.field] })
+                : row[col.field]}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
+const baseInstruction = (overrides = {}) => ({
+  instructionId: 'ID-1',
+  instructionRef: 'REF-001',
+  dealName: 'Deal Alpha',
+  clientName: 'Client Co',
+  gfcid: 'GFC123',
+  status: 'COMPLETE',
+  region: 'EMEA',
+  valueDate: '2026-08-01',
+  createdBy: 'jdoe',
+  ...overrides,
+});
+
+const mockedGetInstructions = getInstructions as unknown as ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('CompletedInstructionsPage', () => {
+  it('shows the loading state while fetching', async () => {
+    mockedGetInstructions.mockReturnValue(new Promise(() => {})); // never resolves
+    render(<CompletedInstructionsPage />);
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+  });
+
+  it('loads data across the default completed statuses and merges results', async () => {
+    mockedGetInstructions.mockImplementation(({ status }: any) =>
+      Promise.resolve({
+        data: {
+          content:
+            status === 'COMPLETE'
+              ? [baseInstruction({ instructionId: 'ID-1' })]
+              : [baseInstruction({ instructionId: 'ID-2', status: 'PAYMENT_COMPLETED' })],
+        },
+      })
+    );
+
+    render(<CompletedInstructionsPage />);
+
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(2));
+    expect(mockedGetInstructions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'COMPLETE', page: 0, size: 20 })
+    );
+    expect(mockedGetInstructions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'PAYMENT_COMPLETED', page: 0, size: 20 })
+    );
+  });
+
+  it('skips a status whose fetch fails and still renders the other results', async () => {
+    mockedGetInstructions.mockImplementation(({ status }: any) => {
+      if (status === 'COMPLETE') {
+        return Promise.reject(new Error('boom'));
+      }
+      return Promise.resolve({
+        data: { content: [baseInstruction({ instructionId: 'ID-2', status: 'PAYMENT_COMPLETED' })] },
+      });
+    });
+
+    render(<CompletedInstructionsPage />);
+
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(1));
+    expect(screen.queryByTestId('alert-danger')).not.toBeInTheDocument();
+  });
+
+  it('shows an error alert when the outer try/catch fails', async () => {
+    // Force the outer catch: statusFilter set so `statuses` is a single-element array,
+    // and getInstructions rejects for every call including inside the for-loop's own try,
+    // so simulate a failure in setData path by making content undefined -> push throws.
+    mockedGetInstructions.mockResolvedValue({ data: { content: undefined } });
+
+    render(<CompletedInstructionsPage />);
+
+    await waitFor(() => expect(screen.getByTestId('alert-danger')).toBeInTheDocument());
+    expect(screen.getByTestId('alert-danger')).toHaveTextContent(
+      'Failed to load completed instructions'
+    );
+  });
+
+  it('shows the empty state when there are no completed instructions', async () => {
+    mockedGetInstructions.mockResolvedValue({ data: { content: [] } });
+
+    render(<CompletedInstructionsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText('No completed instructions found')).toBeInTheDocument()
+    );
+    expect(screen.queryByTestId('ag-grid')).not.toBeInTheDocument();
+  });
+
+  it('filters by search term across ref, deal name, and client name', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          baseInstruction({ instructionId: 'ID-1', dealName: 'Alpha Deal' }),
+          baseInstruction({ instructionId: 'ID-2', dealName: 'Beta Deal', instructionRef: 'REF-002' }),
+        ],
+      },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(2));
+
+    fireEvent.change(screen.getByPlaceholderText('Search by ref, deal, client...'), {
+      target: { value: 'alpha' },
+    });
+
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(1));
+    expect(screen.getByText('1 completed instructions')).toBeInTheDocument();
+  });
+
+  it('filters by region and excludes non-matching rows', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          baseInstruction({ instructionId: 'ID-1', region: 'EMEA' }),
+          baseInstruction({ instructionId: 'ID-2', region: 'APAC' }),
+        ],
+      },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(2));
+
+    fireEvent.change(screen.getByTestId('dropdown-All Regions'), {
+      target: { value: 'APAC' },
+    });
+
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(1));
+  });
+
+  it('changing the status filter resets the page and triggers a reload', async () => {
+    mockedGetInstructions.mockResolvedValue({ data: { content: [baseInstruction()] } });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(1));
+
+    mockedGetInstructions.mockClear();
+
+    fireEvent.change(screen.getByTestId('dropdown-All Completed'), {
+      target: { value: 'COMPLETE' },
+    });
+
+    await waitFor(() =>
+      expect(mockedGetInstructions).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'COMPLETE', page: 0, size: 20 })
+      )
+    );
+  });
+
+  it('the Refresh button re-triggers loadData', async () => {
+    mockedGetInstructions.mockResolvedValue({ data: { content: [baseInstruction()] } });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(1));
+
+    mockedGetInstructions.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
+
+    await waitFor(() => expect(mockedGetInstructions).toHaveBeenCalled());
+  });
+
+  it('renders the Sequence No. cell as a clickable link that navigates on click', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: { content: [baseInstruction({ instructionId: 'ID-99', instructionRef: 'REF-099' })] },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(1));
+
+    const cell = screen.getByTestId('ag-cell-instructionRef');
+    fireEvent.click(within(cell).getByText('REF-099'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/instructions/ID-99');
+  });
+
+  it('renders the Client cell with a conditional gfcid sub-line when present', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          baseInstruction({ instructionId: 'ID-1', clientName: 'With GFC', gfcid: 'GFC1' }),
+          baseInstruction({ instructionId: 'ID-2', clientName: 'No GFC', gfcid: undefined }),
+        ],
+      },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(2));
+
+    const cells = screen.getAllByTestId('ag-cell-clientName');
+    expect(within(cells[0]).getByText('GFC1')).toBeInTheDocument();
+    expect(within(cells[1]).queryByText('GFC1')).not.toBeInTheDocument();
+  });
+
+  it('renders the Status cell via StatusTag with status and region', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: { content: [baseInstruction({ status: 'COMPLETE', region: 'NAM' })] },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getByTestId('status-tag')).toHaveTextContent('COMPLETE-NAM'));
+  });
+
+  it('renders the Region cell as a Tag when present, and "-" when absent', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          baseInstruction({ instructionId: 'ID-1', region: 'LATAM' }),
+          baseInstruction({ instructionId: 'ID-2', region: undefined }),
+        ],
+      },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() => expect(screen.getAllByTestId('ag-row')).toHaveLength(2));
+
+    const cells = screen.getAllByTestId('ag-cell-region');
+    expect(within(cells[0]).getByTestId('tag-blue')).toHaveTextContent('LATAM');
+    expect(within(cells[1]).getByText('-')).toBeInTheDocument();
+  });
+
+  it('formats the Value Date cell using formatDate', async () => {
+    mockedGetInstructions.mockResolvedValue({
+      data: { content: [baseInstruction({ valueDate: '2026-08-01' })] },
+    });
+
+    render(<CompletedInstructionsPage />);
+    await waitFor(() =>
+      expect(screen.getByTestId('ag-cell-valueDate')).toHaveTextContent('formatted:2026-08-01')
+    );
+  });
+});
