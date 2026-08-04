@@ -169,3 +169,18 @@ if (!cancelled) { setWb(book); setRows(data); }
   ))}
 
 
+  /// another fix
+
+  for (const key of ALL_FIELD_KEYS) {
+    const value = pd ? (pd as unknown as Record<string, unknown>)[key] : undefined;
+    if (value == null) {
+      form[key] = '';
+    } else if (typeof value === 'object') {
+      form[key] = JSON.stringify(value);
+    } else {
+      form[key] = String(value);
+    }
+  }
+  
+
+
