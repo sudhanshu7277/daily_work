@@ -181,6 +181,13 @@ if (!cancelled) { setWb(book); setRows(data); }
       form[key] = String(value);
     }
   }
+
+
+  function Section({ title, defaultOpen = true, children }: Readonly<{
+    title: string;
+    defaultOpen?: boolean;
+    children: React.ReactNode;
+  }>) {
   
 
 
