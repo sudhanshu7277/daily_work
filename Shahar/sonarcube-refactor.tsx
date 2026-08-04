@@ -99,3 +99,32 @@ const statusCodeToLabel = (code: string | null | undefined): string =>
       }, [stages, status]);
 
 
+      // t — that's still nested. The actual minimal, Sonar-clean fix is a 2-line if/else assignment placed just above the return inside stages.map:
+
+      {stages.map((stage, idx) => {
+        let stageLabelColor: string;
+        if (idx === currentIdx) {
+          stageLabelColor = (isDuplicate || isDeleted || isReviewRequired) ? '#D32F2F' : '#F57C00';
+        } else {
+          stageLabelColor = idx < currentIdx ? 'var(--lmn-color-primary, #002D72)' : 'var(--lmn-text-weak, #888)';
+        }
+      
+        return (
+          <El key={`label-${stage.statusKey}`} ...>
+            ...
+            <El style={{
+              fontSize: 13,
+              fontWeight: idx === currentIdx ? 700 : 400,
+              color: stageLabelColor,
+              backgroundColor: '#F9F9FB',
+              textAlign: 'center',
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+            }}>
+              {renderWorkflowLabel(logicForStepsTitle(status, stage))}
+            </El>
+          </El>
+        );
+      })}
+
+
