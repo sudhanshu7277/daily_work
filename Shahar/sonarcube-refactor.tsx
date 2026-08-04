@@ -101,18 +101,26 @@ const statusCodeToLabel = (code: string | null | undefined): string =>
 
       // t — that's still nested. The actual minimal, Sonar-clean fix is a 2-line if/else assignment placed just above the return inside stages.map:
 
-      {stages.map((stage, idx) => {
-        let stageLabelColor: string;
-        if (idx === currentIdx) {
-          stageLabelColor = (isDuplicate || isDeleted || isReviewRequired) ? '#D32F2F' : '#F57C00';
-        } else {
-          stageLabelColor = idx < currentIdx ? 'var(--lmn-color-primary, #002D72)' : 'var(--lmn-text-weak, #888)';
-        }
-      
-        return (
-          <El key={`label-${stage.statusKey}`} ...>
-            ...
-            <El style={{
+      <El className="lmn-d-flex lmn-align-items-start lmn-mt-8px" style={{ gap: 0, width: '100%', paddingLeft: 8, paddingRight: 8 }}>
+  {stages.map((stage, idx) => {
+    let stageLabelColor: string;
+    if (idx === currentIdx) {
+      stageLabelColor = (isDuplicate || isDeleted || isReviewRequired) ? '#D32F2F' : '#F57C00';
+    } else {
+      stageLabelColor = idx < currentIdx
+        ? 'var(--lmn-color-primary, #002D72)'
+        : 'var(--lmn-text-weak, #888)';
+    }
+
+    return (
+      <El
+        key={`label-${stage.statusKey}`}
+        className="lmn-d-flex lmn-align-items-start"
+        style={{ flex: idx < stages.length - 1 ? 1 : undefined, minWidth: 0 }}
+      >
+        <El style={{ width: 36, display: 'flex', justifyContent: 'center' }}>
+          <El
+            style={{
               fontSize: 13,
               fontWeight: idx === currentIdx ? 700 : 400,
               color: stageLabelColor,
@@ -120,11 +128,15 @@ const statusCodeToLabel = (code: string | null | undefined): string =>
               textAlign: 'center',
               lineHeight: 1.2,
               whiteSpace: 'nowrap',
-            }}>
-              {renderWorkflowLabel(logicForStepsTitle(status, stage))}
-            </El>
+            }}
+          >
+            {renderWorkflowLabel(logicForStepsTitle(status, stage))}
           </El>
-        );
-      })}
+        </El>
+        {idx < stages.length - 1 && <El style={{ flex: 1 }} />}
+      </El>
+    );
+  })}
+</El>
 
 
