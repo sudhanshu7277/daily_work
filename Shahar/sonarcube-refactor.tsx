@@ -1,265 +1,363 @@
-const WHITESPACE_OR_HYPHEN = /[\s-]+/g;
-const UNDERSCORE = /_/g;
-const WORD_BOUNDARY = /\b\w/g;
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, act, waitFor, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
 
-const normalizeStatusCode = (value: string | null | undefined): string =>
-  (value ?? '')
-    .trim()
-    .toUpperCase()
-    .replace(WHITESPACE_OR_HYPHEN, '_');
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}));
 
-const statusCodeToLabel = (code: string | null | undefined): string =>
-  normalizeStatusCode(code)
-    .toLowerCase()
-    .replace(UNDERSCORE, ' ')
-    .replace(WORD_BOUNDARY, (char) => char.toUpperCase());
+const mockGetInstructions = vi.fn();
+vi.mock('../../api/instructions', () => ({
+  getInstructions: (...args: unknown[]) => mockGetInstructions(...args),
+}));
 
+vi.mock('../../utils/format', () => ({
+  formatDate: (v: string) => (v ? `formatted:${v}` : ''),
+}));
 
+vi.mock('../../components/common/StatusTag', () => ({
+  default: (p: any) =>
+    React.createElement('span', { 'data-testid': 'status-tag', 'data-region': p.region }, p.status),
+}));
 
-    ////////
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const R = await vi.importActual<typeof import('react')>('react');
+  const El = ({ children, className, style, tag }: any) =>
+    R.createElement(tag || 'div', { className, style }, children);
+  return {
+    Card: Object.assign(
+      (p: any) => R.createElement('div', null, p.children),
+      { header: 'div' as any, body: 'div' as any },
+    ),
+    Button: (p: any) =>
+      R.createElement('button', { onClick: p.onClick, disabled: p.disabled, title: p.title, type: p.type }, p.children),
+    Icon: (p: any) => R.createElement('i', { 'data-testid': `icon-${p.type}` }),
+    Input: (p: any) => {
+      const { iconPrefix, allowClear, inputLabel, wrapperClass, ...rest } = p;
+      return R.createElement('input', rest);
+    },
+    Loading: (p: any) => R.createElement('div', { 'data-testid': 'loading' }, p.tip),
+    Alert: (p: any) => R.createElement('div', { 'data-testid': `alert-${p.type}` }, p.content || p.children),
+    El,
+    Dropdown: Object.assign(
+      (p: any) =>
+        R.createElement(
+          'select',
+          {
+            value: p.value,
+            onChange: (e: any) => p.onChange?.(e.target.value),
+            'data-testid': p.placeholder,
+            style: p.style,
+          },
+          p.children,
+        ),
+      { Item: (p: any) => R.createElement('option', { value: p.value }, p.children) },
+    ),
+    Tag: (p: any) => R.createElement('span', { 'data-testid': 'tag', 'data-color': p.color }, p.children),
+  };
+});
 
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: (p: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'ag-grid' },
+      React.createElement('div', { 'data-testid': 'row-count' }, String(p.rowData?.length ?? 0)),
+      (p.rowData || []).map((row: any) =>
+        React.createElement(
+          'div',
+          { key: row.key, 'data-testid': `row-${row.key}` },
+          (p.columnDefs || []).map((col: any) =>
+            React.createElement(
+              'span',
+              { key: col.headerName, 'data-testid': `cell-${row.key}-${col.headerName}` },
+              col.cellRenderer
+                ? col.cellRenderer({ value: row[col.field], data: row })
+                : col.valueFormatter
+                  ? col.valueFormatter({ value: row[col.field] })
+                  : row[col.field],
+            ),
+          ),
+        ),
+      ),
+    ),
+}));
 
-    const FILE_TYPE_MATCHERS: Array<{ type: FileType; patterns: string[] }> = [
-        { type: 'pdf', patterns: ['pdf'] },
-        { type: 'excel', patterns: ['spreadsheet', 'excel', 'ms-excel'] },
-        { type: 'csv', patterns: ['csv'] },
-      ];
-      
-      const resolveFileType = (contentType: string): FileType => {
-        const match = FILE_TYPE_MATCHERS.find(({ patterns }) =>
-          patterns.some((pattern) => contentType.includes(pattern))
-        );
-        return match?.type ?? 'other';
-      };
-      
-      export async function getPaymentSourceFile(instructionId: number): Promise<PaymentSourceFile> {
-        const response = await client.get<Blob>(
-          `/instructions/${instructionId}/payment-details/source-file`,
-          { responseType: 'blob' },
-        );
-      
-        const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
-        const contentType = String(response.headers['content-type'] ?? '');
-        const buffer = await blob.arrayBuffer();
-        const fileType = resolveFileType(contentType);
-      
-        return { url: URL.createObjectURL(blob), buffer, fileType, contentType };
+import CompletedInstructionsPage from './CompletedInstructionsPage';
+
+const makeInstruction = (overrides: Partial<any> = {}) => ({
+  instructionId: 1,
+  instructionRef: 'REF-001',
+  dealName: 'Deal Alpha',
+  clientName: 'Acme Corp',
+  gfcid: 'GFCID-1',
+  status: 'COMPLETE',
+  region: 'NAM',
+  valueDate: '2026-01-15',
+  createdBy: 'jdoe',
+  ...overrides,
+});
+
+describe('CompletedInstructionsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetInstructions.mockResolvedValue({ data: { content: [] } });
+  });
+
+  it('test_shows_loading_then_renders_grid_with_data', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: { content: [makeInstruction()] },
+    });
+
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ag-grid')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('row-count').textContent).toBe('1');
+  });
+
+  it('test_loadData_merges_results_across_completed_statuses', async () => {
+    mockGetInstructions.mockImplementation(({ status }: any) => {
+      if (status === 'COMPLETE') {
+        return Promise.resolve({ data: { content: [makeInstruction({ instructionId: 1, instructionRef: 'REF-1' })] } });
       }
+      if (status === 'PAYMENT_COMPLETED') {
+        return Promise.resolve({ data: { content: [makeInstruction({ instructionId: 2, instructionRef: 'REF-2', status: 'PAYMENT_COMPLETED' })] } });
+      }
+      return Promise.resolve({ data: { content: [] } });
+    });
 
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('2');
+    });
+  });
 
-      // fixing useMemo currentIdx
+  it('test_loadData_skips_status_when_individual_fetch_fails', async () => {
+    mockGetInstructions.mockImplementation(({ status }: any) => {
+      if (status === 'COMPLETE') {
+        return Promise.reject(new Error('boom'));
+      }
+      return Promise.resolve({ data: { content: [makeInstruction({ instructionId: 2 })] } });
+    });
 
-      const findStageIdx = (stages: Stage[], key: string): number =>
-        stages.findIndex((s) => s.statusKey === key);
-      
-      // Statuses that map directly onto a target stage when that stage exists.
-      const STATUS_TO_STAGE_KEY: Record<string, string> = {
-        PAYMENT_REWORK: 'PAYMENT_MAKER',
-        ADMIN_PAYMENT_MAKER: 'PAYMENT_MAKER',
-        PENDING_DUPLICATE: 'ADMIN_CHECKER',
-        TO_BE_DELETED: 'ADMIN_CHECKER',
-        SENT_TO_XCEPTOR_FOR_PROCESSING: 'ADMIN_CHECKER',
-        XCEPTOR_PROCESSING_REQUEST_TIMEOUT: 'ADMIN_CHECKER',
-        XCEPTOR_RETRY_REQUIRED: 'ADMIN_MAKER',
-      };
-      
-      // PAYMENT_SUPER_CHECKER: fall back to Payment Checker, else last stage before
-      // Complete, never Admin Maker (index 0).
-      const resolvePaymentSuperChecker = (stages: Stage[]): number => {
-        const pcIdx = findStageIdx(stages, 'PAYMENT_CHECKER');
-        if (pcIdx >= 0) return pcIdx;
-        const completeIdx = findStageIdx(stages, 'COMPLETE');
-        return completeIdx > 0 ? completeIdx - 1 : stages.length - 1;
-      };
-      
-      const currentIdx = useMemo(() => {
-        const directIdx = findStageIdx(stages, status);
-        if (directIdx >= 0) return directIdx;
-      
-        // DUPLICATE is terminal too, same landing spot as TERMINAL_STATUSES.
-        if (TERMINAL_STATUSES.includes(status) || status === 'DUPLICATE') {
-          return stages.length - 1;
-        }
-      
-        if (status === 'PAYMENT_SUPER_CHECKER') {
-          return resolvePaymentSuperChecker(stages);
-        }
-      
-        const mappedKey = NAM_PAYMENT_MAKER_STATUSES.includes(status)
-          ? 'PAYMENT_MAKER'
-          : STATUS_TO_STAGE_KEY[status];
-      
-        if (mappedKey) {
-          const idx = findStageIdx(stages, mappedKey);
-          if (idx >= 0) return idx;
-        }
-      
-        return 0;
-      }, [stages, status]);
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('1');
+    });
+    expect(screen.queryByTestId('alert-danger')).toBeNull();
+  });
 
-      // t — that's still nested. The actual minimal, Sonar-clean fix is a 2-line if/else assignment placed just above the return inside stages.map:
+  it('test_shows_error_alert_when_outer_loadData_throws', async () => {
+    mockGetInstructions.mockRejectedValue(new Error('Network down'));
 
-      <El className="lmn-d-flex lmn-align-items-start lmn-mt-8px" style={{ gap: 0, width: '100%', paddingLeft: 8, paddingRight: 8 }}>
-  {stages.map((stage, idx) => {
-    let stageLabelColor: string;
-    if (idx === currentIdx) {
-      stageLabelColor = (isDuplicate || isDeleted || isReviewRequired) ? '#D32F2F' : '#F57C00';
-    } else {
-      stageLabelColor = idx < currentIdx
-        ? 'var(--lmn-color-primary, #002D72)'
-        : 'var(--lmn-text-weak, #888)';
-    }
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
-    return (
-      <El
-        key={`label-${stage.statusKey}`}
-        className="lmn-d-flex lmn-align-items-start"
-        style={{ flex: idx < stages.length - 1 ? 1 : undefined, minWidth: 0 }}
-      >
-        <El style={{ width: 36, display: 'flex', justifyContent: 'center' }}>
-          <El
-            style={{
-              fontSize: 13,
-              fontWeight: idx === currentIdx ? 700 : 400,
-              color: stageLabelColor,
-              backgroundColor: '#F9F9FB',
-              textAlign: 'center',
-              lineHeight: 1.2,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {renderWorkflowLabel(logicForStepsTitle(status, stage))}
-          </El>
-        </El>
-        {idx < stages.length - 1 && <El style={{ flex: 1 }} />}
-      </El>
-    );
-  })}
-</El>
+    await waitFor(() => {
+      expect(screen.getByTestId('alert-danger').textContent).toContain('Network down');
+    });
+  });
 
+  it('test_shows_empty_state_when_no_completed_instructions', async () => {
+    mockGetInstructions.mockResolvedValue({ data: { content: [] } });
 
-// Minimal fix — just drop the cast:
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
-const data = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' });
-if (!cancelled) { setWb(book); setRows(data); }
+    await waitFor(() => {
+      expect(screen.getByText('No completed instructions found')).toBeTruthy();
+    });
+  });
 
+  it('test_region_filter_excludes_non_matching_rows', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          makeInstruction({ instructionId: 1, region: 'NAM' }),
+          makeInstruction({ instructionId: 2, region: 'EMEA' }),
+        ],
+      },
+    });
 
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
-// no index for key
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('2');
+    });
 
-{rows.map((row, ri) => (
-    <tr key={`${ri}-${row[0]}`}>
-      {row.map((cell, ci) => {
-        const isHeader = ri === 0;
-        const Tag = isHeader ? 'th' : 'td';
-        return (
-          <Tag key={`${ri}-${ci}-${cell}`} style={{
-            border: '1px solid #e0e0e0',
-            padding: '4px 8px',
-            background: isHeader ? '#00247D' : '#fff',
-            color: isHeader ? '#fff' : '#333',
-            fontWeight: isHeader ? 600 : 400,
-            whiteSpace: 'nowrap',
-          }}>{cell}</Tag>
-        );
-      })}
-    </tr>
-  ))}
+    const regionDropdown = screen.getByTestId('All Regions');
+    await act(async () => {
+      fireEvent.change(regionDropdown, { target: { value: 'EMEA' } });
+    });
 
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('1');
+    });
+  });
 
-  /// another fix
+  it('test_search_term_filters_by_ref_deal_or_client', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          makeInstruction({ instructionId: 1, instructionRef: 'REF-AAA', dealName: 'Zeta', clientName: 'Foo' }),
+          makeInstruction({ instructionId: 2, instructionRef: 'REF-BBB', dealName: 'Omega', clientName: 'Bar' }),
+        ],
+      },
+    });
 
-  for (const key of ALL_FIELD_KEYS) {
-    const value = pd ? (pd as unknown as Record<string, unknown>)[key] : undefined;
-    if (value == null) {
-      form[key] = '';
-    } else if (typeof value === 'object') {
-      form[key] = JSON.stringify(value);
-    } else {
-      form[key] = String(value);
-    }
-  }
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('2');
+    });
 
-  function Section({ title, defaultOpen = true, children }: Readonly<{
-    title: string;
-    defaultOpen?: boolean;
-    children: React.ReactNode;
-  }>) {
+    const searchInput = screen.getByPlaceholderText('Search by ref, deal, client...');
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'zeta' } });
+    });
 
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('1');
+    });
+  });
 
+  it('test_status_filter_change_resets_page_and_refetches', async () => {
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
-    // div to button
+    await waitFor(() => {
+      expect(mockGetInstructions).toHaveBeenCalled();
+    });
+    mockGetInstructions.mockClear();
 
+    const statusDropdown = screen.getByTestId('All Completed');
+    await act(async () => {
+      fireEvent.change(statusDropdown, { target: { value: 'PAYMENT_COMPLETED' } });
+    });
 
-    <button
-  type="button"
-  onClick={() => setOpen(o => !o)}
-  style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px 16px',
-    cursor: 'pointer',
-    userSelect: 'none',
-    fontWeight: 600,
-    background: open ? '#00247D' : '#00A3E0', // selected (open) = #00247D, collapsed (closed) = #00A3E0
-    color: '#ffffff',
-    border: 'none',
-    width: '100%',
-    textAlign: 'left',
-  }}
->
-  <span>{title}</span>
-  <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
-</button>
-  
+    await waitFor(() => {
+      expect(mockGetInstructions).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'PAYMENT_COMPLETED', page: 0 }),
+      );
+    });
+  });
 
+  it('test_refresh_button_calls_loadData_again', async () => {
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
 
-/// This is S3776 — the validate callback is one long flat sequence of independent if
+    await waitFor(() => {
+      expect(mockGetInstructions).toHaveBeenCalled();
+    });
+    const callsBefore = mockGetInstructions.mock.calls.length;
 
-function validateSelection(
-    mode: PaymentDetailModalMode,
-    paymentDetail: PaymentDetailResponse | null,
-    selectedDeal: Deal | undefined,
-  ): string | null {
-    if ((mode === 'verify' || mode === 'edit') && !paymentDetail) return 'No payment record selected';
-    if (mode === 'verify' && !selectedDeal) return 'Please select a Deal Name';
-    return null;
-  }
-  
-  function validateCoreFields(mode: PaymentDetailModalMode, form: FormState): string | null {
-    if (mode === 'verify') return null;
-    if (!form.transactionDate.trim()) return 'Transaction Date is required';
-    if (!form.paymentAmount.trim()) return 'Payment Amount is required';
-    return null;
-  }
-  
-  function validatePartiesRouting(parties: number, form: FormState): string | null {
-    if (![2, 3, 4].includes(parties)) return 'Number of parties must be 2, 3 or 4';
-    if (parties === 2 && !form.beneBankRoutingCode.trim()) return 'Beneficiary bank routing code is required for a 2-party wire';
-    if (parties >= 3 && !form.firstIntRoutingCode.trim()) return 'First intermediary routing code is required for a 3- or 4-party wire';
-    if (parties === 4 && !form.secondIntBankName.trim()) return 'Second intermediary bank name is required for a 4-party wire';
-    return null;
-  }
-  
-  function validatePaymentAmount(form: FormState): string | null {
-    if (!form.paymentAmount.trim()) return null;
-    const amount = Number(form.paymentAmount);
-    if (!Number.isFinite(amount) || amount < 0) return 'Payment amount must be zero or greater';
-    return null;
-  }
-  
-  // replaces lines 373–396 inside VerifyPaymentDetailModal:
-  const validate = useCallback((): string | null => {
-    return (
-      validateSelection(mode, paymentDetail, selectedDeal) ??
-      validateCoreFields(mode, form) ??
-      validatePartiesRouting(parties, form) ??
-      validatePaymentAmount(form) ??
-      null
-    );
-  }, [mode, paymentDetail, selectedDeal, form, parties]);
-  
+    const refreshButton = screen.getByText('Refresh').closest('button')!;
+    await act(async () => {
+      fireEvent.click(refreshButton);
+    });
+
+    await waitFor(() => {
+      expect(mockGetInstructions.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
+  it('test_sequence_no_cell_navigates_on_click', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: { content: [makeInstruction({ instructionId: 77, instructionRef: 'REF-77' })] },
+    });
+
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('1');
+    });
+
+    const link = screen.getByText('REF-77');
+    await act(async () => {
+      fireEvent.click(link);
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('/instructions/77');
+  });
+
+  it('test_client_cell_shows_gfcid_when_present_and_hides_when_absent', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          makeInstruction({ instructionId: 1, clientName: 'WithGfcid', gfcid: 'GF-1' }),
+          makeInstruction({ instructionId: 2, clientName: 'NoGfcid', gfcid: undefined }),
+        ],
+      },
+    });
+
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('WithGfcid')).toBeTruthy();
+    });
+
+    expect(screen.getByText('GF-1')).toBeTruthy();
+    expect(screen.getByText('NoGfcid')).toBeTruthy();
+  });
+
+  it('test_region_cell_renders_tag_when_present_and_dash_when_absent', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: {
+        content: [
+          makeInstruction({ instructionId: 1, region: 'APAC' }),
+          makeInstruction({ instructionId: 2, region: undefined }),
+        ],
+      },
+    });
+
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('row-count').textContent).toBe('2');
+    });
+
+    expect(screen.getByText('APAC')).toBeTruthy();
+    expect(screen.getByText('-')).toBeTruthy();
+  });
+
+  it('test_value_date_cell_uses_formatDate', async () => {
+    mockGetInstructions.mockResolvedValue({
+      data: { content: [makeInstruction({ instructionId: 1, valueDate: '2026-03-01' })] },
+    });
+
+    await act(async () => {
+      render(<CompletedInstructionsPage />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('formatted:2026-03-01')).toBeTruthy();
+    });
+  });
+});
