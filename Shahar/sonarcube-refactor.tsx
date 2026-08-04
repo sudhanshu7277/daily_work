@@ -146,3 +146,26 @@ const data = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' });
 if (!cancelled) { setWb(book); setRows(data); }
 
 
+
+// no index for key
+
+{rows.map((row, ri) => (
+    <tr key={`${ri}-${row[0]}`}>
+      {row.map((cell, ci) => {
+        const isHeader = ri === 0;
+        const Tag = isHeader ? 'th' : 'td';
+        return (
+          <Tag key={`${ri}-${ci}-${cell}`} style={{
+            border: '1px solid #e0e0e0',
+            padding: '4px 8px',
+            background: isHeader ? '#00247D' : '#fff',
+            color: isHeader ? '#fff' : '#333',
+            fontWeight: isHeader ? 600 : 400,
+            whiteSpace: 'nowrap',
+          }}>{cell}</Tag>
+        );
+      })}
+    </tr>
+  ))}
+
+
