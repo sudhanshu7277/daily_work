@@ -1,30 +1,9 @@
-// Solution
-//Extract the modal title logic into a helper function or useMemo variable above the return statement, then pass that variable to title.
+export const formatAccountNumbersInText = (text: string): string => {
+  if (!text) return '';
+  // Replaces groups of 5 or more digits by inserting a hyphen after the first 4 digits
+  return text.replace(/\b(\d{4})(\d+)\b/g, '$1-$2');
+};
 
-// 1. Define modalTitle before your JSX return:
-//Add this snippet right above return ( (around line 562):
-
-const modalTitle = useMemo(() => {
-  if (mode === 'add') return 'Add Payment';
-  if (mode === 'edit') return 'Edit Payment';
-  if (readOnly) return 'View Payment Detail';
-  return 'Verify Payment Detail';
-}, [mode, readOnly]);
-
-
-//2. Update the <Modal> props (lines 567–575):
-//Change the inline JSX from:
-
-title={
-  mode === 'add'
-    ? 'Add Payment'
-    : mode === 'edit'
-    ? 'Edit Payment'
-    : readOnly
-    ? 'View Payment Detail'
-    : 'Verify Payment Detail'
-}
-
-//To simply:
-
-title={modalTitle}
+// Example usage:
+// formatAccountNumbersInText('10393999810; Chequing Accounts 10393999802') 
+// => '1039-3999810; Chequing Accounts 1039-3999802'
