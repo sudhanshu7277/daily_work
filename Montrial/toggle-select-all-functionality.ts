@@ -74,3 +74,41 @@ isAllColumnsSelected(): boolean {
   (click)="toggleSelectAll($event)">
   Select All
 </mat-option>
+
+// new code //
+<mat-option
+  class="select-all-option"
+  [class.is-checked]="isAllColumnsSelected()"
+  [class.is-indeterminate]="isIndeterminateColumnsSelected()"
+  value="SELECT_ALL"
+  (click)="toggleSelectAll($event)">
+  Select All
+</mat-option>
+
+
+toggleSelectAll(event: MouseEvent): void {
+    event.stopPropagation();
+  
+    const optionalIds = this.filterOptions
+      .map(opt => opt.id)
+      .filter(id => !this.mandatoryColumnIds.includes(id));
+  
+    const allOptionalSelected = optionalIds.every(id =>
+      this.selectedFilterIds.includes(id)
+    );
+  
+    if (allOptionalSelected) {
+      // 🔴 DESELECT ALL: Keep only mandatory columns
+      this.selectedFilterIds = [...this.mandatoryColumnIds];
+      this.onSelectAll(false);
+    } else {
+      // 🔵 SELECT ALL: Include SELECT_ALL and all filter options
+      this.selectedFilterIds = [
+        'SELECT_ALL',
+        ...this.filterOptions.map(opt => opt.id)
+      ];
+      this.onSelectAll(true);
+    }
+  
+    this.onFilterChange();
+  }
