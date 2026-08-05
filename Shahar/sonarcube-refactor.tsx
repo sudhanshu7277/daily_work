@@ -1,8 +1,10 @@
-// 1. Define the handler function inside InstructionDetailPage:
+// Step 1: Add the click handler helper
+//Add this function inside InstructionDetailPage (outside of renderInstructionDetails):
 
-const handleOriginalInstructionClick = useCallback((e: React.MouseEvent, ref: string) => {
+const handleOriginalInstructionClick = useCallback((e: React.MouseEvent, refString: string) => {
   e.preventDefault();
-  getInstructionByRef(ref)
+  
+  getInstructionByRef(refString)
     .then((res) => {
       window.open(buildInstructionPath(res.data.instructionId), '_blank', 'noopener,noreferrer');
     })
@@ -14,10 +16,13 @@ const handleOriginalInstructionClick = useCallback((e: React.MouseEvent, ref: st
     });
 }, []);
 
-// 2. Simplify the JSX table cell (lines 1484–1509):
 
-<td style={{ fontSize: 11 }}>
-  {instruction.originalInstruction ? (
+
+// Step 2: Update the if block (Lines 1486–1503)
+//Replace lines 1486–1503 with this clean return statement:
+
+if (instruction.originalInstruction) {
+  return (
     <a
       href="#"
       onClick={(e) => handleOriginalInstructionClick(e, instruction.originalInstruction!)}
@@ -25,7 +30,5 @@ const handleOriginalInstructionClick = useCallback((e: React.MouseEvent, ref: st
     >
       {instruction.originalInstruction}
     </a>
-  ) : (
-    instruction.relatedInstructions || '-'
-  )}
-</td>
+  );
+}
