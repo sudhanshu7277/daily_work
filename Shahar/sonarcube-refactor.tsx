@@ -1,37 +1,39 @@
-//In VerifyPaymentDetailModal.tsx at line 33:
+// Section function (lines 244–266) in VerifyPaymentDetailModal.tsx
 
-function SpreadsheetPreview({ url, fileType }: { url: string; fileType: string }) {
+function Section({
+  title,
+  defaultOpen = true,
+  children,
+}: Readonly<{ title: string; defaultOpen?: boolean; children: React.ReactNode }>) {
+  const [open, setOpen] = useState(defaultOpen);
 
-
-  //Updated Line 50:
-
-  if (!cancelled) { setWb(book); setRows(data); }
-
-
-  // VerifyPaymentDetailModal.tsx
-
-  <tbody>
-  {rows.map((row, ri) => (
-    <tr key={`row-${ri}-${row[0] ?? ''}`}>
-      {row.map((cell, ci) => {
-        const isHeader = ri === 0;
-        const Tag = isHeader ? 'th' : 'td';
-        return (
-          <Tag
-            key={`cell-${ri}-${ci}`}
-            style={{
-              border: '1px solid #e0e0e0',
-              padding: '4px 8px',
-              background: isHeader ? '#00247D' : '#fff',
-              color: isHeader ? '#fff' : '#333',
-              fontWeight: isHeader ? 600 : 400,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {cell}
-          </Tag>
-        );
-      })}
-    </tr>
-  ))}
-</tbody>
+  return (
+    <div style={{ border: '1px solid #00247D', borderRadius: 6, marginBottom: 8, overflow: 'hidden' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%',
+          border: 'none',
+          outline: 'none',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 16px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          fontWeight: 600,
+          background: open ? '#00247D' : '#00A3E0',
+          color: '#ffffff',
+          textAlign: 'left',
+        }}
+      >
+        <span>{title}</span>
+        <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>
+          ▶
+        </span>
+      </button>
+      {open && <div style={{ padding: 16, background: '#fff' }}>{children}</div>}
+    </div>
+  );
+}
