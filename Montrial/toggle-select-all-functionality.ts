@@ -1,41 +1,8 @@
-// 1. Updated toggleSelectAll in TypeScript
-
-
-
-toggleSelectAll(event: MouseEvent): void {
-    event.stopPropagation();
-  
-    // 1. Determine if all optional columns are already selected
-    const optionalIds = this.filterOptions
-      .map(opt => opt.id)
-      .filter(id => !this.mandatoryColumnIds.includes(id));
-  
-    const allOptionalSelected = optionalIds.every(id =>
-      this.selectedFilterIds.includes(id)
-    );
-  
-    if (allOptionalSelected) {
-      // 🔴 DESELECT ALL: Revert back to mandatory columns only
-      this.selectedFilterIds = [...this.mandatoryColumnIds];
-      this.onSelectAll(false); // Uncheck all data grid rows
-    } else {
-      // 🔵 SELECT ALL: Select all filter options + dummy 'SELECT_ALL' tag for Material state
-      this.selectedFilterIds = [
-        'SELECT_ALL',
-        ...this.filterOptions.map(opt => opt.id)
-      ];
-      this.onSelectAll(true); // Check all data grid rows
-    }
-  
-    // 2. Sync columns, clean up dummy values, and trigger CD
-    this.onFilterChange();
-  }
-
-
-  // 2. Updated Helper Functions
-//Ensure isAllColumnsSelected() and normalizeSelectedFilters() cleanly ignore the 'SELECT_ALL' value so it doesn't break column rendering:
+// 1. Update customer-search-grid.component.ts
+//Replace isAllColumnsSelected(), isIndeterminateColumnsSelected(), and toggleSelectAll() with these implementation methods:
 
 isAllColumnsSelected(): boolean {
+    // Only check if all optional (toggleable) columns are currently present in selectedFilterIds
     const optionalIds = this.filterOptions
       .map(opt => opt.id)
       .filter(id => !this.mandatoryColumnIds.includes(id));
@@ -48,67 +15,51 @@ isAllColumnsSelected(): boolean {
       .map(opt => opt.id)
       .filter(id => !this.mandatoryColumnIds.includes(id));
   
-    const selectedCount = optionalIds.filter(id =>
+    const selectedCount = optionalIds.filter(id => 
       this.selectedFilterIds.includes(id)
     ).length;
   
     return selectedCount > 0 && selectedCount < optionalIds.length;
   }
   
-  private normalizeSelectedFilters(ids: string[]): string[] {
-    // Strip out dummy 'SELECT_ALL' value so it doesn't affect column definitions
-    const nonSelectAll = ids.filter(id => id !== 'SELECT_ALL');
-    const merged = [...this.mandatoryColumnIds, ...nonSelectAll];
-    return Array.from(new Set(merged));
-  }
-
-  // 3. Template Fix (customer-search-grid.component.html)
-//Make sure your template binds both [class.is-checked] and [selected] to isAllColumnsSelected() on the <mat-option>:
-
-<mat-option
-  class="select-all-option"
-  [selected]="isAllColumnsSelected()"
-  [class.is-checked]="isAllColumnsSelected()"
-  [class.is-indeterminate]="isIndeterminateColumnsSelected()"
-  value="SELECT_ALL"
-  (click)="toggleSelectAll($event)">
-  Select All
-</mat-option>
-
-// new code //
-<mat-option
-  class="select-all-option"
-  [class.is-checked]="isAllColumnsSelected()"
-  [class.is-indeterminate]="isIndeterminateColumnsSelected()"
-  value="SELECT_ALL"
-  (click)="toggleSelectAll($event)">
-  Select All
-</mat-option>
-
-
-toggleSelectAll(event: MouseEvent): void {
+  toggleSelectAll(event: MouseEvent): void {
     event.stopPropagation();
   
-    const optionalIds = this.filterOptions
-      .map(opt => opt.id)
-      .filter(id => !this.mandatoryColumnIds.includes(id));
-  
-    const allOptionalSelected = optionalIds.every(id =>
-      this.selectedFilterIds.includes(id)
-    );
-  
-    if (allOptionalSelected) {
-      // 🔴 DESELECT ALL: Keep only mandatory columns
+    if (this.isAllColumnsSelected()) {
+      // 🔴 UNSELECT ALL: Keep mandatory columns only
       this.selectedFilterIds = [...this.mandatoryColumnIds];
-      this.onSelectAll(false);
+      if (typeof this.onSelectAll === 'function') {
+        this.onSelectAll(false); // Deselect all grid rows
+      }
     } else {
-      // 🔵 SELECT ALL: Include SELECT_ALL and all filter options
+      // 🔵 SELECT ALL: Include SELECT_ALL key + all column IDs
       this.selectedFilterIds = [
         'SELECT_ALL',
         ...this.filterOptions.map(opt => opt.id)
       ];
-      this.onSelectAll(true);
+      if (typeof this.onSelectAll === 'function') {
+        this.onSelectAll(true); // Select all grid rows
+      }
     }
   
     this.onFilterChange();
   }
+  
+  private normalizeSelectedFilters(ids: string[]): string[] {
+    // Clean 'SELECT_ALL' dummy string so it doesn't pollute column definitions
+    const nonSelectAll = (ids || []).filter(id => id !== 'SELECT_ALL');
+    const merged = [...this.mandatoryColumnIds, ...nonSelectAll];
+    return Array.from(new Set(merged));
+  }
+
+
+  // 2. Update customer-search-grid.component.html (image image_24.png)
+//Ensure the Select All <mat-option> is configured like this (without [selected] to avoid the Angular compiler error):
+
+<mat-option class="select-all-option"
+  [class.is-checked]="isAllColumnsSelected()"
+  [class.is-indeterminate]="isIndeterminateColumnsSelected()"
+  value="SELECT_ALL"
+  (click)="toggleSelectAll($event)">
+  Select All
+</mat-option>
