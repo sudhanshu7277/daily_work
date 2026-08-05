@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom'; // <--- ADD THIS IMPORT
 import React from 'react';
 import ApprovalQueuePage from '../ApprovalQueuePage';
 
@@ -76,30 +77,24 @@ describe('ApprovalQueuePage - Lines 1234-1285 (Manage Filters Modal Actions)', (
 
   it('renders check icon for default filter and "Set Default" button for non-default filter', async () => {
     await openManageFiltersModal();
-
-    // Verify Set Default button exists for pref-2 (isDefault: false)
     expect(screen.getByText('Set Default')).toBeInTheDocument();
   });
 
   it('loads filter preference state when "Load" button is clicked', async () => {
     await openManageFiltersModal();
-
     const loadButtons = screen.getAllByText('Load');
     expect(loadButtons.length).toBeGreaterThan(0);
-
     fireEvent.click(loadButtons[0]);
   });
 
   it('executes dynamic deleteFilterPref call and refreshes saved filters on delete action', async () => {
     await openManageFiltersModal();
-
     const deleteButtons = screen.getAllByRole('button').filter(btn =>
       btn.querySelector('[type="trash"]') || btn.innerHTML.includes('trash')
     );
 
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-
       await waitFor(() => {
         expect(mockDeleteFilterPref).toHaveBeenCalledWith('pref-1');
       });
@@ -121,7 +116,6 @@ describe('ApprovalQueuePage - Lines 1234-1285 (Manage Filters Modal Actions)', (
 
   it('closes Manage Filters modal when Close button is clicked', async () => {
     await openManageFiltersModal();
-
     const closeBtn = screen.getByRole('button', { name: /Close/i });
     fireEvent.click(closeBtn);
 
