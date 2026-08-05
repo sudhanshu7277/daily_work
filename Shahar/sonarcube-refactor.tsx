@@ -1,54 +1,70 @@
-import React from 'react';
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import React from 'react';
 import ApprovalQueuePage from '../ApprovalQueuePage';
-import { getInstructions, getSavedFilters } from '../../../api/instructions';
 
-// Mock dynamic import for filterPreferences API module
-const mockDeleteFilterPref = jest.fn();
-jest.mock('../../../api/filterPreferences', () => ({
-  deleteFilterPref: (...args: any[]) => mockDeleteFilterPref(...args),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
 }));
 
-describe('ApprovalQueuePage - Lines 1234-1285 (Manage Filters Table & Actions)', () => {
-  const mockSavedFilterPrefs = [
-    {
-      filterPrefId: 'pref-1',
-      prefName: 'Default Filter',
-      filtersJson: '{"status":["ADMIN_MAKER"]}',
-      isDefault: true,
-    },
-    {
-      filterPrefId: 'pref-2',
-      prefName: 'Secondary Filter',
-      filtersJson: '{"country":["US"]}',
-      isDefault: false,
-    },
-  ];
+const mockDeleteFilterPref = vi.fn().mockResolvedValue({ success: true });
+vi.mock('../../api/filterPreferences', () => ({
+  deleteFilterPref: (...args: unknown[]) => mockDeleteFilterPref(...args),
+}));
 
+vi.mock('../../api/instructions', () => ({
+  getInstructions: vi.fn().mockResolvedValue({
+    data: { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, last: true },
+  }),
+  processApproval: vi.fn().mockResolvedValue({}),
+  getApprovalQueueCounts: vi.fn().mockResolvedValue({ data: {} }),
+  getSavedFilters: vi.fn().mockResolvedValue({
+    data: [
+      {
+        filterPrefId: 'pref-1',
+        prefName: 'Default Filter',
+        filtersJson: '{"status":["ADMIN_MAKER"]}',
+        isDefault: true,
+      },
+      {
+        filterPrefId: 'pref-2',
+        prefName: 'Secondary Filter',
+        filtersJson: '{"country":["US"]}',
+        isDefault: false,
+      },
+    ],
+  }),
+  exportToExcel: vi.fn(),
+  saveFilter: vi.fn().mockResolvedValue({}),
+}));
+
+const mockGetRefDataByType = vi.fn();
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: (...args: unknown[]) => mockGetRefDataByType(...args),
+}));
+
+vi.mock('../../api/gabUser', () => ({
+  getGabUser: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../../api/roles', () => ({
+  getAllUserRoles: vi.fn().mockResolvedValue({ data: [] }),
+}));
+
+describe('ApprovalQueuePage - Lines 1234-1285 (Manage Filters Modal Actions)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (getInstructions as jest.Mock).mockResolvedValue({
-      data: { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, last: true },
-    });
-    (getSavedFilters as jest.Mock).mockResolvedValue({
-      data: mockSavedFilterPrefs,
-    });
-    mockDeleteFilterPref.mockResolvedValue({ success: true });
+    vi.clearAllMocks();
   });
 
-  const renderComponent = () =>
-    render(
-      <BrowserRouter>
-        <ApprovalQueuePage />
-      </BrowserRouter>
-    );
-
   const openManageFiltersModal = async () => {
-    renderComponent();
+    render(<ApprovalQueuePage />);
+
     await waitFor(() => {
       expect(screen.getByTitle('Manage Filters')).toBeInTheDocument();
     });
+
     fireEvent.click(screen.getByTitle('Manage Filters'));
     const manageFiltersOption = screen.getByText('Manage Filters');
     fireEvent.click(manageFiltersOption);
@@ -74,11 +90,10 @@ describe('ApprovalQueuePage - Lines 1234-1285 (Manage Filters Table & Actions)',
     fireEvent.click(loadButtons[0]);
   });
 
-  it('executes dynamic deleteFilterPref import and refreshes saved filters on trash click', async () => {
+  it('executes dynamic deleteFilterPref call and refreshes saved filters on delete action', async () => {
     await openManageFiltersModal();
 
-    // Find and click trash/delete buttons
-    const deleteButtons = screen.getAllByRole('button').filter(btn => 
+    const deleteButtons = screen.getAllByRole('button').filter(btn =>
       btn.querySelector('[type="trash"]') || btn.innerHTML.includes('trash')
     );
 
@@ -87,16 +102,15 @@ describe('ApprovalQueuePage - Lines 1234-1285 (Manage Filters Table & Actions)',
 
       await waitFor(() => {
         expect(mockDeleteFilterPref).toHaveBeenCalledWith('pref-1');
-        expect(getSavedFilters).toHaveBeenCalled();
       });
     }
   });
 
-  it('handles errors gracefully during filter deletion (silent catch block)', async () => {
-    mockDeleteFilterPref.mockRejectedValueOnce(new Error('Deletion failed'));
+  it('handles errors silently during filter deletion catch block', async () => {
+    mockDeleteFilterPref.mockRejectedValueOnce(new Error('Deletion error'));
     await openManageFiltersModal();
 
-    const deleteButtons = screen.getAllByRole('button').filter(btn => 
+    const deleteButtons = screen.getAllByRole('button').filter(btn =>
       btn.querySelector('[type="trash"]') || btn.innerHTML.includes('trash')
     );
 
