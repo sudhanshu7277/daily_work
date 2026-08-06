@@ -44,11 +44,12 @@ const formatDDMONYYYY = (dateStr: string): string => {
 
 // Also update formatMMDDYYYY (lines 162–169) if used:
 
-const formatMMDDYYYY = (dateStr: string): string => {
+const formatMMDDYYYY = (dateStr?: string): string => {
   if (!dateStr) return '-';
 
-  const rawDate = dateStr.split('T')[0].split(' ')[0];
-  const parts = rawDate.split('-');
+  // Clean string in case timestamp or space is attached
+  const cleanDate = dateStr.split('T')[0].split(' ')[0];
+  const parts = cleanDate.split('-');
 
   if (parts.length !== 3) return dateStr;
 
