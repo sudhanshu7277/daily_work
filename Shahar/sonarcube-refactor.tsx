@@ -19,12 +19,13 @@ const statusCodeToLabel = (code?: string): string => {
 
 // date day display fix
 const formatDDMONYYYY = (dateStr: string): string => {
+  console.log('dateStr : ', dateStr);
   if (!dateStr) return '-';
   const datePart = dateStr.split('T')[0];
   const [y, m, d] = datePart.split('-').map(Number);
   if (!y || !m || !d) return dateStr;
-  const adjusted = new Date(Date.UTC(y, m - 1, d + 1)); // safely rolls over month/year
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const dd = String(adjusted.getUTCDate()).padStart(2, '0');
-  return `${dd} ${months[adjusted.getUTCMonth()]} ${adjusted.getUTCFullYear()}`;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dd = String(d).padStart(2, '0');
+  return `${dd} ${months[m - 1]} ${y}`;
 };
+
