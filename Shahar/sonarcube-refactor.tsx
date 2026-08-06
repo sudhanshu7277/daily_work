@@ -21,11 +21,15 @@ const statusCodeToLabel = (code?: string): string => {
 const formatDDMONYYYY = (dateStr: string): string => {
   console.log('dateStr : ', dateStr);
   if (!dateStr) return '-';
-  const datePart = dateStr.split('T')[0];
-  const [y, m, d] = datePart.split('-').map(Number);
-  if (!y || !m || !d) return dateStr;
+
+  const cleanDate = dateStr.split('T')[0];
+  const [yearStr, monthStr, dayStr] = cleanDate.split('-');
+
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const dd = String(d).padStart(2, '0');
-  return `${dd} ${months[m - 1]} ${y}`;
+  const monthIndex = parseInt(monthStr, 10) - 1;
+
+  if (!yearStr || isNaN(monthIndex) || !months[monthIndex] || !dayStr) return dateStr;
+
+  return `${dayStr} ${months[monthIndex]} ${yearStr}`;
 };
 
