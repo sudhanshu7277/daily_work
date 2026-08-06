@@ -32,3 +32,18 @@
   width: 250,
   headerClass: 'shift-header-left'
 }
+
+
+// Case-Insensitive Variant (Optional)
+//If you want it to work regardless of capitalization (e.g., matching "has", "HAS", or "Has"):
+
+function removePrefixCaseInsensitive(text: string, prefix: string): string {
+  if (!text || !prefix) return text;
+
+  const regex = new RegExp(`^${prefix}\\s*`, 'i');
+  return text.replace(regex, '').trim();
+}
+
+// Example Usage:
+console.log(removePrefixCaseInsensitive('has POA General', 'Has')); // Output: "POA General"
+
