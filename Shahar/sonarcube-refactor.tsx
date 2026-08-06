@@ -18,16 +18,40 @@ const statusCodeToLabel = (code?: string): string => {
 
 
 // date day display fix
+
+
 const formatDDMONYYYY = (dateStr: string): string => {
   console.log('dateStr : ', dateStr);
   if (!dateStr) return '-';
 
-  const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`);
-  if (isNaN(d.getTime())) return dateStr;
+  // Clean string in case timestamp is attached (e.g., "2026-07-07T00:00:00")
+  const rawDate = dateStr.split('T')[0].split(' ')[0];
+  const parts = rawDate.split('-');
 
+  if (parts.length !== 3) return dateStr;
+
+  const [year, month, day] = parts;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const monthIdx = parseInt(month, 10) - 1;
 
-  return `${dd} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  if (isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) return dateStr;
+
+  // Matches "Jul 7, 2026" format shown in the UI
+  return `${months[monthIdx]} ${parseInt(day, 10)}, ${year}`;
 };
 
+
+
+// Also update formatMMDDYYYY (lines 162–169) if used:
+
+const formatMMDDYYYY = (dateStr: string): string => {
+  if (!dateStr) return '-';
+
+  const rawDate = dateStr.split('T')[0].split(' ')[0];
+  const parts = rawDate.split('-');
+
+  if (parts.length !== 3) return dateStr;
+
+  const [year, month, day] = parts;
+  return `${month}/${day}/${year}`;
+};
