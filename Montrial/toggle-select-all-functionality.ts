@@ -1,41 +1,68 @@
-// fixing ProfileName column width
+// Step 1: Update Column Definitions in customer-search-grid.component.ts
+///Replace hardcoded width and flex: 1 properties with minWidth on the affected columns so AG Grid can dynamically expand them:
 
-private adjustProfileNameColumnWidth(data: any[]): void {
-  if (!this.gridApi || !data?.length) return;
+// Line 395: Profile Name column
+{
+  headerName: '',
+  field: 'profileName',
+  sortable: true,
+  comparator: () => 0,
+  minWidth: 180, // Remove 'flex: 1' or hardcoded 'width'
+  cellRenderer: NameCellComponent,
+  cellRendererParams: { ... },
+  headerComponent: NameHeaderComponent,
+  headerComponentParams: { ... }
+},
 
-  // Find the longest name string
-  const maxNameLength = data.reduce((max, row) => {
-    const len = (row.profileName || '').length;
-    return len > max ? len : max;
-  }, 0);
-
-  // Base padding: ~40px for checkbox, ~30px for dropdown arrow, ~30px cell padding
-  const padding = 100;
-  const approxFontCharWidth = 8.5; // pixels per character at ~14px font size
-
-  const calculatedWidth = Math.max(180, Math.ceil(maxNameLength * approxFontCharWidth) + padding);
-
-  // Set column width dynamically
-  this.gridApi.setColumnWidths([
-    { key: 'profileName', newWidth: calculatedWidth }
-  ]);
-}
-
-// Method 2: Enable Header Text Wrapping (Responsive Fix)
-//If you want to preserve tighter column widths without truncating text, enable header wrapping directly on those columns (or in your defaultColDef):
-
+// Line 432: Customer Lifecycle Status column
 { 
   headerName: 'Customer Lifecycle Status', 
   field: 'lifecycle', 
-  width: 190, 
-  wrapHeaderText: true, 
-  autoHeaderHeight: true 
+  minWidth: 220 // Changed from fixed width: 190
 },
 
+// Line 447: eDiscovery Project Manager column
 { 
   headerName: 'eDiscovery Project Manager', 
   field: 'eDiscoveryProjectManager', 
-  width: 200, 
-  wrapHeaderText: true, 
-  autoHeaderHeight: true 
-},
+  minWidth: 240 // Changed from fixed width: 200
+}
+
+
+// Step 2: Add the Auto-Sizing Helper Method
+//Add this method to CustomerSearchGridComponent:
+
+/**
+ * Dynamically adjusts all visible column widths based on cell content AND header text length.
+ */
+autoSizeAllColumnsWithHeader(): void {
+  if (!this.gridApi) return;
+
+  // Passing 'false' instructs AG Grid NOT to skip the header,
+  // forcing it to calculate width based on the header text length.
+  setTimeout(() => {
+    this.gridApi.autoSizeAllColumns(false);
+  }, 0);
+}
+
+
+// Step 3: Trigger Auto-Sizing on Grid Initialization and Filter Changes
+// Call autoSizeAllColumnsWithHeader() in onGridReady, onFirstDataRendered, and inside onFilterChange():
+
+onGridReady(e: GridReadyEvent): void {
+  this.gridApi = e.api;
+  this.autoSizeAllColumnsWithHeader();
+}
+
+onFirstDataRendered(e: FirstDataRenderedEvent): void {
+  this.autoSizeAllColumnsWithHeader();
+}
+
+onFilterChange(): void {
+  this.selectedFilterIds = this.normalizeSelectedFilters(this.selectedFilterIds);
+  this.syncColumns();
+  this.cdr.detectChanges();
+
+  // Recalculate column widths whenever visible columns change
+  this.autoSizeAllColumnsWithHeader();
+}
