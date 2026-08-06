@@ -1,68 +1,34 @@
-// Step 1: Update Column Definitions in customer-search-grid.component.ts
-///Replace hardcoded width and flex: 1 properties with minWidth on the affected columns so AG Grid can dynamically expand them:
+// Option 2: Selective Styling via headerClass
+//If you only want to shift specific headers (like Customer Lifecycle Status and eDiscovery Project Manager), define a utility class in SCSS and apply it in your column definitions.
 
-// Line 395: Profile Name column
-{
-  headerName: '',
-  field: 'profileName',
-  sortable: true,
-  comparator: () => 0,
-  minWidth: 180, // Remove 'flex: 1' or hardcoded 'width'
-  cellRenderer: NameCellComponent,
-  cellRendererParams: { ... },
-  headerComponent: NameHeaderComponent,
-  headerComponentParams: { ... }
-},
+// 1. Add class to customer-search-grid.component.scss:
 
-// Line 432: Customer Lifecycle Status column
+::ng-deep .shift-header-left {
+  .ag-header-cell-label {
+    justify-content: flex-start !important;
+    padding-left: 2px !important;
+  }
+  .ag-header-cell-text {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+}
+
+
+// 2. Apply headerClass in customer-search-grid.component.ts:
+
+// Line 432
 { 
   headerName: 'Customer Lifecycle Status', 
   field: 'lifecycle', 
-  minWidth: 220 // Changed from fixed width: 190
+  width: 220,
+  headerClass: 'shift-header-left'
 },
 
-// Line 447: eDiscovery Project Manager column
+// Line 447
 { 
   headerName: 'eDiscovery Project Manager', 
   field: 'eDiscoveryProjectManager', 
-  minWidth: 240 // Changed from fixed width: 200
-}
-
-
-// Step 2: Add the Auto-Sizing Helper Method
-//Add this method to CustomerSearchGridComponent:
-
-/**
- * Dynamically adjusts all visible column widths based on cell content AND header text length.
- */
-autoSizeAllColumnsWithHeader(): void {
-  if (!this.gridApi) return;
-
-  // Passing 'false' instructs AG Grid NOT to skip the header,
-  // forcing it to calculate width based on the header text length.
-  setTimeout(() => {
-    this.gridApi.autoSizeAllColumns(false);
-  }, 0);
-}
-
-
-// Step 3: Trigger Auto-Sizing on Grid Initialization and Filter Changes
-// Call autoSizeAllColumnsWithHeader() in onGridReady, onFirstDataRendered, and inside onFilterChange():
-
-onGridReady(e: GridReadyEvent): void {
-  this.gridApi = e.api;
-  this.autoSizeAllColumnsWithHeader();
-}
-
-onFirstDataRendered(e: FirstDataRenderedEvent): void {
-  this.autoSizeAllColumnsWithHeader();
-}
-
-onFilterChange(): void {
-  this.selectedFilterIds = this.normalizeSelectedFilters(this.selectedFilterIds);
-  this.syncColumns();
-  this.cdr.detectChanges();
-
-  // Recalculate column widths whenever visible columns change
-  this.autoSizeAllColumnsWithHeader();
+  width: 250,
+  headerClass: 'shift-header-left'
 }
