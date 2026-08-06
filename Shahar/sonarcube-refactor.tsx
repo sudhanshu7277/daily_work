@@ -22,14 +22,12 @@ const formatDDMONYYYY = (dateStr: string): string => {
   console.log('dateStr : ', dateStr);
   if (!dateStr) return '-';
 
-  const cleanDate = dateStr.split('T')[0];
-  const [yearStr, monthStr, dayStr] = cleanDate.split('-');
+  const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`);
+  if (isNaN(d.getTime())) return dateStr;
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthIndex = parseInt(monthStr, 10) - 1;
+  const dd = String(d.getUTCDate()).padStart(2, '0');
 
-  if (!yearStr || isNaN(monthIndex) || !months[monthIndex] || !dayStr) return dateStr;
-
-  return `${dayStr} ${months[monthIndex]} ${yearStr}`;
+  return `${dd} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 };
 
