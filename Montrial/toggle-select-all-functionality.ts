@@ -34,16 +34,27 @@
 }
 
 
-// Case-Insensitive Variant (Optional)
-//If you want it to work regardless of capitalization (e.g., matching "has", "HAS", or "Has"):
+// Here is the updated function with an internal list of prefixes. You can add any additional words to the prefixesToRemove array in the future.
 
-function removePrefixCaseInsensitive(text: string, prefix: string): string {
-  if (!text || !prefix) return text;
+function cleanResponseText(text: string): string {
+  if (!text) return text;
 
-  const regex = new RegExp(`^${prefix}\\s*`, 'i');
+  // Add any words you want removed from the start of the text here
+  const prefixesToRemove = ['Has', 'Is', 'With'];
+
+  // Escape special regex characters in case prefixes contain symbols
+  const escapedPrefixes = prefixesToRemove.map(prefix =>
+    prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  );
+
+  // Matches any prefix from the array at the start of the string (^), case-insensitive ('i')
+  const regex = new RegExp(`^(${escapedPrefixes.join('|')})\\s*`, 'i');
+
   return text.replace(regex, '').trim();
 }
 
 // Example Usage:
-console.log(removePrefixCaseInsensitive('has POA General', 'Has')); // Output: "POA General"
-
+console.log(cleanResponseText('has POA General')); // Output: "POA General"
+console.log(cleanResponseText('Has POA General')); // Output: "POA General"
+console.log(cleanResponseText('is Active'));      // Output: "Active"
+console.log(cleanResponseText('POA General'));     // Output: "POA General"
