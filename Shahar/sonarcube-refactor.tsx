@@ -79,28 +79,17 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/pages/intakeChannels/IntakeChannelsPage.test.tsx
+// src/pages/refdata/ReferenceDataPage.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import IntakeChannelsPage from './IntakeChannelsPage';
+import ReferenceDataPage from './ReferenceDataPage';
+import { getRefDataByType } from '../../api/refdata';
 
-vi.mock('../aws-sync/AwsTicklerSyncPage', () => ({
-  default: () => <div data-testid="aws-sync-page">AWS Tickler Sync Page Content</div>,
-}));
-
-vi.mock('../emailIntake/EmailIntakeAuditPage', () => ({
-  default: () => <div data-testid="email-intake-page">Email Intake Page Content</div>,
-}));
-
-vi.mock('../citiSftIntake/CitiSftIntakeAuditPage', () => ({
-  default: () => <div data-testid="citisft-intake-page">CitiSFT Intake Page Content</div>,
-}));
-
-vi.mock('../tickler/TicklerTaskPage', () => ({
-  default: () => <div data-testid="tickler-tasks-page">Tickler Tasks Page Content</div>,
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: vi.fn(),
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', () => ({
@@ -109,77 +98,131 @@ vi.mock('@citi-icg-172888/icgds-react', () => ({
       {children}
     </div>
   ),
-  Icon: ({ type, className, style }: any) => (
-    <span data-testid={`icon-${type}`} className={className} style={style} />
+  Icon: ({ type, style, className }: any) => (
+    <span data-testid={`icon-${type}`} style={style} className={className} />
   ),
-  Card: ({ children, onClick, className, layer }: any) => (
-    <div
-      data-testid="channel-card"
-      data-layer={layer}
-      className={className}
-      onClick={onClick}
-    >
-      {children}
-    </div>
+  Card: Object.assign(
+    ({ children, className }: any) => <div className={className}>{children}</div>,
+    {
+      header: ({ children }: any) => <div data-testid="card-header">{children}</div>,
+      body: ({ children }: any) => <div data-testid="card-body">{children}</div>,
+    }
+  ),
+  Loading: ({ tip }: any) => <div data-testid="loading-indicator">{tip}</div>,
+  Alert: ({ children, type }: any) => <div data-testid="alert-error" data-type={type}>{children}</div>,
+  Dropdown: Object.assign(
+    ({ children, value, onChange, placeholder }: any) => (
+      <select
+        data-testid="ref-type-dropdown"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {children}
+      </select>
+    ),
+    {
+      Item: ({ children, value }: any) => <option value={value}>{children}</option>,
+    }
   ),
 }));
 
-describe('IntakeChannelsPage Component', () => {
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => {
+    const activeCol = columnDefs?.find((col: any) => col.field === 'isActive');
+    return (
+      <div data-testid="ag-grid">
+        <span data-testid="grid-row-count">{rowData?.length}</span>
+        {rowData?.map((row: any, idx: number) => (
+          <div key={row.refId || idx} data-testid={`grid-row-${idx}`}>
+            <span>{row.refCode}</span>
+            <div data-testid={`active-cell-${idx}`}>
+              {activeCol?.cellRenderer ? activeCol.cellRenderer({ value: row.isActive }) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  },
+}));
+
+describe('ReferenceDataPage Component', () => {
+  const mockRefData = [
+    {
+      refId: 101,
+      refType: 'CURRENCY',
+      refCode: 'USD',
+      refValue: 'US Dollar',
+      description: 'United States Dollar',
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      refId: 102,
+      refType: 'CURRENCY',
+      refCode: 'EUR',
+      refValue: 'Euro',
+      description: 'Euro Currency',
+      isActive: false,
+      sortOrder: 2,
+    },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders title and all 4 channel cards initially with no active channel content', () => {
-    render(<IntakeChannelsPage />);
+  it('renders heading and dropdown options', () => {
+    render(<ReferenceDataPage />);
 
-    expect(screen.getByRole('heading', { level: 2, name: /intake channels/i })).toBeInTheDocument();
-    expect(screen.getByTestId('icon-inbox')).toBeInTheDocument();
-
-    expect(screen.getByText('AWS Tickler Sync')).toBeInTheDocument();
-    expect(screen.getByText('Email Intake')).toBeInTheDocument();
-    expect(screen.getByText('CitiSFT Intake')).toBeInTheDocument();
-    expect(screen.getByText('Tickler Tasks')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('aws-sync-page')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('email-intake-page')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('citisft-intake-page')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('tickler-tasks-page')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /reference data/i })).toBeInTheDocument();
+    expect(screen.getByTestId('ref-type-dropdown')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'CURRENCY' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'COUNTRY' })).toBeInTheDocument();
   });
 
-  it('activates channel component when channel card is clicked', () => {
-    render(<IntakeChannelsPage />);
+  it('fetches and displays reference data when a type is selected', async () => {
+    vi.mocked(getRefDataByType).mockResolvedValue({ data: mockRefData } as any);
 
-    const awsCard = screen.getByText('AWS Tickler Sync').closest('[data-testid="channel-card"]');
-    expect(awsCard).toBeInTheDocument();
+    render(<ReferenceDataPage />);
 
-    fireEvent.click(awsCard!);
+    const select = screen.getByTestId('ref-type-dropdown');
 
-    expect(screen.getByTestId('aws-sync-page')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.change(select, { target: { value: 'CURRENCY' } });
+    });
+
+    expect(getRefDataByType).toHaveBeenCalledWith('CURRENCY');
+    expect(await screen.findByTestId('card-header')).toHaveTextContent('CURRENCY (2 records)');
+    expect(screen.getByTestId('ag-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+
+    expect(screen.getByTestId('icon-check-circle')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-x-circle')).toBeInTheDocument();
   });
 
-  it('switches active channel component when another channel card is clicked', () => {
-    render(<IntakeChannelsPage />);
+  it('renders empty state message when no records are returned', async () => {
+    vi.mocked(getRefDataByType).mockResolvedValue({ data: [] } as any);
 
-    const emailCard = screen.getByText('Email Intake').closest('[data-testid="channel-card"]');
-    const citisftCard = screen.getByText('CitiSFT Intake').closest('[data-testid="channel-card"]');
+    render(<ReferenceDataPage />);
 
-    fireEvent.click(emailCard!);
-    expect(screen.getByTestId('email-intake-page')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('ref-type-dropdown'), { target: { value: 'REGION' } });
+    });
 
-    fireEvent.click(citisftCard!);
-    expect(screen.queryByTestId('email-intake-page')).not.toBeInTheDocument();
-    expect(screen.getByTestId('citisft-intake-page')).toBeInTheDocument();
+    expect(await screen.findByText(/no reference data found for type "REGION"/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('ag-grid')).not.toBeInTheDocument();
   });
 
-  it('deselects and hides channel content when clicking an already active channel card', () => {
-    render(<IntakeChannelsPage />);
+  it('renders error alert on fetch failure', async () => {
+    vi.mocked(getRefDataByType).mockRejectedValue(new Error('Fetch failed'));
 
-    const tasksCard = screen.getByText('Tickler Tasks').closest('[data-testid="channel-card"]');
+    render(<ReferenceDataPage />);
 
-    fireEvent.click(tasksCard!);
-    expect(screen.getByTestId('tickler-tasks-page')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('ref-type-dropdown'), { target: { value: 'PRIORITY' } });
+    });
 
-    fireEvent.click(tasksCard!);
-    expect(screen.queryByTestId('tickler-tasks-page')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('alert-error')).toHaveTextContent('Failed to load reference data');
   });
 });
