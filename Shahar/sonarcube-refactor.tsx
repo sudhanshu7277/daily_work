@@ -246,36 +246,52 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/components/common/PriorityTag.test.tsx
+// src/components/common/RadioGroup.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import PriorityTag from './PriorityTag';
-import { priorityColor } from '../../utils/format';
+import RadioGroup from './RadioGroup';
 
-vi.mock('@citi-icg-172888/icgds-react', () => ({
-  Tag: ({ children, color, className }: any) => (
-    <span data-testid="priority-tag" data-color={color} className={className}>
-      {children}
-    </span>
-  ),
-}));
+describe('RadioGroup Component', () => {
+  const options = [
+    { id: '1', label: 'Option A', value: 'a' },
+    { id: '2', label: 'Option B', value: 'b' },
+  ];
 
-vi.mock('../../utils/format', () => ({
-  priorityColor: vi.fn((priority) => `color-for-${priority}`),
-}));
+  it('renders radio options and checks the selected value', () => {
+    render(
+      <RadioGroup
+        options={options}
+        selectedValue="a"
+        onChange={vi.fn()}
+      />
+    );
 
-describe('PriorityTag Component', () => {
-  it('renders priority label and passes mapped color and className', () => {
-    render(<PriorityTag priority={'HIGH' as any} />);
+    const radioA = screen.getByLabelText('Option A') as HTMLInputElement;
+    const radioB = screen.getByLabelText('Option B') as HTMLInputElement;
 
-    const tag = screen.getByTestId('priority-tag');
-    expect(tag).toBeInTheDocument();
-    expect(tag).toHaveTextContent('HIGH');
-    expect(priorityColor).toHaveBeenCalledWith('HIGH');
-    expect(tag).toHaveAttribute('data-color', 'color-for-HIGH');
-    expect(tag).toHaveClass('lmn-mx-4px');
+    expect(radioA).toBeInTheDocument();
+    expect(radioB).toBeInTheDocument();
+    expect(radioA.checked).toBe(true);
+    expect(radioB.checked).toBe(false);
+  });
+
+  it('triggers onChange with the selected option value', () => {
+    const handleChange = vi.fn();
+
+    render(
+      <RadioGroup
+        options={options}
+        selectedValue="a"
+        onChange={handleChange}
+      />
+    );
+
+    const radioB = screen.getByLabelText('Option B');
+    fireEvent.click(radioB);
+
+    expect(handleChange).toHaveBeenCalledWith('b');
   });
 });
