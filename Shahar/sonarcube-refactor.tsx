@@ -246,244 +246,36 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// ilterPresetBar.test.tsx
+// src/components/common/PriorityTag.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FilterPresetBar } from './FilterPresetBar';
-import {
-  listFilterPrefs,
-  saveFilterPref,
-  deleteFilterPref,
-} from '../../api/filterPreferences';
-import {
-  serializeFilters,
-  deserializeFilters,
-} from '../../utils/filterSerialization';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import PriorityTag from './PriorityTag';
+import { priorityColor } from '../../utils/format';
 
 vi.mock('@citi-icg-172888/icgds-react', () => ({
-  El: ({ children, className }: any) => <div className={className}>{children}</div>,
-  Dropdown: Object.assign(
-    ({ children, value, onChange, placeholder }: any) => (
-      <select
-        data-testid="dropdown"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{placeholder}</option>
-        {children}
-      </select>
-    ),
-    {
-      Item: ({ children, value }: any) => <option value={value}>{children}</option>,
-    },
-  ),
-  Input: ({ placeholder, value, onChange }: any) => (
-    <input
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      data-testid="view-name-input"
-    />
-  ),
-  Button: ({ children, onClick, disabled }: any) => (
-    <button onClick={onClick} disabled={disabled}>
+  Tag: ({ children, color, className }: any) => (
+    <span data-testid="priority-tag" data-color={color} className={className}>
       {children}
-    </button>
+    </span>
   ),
 }));
 
-vi.mock('../../api/filterPreferences', () => ({
-  listFilterPrefs: vi.fn(),
-  saveFilterPref: vi.fn(),
-  deleteFilterPref: vi.fn(),
+vi.mock('../../utils/format', () => ({
+  priorityColor: vi.fn((priority) => `color-for-${priority}`),
 }));
 
-vi.mock('../../utils/filterSerialization', () => ({
-  serializeFilters: vi.fn((filters) => JSON.stringify(filters)),
-  deserializeFilters: vi.fn((json) => (json ? JSON.parse(json) : {})),
-}));
+describe('PriorityTag Component', () => {
+  it('renders priority label and passes mapped color and className', () => {
+    render(<PriorityTag priority={'HIGH' as any} />);
 
-describe('FilterPresetBar Component', () => {
-  const defaultProps = {
-    pageKey: 'test-page',
-    currentFilters: { status: 'ACTIVE' },
-    dateFields: ['createdAt'],
-    onApply: vi.fn(),
-  };
-
-  const mockPrefs = [
-    {
-      filterPrefId: 1,
-      pageKey: 'test-page',
-      prefName: 'View 1',
-      filtersJson: '{"status":"ACTIVE"}',
-      isDefault: false,
-    },
-    {
-      filterPrefId: 2,
-      pageKey: 'test-page',
-      prefName: 'View 2',
-      filtersJson: '{"status":"COMPLETED"}',
-      isDefault: true,
-    },
-  ];
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('loads preferences on mount and automatically applies default preference', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValueOnce({ data: mockPrefs } as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    expect(listFilterPrefs).toHaveBeenCalledWith('test-page');
-    expect(deserializeFilters).toHaveBeenCalledWith('{"status":"COMPLETED"}', ['createdAt']);
-    expect(defaultProps.onApply).toHaveBeenCalledWith({ status: 'COMPLETED' });
-    expect(screen.getByRole('option', { name: 'View 2 (default)' })).toBeInTheDocument();
-  });
-
-  it('handles empty preference list response safely', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValueOnce({ data: undefined } as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    expect(listFilterPrefs).toHaveBeenCalledWith('test-page');
-    expect(defaultProps.onApply).not.toHaveBeenCalled();
-  });
-
-  it('applies selected filter preset when dropdown changes', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValue({ data: mockPrefs } as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    const dropdown = screen.getByTestId('dropdown');
-
-    await act(async () => {
-      fireEvent.change(dropdown, { target: { value: '1' } });
-    });
-
-    expect(deserializeFilters).toHaveBeenCalledWith('{"status":"ACTIVE"}', ['createdAt']);
-    expect(defaultProps.onApply).toHaveBeenCalledWith({ status: 'ACTIVE' });
-  });
-
-  it('ignores invalid or non-numeric selection in dropdown', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValue({ data: mockPrefs } as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    defaultProps.onApply.mockClear();
-
-    const dropdown = screen.getByTestId('dropdown');
-
-    await act(async () => {
-      fireEvent.change(dropdown, { target: { value: 'invalid-id' } });
-    });
-
-    expect(defaultProps.onApply).not.toHaveBeenCalled();
-  });
-
-  it('does not trigger save view if view name input is empty or whitespace', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValue({ data: [] } as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    const saveButton = screen.getByRole('button', { name: 'Save view' });
-
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
-
-    expect(saveFilterPref).not.toHaveBeenCalled();
-  });
-
-  it('saves view with name and checkbox selection then reloads preferences', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValue({ data: [] } as any);
-    vi.mocked(saveFilterPref).mockResolvedValueOnce({} as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    const input = screen.getByPlaceholderText('View name');
-    const checkbox = screen.getByRole('checkbox', { name: 'Set as default' });
-    const saveButton = screen.getByRole('button', { name: 'Save view' });
-
-    fireEvent.change(input, { target: { value: '   My New View   ' } });
-    fireEvent.click(checkbox);
-
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
-
-    expect(serializeFilters).toHaveBeenCalledWith({ status: 'ACTIVE' });
-    expect(saveFilterPref).toHaveBeenCalledWith({
-      pageKey: 'test-page',
-      prefName: 'My New View',
-      filtersJson: '{"status":"ACTIVE"}',
-      isDefault: true,
-    });
-    expect(input).toHaveValue('');
-    expect(checkbox).not.toBeChecked();
-    expect(listFilterPrefs).toHaveBeenCalledTimes(2);
-  });
-
-  it('deletes selected preset and reloads preferences', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValue({ data: mockPrefs } as any);
-    vi.mocked(deleteFilterPref).mockResolvedValueOnce({} as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    const deleteButton = screen.getByRole('button', { name: 'Delete' });
-    expect(deleteButton).not.toBeDisabled();
-
-    await act(async () => {
-      fireEvent.click(deleteButton);
-    });
-
-    expect(deleteFilterPref).toHaveBeenCalledWith(2);
-    expect(listFilterPrefs).toHaveBeenCalledTimes(2);
-  });
-
-  it('does not call delete when no preset is selected', async () => {
-    vi.mocked(listFilterPrefs).mockResolvedValue({
-      data: [
-        {
-          filterPrefId: 1,
-          pageKey: 'test-page',
-          prefName: 'View 1',
-          filtersJson: '{"status":"ACTIVE"}',
-          isDefault: false,
-        },
-      ],
-    } as any);
-
-    await act(async () => {
-      render(<FilterPresetBar {...defaultProps} />);
-    });
-
-    const deleteButton = screen.getByRole('button', { name: 'Delete' });
-    expect(deleteButton).toBeDisabled();
-
-    await act(async () => {
-      fireEvent.click(deleteButton);
-    });
-
-    expect(deleteFilterPref).not.toHaveBeenCalled();
+    const tag = screen.getByTestId('priority-tag');
+    expect(tag).toBeInTheDocument();
+    expect(tag).toHaveTextContent('HIGH');
+    expect(priorityColor).toHaveBeenCalledWith('HIGH');
+    expect(tag).toHaveAttribute('data-color', 'color-for-HIGH');
+    expect(tag).toHaveClass('lmn-mx-4px');
   });
 });
