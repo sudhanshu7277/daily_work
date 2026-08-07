@@ -101,7 +101,7 @@ if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
   };
 }
 
-// 2. Mock pdfjs-dist library completely
+// 2. Mock pdfjs-dist library
 vi.mock('pdfjs-dist', () => ({
   default: {
     getDocument: vi.fn(),
@@ -147,8 +147,9 @@ import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
 
 describe('VerifyPaymentDetailModal Component', () => {
   it('renders without crashing', () => {
+    const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
     const { container } = render(
-      <VerifyPaymentDetailModal isOpen={true} show={true} visible={true} data={{}} />
+      <ModalComponent isOpen={true} show={true} visible={true} data={{}} />
     );
     expect(container).toBeInTheDocument();
   });
