@@ -79,45 +79,30 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/pages/tickler/TicklerTaskPage.test.tsx
+// src/pages/whitelist/WhitelistManagementPage.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import TicklerTaskPage from './TicklerTaskPage';
-import { createTask, getTasksByAssignee, getTasksByRegion, completeTask, getPendingCount } from '../../api/tickler';
-import { getRefDataByType } from '../../api/refdata';
+import WhitelistManagementPage from './WhitelistManagementPage';
+import { getActiveWhitelist, checkDomain, addDomain, deactivateDomain } from '../../api/whitelist';
+import { fetchGabUser } from '../../api/gabUser';
 import { notification } from '@citi-icg-172888/icgds-react';
 
-const mockNavigate = vi.fn();
-
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
+vi.mock('../../api/whitelist', () => ({
+  getActiveWhitelist: vi.fn(),
+  checkDomain: vi.fn(),
+  addDomain: vi.fn(),
+  deactivateDomain: vi.fn(),
 }));
 
-vi.mock('../../api/tickler', () => ({
-  createTask: vi.fn(),
-  getTasksByAssignee: vi.fn(),
-  getTasksByRegion: vi.fn(),
-  completeTask: vi.fn(),
-  getPendingCount: vi.fn(),
-}));
-
-vi.mock('../../api/refdata', () => ({
-  getRefDataByType: vi.fn(),
-}));
-
-vi.mock('../../utils/auth', () => ({
-  getUserId: () => 'USER123',
+vi.mock('../../api/gabUser', () => ({
+  fetchGabUser: vi.fn(),
 }));
 
 vi.mock('../../utils/format', () => ({
-  formatDate: (val: string) => `Formatted:${val}`,
-}));
-
-vi.mock('../../components/common/PriorityTag', () => ({
-  default: ({ priority }: any) => <span data-testid="priority-tag">{priority}</span>,
+  formatDateTime: (d: string) => `FormattedDate:${d}`,
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', () => {
@@ -131,268 +116,262 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
     El: ({ children, className, style }: any) => (
       <div className={className} style={style}>{children}</div>
     ),
-    Icon: ({ type, className }: any) => (
-      <span data-testid={`icon-${type}`} className={className} />
+    Icon: ({ type, className, style }: any) => (
+      <span data-testid={`icon-${type}`} className={className} style={style} />
     ),
-    Button: ({ children, onClick, color }: any) => (
-      <button data-color={color} onClick={onClick}>{children}</button>
+    Button: ({ children, onClick, color, size }: any) => (
+      <button data-color={color} data-size={size} onClick={onClick}>{children}</button>
     ),
-    Input: ({ value, onChange, placeholder, type }: any) => (
+    Input: ({ value, onChange, placeholder }: any) => (
       <input
-        type={type || 'text'}
-        placeholder={placeholder}
-        value={value ?? ''}
-        onChange={onChange}
-      />
-    ),
-    TextArea: ({ value, onChange, placeholder }: any) => (
-      <textarea
         placeholder={placeholder}
         value={value ?? ''}
         onChange={onChange}
       />
     ),
     Card: Object.assign(
-      ({ children, className }: any) => <div className={className}>{children}</div>,
+      ({ children }: any) => <div>{children}</div>,
       { body: ({ children }: any) => <div data-testid="card-body">{children}</div> }
     ),
     Loading: ({ tip }: any) => <div data-testid="loading-indicator">{tip}</div>,
-    Alert: ({ children, type }: any) => <div data-testid="alert-error" data-type={type}>{children}</div>,
-    Modal: ({ children, visible, onCancel, onApply, applyText, title }: any) =>
+    Alert: ({ children, type }: any) => <div data-testid="alert-message" data-type={type}>{children}</div>,
+    Modal: ({ children, visible, onCancel, onApply, title }: any) =>
       visible ? (
         <div data-testid="modal">
-          <h2>{title}</h2>
-          <div data-testid="modal-content">{children}</div>
+          <h3>{title}</h3>
+          <div>{children}</div>
           <button data-testid="modal-cancel-btn" onClick={onCancel}>Cancel</button>
-          <button data-testid="modal-apply-btn" onClick={onApply}>{applyText}</button>
+          <button data-testid="modal-apply-btn" onClick={onApply}>Apply</button>
         </div>
       ) : null,
-    Dropdown: Object.assign(
-      ({ children, value, onChange, placeholder }: any) => (
-        <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} data-testid="dropdown">
-          {placeholder && <option value="">{placeholder}</option>}
-          {children}
-        </select>
-      ),
-      { Item: ({ children, value }: any) => <option value={value}>{children}</option> }
-    ),
-    Tab: Object.assign(
-      ({ children, activeKey, onChange }: any) => (
-        <div>
-          <div data-testid="tab-headers">
-            {React.Children.map(children, (child: any) => (
-              <button
-                key={child.key || child.props.key}
-                data-testid={`tab-${child.key || child.props.key}`}
-                onClick={() => onChange(child.key || child.props.key)}
-              >
-                {child.props.tab}
-              </button>
+    Table: ({ data, columns }: any) => (
+      <table data-testid="whitelist-table">
+        <thead>
+          <tr>
+            {columns?.map((col: any) => (
+              <th key={col.key || col.dataIndex}>{col.title}</th>
             ))}
-          </div>
-          <div>
-            {React.Children.map(children, (child: any) =>
-              (child.key || child.props.key) === activeKey ? child.props.children : null
-            )}
-          </div>
-        </div>
-      ),
-      { TabPane: ({ children }: any) => <div>{children}</div> }
+          </tr>
+        </thead>
+        <tbody>
+          {data?.map((row: any, rowIndex: number) => (
+            <tr key={row.key || rowIndex} data-testid={`row-${rowIndex}`}>
+              {columns?.map((col: any) => (
+                <td key={col.key || col.dataIndex} data-testid={`cell-${col.key || col.dataIndex}-${rowIndex}`}>
+                  {col.render
+                    ? col.render(row[col.dataIndex], row)
+                    : String(row[col.dataIndex] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     ),
   };
 });
 
-vi.mock('ag-grid-react', () => ({
-  AgGridReact: ({ rowData, columnDefs }: any) => {
-    const instCol = columnDefs?.find((c: any) => c.field === 'instructionId');
-    const priorityCol = columnDefs?.find((c: any) => c.field === 'priority');
-    const actionsCol = columnDefs?.find((c: any) => c.colId === 'actions');
-
-    return (
-      <div data-testid="ag-grid">
-        {rowData?.map((row: any, idx: number) => (
-          <div key={row.taskId || idx} data-testid={`grid-row-${idx}`}>
-            <span data-testid={`task-id-${idx}`}>{row.taskId}</span>
-            <div data-testid={`instruction-cell-${idx}`}>
-              {instCol?.cellRenderer ? instCol.cellRenderer({ value: row.instructionId }) : null}
-            </div>
-            <div data-testid={`priority-cell-${idx}`}>
-              {priorityCol?.cellRenderer ? priorityCol.cellRenderer({ value: row.priority }) : null}
-            </div>
-            <div data-testid={`actions-cell-${idx}`}>
-              {actionsCol?.cellRenderer ? actionsCol.cellRenderer({ data: row }) : null}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  },
-}));
-
-describe('TicklerTaskPage Component', () => {
-  const mockTasks = [
+describe('WhitelistManagementPage Component', () => {
+  const mockWhitelistData = [
     {
-      taskId: 1,
-      instructionId: 5001,
-      taskDescription: 'Review payment details',
-      assignedTo: 'USER123',
-      priority: 'HIGH',
-      region: 'NAM',
-      dueDate: '2026-08-15',
-      completedOn: null,
+      whitelistId: 101,
+      domainName: 'citi.com',
+      description: 'Corporate domain',
+      createdBy: 'USER1',
+      modifiedBy: 'USER2',
+      createdOn: '2026-01-15T10:00:00Z',
+      isActive: true,
     },
     {
-      taskId: 2,
-      instructionId: 5002,
-      taskDescription: 'Completed task',
-      assignedTo: 'USER123',
-      priority: 'LOW',
-      region: 'EMEA',
-      dueDate: '2026-08-10',
-      completedOn: '2026-08-11',
+      whitelistId: 102,
+      domainName: 'partner.org',
+      description: 'Partner domain',
+      createdBy: 'SYSTEM',
+      updatedBy: 'USER1',
+      createdOn: '2026-02-01T12:00:00Z',
+      isActive: false,
     },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getTasksByAssignee).mockResolvedValue({ data: mockTasks } as any);
-    vi.mocked(getPendingCount).mockResolvedValue({ data: 3 } as any);
-    vi.mocked(getRefDataByType).mockResolvedValue({
-      data: [
-        { refCode: 'NAM', refValue: 'North America' },
-        { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
-      ],
-    } as any);
-  });
-
-  it('renders heading and loads initial tasks and pending count', async () => {
-    render(<TicklerTaskPage />);
-
-    expect(await screen.findByRole('heading', { level: 2, name: /tickler tasks/i })).toBeInTheDocument();
-    expect(screen.getByText('(3 pending)')).toBeInTheDocument();
-    expect(screen.getByTestId('ag-grid')).toBeInTheDocument();
-
-    expect(getTasksByAssignee).toHaveBeenCalledWith('USER123');
-    expect(getPendingCount).toHaveBeenCalled();
-    expect(getRefDataByType).toHaveBeenCalledWith('REGION');
-  });
-
-  it('navigates to instruction details when clicking instruction link', async () => {
-    render(<TicklerTaskPage />);
-
-    const instructionLink = await screen.findByText('#5001');
-    fireEvent.click(instructionLink);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/instructions/5001');
-  });
-
-  it('completes a task successfully', async () => {
-    vi.mocked(completeTask).mockResolvedValue({} as any);
-
-    render(<TicklerTaskPage />);
-
-    const completeBtn = await screen.findByRole('button', { name: /complete/i });
-    await act(async () => {
-      fireEvent.click(completeBtn);
-    });
-
-    expect(completeTask).toHaveBeenCalledWith(1);
-    expect(notification.success).toHaveBeenCalledWith({
-      title: 'Completed',
-      content: 'Task marked as complete',
+    vi.mocked(getActiveWhitelist).mockResolvedValue({ data: mockWhitelistData } as any);
+    vi.mocked(fetchGabUser).mockImplementation((key: string) => {
+      if (key === 'USER1') {
+        return Promise.resolve({ data: { firstName: 'Alice', lastName: 'Smith' } } as any);
+      }
+      if (key === 'USER2') {
+        return Promise.resolve({ data: { firstName: 'Bob', lastName: 'Jones' } } as any);
+      }
+      return Promise.resolve({ data: null } as any);
     });
   });
 
-  it('shows error notification when completeTask fails', async () => {
-    vi.mocked(completeTask).mockRejectedValue(new Error('Complete failed'));
+  it('renders title and loads whitelist table with formatted data', async () => {
+    render(<WhitelistManagementPage />);
 
-    render(<TicklerTaskPage />);
+    expect(screen.getByText('Loading whitelist...')).toBeInTheDocument();
 
-    const completeBtn = await screen.findByRole('button', { name: /complete/i });
-    await act(async () => {
-      fireEvent.click(completeBtn);
+    await waitFor(() => {
+      expect(screen.getByTestId('whitelist-table')).toBeInTheDocument();
     });
 
-    expect(notification.danger).toHaveBeenCalledWith({
-      title: 'Error',
-      content: 'Complete failed',
+    expect(screen.getByText('Domain Whitelist')).toBeInTheDocument();
+    expect(screen.getByText('citi.com')).toBeInTheDocument();
+    expect(screen.getByText('partner.org')).toBeInTheDocument();
+    expect(screen.getByText('FormattedDate:2026-01-15T10:00:00Z')).toBeInTheDocument();
+  });
+
+  it('resolves user SOEIDs and renders resolved full names', async () => {
+    render(<WhitelistManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+      expect(screen.getByText('Bob Jones')).toBeInTheDocument();
+    });
+
+    expect(fetchGabUser).toHaveBeenCalledWith('USER1');
+    expect(fetchGabUser).toHaveBeenCalledWith('USER2');
+  });
+
+  it('displays alert message when initial data fetch fails', async () => {
+    vi.mocked(getActiveWhitelist).mockRejectedValue(new Error('Network Error'));
+
+    render(<WhitelistManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('alert-message')).toHaveTextContent('Network Error');
     });
   });
 
-  it('switches to region tab and searches by region', async () => {
-    vi.mocked(getTasksByRegion).mockResolvedValue({ data: [mockTasks[0]] } as any);
+  it('opens Add Domain modal, validates input, and successfully adds a domain', async () => {
+    vi.mocked(addDomain).mockResolvedValue({} as any);
 
-    render(<TicklerTaskPage />);
+    render(<WhitelistManagementPage />);
 
-    const regionTab = await screen.findByTestId('tab-region');
-    fireEvent.click(regionTab);
+    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
 
-    const dropdowns = screen.getAllByTestId('dropdown');
-    fireEvent.change(dropdowns[0], { target: { value: 'NAM' } });
-
-    const searchButtons = screen.getAllByRole('button', { name: /search/i });
-    await act(async () => {
-      fireEvent.click(searchButtons[searchButtons.length - 1]);
-    });
-
-    expect(getTasksByRegion).toHaveBeenCalledWith('NAM');
-  });
-
-  it('opens create modal, validates required fields, and creates a task', async () => {
-    vi.mocked(createTask).mockResolvedValue({} as any);
-
-    render(<TicklerTaskPage />);
-
-    const createBtn = await screen.findByRole('button', { name: /create task/i });
-    fireEvent.click(createBtn);
+    const addBtn = screen.getByRole('button', { name: /add domain/i });
+    fireEvent.click(addBtn);
 
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+    expect(screen.getByText('Add Domain to Whitelist')).toBeInTheDocument();
 
     const applyBtn = screen.getByTestId('modal-apply-btn');
 
-    // Trigger validation with empty fields
+    // Submit with empty domain
     await act(async () => {
       fireEvent.click(applyBtn);
     });
 
     expect(notification.danger).toHaveBeenCalledWith({
       title: 'Validation',
-      content: 'Instruction ID, description, and assignee are required',
+      content: 'Domain name is required',
     });
 
-    // Fill in required fields
-    const inputs = screen.getAllByRole('textbox');
-    const descTextarea = screen.getByPlaceholderText('Task description');
-    const numberInputs = screen.getAllByRole('spinbutton');
+    // Enter valid domain and description
+    const domainInput = screen.getByPlaceholderText('e.g. citi.com');
+    const descInput = screen.getByPlaceholderText('Description');
 
-    fireEvent.change(numberInputs[0], { target: { value: '9999' } });
-    fireEvent.change(descTextarea, { target: { value: 'New Test Task' } });
-    fireEvent.change(inputs.find((i) => i.getAttribute('placeholder') === 'User ID')!, {
-      target: { value: 'USER999' },
-    });
+    fireEvent.change(domainInput, { target: { value: 'example.com' } });
+    fireEvent.change(descInput, { target: { value: 'Test description' } });
 
     await act(async () => {
       fireEvent.click(applyBtn);
     });
 
-    expect(createTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        instructionId: 9999,
-        taskDescription: 'New Test Task',
-        assignedTo: 'USER999',
-      })
-    );
+    expect(addDomain).toHaveBeenCalledWith({
+      domainName: 'example.com',
+      description: 'Test description',
+    });
     expect(notification.success).toHaveBeenCalledWith({
-      title: 'Created',
-      content: 'Task created successfully',
+      title: 'Added',
+      content: 'Domain "example.com" added to whitelist',
+    });
+    expect(getActiveWhitelist).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows error notification when addDomain API call fails', async () => {
+    vi.mocked(addDomain).mockRejectedValue(new Error('Domain already exists'));
+
+    render(<WhitelistManagementPage />);
+
+    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /add domain/i }));
+
+    const domainInput = screen.getByPlaceholderText('e.g. citi.com');
+    fireEvent.change(domainInput, { target: { value: 'duplicate.com' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('modal-apply-btn'));
+    });
+
+    expect(notification.danger).toHaveBeenCalledWith({
+      title: 'Error',
+      content: 'Domain already exists',
     });
   });
 
-  it('handles error during initial loading', async () => {
-    vi.mocked(getTasksByAssignee).mockRejectedValue(new Error('Failed to load tasks'));
+  it('checks domain status and renders success or failure alert inside Check Domain modal', async () => {
+    vi.mocked(checkDomain).mockResolvedValue({ data: true } as any);
 
-    render(<TicklerTaskPage />);
+    render(<WhitelistManagementPage />);
 
-    expect(await screen.findByTestId('alert-error')).toHaveTextContent('Failed to load tasks');
+    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+
+    const checkBtn = screen.getByRole('button', { name: /check domain/i });
+    fireEvent.click(checkBtn);
+
+    expect(screen.getByText('Check Domain')).toBeInTheDocument();
+
+    const checkInput = screen.getAllByPlaceholderText('e.g. citi.com').pop()!;
+
+    // Positive check (whitelisted)
+    fireEvent.change(checkInput, { target: { value: 'citi.com' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('modal-apply-btn'));
+    });
+
+    expect(checkDomain).toHaveBeenCalledWith('citi.com');
+    expect(await screen.findByText('`citi.com` is whitelisted')).toBeInTheDocument();
+
+    // Negative check (NOT whitelisted)
+    vi.mocked(checkDomain).mockResolvedValue({ data: false } as any);
+    fireEvent.change(checkInput, { target: { value: 'unknown.com' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('modal-apply-btn'));
+    });
+
+    expect(checkDomain).toHaveBeenCalledWith('unknown.com');
+    expect(await screen.findByText('`unknown.com` is NOT whitelisted')).toBeInTheDocument();
+  });
+
+  it('clears state when cancelling the Check Domain modal', async () => {
+    render(<WhitelistManagementPage />);
+
+    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /check domain/i }));
+
+    const cancelBtn = screen.getByTestId('modal-cancel-btn');
+    fireEvent.click(cancelBtn);
+
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+  });
+
+  it('reloads data when clicking Refresh button', async () => {
+    render(<WhitelistManagementPage />);
+
+    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+
+    const refreshBtn = screen.getByRole('button', { name: /refresh/i });
+    await act(async () => {
+      fireEvent.click(refreshBtn);
+    });
+
+    expect(getActiveWhitelist).toHaveBeenCalledTimes(2);
   });
 });
