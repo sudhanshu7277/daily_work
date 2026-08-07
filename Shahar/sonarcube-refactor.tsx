@@ -79,17 +79,18 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/components/common/MoreFiltersPanel.test.tsx
+// src/pages/auth/AccessDeniedPage.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import MoreFiltersPanel, { INITIAL_MORE_FILTERS } from './MoreFiltersPanel';
-import { getRefDataByType } from '../../api/refdata';
+import AccessDeniedPage from './AccessDeniedPage';
 
-vi.mock('../../api/refdata', () => ({
-  getRefDataByType: vi.fn(),
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', () => ({
@@ -98,173 +99,40 @@ vi.mock('@citi-icg-172888/icgds-react', () => ({
       {children}
     </div>
   ),
-  Dropdown: Object.assign(
-    ({ children, value, onChange, placeholder }: any) => (
-      <select
-        data-testid="updated-in-dropdown"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{placeholder}</option>
-        {children}
-      </select>
-    ),
-    {
-      Item: ({ children, value }: any) => <option value={value}>{children}</option>,
-    },
+  Icon: ({ type, style }: any) => (
+    <span data-testid={`icon-${type}`} style={style} />
   ),
-  RangePicker: ({ value, onValueChange, placeholder }: any) => (
-    <div data-testid="range-picker">
-      <button
-        data-testid={`trigger-range-${placeholder?.[0]}`}
-        onClick={() => onValueChange([new Date('2026-01-01'), new Date('2026-01-10')])}
-      >
-        Set Range
-      </button>
-    </div>
+  Button: ({ children, onClick, type }: any) => (
+    <button data-type={type} onClick={onClick}>
+      {children}
+    </button>
   ),
 }));
 
-vi.mock('./SearchableMultiSelect', () => ({
-  default: ({ fieldLabel, values, options, onChange }: any) => (
-    <div data-testid={`searchable-select-${fieldLabel}`}>
-      <span data-testid={`values-${fieldLabel}`}>{values.join(',')}</span>
-      <button
-        data-testid={`btn-select-${fieldLabel}`}
-        onClick={() => onChange(['test-val'])}
-      >
-        Select {fieldLabel}
-      </button>
-    </div>
-  ),
-}));
-
-describe('MoreFiltersPanel Component', () => {
-  const defaultProps = {
-    instructionType: 'payment' as const,
-    filters: INITIAL_MORE_FILTERS,
-    onFiltersChange: vi.fn(),
-    clients: [{ value: 'c1', label: 'Client 1' }],
-    deals: [{ value: 'd1', label: 'Deal 1' }],
-    users: [{ value: 'u1', label: 'User 1' }],
-    statuses: [{ value: 's1', label: 'Status 1' }],
-  };
-
+describe('AccessDeniedPage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getRefDataByType).mockImplementation((type: string) => {
-      if (type === 'NON_PAYMENT_CATEGORIES') {
-        return Promise.resolve({
-          data: [{ refValue: 'Category B' }, { refValue: 'Category A' }],
-        } as any);
-      }
-      if (type === 'PAYMENT_CATEGORIES') {
-        return Promise.resolve({
-          data: [{ refValue: 'Category A' }, { refValue: 'Category C' }],
-        } as any);
-      }
-      return Promise.resolve({ data: [] } as any);
-    });
   });
 
-  it('fetches reference data, deduplicates, and sorts category options on mount', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
+  it('renders access denied heading, icon, and explanation text', () => {
+    render(<AccessDeniedPage />);
 
-    expect(getRefDataByType).toHaveBeenCalledWith('NON_PAYMENT_CATEGORIES');
-    expect(getRefDataByType).toHaveBeenCalledWith('PAYMENT_CATEGORIES');
-
-    const categorySelect = screen.getByTestId('searchable-select-category');
-    expect(categorySelect).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Access Denied' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/you do not have the required permissions to view this page/i)
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('icon-lock')).toBeInTheDocument();
   });
 
-  it('handles refdata fetching errors gracefully', async () => {
-    vi.mocked(getRefDataByType).mockRejectedValue(new Error('Network error'));
+  it('navigates to dashboard ("/") when "Return to Dashboard" button is clicked', () => {
+    render(<AccessDeniedPage />);
 
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
+    const button = screen.getByRole('button', { name: 'Return to Dashboard' });
+    expect(button).toBeInTheDocument();
 
-    expect(screen.getByTestId('searchable-select-category')).toBeInTheDocument();
-  });
+    fireEvent.click(button);
 
-  it('triggers onFiltersChange when Client selection changes', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
-
-    fireEvent.click(screen.getByTestId('btn-select-client'));
-
-    expect(defaultProps.onFiltersChange).toHaveBeenCalledWith({
-      ...INITIAL_MORE_FILTERS,
-      client: ['test-val'],
-    });
-  });
-
-  it('triggers onFiltersChange when Deal selection changes', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
-
-    fireEvent.click(screen.getByTestId('btn-select-deal'));
-
-    expect(defaultProps.onFiltersChange).toHaveBeenCalledWith({
-      ...INITIAL_MORE_FILTERS,
-      deal: ['test-val'],
-    });
-  });
-
-  it('triggers onFiltersChange when Updated In dropdown changes', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
-
-    const dropdown = screen.getByTestId('updated-in-dropdown');
-    fireEvent.change(dropdown, { target: { value: '3' } });
-
-    expect(defaultProps.onFiltersChange).toHaveBeenCalledWith({
-      ...INITIAL_MORE_FILTERS,
-      updatedIn: '3',
-    });
-  });
-
-  it('triggers onFiltersChange when Value Date range changes', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
-
-    fireEvent.click(screen.getByTestId('trigger-range-From'));
-
-    expect(defaultProps.onFiltersChange).toHaveBeenCalledWith({
-      ...INITIAL_MORE_FILTERS,
-      valueDateRange: [new Date('2026-01-01'), new Date('2026-01-10')],
-    });
-  });
-
-  it('triggers onFiltersChange when Admin Maker selection changes', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
-
-    fireEvent.click(screen.getByTestId('btn-select-admin maker'));
-
-    expect(defaultProps.onFiltersChange).toHaveBeenCalledWith({
-      ...INITIAL_MORE_FILTERS,
-      adminMaker: ['test-val'],
-    });
-  });
-
-  it('triggers onFiltersChange when Status selection changes', async () => {
-    await act(async () => {
-      render(<MoreFiltersPanel {...defaultProps} />);
-    });
-
-    fireEvent.click(screen.getByTestId('btn-select-status'));
-
-    expect(defaultProps.onFiltersChange).toHaveBeenCalledWith({
-      ...INITIAL_MORE_FILTERS,
-      status: ['test-val'],
-    });
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 });
