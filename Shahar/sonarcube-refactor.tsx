@@ -85,6 +85,9 @@ export const verifyPaymentDetail = async () => ({});
 
 
 ///  src/components/instructions/VerifyPaymentDetailModal.test.tsx
+
+
+
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
@@ -176,16 +179,18 @@ describe('VerifyPaymentDetailModal Component', () => {
   });
 
   it('renders cleanly without blocking module load', async () => {
-    // Dynamically import the component AFTER all mocks/polyfills are fully registered
     const { default: VerifyPaymentDetailModal } = await import('./VerifyPaymentDetailModal');
+    const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
 
     const { container, unmount } = render(
-      <VerifyPaymentDetailModal
+      <ModalComponent
+        open={false}
         isOpen={false}
         show={false}
         visible={false}
         onClose={vi.fn()}
-        data={null}
+        data={{}}
+        instruction={{}}
       />
     );
 
@@ -193,6 +198,8 @@ describe('VerifyPaymentDetailModal Component', () => {
     unmount();
   });
 });
+
+
 
 
 // 
