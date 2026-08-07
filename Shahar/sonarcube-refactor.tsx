@@ -1544,3 +1544,61 @@ describe('exportToExcel', () => {
     );
   });
 });
+
+// src/utils/arrayUtils.test.ts
+
+import { describe, it, expect } from 'vitest';
+import { extractArray } from './arrayUtils';
+
+describe('extractArray', () => {
+  it('returns data directly if it is already an array', () => {
+    const input = [1, 2, 3];
+    expect(extractArray(input)).toBe(input);
+  });
+
+  it('returns empty array if input is null or undefined', () => {
+    expect(extractArray(null)).toEqual([]);
+    expect(extractArray(undefined)).toEqual([]);
+  });
+
+  it('returns empty array if input is a primitive', () => {
+    expect(extractArray('hello')).toEqual([]);
+    expect(extractArray(123)).toEqual([]);
+    expect(extractArray(true)).toEqual([]);
+  });
+
+  it('returns empty array if depth exceeds maxDepth', () => {
+    const data = { a: { b: [1, 2] } };
+    expect(extractArray(data, 6, 5)).toEqual([]);
+  });
+
+  it('extracts array directly from an object property', () => {
+    const data = { status: 'success', list: ['item1', 'item2'] };
+    expect(extractArray(data)).toEqual(['item1', 'item2']);
+  });
+
+  it('recursively finds an array nested within object properties', () => {
+    const data = {
+      meta: { code: 200 },
+      response: {
+        payload: {
+          items: [10, 20, 30],
+        },
+      },
+    };
+    expect(extractArray(data)).toEqual([10, 20, 30]);
+  });
+
+  it('skips non-matching nested branches and continues loop to find array', () => {
+    const data = {
+      firstBranch: { noArrayHere: 'string' },
+      secondBranch: { items: ['found'] },
+    };
+    expect(extractArray(data)).toEqual(['found']);
+  });
+
+  it('returns empty array if object has no arrays at any level', () => {
+    const data = { a: 1, b: { c: 'no array' } };
+    expect(extractArray(data)).toEqual([]);
+  });
+});
