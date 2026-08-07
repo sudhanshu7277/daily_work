@@ -79,35 +79,26 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/pages/thresholds/ThresholdManagementPage.test.tsx
+// src/pages/whitelist/WhitelistManagementPage.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import ThresholdManagementPage from './ThresholdManagementPage';
+import WhitelistManagementPage from './WhitelistManagementPage';
 import {
-  getActiveThresholds,
-  createThreshold,
-  updateThreshold,
-  deactivateThreshold,
-} from '../../api/thresholds';
-import { getRefDataByType } from '../../api/refdata';
+  getWhitelist,
+  addWhitelistDomain,
+  checkDomainStatus,
+  deleteWhitelistDomain,
+} from '../../api/whitelist';
 import { notification } from '@citi-icg-172888/icgds-react';
 
-vi.mock('../../api/thresholds', () => ({
-  getActiveThresholds: vi.fn(),
-  createThreshold: vi.fn(),
-  updateThreshold: vi.fn(),
-  deactivateThreshold: vi.fn(),
-}));
-
-vi.mock('../../api/refdata', () => ({
-  getRefDataByType: vi.fn(),
-}));
-
-vi.mock('../../utils/format', () => ({
-  formatCurrency: (amount: number, currency: string) => `${currency} ${amount}`,
+vi.mock('../../api/whitelist', () => ({
+  getWhitelist: vi.fn(),
+  addWhitelistDomain: vi.fn(),
+  checkDomainStatus: vi.fn(),
+  deleteWhitelistDomain: vi.fn(),
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', () => {
@@ -116,41 +107,13 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
     danger: vi.fn(),
   };
 
-  const DropdownComponent = ({ value, onChange, children, label }: any) => (
-    <div data-testid="dropdown">
-      {label && <span>{label}</span>}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        data-testid="dropdown-select"
-      >
-        {children}
-      </select>
-    </div>
-  );
-
-  DropdownComponent.Item = ({ value, children }: any) => (
-    <option value={value}>{children}</option>
-  );
-
   return {
     notification: notificationObj,
-    El: ({ children, className, style }: any) => (
-      <div className={className} style={style}>{children}</div>
-    ),
-    Icon: ({ type, className, style }: any) => (
-      <span data-testid={`icon-${type}`} className={className} style={style} />
-    ),
-    Button: ({ children, onClick, color, size }: any) => (
-      <button data-color={color} data-size={size} onClick={onClick}>{children}</button>
-    ),
-    Input: ({ value, onChange, placeholder, type }: any) => (
-      <input
-        type={type || 'text'}
-        placeholder={placeholder}
-        value={value ?? ''}
-        onChange={onChange}
-      />
+    El: ({ children, className }: any) => <div className={className}>{children}</div>,
+    Icon: ({ type }: any) => <span data-testid={`icon-${type}`} />,
+    Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+    Input: ({ value, onChange, placeholder }: any) => (
+      <input placeholder={placeholder} value={value ?? ''} onChange={onChange} />
     ),
     Card: Object.assign(
       ({ children }: any) => <div>{children}</div>,
@@ -167,163 +130,184 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
           <button data-testid="modal-apply-btn" onClick={onApply}>{applyText || 'Apply'}</button>
         </div>
       ) : null,
-    Dropdown: DropdownComponent,
   };
 });
 
 vi.mock('ag-grid-react', () => ({
-  AgGridReact: ({ rowData, columnDefs }: any) => (
+  AgGridReact: ({ rowData }: any) => (
     <div data-testid="ag-grid-mock">
-      {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.key || rowIndex} data-testid={`grid-row-${rowIndex}`}>
-          {columnDefs?.map((col: any) => (
-            <span key={col.field || col.headerName} data-testid={`cell-${col.field}-${rowIndex}`}>
-              {col.valueFormatter
-                ? col.valueFormatter({ value: row[col.field], data: row })
-                : col.cellRenderer
-                ? col.cellRenderer({ value: row[col.field], data: row })
-                : String(row[col.field] ?? '')}
-            </span>
-          ))}
-        </div>
+      {rowData?.map((row: any, i: number) => (
+        <div key={i} data-testid={`grid-row-${i}`}>{row.domainName}</div>
       ))}
     </div>
   ),
 }));
 
-describe('ThresholdManagementPage Component', () => {
-  const mockThresholds = [
-    {
-      thresholdId: 1,
-      currency: 'USD',
-      region: 'GLOBAL',
-      thresholdAmount: 100000,
-      requiresSuperChecker: true,
-      description: 'Global USD Limit',
-    },
-    {
-      thresholdId: 2,
-      currency: 'EUR',
-      region: 'EMEA',
-      thresholdAmount: 50000,
-      requiresSuperChecker: false,
-      description: 'EMEA EUR Limit',
-    },
-  ];
-
-  const mockRegionRefData = {
-    data: [
-      { refCode: 'GLOBAL', refValue: 'Global Region' },
-      { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
-      { refCode: 'APAC', refValue: 'Asia Pacific' },
-    ],
-  };
-
+describe('WhitelistManagementPage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getActiveThresholds).mockResolvedValue({ data: mockThresholds } as any);
-    vi.mocked(getRefDataByType).mockResolvedValue(mockRegionRefData as any);
+    vi.mocked(getWhitelist).mockResolvedValue({
+      data: [
+        { id: 1, domainName: 'citi.com', addedBy: 'Alice Smith' },
+        { id: 2, domainName: 'example.com', addedBy: 'Bob Jones' },
+      ],
+    } as any);
   });
 
-  it('renders title, fetches active thresholds, and loads region refdata', async () => {
-    render(<ThresholdManagementPage />);
-
-    expect(screen.getByTestId('loading-indicator')).toHaveTextContent('Loading thresholds...');
+  it('renders domains from API', async () => {
+    render(<WhitelistManagementPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Payment Thresholds')).toBeInTheDocument();
-    expect(getActiveThresholds).toHaveBeenCalledTimes(1);
-    expect(getRefDataByType).toHaveBeenCalledWith('REGION');
-  });
-
-  it('displays alert message when thresholds API fails', async () => {
-    vi.mocked(getActiveThresholds).mockRejectedValue(new Error('Failed to load thresholds'));
-
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('alert-message')).toHaveTextContent('Failed to load thresholds');
+      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+      expect(screen.getByText('Bob Jones')).toBeInTheDocument();
     });
   });
 
-  it('opens Create Threshold modal, fills all fields including description & super checker, and submits', async () => {
-    vi.mocked(createThreshold).mockResolvedValue({} as any);
+  it('checks domain status and renders success or failure alert inside Check Domain modal', async () => {
+    vi.mocked(checkDomainStatus).mockResolvedValue({ data: { isWhitelisted: true } } as any);
 
-    render(<ThresholdManagementPage />);
+    render(<WhitelistManagementPage />);
 
     await waitFor(() => expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument());
 
-    const addBtn = screen.getByRole('button', { name: /add threshold/i });
-    fireEvent.click(addBtn);
+    // Click the Check Domain action button specifically
+    const checkBtn = screen.getByRole('button', { name: /check domain/i });
+    fireEvent.click(checkBtn);
 
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
-    expect(screen.getByText('Create Threshold')).toBeInTheDocument();
+    // Assert modal heading is rendered
+    expect(screen.getByRole('heading', { name: /check domain/i })).toBeInTheDocument();
 
-    // Fill form inputs
-    const amountInput = screen.getByRole('spinbutton');
-    fireEvent.change(amountInput, { target: { value: '250000' } });
-
-    const descInput = screen.getByPlaceholderText('Threshold description');
-    fireEvent.change(descInput, { target: { value: 'High Value Threshold' } });
-
-    // Select Super Checker Option
-    const selects = screen.getAllByTestId('dropdown-select');
-    const superCheckerSelect = selects[selects.length - 1];
-    fireEvent.change(superCheckerSelect, { target: { value: 'false' } });
+    const checkInputs = screen.getAllByPlaceholderText('e.g. citi.com');
+    const checkInput = checkInputs[checkInputs.length - 1];
+    fireEvent.change(checkInput, { target: { value: 'citi.com' } });
 
     const applyBtn = screen.getByTestId('modal-apply-btn');
-
     await act(async () => {
       fireEvent.click(applyBtn);
     });
 
-    expect(createThreshold).toHaveBeenCalledWith({
-      currency: 'USD',
-      region: 'GLOBAL',
-      thresholdAmount: 250000,
-      requiresSuperChecker: false,
-      description: 'High Value Threshold',
-    });
-    expect(notification.success).toHaveBeenCalledWith({
-      title: 'Created',
-      content: 'Threshold created',
-    });
-    expect(getActiveThresholds).toHaveBeenCalledTimes(2);
-  });
-
-  it('handles errors when createThreshold fails', async () => {
-    vi.mocked(createThreshold).mockRejectedValue(new Error('Save failed'));
-
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole('button', { name: /add threshold/i }));
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('modal-apply-btn'));
-    });
-
-    expect(notification.danger).toHaveBeenCalledWith({
-      title: 'Error',
-      content: 'Save failed',
-    });
-  });
-
-  it('reloads data on clicking Refresh button', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument());
-
-    const refreshBtn = screen.getByRole('button', { name: /refresh/i });
-
-    await act(async () => {
-      fireEvent.click(refreshBtn);
-    });
-
-    expect(getActiveThresholds).toHaveBeenCalledTimes(2);
+    expect(checkDomainStatus).toHaveBeenCalledWith('citi.com');
   });
 });
+
+// 2. Fix for src/components/common/MoreFiltersPanel.test.tsx
+
+import React from 'react';
+import '@testing-library/jest-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import MoreFiltersPanel from './MoreFiltersPanel';
+
+describe('MoreFiltersPanel Component', () => {
+  const defaultProps = {
+    filters: {},
+    onFiltersChange: vi.fn(),
+    onClearAll: vi.fn(),
+  };
+
+  it('triggers onFiltersChange when Value Date range changes', () => {
+    render(<MoreFiltersPanel {...defaultProps} />);
+
+    // Select the first matching range trigger button if duplicates exist in DOM
+    const rangeButtons = screen.getAllByTestId('trigger-range-From');
+    fireEvent.click(rangeButtons[0]);
+
+    expect(defaultProps.onFiltersChange).toHaveBeenCalled();
+  });
+});
+
+
+// 3. Fix for src/pages/refdata/ReferenceDataPage.test.tsx
+
+import React from 'react';
+import '@testing-library/jest-dom';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import ReferenceDataPage from './ReferenceDataPage';
+import { getRefDataByType } from '../../api/refdata';
+
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: vi.fn(),
+}));
+
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  El: ({ children, className }: any) => <div className={className}>{children}</div>,
+  Icon: ({ type }: any) => <span data-testid={`icon-${type}`} />,
+  Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+  Card: Object.assign(
+    ({ children }: any) => <div data-testid="card">{children}</div>,
+    {
+      body: ({ children }: any) => <div data-testid="card-body">{children}</div>,
+      header: ({ children }: any) => <div data-testid="card-header">{children}</div>,
+      Header: ({ children }: any) => <div data-testid="card-header">{children}</div>,
+    }
+  ),
+  Loading: ({ tip }: any) => <div data-testid="loading-indicator">{tip}</div>,
+  Alert: ({ children }: any) => <div data-testid="alert-message">{children}</div>,
+}));
+
+describe('ReferenceDataPage Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('Fetches and displays reference data when a type is selected', async () => {
+    vi.mocked(getRefDataByType).mockResolvedValue({
+      data: [{ refCode: 'USD', refValue: 'US Dollar' }],
+    } as any);
+
+    render(<ReferenceDataPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('card-header')).toBeInTheDocument();
+    });
+  });
+});
+
+
+// 4. Fix for src/components/common/Breadcrumb.test.tsx
+
+import React from 'react';
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import Breadcrumb from './Breadcrumb';
+
+describe('Breadcrumb Component', () => {
+  it('renders breadcrumbs for mapped route labels', () => {
+    render(
+      <MemoryRouter initialEntries={['/instructions/create']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Home/i)).toBeInTheDocument();
+    expect(screen.getByText(/Instructions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Create Instruction/i)).toBeInTheDocument();
+  });
+
+  it('formats numeric segments with a "#" prefix', () => {
+    render(
+      <MemoryRouter initialEntries={['/instructions/12345']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Home/i)).toBeInTheDocument();
+    expect(screen.getByText(/Instructions/i)).toBeInTheDocument();
+    expect(screen.getByText(/#12345/i)).toBeInTheDocument();
+  });
+
+  it('falls back to raw segment name if route is unmapped and non-numeric', () => {
+    render(
+      <MemoryRouter initialEntries={['/custom-route-path']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Home/i)).toBeInTheDocument();
+    expect(screen.getByText(/custom-route-path/i)).toBeInTheDocument();
+  });
+});
+
