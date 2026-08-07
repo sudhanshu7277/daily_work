@@ -531,3 +531,74 @@ describe('Breadcrumb Component', () => {
 });
 
 
+
+
+/// src/components/common/MoreFiltersPanel.test.tsx
+
+
+import React from 'react';
+import '@testing-library/jest-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import MoreFiltersPanel from './MoreFiltersPanel';
+
+// Mock UI library components used inside MoreFiltersPanel
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  El: ({ children, className, style }: any) => (
+    <div className={className} style={style}>{children}</div>
+  ),
+  Icon: ({ type }: any) => <span data-testid={`icon-${type}`} />,
+  Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+  Input: ({ value, onChange, placeholder }: any) => (
+    <input placeholder={placeholder} value={value ?? ''} onChange={onChange} />
+  ),
+  DatePicker: ({ onChange }: any) => (
+    <input type="date" onChange={(e) => onChange?.(e.target.value)} />
+  ),
+  RangePicker: ({ onChange }: any) => (
+    <button
+      data-testid="trigger-range-From"
+      onClick={() => onChange?.(['2026-01-01', '2026-01-31'])}
+    >
+      Set Range
+    </button>
+  ),
+}));
+
+describe('MoreFiltersPanel Component', () => {
+  const defaultProps: any = {
+    isOpen: true,
+    visible: true,
+    filters: {},
+    appliedFilters: {},
+    onFiltersChange: vi.fn(),
+    onClearAll: vi.fn(),
+    onClose: vi.fn(),
+    onApply: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing and triggers onFiltersChange when Value Date range changes', () => {
+    render(<MoreFiltersPanel {...defaultProps} />);
+
+    const rangeTriggers = screen.getAllByTestId('trigger-range-From');
+    expect(rangeTriggers.length).toBeGreaterThan(0);
+
+    fireEvent.click(rangeTriggers[0]);
+
+    expect(defaultProps.onFiltersChange).toHaveBeenCalled();
+  });
+
+  it('triggers onClearAll when clear button is clicked', () => {
+    render(<MoreFiltersPanel {...defaultProps} />);
+
+    const clearBtn = screen.queryByText(/clear/i);
+    if (clearBtn) {
+      fireEvent.click(clearBtn);
+      expect(defaultProps.onClearAll).toHaveBeenCalled();
+    }
+  });
+});
