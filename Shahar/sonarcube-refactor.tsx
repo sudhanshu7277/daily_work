@@ -81,6 +81,7 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 // src/components/common/MoreFiltersPanel.test.tsx
 
+
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -145,18 +146,19 @@ describe('MoreFiltersPanel Component', () => {
   });
 
   it('renders without crashing and triggers onFiltersChange when Value Date range changes', () => {
-    render(<MoreFiltersPanel {...defaultProps} />);
+    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
+    expect(container).toBeInTheDocument();
 
-    const rangeBtn = screen.queryByTestId('rangepicker-trigger');
-    const dateBtn = screen.queryByTestId('datepicker-trigger');
-    const multiBtn = screen.queryByTestId('multiselect-trigger');
+    const rangeBtns = screen.queryAllByTestId('rangepicker-trigger');
+    const dateBtns = screen.queryAllByTestId('datepicker-trigger');
+    const multiBtns = screen.queryAllByTestId('multiselect-trigger');
 
-    if (rangeBtn) {
-      fireEvent.click(rangeBtn);
-    } else if (dateBtn) {
-      fireEvent.click(dateBtn);
-    } else if (multiBtn) {
-      fireEvent.click(multiBtn);
+    if (rangeBtns.length > 0) {
+      fireEvent.click(rangeBtns[0]);
+    } else if (dateBtns.length > 0) {
+      fireEvent.click(dateBtns[0]);
+    } else if (multiBtns.length > 0) {
+      fireEvent.click(multiBtns[0]);
     } else {
       defaultProps.onFiltersChange({ valueDate: ['2026-01-01', '2026-01-31'] });
     }
