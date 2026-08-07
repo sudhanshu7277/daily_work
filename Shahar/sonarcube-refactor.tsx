@@ -1,51 +1,64 @@
 // src/App.test.tsx
-
+// @vitest-environment jsdom
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
+
+// Mock AppLayout (renders child routes)
+vi.mock('./components/layout/AppLayout', () => ({
+  __esModule: true,
+  default: () => <div data-testid="app-layout">App Layout</div>,
+}));
+
+// Mock AuthProvider context wrapper
+vi.mock('./context/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="auth-provider">{children}</div>
+  ),
+}));
+
+// Mock ProtectedRoute wrapper
+vi.mock('./components/auth/ProtectedRoute', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="protected-route">{children}</div>
+  ),
+}));
+
+// Mock all imported page components
+vi.mock('./pages/dashboard/DashboardPage', () => ({ default: () => <div>Dashboard Page</div> }));
+vi.mock('./pages/instructions/InstructionListPage', () => ({ default: () => <div>Instruction List Page</div> }));
+vi.mock('./pages/instructions/CreateInstructionPage', () => ({ default: () => <div>Create Instruction Page</div> }));
+vi.mock('./pages/instructions/InstructionDetailPage', () => ({ default: () => <div>Instruction Detail Page</div> }));
+vi.mock('./pages/instructions/CompletedInstructionsPage', () => ({ default: () => <div>Completed Instructions Page</div> }));
+vi.mock('./pages/approval/ApprovalQueuePage', () => ({ default: () => <div>Approval Queue Page</div> }));
+vi.mock('./pages/thresholds/ThresholdManagementPage', () => ({ default: () => <div>Threshold Management Page</div> }));
+vi.mock('./pages/audit/AuditTrailPage', () => ({ default: () => <div>Audit Trail Page</div> }));
+vi.mock('./pages/whitelist/WhitelistManagementPage', () => ({ default: () => <div>Whitelist Management Page</div> }));
+vi.mock('./pages/refdata/ReferenceDataPage', () => ({ default: () => <div>Reference Data Page</div> }));
+vi.mock('./pages/maintenance/MaintenancePage', () => ({ default: () => <div>Maintenance Page</div> }));
+vi.mock('./pages/signature/SignatureVerificationPage', () => ({ default: () => <div>Signature Verification Page</div> }));
+vi.mock('./pages/auth/AccessDeniedPage', () => ({ default: () => <div>Access Denied Page</div> }));
+vi.mock('./pages/intakeChannels/IntakeChannelsPage', () => ({ default: () => <div>Intake Channels Page</div> }));
+vi.mock('./pages/documentViewer/DocumentViewerPage', () => ({ default: () => <div>Document Viewer Page</div> }));
+vi.mock('./pages/nativeDocViewer/NativeDocViewerPage', () => ({ default: () => <div>Native Doc Viewer Page</div> }));
+
 import App from './App';
 
-// Mock layout & context to avoid outer dependency failures
-jest.mock('./components/layout/AppLayout', () => ({
-  __esModule: true,
-  default: () => <div data-testid="app-layout" />,
-}));
-
-jest.mock('./context/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-jest.mock('./components/auth/ProtectedRoute', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-// Mock all page route components
-jest.mock('./pages/dashboard/DashboardPage', () => () => <div>Dashboard Page</div>);
-jest.mock('./pages/instructions/InstructionListPage', () => () => <div>Instruction List Page</div>);
-jest.mock('./pages/instructions/CreateInstructionPage', () => () => <div>Create Instruction Page</div>);
-jest.mock('./pages/instructions/InstructionDetailPage', () => () => <div>Instruction Detail Page</div>);
-jest.mock('./pages/instructions/CompletedInstructionsPage', () => () => <div>Completed Instructions Page</div>);
-jest.mock('./pages/approval/ApprovalQueuePage', () => () => <div>Approval Queue Page</div>);
-jest.mock('./pages/thresholds/ThresholdManagementPage', () => () => <div>Threshold Management Page</div>);
-jest.mock('./pages/audit/AuditTrailPage', () => () => <div>Audit Trail Page</div>);
-jest.mock('./pages/whitelist/WhitelistManagementPage', () => () => <div>Whitelist Management Page</div>);
-jest.mock('./pages/refdata/ReferenceDataPage', () => () => <div>Reference Data Page</div>);
-jest.mock('./pages/maintenance/MaintenancePage', () => () => <div>Maintenance Page</div>);
-jest.mock('./pages/signature/SignatureVerificationPage', () => () => <div>Signature Verification Page</div>);
-jest.mock('./pages/auth/AccessDeniedPage', () => () => <div>Access Denied Page</div>);
-jest.mock('./pages/intakeChannels/IntakeChannelsPage', () => () => <div>Intake Channels Page</div>);
-jest.mock('./pages/documentViewer/DocumentViewerPage', () => () => <div>Document Viewer Page</div>);
-jest.mock('./pages/nativeDocViewer/NativeDocViewerPage', () => () => <div>Native Doc Viewer Page</div>);
-
 describe('App Component', () => {
-  test('renders App component with router without crashing', () => {
-    // Clear initial window location state
-    window.history.pushState({}, 'Test page', '/nextgengab/ui/');
+  it('renders application router and auth provider without crashing', () => {
+    // Set URL path matching the basename
+    window.history.pushState({}, 'Test Page', '/nextgengab/ui/');
 
     render(<App />);
 
+    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
     expect(screen.getByTestId('app-layout')).toBeInTheDocument();
   });
 });
+
+npx vitest run --coverage
+
 
 // 1. src/utils/auth.test.ts
 
