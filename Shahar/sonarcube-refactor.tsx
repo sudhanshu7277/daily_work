@@ -1127,3 +1127,368 @@ describe('emailIntake API', () => {
     });
   });
 });
+
+// src/context/AuthContext.test.tsx
+
+import { render, screen, act, renderHook } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { AuthProvider, useAuth } from './AuthContext';
+import { getCurrentUserRoles } from '../api/roles';
+import {
+  login,
+  getToken,
+  setUserRole,
+  isTokenExpired,
+  getTokenExpiry,
+} from '../utils/auth';
+
+vi.mock('../api/roles', () => ({
+  getCurrentUserRoles: vi.fn(),
+}));
+
+vi.mock('../utils/auth', () => ({
+  login: vi.fn(),
+  getToken: vi.fn(),
+  setUserRole: vi.fn(),
+  isTokenExpired: vi.fn(),
+  getTokenExpiry: vi.fn(),
+}));
+
+describe('AuthContext', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  describe('useAuth', () => {
+    it('throws error when used outside of AuthProvider', () => {
+      // Suppress React error log for uncaught boundary error during test
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(() => renderHook(() => useAuth())).toThrow(
+        'useAuth must be used within an AuthProvider',
+      );
+      spy.mockRestore();
+    });
+  });
+
+  describe('AuthProvider & fetchRoles', () => {
+    it('renders loading state initially before roles are fetched', () => {
+      vi.mocked(getToken).mockReturnValue('token');
+      vi.mocked(isTokenExpired).mockReturnValue(false);
+      vi.mocked(getCurrentUserRoles).mockImplementation(
+        () => new Promise(() => {}), // Pending promise
+      );
+
+      render(
+        <AuthProvider>
+          <div>Protected Content</div>
+        </AuthProvider>,
+      );
+
+      expect(screen.getByText('Authenticating...')).toBeInTheDocument();
+      expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
+    });
+
+    it('fetches roles using existing valid token and resolves activeRole/region', async () => {
+      vi.mocked(getToken).mockReturnValue('valid-token');
+      vi.mocked(isTokenExpired).mockReturnValue(false);
+      vi.mocked(getTokenExpiry).mockReturnValue(Math.floor(Date.now() / 1000) + 3600);
+      vi.mocked(getCurrentUserRoles).mockResolvedValueOnce({
+        data: {
+          soeid: 'AB12345',
+          roles: ['ROLE_USERS_NAM' as any, 'ROLE_ADMIN' as any],
+        },
+      } as any);
+
+      const TestComponent = () => {
+        const auth = useAuth();
+        return (
+          <div>
+            <span data-testid="soeid">{auth.soeid}</span>
+            <span data-testid="activeRole">{auth.activeRole}</span>
+            <span data-testid="region">{auth.region}</span>
+            <span data-testid="error">{auth.error ?? 'none'}</span>
+          </div>
+        );
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      expect(getCurrentUserRoles).toHaveBeenCalled();
+      expect(setUserRole).toHaveBeenCalledWith('ROLE_USERS_NAM');
+      expect(screen.getByTestId('soeid')).toHaveTextContent('AB12345');
+      expect(screen.getByTestId('activeRole')).toHaveTextContent('ROLE_USERS_NAM');
+      expect(screen.getByTestId('region')).toHaveTextContent('NAM');
+      expect(screen.getByTestId('error')).toHaveTextContent('none');
+    });
+
+    it('logs in when no valid existing token is present', async () => {
+      vi.mocked(getToken).mockReturnValue(null);
+      vi.mocked(login).mockResolvedValueOnce({
+        soeid: 'CD67890',
+        roles: ['ROLE_USERS_LATAM' as any],
+        token: 'new-token',
+      });
+      vi.mocked(getTokenExpiry).mockReturnValue(Math.floor(Date.now() / 1000) + 3600);
+
+      const TestComponent = () => {
+        const auth = useAuth();
+        return (
+          <div>
+            <span data-testid="soeid">{auth.soeid}</span>
+            <span data-testid="region">{auth.region}</span>
+          </div>
+        );
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      expect(login).toHaveBeenCalled();
+      expect(screen.getByTestId('soeid')).toHaveTextContent('CD67890');
+      expect(screen.getByTestId('region')).toHaveTextContent('LATAM');
+    });
+
+    it('sets region priority correctly (LATAM > NAM > EMEA > APAC)', async () => {
+      vi.mocked(getToken).mockReturnValue(null);
+      vi.mocked(login).mockResolvedValueOnce({
+        soeid: 'USER1',
+        roles: ['ROLE_USERS_APAC' as any, 'ROLE_USERS_EMEA' as any],
+        token: 'token',
+      });
+
+      const TestComponent = () => {
+        const auth = useAuth();
+        return <span data-testid="region">{auth.region}</span>;
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      // EMEA priority is higher than APAC
+      expect(screen.getByTestId('region')).toHaveTextContent('EMEA');
+    });
+
+    it('sets error message when user has no region role assigned', async () => {
+      vi.mocked(getToken).mockReturnValue(null);
+      vi.mocked(login).mockResolvedValueOnce({
+        soeid: 'USER_NO_REGION',
+        roles: ['ROLE_GUEST' as any],
+        token: 'token',
+      });
+
+      const TestComponent = () => {
+        const auth = useAuth();
+        return <span data-testid="error">{auth.error}</span>;
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      expect(screen.getByTestId('error')).toHaveTextContent(
+        'Your account has no region assigned (LATAM / NAM / EMEA / APAC). Please contact support to be granted a region role.',
+      );
+    });
+
+    it('handles fetch error when thrown as Error instance', async () => {
+      vi.mocked(getToken).mockReturnValue(null);
+      vi.mocked(login).mockRejectedValueOnce(new Error('Network error'));
+
+      const TestComponent = () => {
+        const auth = useAuth();
+        return <span data-testid="error">{auth.error}</span>;
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      expect(screen.getByTestId('error')).toHaveTextContent('Network error');
+    });
+
+    it('handles fetch error when thrown as non-Error value', async () => {
+      vi.mocked(getToken).mockReturnValue(null);
+      vi.mocked(login).mockRejectedValueOnce('String error');
+
+      const TestComponent = () => {
+        const auth = useAuth();
+        return <span data-testid="error">{auth.error}</span>;
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      expect(screen.getByTestId('error')).toHaveTextContent('Failed to load user roles');
+    });
+  });
+
+  describe('Token refresh timer (scheduleRefresh)', () => {
+    it('schedules refresh and triggers silent re-login on expiry timeout', async () => {
+      const now = 100000;
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+
+      vi.mocked(getToken).mockReturnValue('token');
+      vi.mocked(isTokenExpired).mockReturnValue(false);
+      // Expire in 5 minutes (300 seconds)
+      vi.mocked(getTokenExpiry).mockReturnValue(now / 1000 + 300);
+
+      vi.mocked(getCurrentUserRoles).mockResolvedValueOnce({
+        data: { soeid: 'USER1', roles: ['ROLE_USERS_NAM' as any] },
+      } as any);
+
+      vi.mocked(login).mockResolvedValueOnce({
+        soeid: 'USER1',
+        roles: ['ROLE_USERS_NAM' as any],
+        token: 'refreshed-token',
+      });
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <div>App</div>
+          </AuthProvider>,
+        );
+      });
+
+      // Advance timers by 3 minutes (refresh is scheduled 2 min before 5 min expiry)
+      await act(async () => {
+        vi.advanceTimersByTime(3 * 60 * 1000);
+      });
+
+      expect(login).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles silent refresh error gracefully', async () => {
+      const now = 100000;
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+
+      vi.mocked(getToken).mockReturnValue('token');
+      vi.mocked(isTokenExpired).mockReturnValue(false);
+      vi.mocked(getTokenExpiry).mockReturnValue(now / 1000 + 300);
+
+      vi.mocked(getCurrentUserRoles).mockResolvedValueOnce({
+        data: { soeid: 'USER1', roles: ['ROLE_USERS_NAM' as any] },
+      } as any);
+
+      vi.mocked(login).mockRejectedValueOnce(new Error('Refresh 401'));
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <div>App</div>
+          </AuthProvider>,
+        );
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(3 * 60 * 1000);
+      });
+
+      expect(login).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not schedule timer if exp === 0', async () => {
+      vi.mocked(getToken).mockReturnValue('token');
+      vi.mocked(isTokenExpired).mockReturnValue(false);
+      vi.mocked(getTokenExpiry).mockReturnValue(0);
+
+      vi.mocked(getCurrentUserRoles).mockResolvedValueOnce({
+        data: { soeid: 'USER1', roles: ['ROLE_USERS_NAM' as any] },
+      } as any);
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <div>App</div>
+          </AuthProvider>,
+        );
+      });
+
+      expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe('Context Helper Methods', () => {
+    it('tests hasRole, hasAnyRole, hasPermission, setActiveRole, and refresh', async () => {
+      vi.mocked(getToken).mockReturnValue(null);
+      vi.mocked(login).mockResolvedValue({
+        soeid: 'USER1',
+        roles: ['ROLE_USERS_NAM' as any, 'ROLE_ADMIN' as any],
+        token: 'token',
+      });
+
+      let authInstance: ReturnType<typeof useAuth> = null!;
+
+      const TestComponent = () => {
+        authInstance = useAuth();
+        return <div>Ready</div>;
+      };
+
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>,
+        );
+      });
+
+      // hasRole
+      expect(authInstance.hasRole('ROLE_ADMIN' as any)).toBe(true);
+      expect(authInstance.hasRole('ROLE_GUEST' as any)).toBe(false);
+
+      // hasAnyRole
+      expect(authInstance.hasAnyRole(['ROLE_GUEST' as any, 'ROLE_ADMIN' as any])).toBe(true);
+      expect(authInstance.hasAnyRole(['ROLE_GUEST' as any])).toBe(false);
+
+      // hasPermission
+      expect(authInstance.hasPermission('READ')).toBe(false);
+
+      // setActiveRole
+      act(() => {
+        authInstance.setActiveRole('ROLE_ADMIN' as any);
+      });
+      expect(setUserRole).toHaveBeenCalledWith('ROLE_ADMIN');
+      expect(authInstance.activeRole).toBe('ROLE_ADMIN');
+
+      // refresh
+      await act(async () => {
+        await authInstance.refresh();
+      });
+      expect(login).toHaveBeenCalledTimes(2);
+    });
+  });
+});
