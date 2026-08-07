@@ -1010,3 +1010,120 @@ describe('whitelist API', () => {
     });
   });
 });
+
+// emailIntake.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  getRecentIntakes,
+  getInbox,
+  getAttachments,
+  getAuditTrail,
+  getAuditPage,
+  getInboxPage,
+} from './emailIntake';
+import client from './client';
+
+vi.mock('./client', () => ({
+  default: {
+    get: vi.fn(),
+  },
+}));
+
+describe('emailIntake API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('getRecentIntakes calls client.get with correct endpoint', async () => {
+    const mockResponse = [{ inboxId: 1, emailSubject: 'Test' }];
+    vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+    const result = await getRecentIntakes();
+
+    expect(client.get).toHaveBeenCalledWith('/email-intake/recent');
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('getInbox calls client.get with correct endpoint', async () => {
+    const mockResponse = { inboxId: 10, emailSubject: 'Invoice' };
+    vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+    const result = await getInbox(10);
+
+    expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10');
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('getAttachments calls client.get with correct endpoint', async () => {
+    const mockResponse = [{ attachmentId: 100, fileName: 'invoice.pdf' }];
+    vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+    const result = await getAttachments(10);
+
+    expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10/attachments');
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('getAuditTrail calls client.get with correct endpoint', async () => {
+    const mockResponse = [{ auditId: 5, eventType: 'RECEIVED' }];
+    vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+    const result = await getAuditTrail(10);
+
+    expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10/audit');
+    expect(result).toEqual(mockResponse);
+  });
+
+  describe('getAuditPage', () => {
+    it('calls client.get without eventType param when omitted', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await getAuditPage(0, 10);
+
+      expect(client.get).toHaveBeenCalledWith('/email-intake/audit', {
+        params: { page: 0, size: 10 },
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('calls client.get with eventType param when provided', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await getAuditPage(1, 20, 'PARSED');
+
+      expect(client.get).toHaveBeenCalledWith('/email-intake/audit', {
+        params: { page: 1, size: 20, eventType: 'PARSED' },
+      });
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('getInboxPage', () => {
+    it('calls client.get without status param when omitted', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await getInboxPage(0, 10);
+
+      expect(client.get).toHaveBeenCalledWith('/email-intake/inbox', {
+        params: { page: 0, size: 10 },
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('calls client.get with status param when provided', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      vi.mocked(client.get).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await getInboxPage(2, 15, 'PROCESSED');
+
+      expect(client.get).toHaveBeenCalledWith('/email-intake/inbox', {
+        params: { page: 2, size: 15, status: 'PROCESSED' },
+      });
+      expect(result).toEqual(mockResponse);
+    });
+  });
+});
