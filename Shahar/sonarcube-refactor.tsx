@@ -704,3 +704,201 @@ describe('roles API', () => {
     });
   });
 });
+
+// src/api/thresholds.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  getActiveThresholds,
+  createThreshold,
+  updateThreshold,
+  deactivateThreshold,
+} from './thresholds';
+import { get, post, put, del } from './client';
+
+vi.mock('./client', () => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  del: vi.fn(),
+}));
+
+describe('thresholds API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getActiveThresholds', () => {
+    it('calls get with the correct thresholds endpoint', async () => {
+      const mockThresholds = [{ id: 1, amount: 50000 }];
+      vi.mocked(get).mockResolvedValueOnce(mockThresholds as any);
+
+      const result = await getActiveThresholds();
+
+      expect(get).toHaveBeenCalledWith('/thresholds');
+      expect(result).toEqual(mockThresholds);
+    });
+  });
+
+  describe('createThreshold', () => {
+    it('calls post with the correct endpoint and payload', async () => {
+      const mockPayload = { amount: 100000, currency: 'USD' } as any;
+      const mockResponse = { id: 2, amount: 100000, currency: 'USD' };
+      vi.mocked(post).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await createThreshold(mockPayload);
+
+      expect(post).toHaveBeenCalledWith('/thresholds', mockPayload);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('updateThreshold', () => {
+    it('calls put with the correct update endpoint and payload', async () => {
+      const mockPayload = { amount: 200000, currency: 'USD' } as any;
+      const mockResponse = { id: 5, amount: 200000, currency: 'USD' };
+      vi.mocked(put).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await updateThreshold(5, mockPayload);
+
+      expect(put).toHaveBeenCalledWith('/thresholds/5/update', mockPayload);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('deactivateThreshold', () => {
+    it('calls del with the correct deactivate endpoint', async () => {
+      vi.mocked(del).mockResolvedValueOnce(undefined as any);
+
+      await deactivateThreshold(5);
+
+      expect(del).toHaveBeenCalledWith('/thresholds/5/deactivate');
+    });
+  });
+});
+
+// src/api/tickler.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  createTask,
+  getTasksByAssignee,
+  getTasksByRegion,
+  getTasksByInstruction,
+  completeTask,
+  getPendingCount,
+} from './tickler';
+import { get, post } from './client';
+
+vi.mock('./client', () => ({
+  get: vi.fn(),
+  post: vi.fn(),
+}));
+
+describe('tickler API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('createTask', () => {
+    it('calls post with correct endpoint and task data', async () => {
+      const mockRequest = { title: 'Review document', assignedTo: 'user1' } as any;
+      const mockTask = { id: 1, title: 'Review document', assignedTo: 'user1' };
+      vi.mocked(post).mockResolvedValueOnce(mockTask as any);
+
+      const result = await createTask(mockRequest);
+
+      expect(post).toHaveBeenCalledWith('/tickler', mockRequest);
+      expect(result).toEqual(mockTask);
+    });
+  });
+
+  describe('getTasksByAssignee', () => {
+    it('calls get with default page and size params when omitted', async () => {
+      const mockResponse = { content: [{ id: 1 }], totalElements: 1, totalPages: 1 };
+      vi.mocked(get).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await getTasksByAssignee('john.doe');
+
+      expect(get).toHaveBeenCalledWith('/tickler/assignee/john.doe', {
+        page: 0,
+        size: 20,
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('calls get with custom page and size params', async () => {
+      const mockResponse = { content: [], totalElements: 0, totalPages: 0 };
+      vi.mocked(get).mockResolvedValueOnce(mockResponse as any);
+
+      await getTasksByAssignee('john.doe', 2, 50);
+
+      expect(get).toHaveBeenCalledWith('/tickler/assignee/john.doe', {
+        page: 2,
+        size: 50,
+      });
+    });
+  });
+
+  describe('getTasksByRegion', () => {
+    it('calls get with default page and size params when omitted', async () => {
+      const mockResponse = { content: [{ id: 2 }], totalElements: 1, totalPages: 1 };
+      vi.mocked(get).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await getTasksByRegion('APAC');
+
+      expect(get).toHaveBeenCalledWith('/tickler/region/APAC', {
+        page: 0,
+        size: 20,
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('calls get with custom page and size params', async () => {
+      const mockResponse = { content: [], totalElements: 0, totalPages: 0 };
+      vi.mocked(get).mockResolvedValueOnce(mockResponse as any);
+
+      await getTasksByRegion('EMEA', 1, 10);
+
+      expect(get).toHaveBeenCalledWith('/tickler/region/EMEA', {
+        page: 1,
+        size: 10,
+      });
+    });
+  });
+
+  describe('getTasksByInstruction', () => {
+    it('calls get with correct instruction tickler endpoint', async () => {
+      const mockTasks = [{ id: 1, instructionId: 100 }];
+      vi.mocked(get).mockResolvedValueOnce(mockTasks as any);
+
+      const result = await getTasksByInstruction(100);
+
+      expect(get).toHaveBeenCalledWith('/tickler/instruction/100');
+      expect(result).toEqual(mockTasks);
+    });
+  });
+
+  describe('completeTask', () => {
+    it('calls post with correct complete endpoint', async () => {
+      const mockTask = { id: 5, status: 'COMPLETED' };
+      vi.mocked(post).mockResolvedValueOnce(mockTask as any);
+
+      const result = await completeTask(5);
+
+      expect(post).toHaveBeenCalledWith('/tickler/5/complete');
+      expect(result).toEqual(mockTask);
+    });
+  });
+
+  describe('getPendingCount', () => {
+    it('calls get with correct pending count endpoint', async () => {
+      vi.mocked(get).mockResolvedValueOnce(12 as any);
+
+      const count = await getPendingCount();
+
+      expect(get).toHaveBeenCalledWith('/tickler/pending/count');
+      expect(count).toBe(12);
+    });
+  });
+});
