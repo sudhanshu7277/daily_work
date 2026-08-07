@@ -202,3 +202,6 @@ describe('VerifyPaymentDetailModal Component', () => {
   });
 });
 
+
+npx vitest run src/components/instructions/VerifyPaymentDetailModal.test.tsx
+
