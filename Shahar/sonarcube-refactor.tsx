@@ -89,42 +89,69 @@ export const verifyPaymentDetail = async () => ({});
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// 1. Polyfill DOMMatrix for pdfjs-dist in JSDOM environment
-if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
-  (global as any).DOMMatrix = class DOMMatrix {
-    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-    multiply() { return this; }
-    translate() { return this; }
-    scale() { return this; }
-  };
+// 1. Global Browser Polyfills for JSDOM
+if (typeof window !== 'undefined') {
+  if (!(global as any).DOMMatrix) {
+    (global as any).DOMMatrix = class DOMMatrix {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      multiply() { return this; }
+      translate() { return this; }
+      scale() { return this; }
+    };
+  }
+
+  if (!window.ResizeObserver) {
+    window.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+
+  if (!window.IntersectionObserver) {
+    window.IntersectionObserver = class IntersectionObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as any;
+  }
+
+  if (!window.URL.createObjectURL) {
+    window.URL.createObjectURL = vi.fn(() => 'blob:mock');
+    window.URL.revokeObjectURL = vi.fn();
+  }
 }
 
-// 2. Mock pdfjs-dist library
-vi.mock('pdfjs-dist', () => ({
-  default: {
-    getDocument: vi.fn(),
-    GlobalWorkerOptions: {},
-  },
-  getDocument: vi.fn().mockReturnValue({
-    promise: Promise.resolve({
-      numPages: 1,
-      getPage: vi.fn().mockResolvedValue({
-        getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),
-        render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
-      }),
+// 2. Comprehensive PDF.js Mocks (prevents Web Worker thread locks)
+const mockPdfDocument = {
+  promise: Promise.resolve({
+    numPages: 1,
+    getPage: vi.fn().mockResolvedValue({
+      getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),
+      render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
     }),
   }),
+};
+
+vi.mock('pdfjs-dist', () => ({
+  default: {
+    getDocument: vi.fn().mockReturnValue(mockPdfDocument),
+    GlobalWorkerOptions: {},
+  },
+  getDocument: vi.fn().mockReturnValue(mockPdfDocument),
   GlobalWorkerOptions: {},
 }));
+
+vi.mock('pdfjs-dist/build/pdf.worker.entry', () => ({ default: {} }));
 
 // 3. Mock NativePdfViewer child component directly
 vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
 
-// 4. Robust Proxy Mock for UI Design System Library
+// 4. Dynamic Proxy Mock for UI Design System Library
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   const DummyComponent = Object.assign(Dummy, {
@@ -162,12 +189,7 @@ describe('VerifyPaymentDetailModal Component', () => {
       <ModalComponent isOpen={true} show={true} visible={true} data={{}} />
     );
     expect(container).toBeInTheDocument();
-    
-    // Explicitly unmount to destroy active timers & pending listeners
     unmount();
   });
 });
-
-
-npx vitest run
 
