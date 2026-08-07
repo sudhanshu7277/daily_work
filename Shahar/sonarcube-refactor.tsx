@@ -442,3 +442,265 @@ describe('citiSftIntake API', () => {
     });
   });
 });
+
+
+// src/api/documents.test.ts
+
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  getDocuments,
+  recordDocument,
+  uploadDocument,
+  downloadDocument,
+  deleteDocument,
+  updateDocument,
+  getDocumentPreviewBlob,
+} from './documents';
+import client, { get, post, del } from './client';
+
+vi.mock('./client', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+  get: vi.fn(),
+  post: vi.fn(),
+  del: vi.fn(),
+}));
+
+describe('documents API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getDocuments', () => {
+    it('calls get with correct instruction documents path', async () => {
+      const mockDocs = [{ id: 1, fileName: 'test.pdf' }];
+      vi.mocked(get).mockResolvedValueOnce(mockDocs as any);
+
+      const result = await getDocuments(100);
+
+      expect(get).toHaveBeenCalledWith('/instructions/100/documents');
+      expect(result).toEqual(mockDocs);
+    });
+  });
+
+  describe('recordDocument', () => {
+    it('constructs query params with all optional properties present', async () => {
+      const mockDoc = { id: 1, fileName: 'doc.pdf' };
+      vi.mocked(post).mockResolvedValueOnce(mockDoc as any);
+
+      const params = {
+        fileName: 'doc.pdf',
+        documentType: 'INVOICE',
+        dmcDocumentId: 'DMC123',
+        fileSize: 2048,
+        contentType: 'application/pdf',
+      };
+
+      const result = await recordDocument(100, params);
+
+      expect(post).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/instructions\/100\/documents\?fileName=doc\.pdf&documentType=INVOICE&dmcDocumentId=DMC123&fileSize=2048&contentType=application%2Fpdf/,
+        ),
+      );
+      expect(result).toEqual(mockDoc);
+    });
+
+    it('constructs query params with minimal required properties', async () => {
+      const mockDoc = { id: 2, fileName: 'doc2.pdf' };
+      vi.mocked(post).mockResolvedValueOnce(mockDoc as any);
+
+      const params = {
+        fileName: 'doc2.pdf',
+        documentType: 'RECEIPT',
+      };
+
+      await recordDocument(100, params);
+
+      expect(post).toHaveBeenCalledWith(
+        '/instructions/100/documents?fileName=doc2.pdf&documentType=RECEIPT',
+      );
+    });
+  });
+
+  describe('uploadDocument', () => {
+    it('appends file, documentType, and metadata into FormData', async () => {
+      const mockFile = new File(['content'], 'sample.txt', { type: 'text/plain' });
+      const mockResponse = { data: { success: true, data: { id: 10 } } };
+      vi.mocked(client.post).mockResolvedValueOnce(mockResponse as any);
+
+      const metadata = {
+        classification: 'CONFIDENTIAL',
+        documentRegion: 'US',
+        documentDate: '2026-08-07',
+        retentionCode: 'RET-7Y',
+      };
+
+      const result = await uploadDocument(100, mockFile, 'PASSPORT', metadata);
+
+      expect(client.post).toHaveBeenCalledWith(
+        '/instructions/100/documents/upload',
+        expect.any(FormData),
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      expect(result).toEqual({ success: true, data: { id: 10 } });
+    });
+
+    it('defaults documentType to OTHER when falsy and handles omitted metadata', async () => {
+      const mockFile = new File(['content'], 'sample.txt', { type: 'text/plain' });
+      const mockResponse = { data: { success: true } };
+      vi.mocked(client.post).mockResolvedValueOnce(mockResponse as any);
+
+      await uploadDocument(100, mockFile, '');
+
+      expect(client.post).toHaveBeenCalledWith(
+        '/instructions/100/documents/upload',
+        expect.any(FormData),
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+    });
+  });
+
+  describe('downloadDocument', () => {
+    it('requests blob, creates object URL, triggers download link click, and cleans up', async () => {
+      const mockBlobData = new Blob(['pdf data'], { type: 'application/pdf' });
+      vi.mocked(client.get).mockResolvedValueOnce({ data: mockBlobData } as any);
+
+      const createObjectURLMock = vi.fn().mockReturnValue('blob:http://localhost/mock-url');
+      const revokeObjectURLMock = vi.fn();
+      window.URL.createObjectURL = createObjectURLMock;
+      window.URL.revokeObjectURL = revokeObjectURLMock;
+
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      await downloadDocument(100, 50, 'statement.pdf');
+
+      expect(client.get).toHaveBeenCalledWith('/instructions/100/documents/50/download', {
+        responseType: 'blob',
+      });
+      expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob));
+      expect(clickSpy).toHaveBeenCalled();
+      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:http://localhost/mock-url');
+
+      clickSpy.mockRestore();
+    });
+  });
+
+  describe('deleteDocument', () => {
+    it('calls del with correct endpoint', async () => {
+      vi.mocked(del).mockResolvedValueOnce(undefined as any);
+
+      await deleteDocument(100, 50);
+
+      expect(del).toHaveBeenCalledWith('/instructions/100/documents/50/delete');
+    });
+  });
+
+  describe('updateDocument', () => {
+    it('constructs query string with all updated fields', async () => {
+      const mockDoc = { id: 50 };
+      vi.mocked(post).mockResolvedValueOnce(mockDoc as any);
+
+      const fields = {
+        documentType: 'TAX',
+        fileName: 'new-name.pdf',
+        classification: 'INTERNAL',
+        documentRegion: 'EMEA',
+        documentDate: '2026-01-01',
+        retentionCode: 'RET-3Y',
+      };
+
+      const result = await updateDocument(100, 50, fields);
+
+      expect(post).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/instructions\/100\/documents\/50\/update\?documentType=TAX&fileName=new-name\.pdf&classification=INTERNAL&documentRegion=EMEA&documentDate=2026-01-01&retentionCode=RET-3Y/,
+        ),
+      );
+      expect(result).toEqual(mockDoc);
+    });
+
+    it('handles empty fields object gracefully', async () => {
+      const mockDoc = { id: 50 };
+      vi.mocked(post).mockResolvedValueOnce(mockDoc as any);
+
+      await updateDocument(100, 50, {});
+
+      expect(post).toHaveBeenCalledWith('/instructions/100/documents/50/update?');
+    });
+  });
+
+  describe('getDocumentPreviewBlob', () => {
+    it('creates object URL directly when response data is already a Blob', async () => {
+      const mockBlob = new Blob(['preview content']);
+      vi.mocked(client.get).mockResolvedValueOnce({ data: mockBlob } as any);
+
+      const createObjectURLMock = vi.fn().mockReturnValue('blob:http://localhost/preview-url');
+      window.URL.createObjectURL = createObjectURLMock;
+
+      const url = await getDocumentPreviewBlob(100, 50);
+
+      expect(client.get).toHaveBeenCalledWith('/instructions/100/documents/50/preview', {
+        responseType: 'blob',
+      });
+      expect(createObjectURLMock).toHaveBeenCalledWith(mockBlob);
+      expect(url).toBe('blob:http://localhost/preview-url');
+    });
+
+    it('wraps non-Blob response data in a new Blob before creating object URL', async () => {
+      const mockArrayBuffer = new ArrayBuffer(8);
+      vi.mocked(client.get).mockResolvedValueOnce({ data: mockArrayBuffer } as any);
+
+      const createObjectURLMock = vi.fn().mockReturnValue('blob:http://localhost/arraybuffer-url');
+      window.URL.createObjectURL = createObjectURLMock;
+
+      const url = await getDocumentPreviewBlob(100, 50);
+
+      expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob));
+      expect(url).toBe('blob:http://localhost/arraybuffer-url');
+    });
+  });
+});
+
+/// src/api/roles.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getAvailableRoles, getCurrentUserRoles } from './roles';
+import { get } from './client';
+
+vi.mock('./client', () => ({
+  get: vi.fn(),
+}));
+
+describe('roles API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getAvailableRoles', () => {
+    it('calls get with the correct roles endpoint', async () => {
+      const mockRoles = [{ id: 'ROLE_ADMIN', name: 'Admin' }];
+      vi.mocked(get).mockResolvedValueOnce(mockRoles as any);
+
+      const result = await getAvailableRoles();
+
+      expect(get).toHaveBeenCalledWith('/roles');
+      expect(result).toEqual(mockRoles);
+    });
+  });
+
+  describe('getCurrentUserRoles', () => {
+    it('calls get with the correct auth/me endpoint', async () => {
+      const mockUserResponse = { soeid: 'AB12345', roles: ['ROLE_ADMIN'] };
+      vi.mocked(get).mockResolvedValueOnce(mockUserResponse as any);
+
+      const result = await getCurrentUserRoles();
+
+      expect(get).toHaveBeenCalledWith('/auth/me');
+      expect(result).toEqual(mockUserResponse);
+    });
+  });
+});
