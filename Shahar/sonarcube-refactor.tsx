@@ -1492,3 +1492,55 @@ describe('AuthContext', () => {
     });
   });
 });
+
+
+// src/utils/exportExcel.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as XLSX from 'xlsx';
+import { exportToExcel } from './exportExcel';
+
+vi.mock('xlsx', () => ({
+  utils: {
+    json_to_sheet: vi.fn(() => 'mock-worksheet'),
+    book_new: vi.fn(() => 'mock-workbook'),
+    book_append_sheet: vi.fn(),
+  },
+  writeFile: vi.fn(),
+}));
+
+describe('exportToExcel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('maps data columns and triggers XLSX file creation', () => {
+    const data = [
+      { id: 101, name: 'John Doe', status: 'Active' },
+      { id: 102, name: 'Jane Smith' }, // status missing to test nullish fallback
+    ];
+
+    const columns = [
+      { title: 'User ID', dataIndex: 'id' },
+      { title: 'Full Name', dataIndex: 'name' },
+      { title: 'Account Status', dataIndex: 'status' },
+    ];
+
+    exportToExcel(data, columns, 'users_export');
+
+    expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith([
+      { 'User ID': 101, 'Full Name': 'John Doe', 'Account Status': 'Active' },
+      { 'User ID': 102, 'Full Name': 'Jane Smith', 'Account Status': '' },
+    ]);
+    expect(XLSX.utils.book_new).toHaveBeenCalled();
+    expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(
+      'mock-workbook',
+      'mock-worksheet',
+      'Data'
+    );
+    expect(XLSX.writeFile).toHaveBeenCalledWith(
+      'mock-workbook',
+      'users_export.xlsx'
+    );
+  });
+});
