@@ -89,7 +89,7 @@ export const verifyPaymentDetail = async () => ({});
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // 1. Polyfill DOMMatrix for pdfjs-dist in JSDOM environment
 if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
@@ -124,7 +124,7 @@ vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
 
-// 4. Proxy Mock: Dynamically resolves ANY export (TextArea, Dropdown, Modal, etc.)
+// 4. Robust Proxy Mock for UI Design System Library
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   const DummyComponent = Object.assign(Dummy, {
@@ -152,12 +152,22 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
 import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
 
 describe('VerifyPaymentDetailModal Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders without crashing', () => {
     const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
-    const { container } = render(
+    const { container, unmount } = render(
       <ModalComponent isOpen={true} show={true} visible={true} data={{}} />
     );
     expect(container).toBeInTheDocument();
+    
+    // Explicitly unmount to destroy active timers & pending listeners
+    unmount();
   });
 });
+
+
+npx vitest run
 
