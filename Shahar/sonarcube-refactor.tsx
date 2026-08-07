@@ -79,18 +79,28 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/pages/auth/AccessDeniedPage.test.tsx
+// src/pages/intakeChannels/IntakeChannelsPage.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import AccessDeniedPage from './AccessDeniedPage';
+import IntakeChannelsPage from './IntakeChannelsPage';
 
-const mockNavigate = vi.fn();
+vi.mock('../aws-sync/AwsTicklerSyncPage', () => ({
+  default: () => <div data-testid="aws-sync-page">AWS Tickler Sync Page Content</div>,
+}));
 
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
+vi.mock('../emailIntake/EmailIntakeAuditPage', () => ({
+  default: () => <div data-testid="email-intake-page">Email Intake Page Content</div>,
+}));
+
+vi.mock('../citiSftIntake/CitiSftIntakeAuditPage', () => ({
+  default: () => <div data-testid="citisft-intake-page">CitiSFT Intake Page Content</div>,
+}));
+
+vi.mock('../tickler/TicklerTaskPage', () => ({
+  default: () => <div data-testid="tickler-tasks-page">Tickler Tasks Page Content</div>,
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', () => ({
@@ -99,40 +109,77 @@ vi.mock('@citi-icg-172888/icgds-react', () => ({
       {children}
     </div>
   ),
-  Icon: ({ type, style }: any) => (
-    <span data-testid={`icon-${type}`} style={style} />
+  Icon: ({ type, className, style }: any) => (
+    <span data-testid={`icon-${type}`} className={className} style={style} />
   ),
-  Button: ({ children, onClick, type }: any) => (
-    <button data-type={type} onClick={onClick}>
+  Card: ({ children, onClick, className, layer }: any) => (
+    <div
+      data-testid="channel-card"
+      data-layer={layer}
+      className={className}
+      onClick={onClick}
+    >
       {children}
-    </button>
+    </div>
   ),
 }));
 
-describe('AccessDeniedPage Component', () => {
+describe('IntakeChannelsPage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders access denied heading, icon, and explanation text', () => {
-    render(<AccessDeniedPage />);
+  it('renders title and all 4 channel cards initially with no active channel content', () => {
+    render(<IntakeChannelsPage />);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Access Denied' })).toBeInTheDocument();
-    expect(
-      screen.getByText(/you do not have the required permissions to view this page/i)
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('icon-lock')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /intake channels/i })).toBeInTheDocument();
+    expect(screen.getByTestId('icon-inbox')).toBeInTheDocument();
+
+    expect(screen.getByText('AWS Tickler Sync')).toBeInTheDocument();
+    expect(screen.getByText('Email Intake')).toBeInTheDocument();
+    expect(screen.getByText('CitiSFT Intake')).toBeInTheDocument();
+    expect(screen.getByText('Tickler Tasks')).toBeInTheDocument();
+
+    expect(screen.queryByTestId('aws-sync-page')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('email-intake-page')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('citisft-intake-page')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tickler-tasks-page')).not.toBeInTheDocument();
   });
 
-  it('navigates to dashboard ("/") when "Return to Dashboard" button is clicked', () => {
-    render(<AccessDeniedPage />);
+  it('activates channel component when channel card is clicked', () => {
+    render(<IntakeChannelsPage />);
 
-    const button = screen.getByRole('button', { name: 'Return to Dashboard' });
-    expect(button).toBeInTheDocument();
+    const awsCard = screen.getByText('AWS Tickler Sync').closest('[data-testid="channel-card"]');
+    expect(awsCard).toBeInTheDocument();
 
-    fireEvent.click(button);
+    fireEvent.click(awsCard!);
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith('/');
+    expect(screen.getByTestId('aws-sync-page')).toBeInTheDocument();
+  });
+
+  it('switches active channel component when another channel card is clicked', () => {
+    render(<IntakeChannelsPage />);
+
+    const emailCard = screen.getByText('Email Intake').closest('[data-testid="channel-card"]');
+    const citisftCard = screen.getByText('CitiSFT Intake').closest('[data-testid="channel-card"]');
+
+    fireEvent.click(emailCard!);
+    expect(screen.getByTestId('email-intake-page')).toBeInTheDocument();
+
+    fireEvent.click(citisftCard!);
+    expect(screen.queryByTestId('email-intake-page')).not.toBeInTheDocument();
+    expect(screen.getByTestId('citisft-intake-page')).toBeInTheDocument();
+  });
+
+  it('deselects and hides channel content when clicking an already active channel card', () => {
+    render(<IntakeChannelsPage />);
+
+    const tasksCard = screen.getByText('Tickler Tasks').closest('[data-testid="channel-card"]');
+
+    fireEvent.click(tasksCard!);
+    expect(screen.getByTestId('tickler-tasks-page')).toBeInTheDocument();
+
+    fireEvent.click(tasksCard!);
+    expect(screen.queryByTestId('tickler-tasks-page')).not.toBeInTheDocument();
   });
 });
