@@ -902,3 +902,111 @@ describe('tickler API', () => {
     });
   });
 });
+
+
+// src/api/whitelist.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  getActiveWhitelist,
+  getAllWhitelist,
+  checkDomain,
+  addDomain,
+  deactivateDomain,
+  activateDomain,
+  updateDomain,
+} from './whitelist';
+import { get, post, del } from './client';
+
+vi.mock('./client', () => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  del: vi.fn(),
+}));
+
+describe('whitelist API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getActiveWhitelist', () => {
+    it('calls get with correct whitelist endpoint', async () => {
+      const mockList = [{ id: 1, domain: 'example.com' }];
+      vi.mocked(get).mockResolvedValueOnce(mockList as any);
+
+      const result = await getActiveWhitelist();
+
+      expect(get).toHaveBeenCalledWith('/whitelist');
+      expect(result).toEqual(mockList);
+    });
+  });
+
+  describe('getAllWhitelist', () => {
+    it('calls get with correct whitelist/all endpoint', async () => {
+      const mockList = [{ id: 1, domain: 'example.com' }, { id: 2, domain: 'test.com' }];
+      vi.mocked(get).mockResolvedValueOnce(mockList as any);
+
+      const result = await getAllWhitelist();
+
+      expect(get).toHaveBeenCalledWith('/whitelist/all');
+      expect(result).toEqual(mockList);
+    });
+  });
+
+  describe('checkDomain', () => {
+    it('calls get with check endpoint and domain query parameter', async () => {
+      vi.mocked(get).mockResolvedValueOnce(true as any);
+
+      const result = await checkDomain('example.com');
+
+      expect(get).toHaveBeenCalledWith('/whitelist/check', { domain: 'example.com' });
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('addDomain', () => {
+    it('calls post with correct endpoint and payload', async () => {
+      const mockPayload = { domain: 'newdomain.com' } as any;
+      const mockResponse = { id: 3, domain: 'newdomain.com' };
+      vi.mocked(post).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await addDomain(mockPayload);
+
+      expect(post).toHaveBeenCalledWith('/whitelist', mockPayload);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('deactivateDomain', () => {
+    it('calls del with correct deactivate endpoint', async () => {
+      vi.mocked(del).mockResolvedValueOnce(undefined as any);
+
+      await deactivateDomain(10);
+
+      expect(del).toHaveBeenCalledWith('/whitelist/10/deactivate');
+    });
+  });
+
+  describe('activateDomain', () => {
+    it('calls post with correct activate endpoint', async () => {
+      vi.mocked(post).mockResolvedValueOnce(undefined as any);
+
+      await activateDomain(10);
+
+      expect(post).toHaveBeenCalledWith('/whitelist/10/activate');
+    });
+  });
+
+  describe('updateDomain', () => {
+    it('calls post with correct update endpoint and payload', async () => {
+      const mockPayload = { domain: 'updateddomain.com' } as any;
+      const mockResponse = { id: 10, domain: 'updateddomain.com' };
+      vi.mocked(post).mockResolvedValueOnce(mockResponse as any);
+
+      const result = await updateDomain(10, mockPayload);
+
+      expect(post).toHaveBeenCalledWith('/whitelist/10', mockPayload);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+});
