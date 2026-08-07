@@ -241,3 +241,90 @@ src/pages/thresholds/ThresholdManagementPage.tsx (431 lines)
 
 Recommended Execution Path
 Starting with Phase 1 (The API Layer) will immediately jump your overall statement coverage from 34% to over 55% in a single batch.
+
+
+
+
+
+// audit.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getInstructionHistory, getFieldHistory } from './audit';
+import { get } from './client';
+
+vi.mock('./client', () => ({
+  get: vi.fn(),
+}));
+
+describe('audit API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getInstructionHistory', () => {
+    it('calls get with the correct history endpoint', async () => {
+      const mockData = [{ id: 1, action: 'CREATE' }];
+      vi.mocked(get).mockResolvedValueOnce(mockData);
+
+      const result = await getInstructionHistory(123);
+
+      expect(get).toHaveBeenCalledWith('/audit/instructions/123/history');
+      expect(result).toEqual(mockData);
+    });
+  });
+
+  describe('getFieldHistory', () => {
+    it('calls get with the correct fields endpoint', async () => {
+      const mockData = [{ fieldName: 'amount', oldValue: '100', newValue: '200' }];
+      vi.mocked(get).mockResolvedValueOnce(mockData);
+
+      const result = await getFieldHistory(456);
+
+      expect(get).toHaveBeenCalledWith('/audit/instructions/456/fields');
+      expect(result).toEqual(mockData);
+    });
+  });
+});
+
+// comments.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getComments, addComment } from './comments';
+import { get, post } from './client';
+
+vi.mock('./client', () => ({
+  get: vi.fn(),
+  post: vi.fn(),
+}));
+
+describe('comments API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getComments', () => {
+    it('calls get with the correct comments endpoint', async () => {
+      const mockComments = [{ id: 1, text: 'Test comment' }];
+      vi.mocked(get).mockResolvedValueOnce(mockComments);
+
+      const result = await getComments(101);
+
+      expect(get).toHaveBeenCalledWith('/instructions/101/comments');
+      expect(result).toEqual(mockComments);
+    });
+  });
+
+  describe('addComment', () => {
+    it('calls post with the correct endpoint and payload', async () => {
+      const mockPayload = { commentText: 'New comment' } as any;
+      const mockResponse = { id: 2, text: 'New comment' };
+      vi.mocked(post).mockResolvedValueOnce(mockResponse);
+
+      const result = await addComment(101, mockPayload);
+
+      expect(post).toHaveBeenCalledWith('/instructions/101/comments', mockPayload);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+});
+
