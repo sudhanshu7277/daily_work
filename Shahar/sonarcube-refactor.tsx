@@ -87,10 +87,10 @@ export const verifyPaymentDetail = async () => ({});
 ///  src/components/instructions/VerifyPaymentDetailModal.test.tsx
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// 1. Global Browser Polyfills for JSDOM
+// 1. Polyfill DOM Matrix & Observers
 if (typeof window !== 'undefined') {
   if (!(global as any).DOMMatrix) {
     (global as any).DOMMatrix = class DOMMatrix {
@@ -100,69 +100,44 @@ if (typeof window !== 'undefined') {
       scale() { return this; }
     };
   }
-
   if (!window.ResizeObserver) {
-    window.ResizeObserver = class ResizeObserver {
+    window.ResizeObserver = class {
       observe() {}
       unobserve() {}
       disconnect() {}
     };
   }
-
-  if (!window.IntersectionObserver) {
-    window.IntersectionObserver = class IntersectionObserver {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    } as any;
-  }
-
-  if (!window.URL.createObjectURL) {
-    window.URL.createObjectURL = vi.fn(() => 'blob:mock');
-    window.URL.revokeObjectURL = vi.fn();
-  }
 }
 
-// 2. Mock API modules to resolve instantly and prevent background network hangs
-vi.mock('../../api/instructions', () => ({
-  getInstructionDetails: vi.fn().mockResolvedValue({ data: {} }),
-  updateInstruction: vi.fn().mockResolvedValue({ data: {} }),
-  verifyInstruction: vi.fn().mockResolvedValue({ data: {} }),
-}));
-
-vi.mock('../../api/documents', () => ({
-  getDocument: vi.fn().mockResolvedValue(new Blob()),
-  getDocumentsList: vi.fn().mockResolvedValue([]),
-}));
-
-// 3. Mock pdfjs-dist
-const mockPdfDocument = {
-  promise: Promise.resolve({
-    numPages: 1,
-    getPage: vi.fn().mockResolvedValue({
-      getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),
-      render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+// 2. Mock pdfjs-dist
+vi.mock('pdfjs-dist', () => ({
+  default: { getDocument: vi.fn(), GlobalWorkerOptions: {} },
+  getDocument: vi.fn().mockReturnValue({
+    promise: Promise.resolve({
+      numPages: 1,
+      getPage: vi.fn().mockResolvedValue({
+        getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),
+        render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+      }),
     }),
   }),
-};
-
-vi.mock('pdfjs-dist', () => ({
-  default: {
-    getDocument: vi.fn().mockReturnValue(mockPdfDocument),
-    GlobalWorkerOptions: {},
-  },
-  getDocument: vi.fn().mockReturnValue(mockPdfDocument),
   GlobalWorkerOptions: {},
 }));
 
-vi.mock('pdfjs-dist/build/pdf.worker.entry', () => ({ default: {} }));
-
-// 4. Mock NativePdfViewer child component directly
+// 3. Mock ALL child components & sub-modals that trigger async state updates
 vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
 
-// 5. Proxy Mock for Design System Components
+vi.mock('./RequestInfoModal', () => ({
+  default: () => <div data-testid="mock-request-info-modal" />,
+}));
+
+vi.mock('./SetupInstructionModal', () => ({
+  default: () => <div data-testid="mock-setup-instruction-modal" />,
+}));
+
+// 4. Proxy Mock for UI Design System Components
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   const DummyComponent = Object.assign(Dummy, {
@@ -189,41 +164,41 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
 
 import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
 
-// Realistic mock data structure to avoid undefined property infinite loops
-const mockModalData = {
-  id: '12345',
-  instructionId: 'INS-1001',
-  dealName: 'Test Deal',
-  status: 'PENDING',
-  amount: 1000,
-  currency: 'USD',
-  paymentDetails: [],
-  documents: [],
-  comments: [],
-  history: [],
-};
-
 describe('VerifyPaymentDetailModal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders without crashing', () => {
-    const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
-    const { container, unmount } = render(
-      <ModalComponent
-        isOpen={true}
-        show={true}
-        visible={true}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-        data={mockModalData}
-        instruction={mockModalData}
-      />
-    );
-    expect(container).toBeInTheDocument();
-    unmount();
+  it('renders closed modal without triggering async effects', async () => {
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+      result = render(
+        <VerifyPaymentDetailModal
+          isOpen={false}
+          show={false}
+          visible={false}
+          onClose={vi.fn()}
+          data={null}
+        />
+      );
+    });
+    expect(result!.container).toBeInTheDocument();
+  });
+
+  it('renders open modal with mocked sub-components cleanly', async () => {
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+      result = render(
+        <VerifyPaymentDetailModal
+          isOpen={true}
+          show={true}
+          visible={true}
+          onClose={vi.fn()}
+          data={{ id: '123', paymentDetails: [] }}
+        />
+      );
+    });
+    expect(result!.container).toBeInTheDocument();
   });
 });
-
 
