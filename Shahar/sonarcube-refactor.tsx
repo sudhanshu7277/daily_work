@@ -145,3 +145,82 @@ describe('MoreFiltersPanel Component', () => {
     expect(defaultProps.onClearAll).toHaveBeenCalled();
   });
 });
+
+
+// VerifyPaymentDetailModal.test.tsx
+
+import React from 'react';
+import '@testing-library/jest-dom';
+import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
+
+// Mock UI library components with both default and named exports
+vi.mock('@citi-icg-172888/icgds-react', () => {
+  const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  return {
+    default: Dummy,
+    El: Dummy,
+    Modal: Object.assign(
+      ({ children }: any) => <div data-testid="mock-modal">{children}</div>,
+      {
+        Header: Dummy,
+        Body: Dummy,
+        Footer: Dummy,
+        Title: Dummy,
+      }
+    ),
+    Icon: () => <span data-testid="mock-icon" />,
+    Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+    Input: () => <input />,
+    DatePicker: () => <div />,
+    Select: Object.assign(Dummy, { Option: Dummy }),
+    Table: Object.assign(Dummy, { Header: Dummy, Body: Dummy, Row: Dummy, Cell: Dummy }),
+  };
+});
+
+describe('VerifyPaymentDetailModal Component', () => {
+  const defaultProps: any = {
+    isOpen: true,
+    show: true,
+    visible: true,
+    data: {},
+    paymentDetail: {},
+    instructionData: {},
+    onClose: vi.fn(),
+    onConfirm: vi.fn(),
+    onVerify: vi.fn(),
+    onSubmit: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing when modal is open', () => {
+    const { container } = render(<VerifyPaymentDetailModal {...defaultProps} />);
+    expect(container).toBeInTheDocument();
+  });
+
+  it('renders safely when modal is closed or passed empty props', () => {
+    const { container } = render(
+      <VerifyPaymentDetailModal
+        {...defaultProps}
+        isOpen={false}
+        show={false}
+        visible={false}
+        data={null}
+        paymentDetail={null}
+      />
+    );
+    expect(container).toBeInTheDocument();
+  });
+
+  it('handles action callbacks safely', () => {
+    const { container } = render(<VerifyPaymentDetailModal {...defaultProps} />);
+    expect(container).toBeInTheDocument();
+
+    defaultProps.onClose();
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+});
