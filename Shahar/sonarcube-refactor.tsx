@@ -124,26 +124,29 @@ vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
 
-// 4. Mock UI Design System Library (includes Dropdown, Tag, Tooltip, etc.)
+// 4. Proxy Mock: Dynamically resolves ANY export (TextArea, Dropdown, Modal, etc.)
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
-  return {
-    default: Dummy,
-    El: Dummy,
-    Tag: Dummy,
-    Tooltip: Dummy,
-    Modal: Object.assign(
-      ({ children }: any) => <div data-testid="mock-modal">{children}</div>,
-      { Header: Dummy, Body: Dummy, Footer: Dummy, Title: Dummy }
-    ),
-    Icon: () => <span />,
-    Button: ({ children }: any) => <button>{children}</button>,
-    Input: () => <input />,
-    DatePicker: () => <div />,
-    Dropdown: Object.assign(Dummy, { Item: Dummy, Option: Dummy }),
-    Select: Object.assign(Dummy, { Option: Dummy }),
-    Table: Object.assign(Dummy, { Header: Dummy, Body: Dummy, Row: Dummy, Cell: Dummy }),
-  };
+  const DummyComponent = Object.assign(Dummy, {
+    Header: Dummy,
+    Body: Dummy,
+    Footer: Dummy,
+    Title: Dummy,
+    Item: Dummy,
+    Option: Dummy,
+    Row: Dummy,
+    Cell: Dummy,
+  });
+
+  return new Proxy(
+    { default: DummyComponent, __esModule: true },
+    {
+      get: (target: any, prop: string) => {
+        if (prop in target) return target[prop];
+        return DummyComponent;
+      },
+    }
+  );
 });
 
 import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
