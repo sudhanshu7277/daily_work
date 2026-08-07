@@ -91,10 +91,45 @@ import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
+// 1. Polyfill DOMMatrix for pdfjs-dist in JSDOM environment
+if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
+  (global as any).DOMMatrix = class DOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    multiply() { return this; }
+    translate() { return this; }
+    scale() { return this; }
+  };
+}
+
+// 2. Mock pdfjs-dist library completely
+vi.mock('pdfjs-dist', () => ({
+  default: {
+    getDocument: vi.fn(),
+    GlobalWorkerOptions: {},
+  },
+  getDocument: vi.fn().mockReturnValue({
+    promise: Promise.resolve({
+      numPages: 1,
+      getPage: vi.fn().mockResolvedValue({
+        getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),
+        render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+      }),
+    }),
+  }),
+  GlobalWorkerOptions: {},
+}));
+
+// 3. Mock NativePdfViewer child component directly
+vi.mock('../documentViewer/NativePdfViewer', () => ({
+  default: () => <div data-testid="mock-pdf-viewer" />,
+}));
+
+// 4. Mock UI Design System Library
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   return {
     default: Dummy,
+    El: Dummy,
     Modal: Object.assign(
       ({ children }: any) => <div data-testid="mock-modal">{children}</div>,
       { Header: Dummy, Body: Dummy, Footer: Dummy, Title: Dummy }
