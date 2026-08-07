@@ -247,7 +247,6 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 // audit.test.ts
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getInstructionHistory, getFieldHistory } from './audit';
 import { get } from './client';
@@ -264,7 +263,7 @@ describe('audit API', () => {
   describe('getInstructionHistory', () => {
     it('calls get with the correct history endpoint', async () => {
       const mockData = [{ id: 1, action: 'CREATE' }];
-      vi.mocked(get).mockResolvedValueOnce(mockData);
+      vi.mocked(get).mockResolvedValueOnce(mockData as any);
 
       const result = await getInstructionHistory(123);
 
@@ -276,7 +275,7 @@ describe('audit API', () => {
   describe('getFieldHistory', () => {
     it('calls get with the correct fields endpoint', async () => {
       const mockData = [{ fieldName: 'amount', oldValue: '100', newValue: '200' }];
-      vi.mocked(get).mockResolvedValueOnce(mockData);
+      vi.mocked(get).mockResolvedValueOnce(mockData as any);
 
       const result = await getFieldHistory(456);
 
@@ -285,7 +284,6 @@ describe('audit API', () => {
     });
   });
 });
-
 // comments.test.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
