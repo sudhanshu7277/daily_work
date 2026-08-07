@@ -85,11 +85,10 @@ export const verifyPaymentDetail = async () => ({});
 
 
 ///  src/components/instructions/VerifyPaymentDetailModal.test.tsx
-
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // 1. Global Browser Polyfills for JSDOM
 if (typeof window !== 'undefined') {
@@ -124,7 +123,19 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// 2. Comprehensive PDF.js Mocks (prevents Web Worker thread locks)
+// 2. Mock API modules to resolve instantly and prevent background network hangs
+vi.mock('../../api/instructions', () => ({
+  getInstructionDetails: vi.fn().mockResolvedValue({ data: {} }),
+  updateInstruction: vi.fn().mockResolvedValue({ data: {} }),
+  verifyInstruction: vi.fn().mockResolvedValue({ data: {} }),
+}));
+
+vi.mock('../../api/documents', () => ({
+  getDocument: vi.fn().mockResolvedValue(new Blob()),
+  getDocumentsList: vi.fn().mockResolvedValue([]),
+}));
+
+// 3. Mock pdfjs-dist
 const mockPdfDocument = {
   promise: Promise.resolve({
     numPages: 1,
@@ -146,12 +157,12 @@ vi.mock('pdfjs-dist', () => ({
 
 vi.mock('pdfjs-dist/build/pdf.worker.entry', () => ({ default: {} }));
 
-// 3. Mock NativePdfViewer child component directly
+// 4. Mock NativePdfViewer child component directly
 vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
 
-// 4. Dynamic Proxy Mock for UI Design System Library
+// 5. Proxy Mock for Design System Components
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   const DummyComponent = Object.assign(Dummy, {
@@ -178,6 +189,20 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
 
 import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
 
+// Realistic mock data structure to avoid undefined property infinite loops
+const mockModalData = {
+  id: '12345',
+  instructionId: 'INS-1001',
+  dealName: 'Test Deal',
+  status: 'PENDING',
+  amount: 1000,
+  currency: 'USD',
+  paymentDetails: [],
+  documents: [],
+  comments: [],
+  history: [],
+};
+
 describe('VerifyPaymentDetailModal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -186,10 +211,19 @@ describe('VerifyPaymentDetailModal Component', () => {
   it('renders without crashing', () => {
     const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
     const { container, unmount } = render(
-      <ModalComponent isOpen={true} show={true} visible={true} data={{}} />
+      <ModalComponent
+        isOpen={true}
+        show={true}
+        visible={true}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+        data={mockModalData}
+        instruction={mockModalData}
+      />
     );
     expect(container).toBeInTheDocument();
     unmount();
   });
 });
+
 
