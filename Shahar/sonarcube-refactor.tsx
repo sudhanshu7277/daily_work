@@ -79,30 +79,35 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/pages/whitelist/WhitelistManagementPage.test.tsx
+// src/pages/thresholds/ThresholdManagementPage.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import WhitelistManagementPage from './WhitelistManagementPage';
-import { getActiveWhitelist, checkDomain, addDomain, deactivateDomain } from '../../api/whitelist';
-import { fetchGabUser } from '../../api/gabUser';
+import ThresholdManagementPage from './ThresholdManagementPage';
+import {
+  getActiveThresholds,
+  createThreshold,
+  updateThreshold,
+  deactivateThreshold,
+} from '../../api/thresholds';
+import { getRefDataByType } from '../../api/refdata';
 import { notification } from '@citi-icg-172888/icgds-react';
 
-vi.mock('../../api/whitelist', () => ({
-  getActiveWhitelist: vi.fn(),
-  checkDomain: vi.fn(),
-  addDomain: vi.fn(),
-  deactivateDomain: vi.fn(),
+vi.mock('../../api/thresholds', () => ({
+  getActiveThresholds: vi.fn(),
+  createThreshold: vi.fn(),
+  updateThreshold: vi.fn(),
+  deactivateThreshold: vi.fn(),
 }));
 
-vi.mock('../../api/gabUser', () => ({
-  fetchGabUser: vi.fn(),
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: vi.fn(),
 }));
 
 vi.mock('../../utils/format', () => ({
-  formatDateTime: (d: string) => `FormattedDate:${d}`,
+  formatCurrency: (amount: number, currency: string) => `${currency} ${amount}`,
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', () => {
@@ -110,6 +115,23 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
     success: vi.fn(),
     danger: vi.fn(),
   };
+
+  const DropdownComponent = ({ value, onChange, children, label }: any) => (
+    <div data-testid="dropdown">
+      {label && <span>{label}</span>}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid="dropdown-select"
+      >
+        {children}
+      </select>
+    </div>
+  );
+
+  DropdownComponent.Item = ({ value, children }: any) => (
+    <option value={value}>{children}</option>
+  );
 
   return {
     notification: notificationObj,
@@ -122,8 +144,9 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
     Button: ({ children, onClick, color, size }: any) => (
       <button data-color={color} data-size={size} onClick={onClick}>{children}</button>
     ),
-    Input: ({ value, onChange, placeholder }: any) => (
+    Input: ({ value, onChange, placeholder, type }: any) => (
       <input
+        type={type || 'text'}
         placeholder={placeholder}
         value={value ?? ''}
         onChange={onChange}
@@ -135,173 +158,150 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
     ),
     Loading: ({ tip }: any) => <div data-testid="loading-indicator">{tip}</div>,
     Alert: ({ children, type }: any) => <div data-testid="alert-message" data-type={type}>{children}</div>,
-    Modal: ({ children, visible, onCancel, onApply, title }: any) =>
+    Modal: ({ children, visible, onCancel, onApply, title, applyText }: any) =>
       visible ? (
         <div data-testid="modal">
           <h3>{title}</h3>
           <div>{children}</div>
           <button data-testid="modal-cancel-btn" onClick={onCancel}>Cancel</button>
-          <button data-testid="modal-apply-btn" onClick={onApply}>Apply</button>
+          <button data-testid="modal-apply-btn" onClick={onApply}>{applyText || 'Apply'}</button>
         </div>
       ) : null,
-    Table: ({ data, columns }: any) => (
-      <table data-testid="whitelist-table">
-        <thead>
-          <tr>
-            {columns?.map((col: any) => (
-              <th key={col.key || col.dataIndex}>{col.title}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data?.map((row: any, rowIndex: number) => (
-            <tr key={row.key || rowIndex} data-testid={`row-${rowIndex}`}>
-              {columns?.map((col: any) => (
-                <td key={col.key || col.dataIndex} data-testid={`cell-${col.key || col.dataIndex}-${rowIndex}`}>
-                  {col.render
-                    ? col.render(row[col.dataIndex], row)
-                    : String(row[col.dataIndex] ?? '')}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    ),
+    Dropdown: DropdownComponent,
   };
 });
 
-describe('WhitelistManagementPage Component', () => {
-  const mockWhitelistData = [
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => (
+    <div data-testid="ag-grid-mock">
+      {rowData?.map((row: any, rowIndex: number) => (
+        <div key={row.key || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+          {columnDefs?.map((col: any) => (
+            <span key={col.field || col.headerName} data-testid={`cell-${col.field}-${rowIndex}`}>
+              {col.valueFormatter
+                ? col.valueFormatter({ value: row[col.field], data: row })
+                : col.cellRenderer
+                ? col.cellRenderer({ value: row[col.field], data: row })
+                : String(row[col.field] ?? '')}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
+describe('ThresholdManagementPage Component', () => {
+  const mockThresholds = [
     {
-      whitelistId: 101,
-      domainName: 'citi.com',
-      description: 'Corporate domain',
-      createdBy: 'USER1',
-      modifiedBy: 'USER2',
-      createdOn: '2026-01-15T10:00:00Z',
-      isActive: true,
+      thresholdId: 1,
+      currency: 'USD',
+      region: 'GLOBAL',
+      thresholdAmount: 100000,
+      requiresSuperChecker: true,
+      description: 'Global USD Limit',
     },
     {
-      whitelistId: 102,
-      domainName: 'partner.org',
-      description: 'Partner domain',
-      createdBy: 'SYSTEM',
-      updatedBy: 'USER1',
-      createdOn: '2026-02-01T12:00:00Z',
-      isActive: false,
+      thresholdId: 2,
+      currency: 'EUR',
+      region: 'EMEA',
+      thresholdAmount: 50000,
+      requiresSuperChecker: false,
+      description: 'EMEA EUR Limit',
     },
   ];
 
+  const mockRegionRefData = {
+    data: [
+      { refCode: 'GLOBAL', refValue: 'Global Region' },
+      { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
+      { refCode: 'APAC', refValue: 'Asia Pacific' },
+    ],
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getActiveWhitelist).mockResolvedValue({ data: mockWhitelistData } as any);
-    vi.mocked(fetchGabUser).mockImplementation((key: string) => {
-      if (key === 'USER1') {
-        return Promise.resolve({ data: { firstName: 'Alice', lastName: 'Smith' } } as any);
-      }
-      if (key === 'USER2') {
-        return Promise.resolve({ data: { firstName: 'Bob', lastName: 'Jones' } } as any);
-      }
-      return Promise.resolve({ data: null } as any);
-    });
+    vi.mocked(getActiveThresholds).mockResolvedValue({ data: mockThresholds } as any);
+    vi.mocked(getRefDataByType).mockResolvedValue(mockRegionRefData as any);
   });
 
-  it('renders title and loads whitelist table with formatted data', async () => {
-    render(<WhitelistManagementPage />);
+  it('renders title, fetches active thresholds, and loads region refdata', async () => {
+    render(<ThresholdManagementPage />);
 
-    expect(screen.getByText('Loading whitelist...')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toHaveTextContent('Loading thresholds...');
 
     await waitFor(() => {
-      expect(screen.getByTestId('whitelist-table')).toBeInTheDocument();
+      expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Domain Whitelist')).toBeInTheDocument();
-    expect(screen.getByText('citi.com')).toBeInTheDocument();
-    expect(screen.getByText('partner.org')).toBeInTheDocument();
-    expect(screen.getByText('FormattedDate:2026-01-15T10:00:00Z')).toBeInTheDocument();
+    expect(screen.getByText('Payment Thresholds')).toBeInTheDocument();
+    expect(getActiveThresholds).toHaveBeenCalledTimes(1);
+    expect(getRefDataByType).toHaveBeenCalledWith('REGION');
   });
 
-  it('resolves user SOEIDs and renders resolved full names', async () => {
-    render(<WhitelistManagementPage />);
+  it('displays alert message when thresholds API fails', async () => {
+    vi.mocked(getActiveThresholds).mockRejectedValue(new Error('Failed to load thresholds'));
+
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-      expect(screen.getByText('Bob Jones')).toBeInTheDocument();
-    });
-
-    expect(fetchGabUser).toHaveBeenCalledWith('USER1');
-    expect(fetchGabUser).toHaveBeenCalledWith('USER2');
-  });
-
-  it('displays alert message when initial data fetch fails', async () => {
-    vi.mocked(getActiveWhitelist).mockRejectedValue(new Error('Network Error'));
-
-    render(<WhitelistManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('alert-message')).toHaveTextContent('Network Error');
+      expect(screen.getByTestId('alert-message')).toHaveTextContent('Failed to load thresholds');
     });
   });
 
-  it('opens Add Domain modal, validates input, and successfully adds a domain', async () => {
-    vi.mocked(addDomain).mockResolvedValue({} as any);
+  it('opens Create Threshold modal, fills all fields including description & super checker, and submits', async () => {
+    vi.mocked(createThreshold).mockResolvedValue({} as any);
 
-    render(<WhitelistManagementPage />);
+    render(<ThresholdManagementPage />);
 
-    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument());
 
-    const addBtn = screen.getByRole('button', { name: /add domain/i });
+    const addBtn = screen.getByRole('button', { name: /add threshold/i });
     fireEvent.click(addBtn);
 
     expect(screen.getByTestId('modal')).toBeInTheDocument();
-    expect(screen.getByText('Add Domain to Whitelist')).toBeInTheDocument();
+    expect(screen.getByText('Create Threshold')).toBeInTheDocument();
+
+    // Fill form inputs
+    const amountInput = screen.getByRole('spinbutton');
+    fireEvent.change(amountInput, { target: { value: '250000' } });
+
+    const descInput = screen.getByPlaceholderText('Threshold description');
+    fireEvent.change(descInput, { target: { value: 'High Value Threshold' } });
+
+    // Select Super Checker Option
+    const selects = screen.getAllByTestId('dropdown-select');
+    const superCheckerSelect = selects[selects.length - 1];
+    fireEvent.change(superCheckerSelect, { target: { value: 'false' } });
 
     const applyBtn = screen.getByTestId('modal-apply-btn');
 
-    // Submit with empty domain
     await act(async () => {
       fireEvent.click(applyBtn);
     });
 
-    expect(notification.danger).toHaveBeenCalledWith({
-      title: 'Validation',
-      content: 'Domain name is required',
-    });
-
-    // Enter valid domain and description
-    const domainInput = screen.getByPlaceholderText('e.g. citi.com');
-    const descInput = screen.getByPlaceholderText('Description');
-
-    fireEvent.change(domainInput, { target: { value: 'example.com' } });
-    fireEvent.change(descInput, { target: { value: 'Test description' } });
-
-    await act(async () => {
-      fireEvent.click(applyBtn);
-    });
-
-    expect(addDomain).toHaveBeenCalledWith({
-      domainName: 'example.com',
-      description: 'Test description',
+    expect(createThreshold).toHaveBeenCalledWith({
+      currency: 'USD',
+      region: 'GLOBAL',
+      thresholdAmount: 250000,
+      requiresSuperChecker: false,
+      description: 'High Value Threshold',
     });
     expect(notification.success).toHaveBeenCalledWith({
-      title: 'Added',
-      content: 'Domain "example.com" added to whitelist',
+      title: 'Created',
+      content: 'Threshold created',
     });
-    expect(getActiveWhitelist).toHaveBeenCalledTimes(2);
+    expect(getActiveThresholds).toHaveBeenCalledTimes(2);
   });
 
-  it('shows error notification when addDomain API call fails', async () => {
-    vi.mocked(addDomain).mockRejectedValue(new Error('Domain already exists'));
+  it('handles errors when createThreshold fails', async () => {
+    vi.mocked(createThreshold).mockRejectedValue(new Error('Save failed'));
 
-    render(<WhitelistManagementPage />);
+    render(<ThresholdManagementPage />);
 
-    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: /add domain/i }));
-
-    const domainInput = screen.getByPlaceholderText('e.g. citi.com');
-    fireEvent.change(domainInput, { target: { value: 'duplicate.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /add threshold/i }));
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('modal-apply-btn'));
@@ -309,69 +309,21 @@ describe('WhitelistManagementPage Component', () => {
 
     expect(notification.danger).toHaveBeenCalledWith({
       title: 'Error',
-      content: 'Domain already exists',
+      content: 'Save failed',
     });
   });
 
-  it('checks domain status and renders success or failure alert inside Check Domain modal', async () => {
-    vi.mocked(checkDomain).mockResolvedValue({ data: true } as any);
+  it('reloads data on clicking Refresh button', async () => {
+    render(<ThresholdManagementPage />);
 
-    render(<WhitelistManagementPage />);
-
-    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
-
-    const checkBtn = screen.getByRole('button', { name: /check domain/i });
-    fireEvent.click(checkBtn);
-
-    expect(screen.getByText('Check Domain')).toBeInTheDocument();
-
-    const checkInput = screen.getAllByPlaceholderText('e.g. citi.com').pop()!;
-
-    // Positive check (whitelisted)
-    fireEvent.change(checkInput, { target: { value: 'citi.com' } });
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('modal-apply-btn'));
-    });
-
-    expect(checkDomain).toHaveBeenCalledWith('citi.com');
-    expect(await screen.findByText('`citi.com` is whitelisted')).toBeInTheDocument();
-
-    // Negative check (NOT whitelisted)
-    vi.mocked(checkDomain).mockResolvedValue({ data: false } as any);
-    fireEvent.change(checkInput, { target: { value: 'unknown.com' } });
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('modal-apply-btn'));
-    });
-
-    expect(checkDomain).toHaveBeenCalledWith('unknown.com');
-    expect(await screen.findByText('`unknown.com` is NOT whitelisted')).toBeInTheDocument();
-  });
-
-  it('clears state when cancelling the Check Domain modal', async () => {
-    render(<WhitelistManagementPage />);
-
-    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole('button', { name: /check domain/i }));
-
-    const cancelBtn = screen.getByTestId('modal-cancel-btn');
-    fireEvent.click(cancelBtn);
-
-    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
-  });
-
-  it('reloads data when clicking Refresh button', async () => {
-    render(<WhitelistManagementPage />);
-
-    await waitFor(() => expect(screen.getByText('citi.com')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('ag-grid-mock')).toBeInTheDocument());
 
     const refreshBtn = screen.getByRole('button', { name: /refresh/i });
+
     await act(async () => {
       fireEvent.click(refreshBtn);
     });
 
-    expect(getActiveWhitelist).toHaveBeenCalledTimes(2);
+    expect(getActiveThresholds).toHaveBeenCalledTimes(2);
   });
 });
