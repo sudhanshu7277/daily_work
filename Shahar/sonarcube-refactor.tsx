@@ -285,7 +285,6 @@ describe('audit API', () => {
   });
 });
 // comments.test.ts
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getComments, addComment } from './comments';
 import { get, post } from './client';
@@ -303,7 +302,7 @@ describe('comments API', () => {
   describe('getComments', () => {
     it('calls get with the correct comments endpoint', async () => {
       const mockComments = [{ id: 1, text: 'Test comment' }];
-      vi.mocked(get).mockResolvedValueOnce(mockComments);
+      vi.mocked(get).mockResolvedValueOnce(mockComments as any);
 
       const result = await getComments(101);
 
@@ -316,7 +315,7 @@ describe('comments API', () => {
     it('calls post with the correct endpoint and payload', async () => {
       const mockPayload = { commentText: 'New comment' } as any;
       const mockResponse = { id: 2, text: 'New comment' };
-      vi.mocked(post).mockResolvedValueOnce(mockResponse);
+      vi.mocked(post).mockResolvedValueOnce(mockResponse as any);
 
       const result = await addComment(101, mockPayload);
 
@@ -325,4 +324,3 @@ describe('comments API', () => {
     });
   });
 });
-
