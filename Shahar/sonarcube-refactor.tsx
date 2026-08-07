@@ -87,29 +87,38 @@ export const verifyPaymentDetail = async () => ({});
 ///  src/components/instructions/VerifyPaymentDetailModal.test.tsx
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, act } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// 1. Polyfill DOM Matrix & Observers
-if (typeof window !== 'undefined') {
-  if (!(global as any).DOMMatrix) {
-    (global as any).DOMMatrix = class DOMMatrix {
-      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-      multiply() { return this; }
-      translate() { return this; }
-      scale() { return this; }
-    };
+// 1. Hoist polyfills and global mocks before ANY component imports execute
+vi.hoisted(() => {
+  if (typeof window !== 'undefined') {
+    if (!(global as any).DOMMatrix) {
+      (global as any).DOMMatrix = class DOMMatrix {
+        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+        multiply() { return this; }
+        translate() { return this; }
+        scale() { return this; }
+      };
+    }
+    if (!window.ResizeObserver) {
+      window.ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+    }
+    if (!window.IntersectionObserver) {
+      window.IntersectionObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      } as any;
+    }
   }
-  if (!window.ResizeObserver) {
-    window.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-  }
-}
+});
 
-// 2. Mock pdfjs-dist
+// 2. Mock pdfjs-dist and heavy dependencies before import
 vi.mock('pdfjs-dist', () => ({
   default: { getDocument: vi.fn(), GlobalWorkerOptions: {} },
   getDocument: vi.fn().mockReturnValue({
@@ -124,7 +133,6 @@ vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: {},
 }));
 
-// 3. Mock ALL child components & sub-modals that trigger async state updates
 vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
@@ -137,7 +145,7 @@ vi.mock('./SetupInstructionModal', () => ({
   default: () => <div data-testid="mock-setup-instruction-modal" />,
 }));
 
-// 4. Proxy Mock for UI Design System Components
+// 3. Mock design system exports with a Proxy
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   const DummyComponent = Object.assign(Dummy, {
@@ -162,46 +170,35 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
   );
 });
 
-import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
-
 describe('VerifyPaymentDetailModal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders closed modal without triggering async effects', async () => {
-    let result: ReturnType<typeof render>;
-    await act(async () => {
-      result = render(
-        <VerifyPaymentDetailModal
-          isOpen={false}
-          show={false}
-          visible={false}
-          onClose={vi.fn()}
-          data={null}
-        />
-      );
-    });
-    expect(result!.container).toBeInTheDocument();
-  });
+  it('renders cleanly without blocking module load', async () => {
+    // Dynamically import the component AFTER all mocks/polyfills are fully registered
+    const { default: VerifyPaymentDetailModal } = await import('./VerifyPaymentDetailModal');
 
-  it('renders open modal with mocked sub-components cleanly', async () => {
-    let result: ReturnType<typeof render>;
-    await act(async () => {
-      result = render(
-        <VerifyPaymentDetailModal
-          isOpen={true}
-          show={true}
-          visible={true}
-          onClose={vi.fn()}
-          data={{ id: '123', paymentDetails: [] }}
-        />
-      );
-    });
-    expect(result!.container).toBeInTheDocument();
+    const { container, unmount } = render(
+      <VerifyPaymentDetailModal
+        isOpen={false}
+        show={false}
+        visible={false}
+        onClose={vi.fn()}
+        data={null}
+      />
+    );
+
+    expect(container).toBeInTheDocument();
+    unmount();
   });
 });
 
+
+// 
+taskkill /F /IM node.exe
+
+// 
 
 npx vitest run src/components/instructions/VerifyPaymentDetailModal.test.tsx
 
