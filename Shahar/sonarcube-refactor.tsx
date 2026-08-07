@@ -246,52 +246,45 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/components/common/RadioGroup.test.tsx
+// src/components/common/StatusTag.test.tsx
 
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import RadioGroup from './RadioGroup';
+import StatusTag from './StatusTag';
+import { statusColor, statusLabel } from '../../utils/format';
 
-describe('RadioGroup Component', () => {
-  const options = [
-    { id: '1', label: 'Option A', value: 'a' },
-    { id: '2', label: 'Option B', value: 'b' },
-  ];
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  Tag: ({ children, color, className, style }: any) => (
+    <span
+      data-testid="status-tag"
+      data-color={color}
+      className={className}
+      style={style}
+    >
+      {children}
+    </span>
+  ),
+}));
 
-  it('renders radio options and checks the selected value', () => {
-    render(
-      <RadioGroup
-        options={options}
-        selectedValue="a"
-        onChange={vi.fn()}
-      />
-    );
+vi.mock('../../utils/format', () => ({
+  statusColor: vi.fn((status) => `color-for-${status}`),
+  statusLabel: vi.fn((status) => `Label: ${status}`),
+}));
 
-    const radioA = screen.getByLabelText('Option A') as HTMLInputElement;
-    const radioB = screen.getByLabelText('Option B') as HTMLInputElement;
+describe('StatusTag Component', () => {
+  it('renders status label, color, className, and inline styles', () => {
+    render(<StatusTag status={'APPROVED' as any} />);
 
-    expect(radioA).toBeInTheDocument();
-    expect(radioB).toBeInTheDocument();
-    expect(radioA.checked).toBe(true);
-    expect(radioB.checked).toBe(false);
-  });
+    const tag = screen.getByTestId('status-tag');
+    expect(tag).toBeInTheDocument();
+    expect(statusColor).toHaveBeenCalledWith('APPROVED');
+    expect(statusLabel).toHaveBeenCalledWith('APPROVED');
 
-  it('triggers onChange with the selected option value', () => {
-    const handleChange = vi.fn();
-
-    render(
-      <RadioGroup
-        options={options}
-        selectedValue="a"
-        onChange={handleChange}
-      />
-    );
-
-    const radioB = screen.getByLabelText('Option B');
-    fireEvent.click(radioB);
-
-    expect(handleChange).toHaveBeenCalledWith('b');
+    expect(tag).toHaveTextContent('Label: APPROVED');
+    expect(tag).toHaveAttribute('data-color', 'color-for-APPROVED');
+    expect(tag).toHaveClass('lmn-mx-4px');
+    expect(tag).toHaveStyle({ display: 'inline-flex', fontSize: '11px' });
   });
 });
