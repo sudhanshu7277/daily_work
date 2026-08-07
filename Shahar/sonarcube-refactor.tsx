@@ -167,3 +167,16 @@ describe('auth utilities', () => {
 // 2. Run Jest with coverage to confirm:
 
 npm test -- --coverage --watchAll=false
+
+
+
+
+To quickly move the overall coverage from 34% up towards 85%+, the most effective strategy is to tackle high-impact, straightforward files first:
+
+src/context/AuthContext.tsx (0% coverage across 183 lines) — Crucial core context wrapper.
+
+src/api/* services (audit.ts, comments.ts, roles.ts, thresholds.ts, tickler.ts, whitelist.ts, citiSftIntake.ts) — Very quick 100% coverage wins using basic axios mocks.
+
+Small Common UI Components (Breadcrumb.tsx, PriorityTag.tsx, RadioGroup.tsx, StatusTag.tsx, AccessDeniedPage.tsx) — Quick rendering tests with high line returns.
+
+Which one should we tackle next: AuthContext.tsx or the src/api/ services?
