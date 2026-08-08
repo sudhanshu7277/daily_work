@@ -100,3 +100,6 @@ export default defineConfig({
 "scripts": {
   "sonar": "sonar-scanner -Dsonar.tests=src -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx -Dsonar.coverage.exclusions=**/*.test.ts,**/*.test.tsx"
 }
+
+
+include: ['src/**/*.{ts,tsx}']
