@@ -93,35 +93,37 @@ import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// 1. Hoist polyfills and global mocks before ANY component imports execute
-vi.hoisted(() => {
-  if (typeof window !== 'undefined') {
-    if (!(global as any).DOMMatrix) {
-      (global as any).DOMMatrix = class DOMMatrix {
-        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-        multiply() { return this; }
-        translate() { return this; }
-        scale() { return this; }
-      };
-    }
-    if (!window.ResizeObserver) {
-      window.ResizeObserver = class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      };
-    }
-    if (!window.IntersectionObserver) {
-      window.IntersectionObserver = class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      } as any;
-    }
+// 1. Browser polyfills for JSDOM
+if (typeof window !== 'undefined') {
+  if (!(global as any).DOMMatrix) {
+    (global as any).DOMMatrix = class DOMMatrix {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      multiply() { return this; }
+      translate() { return this; }
+      scale() { return this; }
+    };
   }
-});
+  if (!window.ResizeObserver) {
+    window.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+  if (!window.IntersectionObserver) {
+    window.IntersectionObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as any;
+  }
+  if (!window.URL.createObjectURL) {
+    window.URL.createObjectURL = vi.fn(() => 'blob:mock');
+    window.URL.revokeObjectURL = vi.fn();
+  }
+}
 
-// 2. Mock pdfjs-dist and heavy dependencies before import
+// 2. Mock pdfjs-dist and worker
 vi.mock('pdfjs-dist', () => ({
   default: { getDocument: vi.fn(), GlobalWorkerOptions: {} },
   getDocument: vi.fn().mockReturnValue({
@@ -136,19 +138,34 @@ vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: {},
 }));
 
+vi.mock('pdfjs-dist/build/pdf.worker.entry', () => ({ default: {} }));
+
+// 3. Mock all document viewers & sub-modals
 vi.mock('../documentViewer/NativePdfViewer', () => ({
   default: () => <div data-testid="mock-pdf-viewer" />,
 }));
-
+vi.mock('../documentViewer/DocumentViewer', () => ({
+  default: () => <div data-testid="mock-doc-viewer" />,
+}));
 vi.mock('./RequestInfoModal', () => ({
   default: () => <div data-testid="mock-request-info-modal" />,
 }));
-
 vi.mock('./SetupInstructionModal', () => ({
-  default: () => <div data-testid="mock-setup-instruction-modal" />,
+  default: () => <div data-testid="mock-setup-modal" />,
 }));
 
-// 3. Mock design system exports with a Proxy
+// 4. Mock API modules so fetch promises resolve immediately
+vi.mock('../../api/instructions', () => ({
+  getInstructionDetails: vi.fn().mockResolvedValue({ data: {} }),
+  updateInstruction: vi.fn().mockResolvedValue({ data: {} }),
+  verifyInstruction: vi.fn().mockResolvedValue({ data: {} }),
+}));
+vi.mock('../../api/documents', () => ({
+  getDocument: vi.fn().mockResolvedValue(new Blob()),
+  getDocumentsList: vi.fn().mockResolvedValue([]),
+}));
+
+// 5. Dynamic Proxy Mock for Design System Library
 vi.mock('@citi-icg-172888/icgds-react', () => {
   const Dummy = ({ children, ...props }: any) => <div {...props}>{children}</div>;
   const DummyComponent = Object.assign(Dummy, {
@@ -173,24 +190,24 @@ vi.mock('@citi-icg-172888/icgds-react', () => {
   );
 });
 
+// Top-level static import
+import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
+
 describe('VerifyPaymentDetailModal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders cleanly without blocking module load', async () => {
-    const { default: VerifyPaymentDetailModal } = await import('./VerifyPaymentDetailModal');
+  it('renders cleanly without timeout', () => {
     const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
 
     const { container, unmount } = render(
       <ModalComponent
-        open={false}
         isOpen={false}
         show={false}
         visible={false}
         onClose={vi.fn()}
-        data={{}}
-        instruction={{}}
+        data={{ id: '123' }}
       />
     );
 
@@ -198,8 +215,6 @@ describe('VerifyPaymentDetailModal Component', () => {
     unmount();
   });
 });
-
-
 
 
 // 
