@@ -79,14 +79,9 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-  const items = e.clipboardData?.items;
-  if (!items) return;
-  const files: File[] = [];
-
-  for (const item of items) {
-    const file = item.getAsFile();
-    if (file) {
-      files.push(file);
-    }
+for (const item of Array.from(items)) {
+  const file = item.getAsFile();
+  if (file) {
+    files.push(file);
   }
+}
