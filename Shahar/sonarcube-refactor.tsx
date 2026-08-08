@@ -85,3 +85,17 @@ for (const item of Array.from(items)) {
     files.push(file);
   }
 }
+
+
+//////////
+
+return (
+  <button
+    type="button"
+    onClick={() => navigate(`/instructions/${id}`)}
+    className="lmn-text-link"
+    style={{ cursor: 'pointer', fontWeight: 500, background: 'none', border: 'none', padding: 0 }}
+  >
+    #{id}
+  </button>
+);
