@@ -77,66 +77,16 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// src/api/paymentDetails.ts
-
-export const updatePaymentDetail = async () => ({});
-export const verifyPaymentDetail = async () => ({});
 
 
+const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  const files: File[] = [];
 
-///  src/components/instructions/VerifyPaymentDetailModal.test.tsx
-
-
-
-import React from 'react';
-import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-
-// Basic Polyfills
-if (typeof window !== 'undefined') {
-  if (!window.ResizeObserver) {
-    window.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
+  for (const item of items) {
+    const file = item.getAsFile();
+    if (file) {
+      files.push(file);
+    }
   }
-}
-
-// Minimal stub mocks for external UI or heavy libs
-vi.mock('@citi-icg-172888/icgds-react', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
-}));
-
-// Mock child modal/viewer components to prevent deep rendering issues
-vi.mock('../documentViewer/NativePdfViewer', () => ({ default: () => null }));
-vi.mock('./RequestInfoModal', () => ({ default: () => null }));
-vi.mock('./SetupInstructionModal', () => ({ default: () => null }));
-
-import VerifyPaymentDetailModal from './VerifyPaymentDetailModal';
-
-describe('VerifyPaymentDetailModal Component', () => {
-  it('renders initial state without crashing', () => {
-    const ModalComponent = VerifyPaymentDetailModal as React.ComponentType<any>;
-
-    const { container } = render(
-      <ModalComponent
-        isOpen={false}
-        onClose={vi.fn()}
-        data={{}}
-      />
-    );
-
-    expect(container).toBeInTheDocument();
-  });
-});
-
-
-// 
-taskkill /F /IM node.exe
-
-// 
-
-npx vitest run src/components/instructions/VerifyPaymentDetailModal.test.tsx
-
