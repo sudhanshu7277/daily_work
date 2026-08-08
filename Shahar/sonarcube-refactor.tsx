@@ -79,14 +79,21 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 //////
 
-<El className="lmn-form-group lmn-mb-16px">
-  <label htmlFor="tickler-priority" className="lmn-form-label">Priority</label>
-  <Dropdown 
-    id="tickler-priority"
-    value={form.priority ?? 'MEDIUM'} 
-    onChange={(val) => setForm({ ...form, priority: String(val) as TicklerPriority })} 
-    style={{ width: '100%' }}
-  >
-    {PRIORITIES.map((p) => <Dropdown.Item key={p.value} value={p.value}>{p.label}</Dropdown.Item>)}
-  </Dropdown>
-</El>
+// ❌ Before
+<Dropdown value={form.priority || 'MEDIUM'} onChange={(val) =>
+
+// ✅ After
+<Dropdown value={form.priority ?? 'MEDIUM'} onChange={(val) =>
+
+
+// Check other lines in this file
+//While you're editing TicklerTaskPage.tsx, update these other form fields using || so SonarQube doesn't flag them next:
+
+// Line 310:
+value={form.dueDate ?? ''}
+
+// Line 324:
+value={form.region ?? ''}
+
+// Line 327:
+label={regionOptions.find((opt) => opt.key === (form.region ?? ''))?.value}
