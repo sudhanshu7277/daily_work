@@ -77,39 +77,16 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-
-
-for (const item of Array.from(items)) {
-  const file = item.getAsFile();
-  if (file) {
-    files.push(file);
-  }
-}
-
-
-//////////
-
-return (
-  <button
-    type="button"
-    onClick={() => navigate(`/instructions/${id}`)}
-    className="lmn-text-link"
-    style={{ cursor: 'pointer', fontWeight: 500, background: 'none', border: 'none', padding: 0 }}
-  >
-    #{id}
-  </button>
-);
-
-
 //////
 
-return id ? (
-  <button
-    type="button"
-    onClick={() => navigate(`/instructions/${id}`)}
-    className="lmn-text-link"
-    style={{ cursor: 'pointer', fontWeight: 500, background: 'none', border: 'none', padding: 0 }}
+<El className="lmn-form-group lmn-mb-16px">
+  <label htmlFor="tickler-priority" className="lmn-form-label">Priority</label>
+  <Dropdown 
+    id="tickler-priority"
+    value={form.priority ?? 'MEDIUM'} 
+    onChange={(val) => setForm({ ...form, priority: String(val) as TicklerPriority })} 
+    style={{ width: '100%' }}
   >
-    #{id}
-  </button>
-) : '-';
+    {PRIORITIES.map((p) => <Dropdown.Item key={p.value} value={p.value}>{p.label}</Dropdown.Item>)}
+  </Dropdown>
+</El>
