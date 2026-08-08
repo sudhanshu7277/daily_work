@@ -77,23 +77,21 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-//////
 
-// ❌ Before
-<Dropdown value={form.priority || 'MEDIUM'} onChange={(val) =>
+import { defineConfig } from 'vitest/config';
 
-// ✅ After
-<Dropdown value={form.priority ?? 'MEDIUM'} onChange={(val) =>
-
-
-// Check other lines in this file
-//While you're editing TicklerTaskPage.tsx, update these other form fields using || so SonarQube doesn't flag them next:
-
-// Line 310:
-value={form.dueDate ?? ''}
-
-// Line 324:
-value={form.region ?? ''}
-
-// Line 327:
-label={regionOptions.find((opt) => opt.key === (form.region ?? ''))?.value}
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8', // or 'istanbul'
+      reporter: ['text', 'json', 'lcov'],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/**/*.test.tsx',
+        'src/**/*.spec.ts',
+        'src/**/*.spec.tsx',
+        'node_modules/**',
+      ],
+    },
+  },
+});
