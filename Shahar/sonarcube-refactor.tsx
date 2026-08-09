@@ -418,3 +418,61 @@ describe('DocumentTypeDropdown Component', () => {
     expect(searchInput.value).toBe('');
   });
 });
+
+
+// Create a new file: src/components/common/DocumentTypeDropdown.tsx
+
+import React, { useState, useMemo } from 'react';
+import { Dropdown, Input, El } from '@citi-icg-172888/icgds-react';
+
+interface DocumentTypeDropdownProps {
+  value: string;
+  onChange: (val: string) => void;
+  style?: React.CSSProperties;
+  types: string[];
+}
+
+export default function DocumentTypeDropdown({ value, onChange, style, types }: Readonly<DocumentTypeDropdownProps>) {
+  const [search, setSearch] = useState('');
+
+  const filteredTypes = useMemo(() => {
+    if (!search) return types;
+    const term = search.toLowerCase();
+    return types.filter((t) => t.toLowerCase().includes(term));
+  }, [search, types]);
+
+  return (
+    <Dropdown
+      value={value}
+      onChange={(val) => {
+        onChange(String(val));
+        setSearch('');
+      }}
+      placeholder="Select type"
+      style={style}
+      dropdownRender={(optionsList) => (
+        <>
+          <El style={{ padding: 8 }}>
+            <Input
+              placeholder="Type to search..."
+              value={search}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </El>
+          {filteredTypes.length > 0 ? (
+            optionsList
+          ) : (
+            <El style={{ padding: 12, color: '#888', fontSize: 12 }}>No document types found</El>
+          )}
+        </>
+      )}
+    >
+      {filteredTypes.map((t) => (
+        <Dropdown.Item key={t} value={t}>
+          {t}
+        </Dropdown.Item>
+      ))}
+    </Dropdown>
+  );
+}
