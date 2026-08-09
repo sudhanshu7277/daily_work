@@ -175,8 +175,7 @@ describe('awsTicklerSync API functions', () => {
         callbackFailures: 0,
       };
 
-      // Removed status: 200 to fix TypeScript type error
-      mockedPost.mockResolvedValue({ data: mockSummary, message: 'OK' });
+      mockedPost.mockResolvedValue({ data: mockSummary, message: 'OK', status: 200 } as any);
 
       const result = await triggerSync();
 
@@ -202,8 +201,7 @@ describe('awsTicklerSync API functions', () => {
         last: true,
       };
 
-      // Removed status: 200
-      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK' });
+      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK', status: 200 } as any);
 
       const result = await getSyncHistory();
 
@@ -212,7 +210,6 @@ describe('awsTicklerSync API functions', () => {
     });
 
     it('should call get with custom page and size', async () => {
-      // Cast mock object to prevent missing property errors
       const mockLog = {
         syncId: 1,
         awsTaskId: 100,
@@ -232,8 +229,7 @@ describe('awsTicklerSync API functions', () => {
         last: false,
       };
 
-      // Removed status: 200
-      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK' });
+      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK', status: 200 } as any);
 
       const result = await getSyncHistory(2, 10);
 
@@ -251,8 +247,7 @@ describe('awsTicklerSync API functions', () => {
 
   describe('retryFailedCallbacks', () => {
     it('should call post with correct endpoint', async () => {
-      // Removed status: 200
-      mockedPost.mockResolvedValue({ data: 3, message: 'OK' });
+      mockedPost.mockResolvedValue({ data: 3, message: 'OK', status: 200 } as any);
 
       const result = await retryFailedCallbacks();
 
@@ -261,8 +256,7 @@ describe('awsTicklerSync API functions', () => {
     });
 
     it('should return 0 when no callbacks retried', async () => {
-      // Removed status: 200
-      mockedPost.mockResolvedValue({ data: 0, message: 'OK' });
+      mockedPost.mockResolvedValue({ data: 0, message: 'OK', status: 200 } as any);
 
       const result = await retryFailedCallbacks();
 
