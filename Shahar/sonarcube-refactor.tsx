@@ -149,130 +149,55 @@ SonarQube's global default rules treat any path containing `/__tests__/` as test
 
 // fixing CreateInstructionPage component
 
-//1. Add outside component scope (Top of file)
+// Fix 1: Resolve key={idx} Major Code Smell (Line 2375)
+SonarQube flags key={idx} under Rule S6479 (Do not use array index as key in React lists).
 
-// Static style declarations to prevent re-allocation during re-renders
-const REVIEW_TABLE_STYLE: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-};
+BEFORE (Line 2375):
 
-const REVIEW_TH_STYLE: React.CSSProperties = {
-  padding: '6px 8px',
-  textAlign: 'left',
-};
+{documentList.map((doc, idx) => (
+  <tr key={idx} style={{ borderBottom: '1px solid var(--lmn-border-color, #e0e0e0)' }}></tr>
 
-const REVIEW_TD_STYLE: React.CSSProperties = {
-  padding: '6px 8px',
-};
+  // AFTER:
 
-const HEADER_ROW_STYLE: React.CSSProperties = {
-  borderBottom: '2px solid var(--lmn-border-color, #dee2e6)',
-};
-
-const BODY_ROW_STYLE: React.CSSProperties = {
-  borderBottom: '1px solid var(--lmn-border-color, #e0e0e0)',
-};
-
-const FULL_WIDTH_STYLE: React.CSSProperties = {
-  width: '100%',
-};
-
-const REQUIRED_ASTERISK_STYLE: React.CSSProperties = {
-  color: 'red',
-};
+  {documentList.map((doc, idx) => (
+    <tr key={doc.id || `${doc.name}-${idx}`} style={{ borderBottom: '1px solid var(--lmn-border-color, #e0e0e0)' }}>
+</tr>
 
 
-//2. Add inside CreateInstructionPage component body
+      // Fix 2: Prevent Form Object Mutation Smell (Lines 2400–2404)
+SonarQube flags nested inline arrow updates that might cause undefined state access or object mutation warnings.
 
-// Extracted handler to replace inline onChange arrow function
-const handleCommentChange = useCallback(
-  (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { value } = e.target;
-    setForm((prev) => ({ ...prev, comments: value }));
-  },
-  []
-);
+BEFORE (Lines 2400–2404):
 
-// 3. Replaced renderReview function (Lines 2343–2488)
+value={form.comments ?? ''}
+onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+  setForm(prev => ({ ...prev, comments: e.target.value }))
+}
 
-// BEFORE:
-// key={idx}
-// inline style={{ width: '100%' }}
-// onChange={(e) => setForm({ ...form, comments: e.target.value })}
 
-// AFTER:
-const renderReview = () => {
-  return (
-    <div className="render-review-container">
-      {/* Documents review section */}
-      {documentList.length > 0 && (
-        <Card className="lmn-mb-16px">
-          <Card.Header>
-            <Icon type="paperclip" className="lmn-mr-8px" />
-            Attached Documents ({documentList.length})
-          </Card.Header>
-          <Card.Body>
-            <table style={REVIEW_TABLE_STYLE}>
-              <thead>
-                <tr style={HEADER_ROW_STYLE}>
-                  <th style={REVIEW_TH_STYLE}>Document</th>
-                  <th style={REVIEW_TH_STYLE}>Type</th>
-                  <th style={REVIEW_TH_STYLE}>Classification</th>
-                  <th style={REVIEW_TH_STYLE}>Region</th>
-                  <th style={REVIEW_TH_STYLE}>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documentList.map((doc, idx) => (
-                  <tr key={doc.id ?? `${doc.name}-${idx}`} style={BODY_ROW_STYLE}>
-                    <td style={REVIEW_TD_STYLE}>{doc.name}</td>
-                    <td style={REVIEW_TD_STYLE}>{doc.type ?? '-'}</td>
-                    <td style={REVIEW_TD_STYLE}>{doc.classification ?? '-'}</td>
-                    <td style={REVIEW_TD_STYLE}>{doc.region ?? '-'}</td>
-                    <td style={REVIEW_TD_STYLE}>{doc.documentDate ?? '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card.Body>
-        </Card>
-      )}
+AFTR:
 
-      {/* Exception & General Comments */}
-      <Card className="lmn-mb-16px">
-        <Card.Header>
-          <Icon type="message-square" className="lmn-mr-8px" />
-          {exception ? (
-            <>
-              Exception Comment <span style={REQUIRED_ASTERISK_STYLE}>*</span>
-            </>
-          ) : (
-            'Comment'
-          )}
-        </Card.Header>
-        <Card.Body>
-          <El className="lmn-form-group">
-            <label className={`lmn-form-label${exception ? ' lmn-required' : ''}`}>
-              {exception
-                ? 'Comment (required when MPP Process Exception is Yes)'
-                : 'Comment (optional)'}
-            </label>
-            <TextArea
-              value={form.comments ?? ''}
-              onChange={handleCommentChange}
-              placeholder={
-                exception
-                  ? 'Please provide a reason for the exception...'
-                  : 'Add a comment...'
-              }
-              rows={4}
-              style={FULL_WIDTH_STYLE}
-            />
-          </El>
-        </Card.Body>
-      </Card>
-    </div>
+value={form?.comments || ''}
+onChange={(e) => {
+  const val = e.target.value;
+  setForm((prev) => ({ ...prev, comments: val }));
+}}
+
+// Fix 3: Clear Uncovered Branch Lines in SonarQube (Unit Test Addition)
+If SonarQube is flagging lines 2378–2381 (doc.type ?? '-', doc.classification ?? '-') as uncovered branches, add this single test case to your existing unit test file. It executes the nullish fallbacks without touching any production component code:
+
+
+it('covers missing document properties and exception branches in renderReview', () => {
+  const incompleteDoc = [{ name: 'IncompleteDoc.pdf' }]; // Triggers all '?? "-"' branches
+  
+  render(
+    <CreateInstructionPage 
+      documentList={incompleteDoc} 
+      exception={true} 
+      form={{ comments: undefined }} 
+    />
   );
-};
 
+  expect(screen.getByText('IncompleteDoc.pdf')).toBeInTheDocument();
+  expect(screen.getByText('Comment (required when MPP Process Exception is Yes)')).toBeInTheDocument();
+});
