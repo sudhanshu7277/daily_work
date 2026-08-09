@@ -169,3 +169,39 @@ describe('paymentDetails API', () => {
     await expect(getPaymentDetails(1)).rejects.toThrow();
   });
 });
+
+
+/// describe('getDealParties', () => {
+  it('should call get with correct URL and dealId param', async () => {
+    const mockParties: AwsDealParties[] = [
+      {
+        pidNumber: 'PID-001', // Add missing property expected on line 47
+        partyId: 1,
+        capacity: 'Borrower',
+        phoneNumber: '0987654321',
+        lastName: 'Smith',
+        partyRoles: 'Primary',
+        dealCountry: 'US',
+      },
+    ];
+
+    // Removed status: 200 to clear the TS red squiggle
+    mockedGet.mockResolvedValue({ data: mockParties, message: 'OK' });
+
+    const result = await getDealParties(42);
+
+    expect(mockedGet).toHaveBeenCalledWith('/aws/deal-parties', { dealId: 42 });
+    expect(result.data).toEqual(mockParties);
+    expect(result.data[0].pidNumber).toBe('PID-001');
+    expect(result.data[0].partyId).toBe(1);
+  });
+
+  it('should return empty array when API returns empty', async () => {
+    // Removed status: 200 here as well
+    mockedGet.mockResolvedValue({ data: [], message: 'OK' });
+
+    const result = await getDealParties(99);
+
+    expect(result.data).toEqual([]);
+  });
+});
