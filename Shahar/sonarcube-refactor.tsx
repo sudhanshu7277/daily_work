@@ -143,142 +143,136 @@ SonarQube's global default rules treat any path containing `/__tests__/` as test
 
 // Move your test files into __tests__ folders:src/utils/arrayUtils.test.ts $\rightarrow$ src/utils/__tests__/arrayUtils.test.ts
 
-// src/api/__tests__/callbacks.test.ts
 
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { get, post } from '../client';
-import { getCallbacks, recordCallback } from '../callbacks';
-import type { CallbackResponse } from '../../types';
 
-vi.mock('../client', () => ({
-  get: vi.fn(),
-  post: vi.fn(),
-}));
 
-const mockedGet = vi.mocked(get);
-const mockedPost = vi.mocked(post);
 
-const sampleCallbackResponse: CallbackResponse = {
-  callbackId: 10,
-  instructionId: 42,
-  outcome: 'Callback Successful',
-  contactName: 'John Smith',
-  phoneNumberCalled: '+1-212-555-0101',
-  mobileNumber: '+1-917-555-0101',
-  emailId: 'john@test.com',
-  attemptedBy: 'test.user',
-  calledOn: '2026-05-03T10:30:00',
-  createdOn: '2026-05-03T10:30:00',
-  createdBy: 'test.user',
-  isActive: 1,
-  commentId: 1,
+// fixing CreateInstructionPage component
+
+//1. Add outside component scope (Top of file)
+
+// Static style declarations to prevent re-allocation during re-renders
+const REVIEW_TABLE_STYLE: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
 };
 
-describe('callbacks API functions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+const REVIEW_TH_STYLE: React.CSSProperties = {
+  padding: '6px 8px',
+  textAlign: 'left',
+};
 
-  describe('getCallbacks', () => {
-    it('should call get with correct URL and instructionId', async () => {
-      mockedGet.mockResolvedValue({
-        data: [sampleCallbackResponse],
-        message: 'OK',
-        status: 200,
-      } as any);
+const REVIEW_TD_STYLE: React.CSSProperties = {
+  padding: '6px 8px',
+};
 
-      const result = await getCallbacks(42);
+const HEADER_ROW_STYLE: React.CSSProperties = {
+  borderBottom: '2px solid var(--lmn-border-color, #dee2e6)',
+};
 
-      expect(mockedGet).toHaveBeenCalledWith('/instructions/42/callbacks');
-      expect(result.data[0].callbackId).toBe(10);
-    });
+const BODY_ROW_STYLE: React.CSSProperties = {
+  borderBottom: '1px solid var(--lmn-border-color, #e0e0e0)',
+};
 
-    it('should return empty array when API returns empty', async () => {
-      mockedGet.mockResolvedValue({
-        data: [],
-        message: 'OK',
-        status: 200,
-      } as any);
+const FULL_WIDTH_STYLE: React.CSSProperties = {
+  width: '100%',
+};
 
-      const result = await getCallbacks(99);
-
-      expect(result.data).toEqual([]);
-    });
-
-    it('should propagate errors from the client', async () => {
-      mockedGet.mockRejectedValue(new Error('Network error'));
-
-      await expect(getCallbacks(1)).rejects.toThrow('Network error');
-    });
-  });
-
-  describe('recordCallback', () => {
-    it('should post callback payload and return response', async () => {
-      const payload: any = {
-        instructionId: 42,
-        outcome: 'Callback Successful',
-        contactName: 'John Smith',
-        phoneNumberCalled: '+1-212-555-0101',
-      };
-
-      mockedPost.mockResolvedValue({
-        data: sampleCallbackResponse,
-        message: 'OK',
-        status: 200,
-      } as any);
-
-      const result = await recordCallback(42, payload);
-
-      expect(mockedPost).toHaveBeenCalledWith('/instructions/42/callbacks', payload);
-      expect(result.data.callbackId).toBe(10);
-    });
-
-    it('should propagate errors from post client', async () => {
-      const payload: any = {
-        instructionId: 42,
-        outcome: 'Callback Successful',
-      };
-
-      mockedPost.mockRejectedValue(new Error('Post failed'));
-
-      await expect(recordCallback(42, payload)).rejects.toThrow('Post failed');
-    });
-  });
-});
-
-
-
-// Step 1: Add Helper Function
-// Add this function inside CreateInstructionPage (above renderTaskOverview or at the component handler level):
-
-const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
-  const newIds = (form.relatedInstructionIds ?? []).filter((x) => x !== idToRemove);
-  const newRefs = newIds
-    .map((nid) => adminMakerInstructions.find((i) => i.instructionId === nid)?.instructionRef)
-    .filter((ref): ref is string => Boolean(ref))
-    .join(', ');
-
-  updateField('relatedInstructionIds', newIds);
-  updateField('relatedInstructions', newRefs);
+const REQUIRED_ASTERISK_STYLE: React.CSSProperties = {
+  color: 'red',
 };
 
 
-// Step 2: Replace Lines 1551–1566 in JSX
-//Replace the inline onClick block with the clean handler and accessibility attributes:
+//2. Add inside CreateInstructionPage component body
 
-{ref}
-{/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
-<i
-  className="lmnicon lmnicon-close"
-  style={{ fontSize: 10, cursor: 'pointer', color: '#666' }}
-  role="button"
-  tabIndex={0}
-  aria-label="Remove related instruction"
-  onClick={() => handleRemoveRelatedInstruction(id)}
-  onKeyDown={(e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      handleRemoveRelatedInstruction(id);
-    }
-  }}
-/>
+// Extracted handler to replace inline onChange arrow function
+const handleCommentChange = useCallback(
+  (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { value } = e.target;
+    setForm((prev) => ({ ...prev, comments: value }));
+  },
+  []
+);
+
+// 3. Replaced renderReview function (Lines 2343–2488)
+
+// BEFORE:
+// key={idx}
+// inline style={{ width: '100%' }}
+// onChange={(e) => setForm({ ...form, comments: e.target.value })}
+
+// AFTER:
+const renderReview = () => {
+  return (
+    <div className="render-review-container">
+      {/* Documents review section */}
+      {documentList.length > 0 && (
+        <Card className="lmn-mb-16px">
+          <Card.Header>
+            <Icon type="paperclip" className="lmn-mr-8px" />
+            Attached Documents ({documentList.length})
+          </Card.Header>
+          <Card.Body>
+            <table style={REVIEW_TABLE_STYLE}>
+              <thead>
+                <tr style={HEADER_ROW_STYLE}>
+                  <th style={REVIEW_TH_STYLE}>Document</th>
+                  <th style={REVIEW_TH_STYLE}>Type</th>
+                  <th style={REVIEW_TH_STYLE}>Classification</th>
+                  <th style={REVIEW_TH_STYLE}>Region</th>
+                  <th style={REVIEW_TH_STYLE}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documentList.map((doc, idx) => (
+                  <tr key={doc.id ?? `${doc.name}-${idx}`} style={BODY_ROW_STYLE}>
+                    <td style={REVIEW_TD_STYLE}>{doc.name}</td>
+                    <td style={REVIEW_TD_STYLE}>{doc.type ?? '-'}</td>
+                    <td style={REVIEW_TD_STYLE}>{doc.classification ?? '-'}</td>
+                    <td style={REVIEW_TD_STYLE}>{doc.region ?? '-'}</td>
+                    <td style={REVIEW_TD_STYLE}>{doc.documentDate ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {/* Exception & General Comments */}
+      <Card className="lmn-mb-16px">
+        <Card.Header>
+          <Icon type="message-square" className="lmn-mr-8px" />
+          {exception ? (
+            <>
+              Exception Comment <span style={REQUIRED_ASTERISK_STYLE}>*</span>
+            </>
+          ) : (
+            'Comment'
+          )}
+        </Card.Header>
+        <Card.Body>
+          <El className="lmn-form-group">
+            <label className={`lmn-form-label${exception ? ' lmn-required' : ''}`}>
+              {exception
+                ? 'Comment (required when MPP Process Exception is Yes)'
+                : 'Comment (optional)'}
+            </label>
+            <TextArea
+              value={form.comments ?? ''}
+              onChange={handleCommentChange}
+              placeholder={
+                exception
+                  ? 'Please provide a reason for the exception...'
+                  : 'Add a comment...'
+              }
+              rows={4}
+              style={FULL_WIDTH_STYLE}
+            />
+          </El>
+        </Card.Body>
+      </Card>
+    </div>
+  );
+};
+
