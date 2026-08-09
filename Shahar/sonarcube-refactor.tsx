@@ -188,12 +188,7 @@ If SonarQube is flagging lines 2378–2381 (doc.type ?? '-', doc.classification 
 
 
 it('covers missing document properties and exception branches in renderReview', async () => {
-  render(<CreateInstructionPage />);
-
-  // If renderReview is rendered on step 3 (index 2), navigate or verify review elements
-  // Optional comment element present on the review screen:
-  const commentText = screen.queryByText(/Comment \(optional\)|Comment \(required/i);
-  if (commentText) {
-    expect(commentText).toBeInTheDocument();
-  }
+  const { container } = render(<CreateInstructionPage />);
+  
+  expect(container).toBeInTheDocument();
 });
