@@ -143,92 +143,136 @@ SonarQube's global default rules treat any path containing `/__tests__/` as test
 
 // Move your test files into __tests__ folders:src/utils/arrayUtils.test.ts $\rightarrow$ src/utils/__tests__/arrayUtils.test.ts
 
-// Example: src/api/__tests__/paymentDetails.test.ts
+// src/api/__tests__/awsTicklerSync.test.ts
 
-import { describe, it, expect, vi } from 'vitest';
-import { getPaymentDetails } from '../paymentDetails';
-
-describe('paymentDetails API', () => {
-  it('returns data on successful fetch', async () => {
-    const mockData = { id: 1, name: 'Test' };
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    const res = await getPaymentDetails(1);
-    expect(res).toEqual(mockData);
-  });
-
-  it('throws error when response is not ok', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    } as Response);
-
-    await expect(getPaymentDetails(1)).rejects.toThrow();
-  });
-});
-
-
-/// 
-/// 
-
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getDealParties, AwsDealParties } from '../aws';
-import client from '../client';
+import { get, post } from '../client';
+import { triggerSync, getSyncHistory, retryFailedCallbacks } from '../awsTicklerSync';
+import type { TicklerSyncSummary, AwsTicklerSyncLog, PagedResponse } from '../../types';
 
 vi.mock('../client', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-  },
+  get: vi.fn(),
+  post: vi.fn(),
 }));
 
-const mockedGet = vi.mocked(client.get);
+const mockedGet = vi.mocked(get);
+const mockedPost = vi.mocked(post);
 
-describe('aws API functions', () => {
+describe('awsTicklerSync API functions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('getDealParties', () => {
-    it('should call get with correct URL and dealId param', async () => {
-      // Cast with `as unknown as AwsDealParties[]` so TypeScript allows partial mock shapes
-      const mockParties = [
-        {
-          pidNumber: 'PID-001',
-          partyId: 1,
-          capacity: 'Borrower',
-          phoneNumber: '0987654321',
-          lastName: 'Smith',
-          partyRoles: 'Primary',
-          dealCountry: 'US',
-        },
-      ] as unknown as AwsDealParties[];
+  describe('triggerSync', () => {
+    it('should call post with correct endpoint', async () => {
+      const mockSummary: TicklerSyncSummary = {
+        totalFetched: 10,
+        created: 5,
+        updated: 2,
+        skipped: 2,
+        errors: 1,
+        callbackFailures: 0,
+      };
 
-      mockedGet.mockResolvedValue({ data: mockParties, message: 'OK' });
+      // Removed status: 200 to fix TypeScript type error
+      mockedPost.mockResolvedValue({ data: mockSummary, message: 'OK' });
 
-      const result = await getDealParties(42);
+      const result = await triggerSync();
 
-      expect(mockedGet).toHaveBeenCalledWith('/aws/deal-parties', { dealId: 42 });
-      expect(result.data).toEqual(mockParties);
-      expect(result.data[0].pidNumber).toBe('PID-001');
-      expect(result.data[0].partyId).toBe(1);
+      expect(mockedPost).toHaveBeenCalledWith('/aws/tickler-sync/trigger');
+      expect(result.data).toEqual(mockSummary);
     });
 
-    it('should return empty array when API returns empty', async () => {
-      mockedGet.mockResolvedValue({ data: [], message: 'OK' });
+    it('should propagate errors', async () => {
+      mockedPost.mockRejectedValue(new Error('Unauthorized'));
 
-      const result = await getDealParties(99);
+      await expect(triggerSync()).rejects.toThrow('Unauthorized');
+    });
+  });
 
-      expect(result.data).toEqual([]);
+  describe('getSyncHistory', () => {
+    it('should call get with default page and size', async () => {
+      const mockPage: PagedResponse<AwsTicklerSyncLog> = {
+        content: [],
+        page: 0,
+        size: 20,
+        totalElements: 0,
+        totalPages: 0,
+        last: true,
+      };
+
+      // Removed status: 200
+      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK' });
+
+      const result = await getSyncHistory();
+
+      expect(mockedGet).toHaveBeenCalledWith('/aws/tickler-sync/history', { page: 0, size: 20 });
+      expect(result.data.content).toEqual([]);
     });
 
-    it('should propagate errors from the client', async () => {
-      mockedGet.mockRejectedValue(new Error('Network error'));
+    it('should call get with custom page and size', async () => {
+      // Cast mock object to prevent missing property errors
+      const mockLog = {
+        syncId: 1,
+        awsTaskId: 100,
+        instructionId: 200,
+        ticklerTaskId: 300,
+        syncStatus: 'SUCCESS',
+        callbackStatus: 'SENT',
+        syncedOn: '2026-01-01T00:00:00',
+      } as unknown as AwsTicklerSyncLog;
 
-      await expect(getDealParties(42)).rejects.toThrow('Network error');
+      const mockPage: PagedResponse<AwsTicklerSyncLog> = {
+        content: [mockLog],
+        page: 2,
+        size: 10,
+        totalElements: 25,
+        totalPages: 3,
+        last: false,
+      };
+
+      // Removed status: 200
+      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK' });
+
+      const result = await getSyncHistory(2, 10);
+
+      expect(mockedGet).toHaveBeenCalledWith('/aws/tickler-sync/history', { page: 2, size: 10 });
+      expect(result.data.content).toHaveLength(1);
+      expect(result.data.content[0].syncId).toBe(1);
+    });
+
+    it('should propagate errors', async () => {
+      mockedGet.mockRejectedValue(new Error('Server Error'));
+
+      await expect(getSyncHistory()).rejects.toThrow('Server Error');
+    });
+  });
+
+  describe('retryFailedCallbacks', () => {
+    it('should call post with correct endpoint', async () => {
+      // Removed status: 200
+      mockedPost.mockResolvedValue({ data: 3, message: 'OK' });
+
+      const result = await retryFailedCallbacks();
+
+      expect(mockedPost).toHaveBeenCalledWith('/aws/tickler-sync/retry-callbacks');
+      expect(result.data).toBe(3);
+    });
+
+    it('should return 0 when no callbacks retried', async () => {
+      // Removed status: 200
+      mockedPost.mockResolvedValue({ data: 0, message: 'OK' });
+
+      const result = await retryFailedCallbacks();
+
+      expect(result.data).toBe(0);
+    });
+
+    it('should propagate errors', async () => {
+      mockedPost.mockRejectedValue(new Error('Forbidden'));
+
+      await expect(retryFailedCallbacks()).rejects.toThrow('Forbidden');
     });
   });
 });
