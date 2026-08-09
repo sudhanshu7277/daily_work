@@ -103,3 +103,6 @@ export default defineConfig({
 
 
 include: ['src/**/*.{ts,tsx}']
+
+
+npx vitest run --coverage
