@@ -106,3 +106,66 @@ include: ['src/**/*.{ts,tsx}']
 
 
 npx vitest run --coverage
+
+
+1)  Fix vite.config.ts (Remove 'include' and test exclusions)
+
+
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  // ... your server and proxy settings ...
+
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    css: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: './coverage',
+      
+      // DO NOT put `include: ['src/**/*.{ts,tsx}']` here
+      
+      exclude: [
+        '**/node_modules/**',
+        '**/src/test/**',
+        '**/*.d.ts',
+      ],
+    },
+  },
+});
+// Move test files into tests subdirectories
+
+SonarQube's global default rules treat any path containing `/__tests__/` as test code automatically, regardless of project settings.
+
+// Move your test files into __tests__ folders:src/utils/arrayUtils.test.ts $\rightarrow$ src/utils/__tests__/arrayUtils.test.ts
+
+// Example: src/api/__tests__/paymentDetails.test.ts
+
+import { describe, it, expect, vi } from 'vitest';
+import { getPaymentDetails } from '../paymentDetails';
+
+describe('paymentDetails API', () => {
+  it('returns data on successful fetch', async () => {
+    const mockData = { id: 1, name: 'Test' };
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockData,
+    } as Response);
+
+    const res = await getPaymentDetails(1);
+    expect(res).toEqual(mockData);
+  });
+
+  it('throws error when response is not ok', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    } as Response);
+
+    await expect(getPaymentDetails(1)).rejects.toThrow();
+  });
+});
