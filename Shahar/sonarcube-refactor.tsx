@@ -171,37 +171,64 @@ describe('paymentDetails API', () => {
 });
 
 
-/// describe('getDealParties', () => {
-  it('should call get with correct URL and dealId param', async () => {
-    const mockParties: AwsDealParties[] = [
-      {
-        pidNumber: 'PID-001', // Add missing property expected on line 47
-        partyId: 1,
-        capacity: 'Borrower',
-        phoneNumber: '0987654321',
-        lastName: 'Smith',
-        partyRoles: 'Primary',
-        dealCountry: 'US',
-      },
-    ];
+/// 
+/// 
 
-    // Removed status: 200 to clear the TS red squiggle
-    mockedGet.mockResolvedValue({ data: mockParties, message: 'OK' });
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getDealParties, AwsDealParties } from '../aws';
+import client from '../client';
 
-    const result = await getDealParties(42);
+vi.mock('../client', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
 
-    expect(mockedGet).toHaveBeenCalledWith('/aws/deal-parties', { dealId: 42 });
-    expect(result.data).toEqual(mockParties);
-    expect(result.data[0].pidNumber).toBe('PID-001');
-    expect(result.data[0].partyId).toBe(1);
+const mockedGet = vi.mocked(client.get);
+
+describe('aws API functions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('should return empty array when API returns empty', async () => {
-    // Removed status: 200 here as well
-    mockedGet.mockResolvedValue({ data: [], message: 'OK' });
+  describe('getDealParties', () => {
+    it('should call get with correct URL and dealId param', async () => {
+      // Cast with `as unknown as AwsDealParties[]` so TypeScript allows partial mock shapes
+      const mockParties = [
+        {
+          pidNumber: 'PID-001',
+          partyId: 1,
+          capacity: 'Borrower',
+          phoneNumber: '0987654321',
+          lastName: 'Smith',
+          partyRoles: 'Primary',
+          dealCountry: 'US',
+        },
+      ] as unknown as AwsDealParties[];
 
-    const result = await getDealParties(99);
+      mockedGet.mockResolvedValue({ data: mockParties, message: 'OK' });
 
-    expect(result.data).toEqual([]);
+      const result = await getDealParties(42);
+
+      expect(mockedGet).toHaveBeenCalledWith('/aws/deal-parties', { dealId: 42 });
+      expect(result.data).toEqual(mockParties);
+      expect(result.data[0].pidNumber).toBe('PID-001');
+      expect(result.data[0].partyId).toBe(1);
+    });
+
+    it('should return empty array when API returns empty', async () => {
+      mockedGet.mockResolvedValue({ data: [], message: 'OK' });
+
+      const result = await getDealParties(99);
+
+      expect(result.data).toEqual([]);
+    });
+
+    it('should propagate errors from the client', async () => {
+      mockedGet.mockRejectedValue(new Error('Network error'));
+
+      await expect(getDealParties(42)).rejects.toThrow('Network error');
+    });
   });
 });
