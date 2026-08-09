@@ -149,7 +149,7 @@ SonarQube's global default rules treat any path containing `/__tests__/` as test
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get, post } from '../client';
 import { getCallbacks, recordCallback } from '../callbacks';
-import type { CallbackResponse, CallbackRequest } from '../../types';
+import type { CallbackResponse } from '../../types';
 
 vi.mock('../client', () => ({
   get: vi.fn(),
@@ -215,12 +215,12 @@ describe('callbacks API functions', () => {
 
   describe('recordCallback', () => {
     it('should post callback payload and return response', async () => {
-      const payload = {
+      const payload: any = {
         instructionId: 42,
         outcome: 'Callback Successful',
         contactName: 'John Smith',
         phoneNumberCalled: '+1-212-555-0101',
-      } as CallbackRequest;
+      };
 
       mockedPost.mockResolvedValue({
         data: sampleCallbackResponse,
@@ -235,10 +235,10 @@ describe('callbacks API functions', () => {
     });
 
     it('should propagate errors from post client', async () => {
-      const payload = {
+      const payload: any = {
         instructionId: 42,
         outcome: 'Callback Successful',
-      } as CallbackRequest;
+      };
 
       mockedPost.mockRejectedValue(new Error('Post failed'));
 
