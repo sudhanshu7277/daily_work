@@ -476,3 +476,101 @@ export default function DocumentTypeDropdown({ value, onChange, style, types }: 
     </Dropdown>
   );
 }
+
+
+// DocumentTypeDropdown.test.tsx:
+
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import DocumentTypeDropdown from '../DocumentTypeDropdown';
+
+describe('DocumentTypeDropdown Component', () => {
+  const mockOnChange = vi.fn();
+  const sampleTypes = [
+    'Issuer Services Ops',
+    'Xceptor File Raw',
+    'Legal Hold Statement',
+    'Tax Document',
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing and displays placeholder', () => {
+    render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+
+    expect(screen.getByPlaceholderText('Select type')).toBeTruthy();
+  });
+
+  it('renders all types as dropdown options', () => {
+    render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+
+    sampleTypes.forEach((type) => {
+      expect(screen.getByText(type)).toBeTruthy();
+    });
+  });
+
+  it('filters the option list based on search input', () => {
+    render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+
+    const searchInput = screen.getByPlaceholderText('Type to search...');
+    fireEvent.change(searchInput, { target: { value: 'Xceptor' } });
+
+    expect(screen.getByText('Xceptor File Raw')).toBeTruthy();
+    expect(screen.queryByText('Issuer Services Ops')).toBeNull();
+  });
+
+  it('shows fallback message when no types match the search term', () => {
+    render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+
+    const searchInput = screen.getByPlaceholderText('Type to search...');
+    fireEvent.change(searchInput, { target: { value: 'UnknownType123' } });
+
+    expect(screen.getByText('No document types found')).toBeTruthy();
+  });
+
+  it('calls onChange with selected value and resets search input on item click', () => {
+    render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+
+    const option = screen.getByText('Legal Hold Statement');
+    fireEvent.click(option);
+
+    expect(mockOnChange).toHaveBeenCalledWith('Legal Hold Statement');
+
+    const searchInput = screen.getByPlaceholderText('Type to search...') as HTMLInputElement;
+    expect(searchInput.value).toBe('');
+  });
+});
