@@ -143,13 +143,13 @@ SonarQube's global default rules treat any path containing `/__tests__/` as test
 
 // Move your test files into __tests__ folders:src/utils/arrayUtils.test.ts $\rightarrow$ src/utils/__tests__/arrayUtils.test.ts
 
-// src/api/__tests__/awsTicklerSync.test.ts
+// src/api/__tests__/callbacks.test.ts
 
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get, post } from '../client';
-import { triggerSync, getSyncHistory, retryFailedCallbacks } from '../awsTicklerSync';
-import type { TicklerSyncSummary, AwsTicklerSyncLog, PagedResponse } from '../../types';
+import { getCallbacks, recordCallback } from '../callbacks';
+import type { CallbackResponse, CallbackRequest } from '../../types';
 
 vi.mock('../client', () => ({
   get: vi.fn(),
@@ -159,114 +159,90 @@ vi.mock('../client', () => ({
 const mockedGet = vi.mocked(get);
 const mockedPost = vi.mocked(post);
 
-describe('awsTicklerSync API functions', () => {
+const sampleCallbackResponse: CallbackResponse = {
+  callbackId: 10,
+  instructionId: 42,
+  outcome: 'Callback Successful',
+  contactName: 'John Smith',
+  phoneNumberCalled: '+1-212-555-0101',
+  mobileNumber: '+1-917-555-0101',
+  emailId: 'john@test.com',
+  attemptedBy: 'test.user',
+  calledOn: '2026-05-03T10:30:00',
+  createdOn: '2026-05-03T10:30:00',
+  createdBy: 'test.user',
+  isActive: 1,
+  commentId: 1,
+};
+
+describe('callbacks API functions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('triggerSync', () => {
-    it('should call post with correct endpoint', async () => {
-      const mockSummary: TicklerSyncSummary = {
-        totalFetched: 10,
-        created: 5,
-        updated: 2,
-        skipped: 2,
-        errors: 1,
-        callbackFailures: 0,
-      };
+  describe('getCallbacks', () => {
+    it('should call get with correct URL and instructionId', async () => {
+      mockedGet.mockResolvedValue({
+        data: [sampleCallbackResponse],
+        message: 'OK',
+        status: 200,
+      } as any);
 
-      mockedPost.mockResolvedValue({ data: mockSummary, message: 'OK', status: 200 } as any);
+      const result = await getCallbacks(42);
 
-      const result = await triggerSync();
-
-      expect(mockedPost).toHaveBeenCalledWith('/aws/tickler-sync/trigger');
-      expect(result.data).toEqual(mockSummary);
+      expect(mockedGet).toHaveBeenCalledWith('/instructions/42/callbacks');
+      expect(result.data[0].callbackId).toBe(10);
     });
 
-    it('should propagate errors', async () => {
-      mockedPost.mockRejectedValue(new Error('Unauthorized'));
+    it('should return empty array when API returns empty', async () => {
+      mockedGet.mockResolvedValue({
+        data: [],
+        message: 'OK',
+        status: 200,
+      } as any);
 
-      await expect(triggerSync()).rejects.toThrow('Unauthorized');
-    });
-  });
+      const result = await getCallbacks(99);
 
-  describe('getSyncHistory', () => {
-    it('should call get with default page and size', async () => {
-      const mockPage: PagedResponse<AwsTicklerSyncLog> = {
-        content: [],
-        page: 0,
-        size: 20,
-        totalElements: 0,
-        totalPages: 0,
-        last: true,
-      };
-
-      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK', status: 200 } as any);
-
-      const result = await getSyncHistory();
-
-      expect(mockedGet).toHaveBeenCalledWith('/aws/tickler-sync/history', { page: 0, size: 20 });
-      expect(result.data.content).toEqual([]);
+      expect(result.data).toEqual([]);
     });
 
-    it('should call get with custom page and size', async () => {
-      const mockLog = {
-        syncId: 1,
-        awsTaskId: 100,
-        instructionId: 200,
-        ticklerTaskId: 300,
-        syncStatus: 'SUCCESS',
-        callbackStatus: 'SENT',
-        syncedOn: '2026-01-01T00:00:00',
-      } as unknown as AwsTicklerSyncLog;
+    it('should propagate errors from the client', async () => {
+      mockedGet.mockRejectedValue(new Error('Network error'));
 
-      const mockPage: PagedResponse<AwsTicklerSyncLog> = {
-        content: [mockLog],
-        page: 2,
-        size: 10,
-        totalElements: 25,
-        totalPages: 3,
-        last: false,
-      };
-
-      mockedGet.mockResolvedValue({ data: mockPage, message: 'OK', status: 200 } as any);
-
-      const result = await getSyncHistory(2, 10);
-
-      expect(mockedGet).toHaveBeenCalledWith('/aws/tickler-sync/history', { page: 2, size: 10 });
-      expect(result.data.content).toHaveLength(1);
-      expect(result.data.content[0].syncId).toBe(1);
-    });
-
-    it('should propagate errors', async () => {
-      mockedGet.mockRejectedValue(new Error('Server Error'));
-
-      await expect(getSyncHistory()).rejects.toThrow('Server Error');
+      await expect(getCallbacks(1)).rejects.toThrow('Network error');
     });
   });
 
-  describe('retryFailedCallbacks', () => {
-    it('should call post with correct endpoint', async () => {
-      mockedPost.mockResolvedValue({ data: 3, message: 'OK', status: 200 } as any);
+  describe('recordCallback', () => {
+    it('should post callback payload and return response', async () => {
+      const payload: CallbackRequest = {
+        instructionId: 42,
+        outcome: 'Callback Successful',
+        contactName: 'John Smith',
+        phoneNumberCalled: '+1-212-555-0101',
+      };
 
-      const result = await retryFailedCallbacks();
+      mockedPost.mockResolvedValue({
+        data: sampleCallbackResponse,
+        message: 'OK',
+        status: 200,
+      } as any);
 
-      expect(mockedPost).toHaveBeenCalledWith('/aws/tickler-sync/retry-callbacks');
-      expect(result.data).toBe(3);
+      const result = await recordCallback(payload);
+
+      expect(mockedPost).toHaveBeenCalledWith('/instructions/42/callbacks', payload);
+      expect(result.data.callbackId).toBe(10);
     });
 
-    it('should return 0 when no callbacks retried', async () => {
-      mockedPost.mockResolvedValue({ data: 0, message: 'OK', status: 200 } as any);
+    it('should propagate errors from post client', async () => {
+      const payload: CallbackRequest = {
+        instructionId: 42,
+        outcome: 'Failed Attempt',
+      };
 
-      const result = await retryFailedCallbacks();
+      mockedPost.mockRejectedValue(new Error('Post failed'));
 
-      expect(result.data).toBe(0);
-    });
-
-    it('should propagate errors', async () => {
-      mockedPost.mockRejectedValue(new Error('Forbidden'));
-
-      await expect(retryFailedCallbacks()).rejects.toThrow('Forbidden');
+      await expect(recordCallback(payload)).rejects.toThrow('Post failed');
     });
   });
 });
