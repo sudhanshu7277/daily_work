@@ -215,12 +215,12 @@ describe('callbacks API functions', () => {
 
   describe('recordCallback', () => {
     it('should post callback payload and return response', async () => {
-      const payload: CallbackRequest = {
+      const payload = {
         instructionId: 42,
         outcome: 'Callback Successful',
         contactName: 'John Smith',
         phoneNumberCalled: '+1-212-555-0101',
-      };
+      } as CallbackRequest;
 
       mockedPost.mockResolvedValue({
         data: sampleCallbackResponse,
@@ -235,10 +235,10 @@ describe('callbacks API functions', () => {
     });
 
     it('should propagate errors from post client', async () => {
-      const payload: CallbackRequest = {
+      const payload = {
         instructionId: 42,
-        outcome: 'Failed Attempt',
-      };
+        outcome: 'Callback Successful',
+      } as CallbackRequest;
 
       mockedPost.mockRejectedValue(new Error('Post failed'));
 
