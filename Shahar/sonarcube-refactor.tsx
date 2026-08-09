@@ -248,9 +248,15 @@ describe('callbacks API functions', () => {
 });
 
 
-///Solution 1: Replace DocumentTypeDropdown with SearchableDropdown (Recommended)
-Since SearchableDropdown is already imported at line 4 
-(import SearchableDropdown from '../../components/common/SearchableDropdown';), 
-you can delete lines 28–69 and replace <DocumentTypeDropdown .../> u
-sages in the JSX with <SearchableDropdown .../>.
+///Option 1: Replace JSX at Line 2085 with SearchableDropdown (Recommended)
+Since SearchableDropdown is already imported at the top of the file, replace lines 2085–2090 in renderDocuments:
+
+
+<SearchableDropdown
+  value={doc.type}
+  onChange={(val) => updateDocumentMeta(idx, 'type', String(val))}
+  style={{ minWidth: 160 }}
+  options={documentTypes}
+  placeholder="Select type"
+/>
 
