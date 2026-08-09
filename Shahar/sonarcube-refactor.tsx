@@ -268,6 +268,7 @@ const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
 //Replace the inline onClick block with the clean handler and accessibility attributes:
 
 {ref}
+{/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
 <i
   className="lmnicon lmnicon-close"
   style={{ fontSize: 10, cursor: 'pointer', color: '#666' }}
