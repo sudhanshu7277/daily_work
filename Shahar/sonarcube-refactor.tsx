@@ -228,7 +228,7 @@ describe('callbacks API functions', () => {
         status: 200,
       } as any);
 
-      const result = await recordCallback(payload);
+      const result = await recordCallback(42, payload);
 
       expect(mockedPost).toHaveBeenCalledWith('/instructions/42/callbacks', payload);
       expect(result.data.callbackId).toBe(10);
@@ -242,7 +242,7 @@ describe('callbacks API functions', () => {
 
       mockedPost.mockRejectedValue(new Error('Post failed'));
 
-      await expect(recordCallback(payload)).rejects.toThrow('Post failed');
+      await expect(recordCallback(42, payload)).rejects.toThrow('Post failed');
     });
   });
 });
