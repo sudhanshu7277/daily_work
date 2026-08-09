@@ -249,328 +249,35 @@ describe('callbacks API functions', () => {
 
 
 
+// Step 1: Add Helper Function
+// Add this function inside CreateInstructionPage (above renderTaskOverview or at the component handler level):
+
+const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
+  const newIds = (form.relatedInstructionIds ?? []).filter((x) => x !== idToRemove);
+  const newRefs = newIds
+    .map((nid) => adminMakerInstructions.find((i) => i.instructionId === nid)?.instructionRef)
+    .filter((ref): ref is string => Boolean(ref))
+    .join(', ');
+
+  updateField('relatedInstructionIds', newIds);
+  updateField('relatedInstructions', newRefs);
+};
 
 
+// Step 2: Replace Lines 1551–1566 in JSX
+//Replace the inline onClick block with the clean handler and accessibility attributes:
 
-
-
-
-Separating DocumentTypeDropdown into its own component file resolves the TypeScript type mismatch and eliminates SonarQube line duplication in CreateInstructionPage.tsx.1.Create the new component file:src/components/common/DocumentTypeDropdown.tsx.Create DocumentTypeDropdown.tsx inside your common components directory and add the following code:TypeScriptimport React, { useState, useMemo } from 'react';
-import { Dropdown, Input, El } from '@citi-icg-172888/icgds-react';
-
-interface DocumentTypeDropdownProps {
-  value: string;
-  onChange: (val: string) => void;
-  style?: React.CSSProperties;
-  types: string[];
-}
-
-export default function DocumentTypeDropdown({
-  value,
-  onChange,
-  style,
-  types,
-}: Readonly) {
-  const [search, setSearch] = useState('');
-
-  const filteredTypes = useMemo(() => {
-    if (!search) return types;
-    const term = search.toLowerCase();
-    return types.filter((t) => t.toLowerCase().includes(term));
-  }, [search, types]);
-
-  return (
-     {
-        onChange(String(val));
-        setSearch('');
-      }}
-      placeholder="Select type"
-      style={style}
-      dropdownRender={(optionsList) => (
-        <>
-          
-            ) => setSearch(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          
-          {filteredTypes.length > 0 ? (
-            optionsList
-          ) : (
-            
-              No document types found
-            
-          )}
-        
-      )}
-    >
-      {filteredTypes.map((t) => (
-        
-          {t}
-        
-      ))}
-    
-  );
-}
-2.Import into CreateInstructionPage.tsx:At the top of src/pages/instructions/CreateInstructionPage.tsx, add the import:TypeScriptimport DocumentTypeDropdown from '../../components/common/DocumentTypeDropdown';
-(Adjust the relative path if your components directory is located elsewhere).3.Update JSX in renderDocuments:Line 2085.
-Remove the <SearchableDropdown .../> block and replace it with:TypeScript updateDocumentMeta(idx, 'type', val)}
-  style={{ minWidth: 160 }}
-  types={documentTypes}
-/></>
-
-
-
-// src/components/common/__tests__/DocumentTypeDropdown.test.tsx
-
-
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
-import DocumentTypeDropdown from '../DocumentTypeDropdown';
-
-describe('DocumentTypeDropdown Component', () => {
-  const mockOnChange = vi.fn();
-  const sampleTypes = [
-    'Issuer Services Ops',
-    'Xceptor File Raw',
-    'Legal Hold Statement',
-    'Tax Document',
-  ];
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders without crashing and displays placeholder', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    expect(screen.getByPlaceholderText('Select type')).toBeInTheDocument();
-  });
-
-  it('renders all types as dropdown options', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    sampleTypes.forEach((type) => {
-      expect(screen.getByText(type)).toBeInTheDocument();
-    });
-  });
-
-  it('filters the option list based on search input', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    const searchInput = screen.getByPlaceholderText('Type to search...');
-    fireEvent.change(searchInput, { target: { value: 'Xceptor' } });
-
-    expect(screen.getByText('Xceptor File Raw')).toBeInTheDocument();
-    expect(screen.queryByText('Issuer Services Ops')).not.toBeInTheDocument();
-  });
-
-  it('shows fallback message when no types match the search term', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    const searchInput = screen.getByPlaceholderText('Type to search...');
-    fireEvent.change(searchInput, { target: { value: 'UnknownType123' } });
-
-    expect(screen.getByText('No document types found')).toBeInTheDocument();
-  });
-
-  it('calls onChange with selected value and resets search input on item click', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    const option = screen.getByText('Legal Hold Statement');
-    fireEvent.click(option);
-
-    expect(mockOnChange).toHaveBeenCalledWith('Legal Hold Statement');
-
-    // Search input should reset to empty after selection
-    const searchInput = screen.getByPlaceholderText('Type to search...') as HTMLInputElement;
-    expect(searchInput.value).toBe('');
-  });
-});
-
-
-// Create a new file: src/components/common/DocumentTypeDropdown.tsx
-
-import React, { useState, useMemo } from 'react';
-import { Dropdown, Input, El } from '@citi-icg-172888/icgds-react';
-
-interface DocumentTypeDropdownProps {
-  value: string;
-  onChange: (val: string) => void;
-  style?: React.CSSProperties;
-  types: string[];
-}
-
-export default function DocumentTypeDropdown({ value, onChange, style, types }: Readonly<DocumentTypeDropdownProps>) {
-  const [search, setSearch] = useState('');
-
-  const filteredTypes = useMemo(() => {
-    if (!search) return types;
-    const term = search.toLowerCase();
-    return types.filter((t) => t.toLowerCase().includes(term));
-  }, [search, types]);
-
-  return (
-    <Dropdown
-      value={value}
-      onChange={(val) => {
-        onChange(String(val));
-        setSearch('');
-      }}
-      placeholder="Select type"
-      style={style}
-      dropdownRender={(optionsList) => (
-        <>
-          <El style={{ padding: 8 }}>
-            <Input
-              placeholder="Type to search..."
-              value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          </El>
-          {filteredTypes.length > 0 ? (
-            optionsList
-          ) : (
-            <El style={{ padding: 12, color: '#888', fontSize: 12 }}>No document types found</El>
-          )}
-        </>
-      )}
-    >
-      {filteredTypes.map((t) => (
-        <Dropdown.Item key={t} value={t}>
-          {t}
-        </Dropdown.Item>
-      ))}
-    </Dropdown>
-  );
-}
-
-
-// DocumentTypeDropdown.test.tsx:
-
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
-import DocumentTypeDropdown from '../DocumentTypeDropdown';
-
-describe('DocumentTypeDropdown Component', () => {
-  const mockOnChange = vi.fn();
-  const sampleTypes = [
-    'Issuer Services Ops',
-    'Xceptor File Raw',
-    'Legal Hold Statement',
-    'Tax Document',
-  ];
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders without crashing and displays placeholder', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    expect(screen.getByPlaceholderText('Select type')).toBeTruthy();
-  });
-
-  it('renders all types as dropdown options', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    sampleTypes.forEach((type) => {
-      expect(screen.getByText(type)).toBeTruthy();
-    });
-  });
-
-  it('filters the option list based on search input', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    const searchInput = screen.getByPlaceholderText('Type to search...');
-    fireEvent.change(searchInput, { target: { value: 'Xceptor' } });
-
-    expect(screen.getByText('Xceptor File Raw')).toBeTruthy();
-    expect(screen.queryByText('Issuer Services Ops')).toBeNull();
-  });
-
-  it('shows fallback message when no types match the search term', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    const searchInput = screen.getByPlaceholderText('Type to search...');
-    fireEvent.change(searchInput, { target: { value: 'UnknownType123' } });
-
-    expect(screen.getByText('No document types found')).toBeTruthy();
-  });
-
-  it('calls onChange with selected value and resets search input on item click', () => {
-    render(
-      <DocumentTypeDropdown
-        value=""
-        onChange={mockOnChange}
-        types={sampleTypes}
-      />
-    );
-
-    const option = screen.getByText('Legal Hold Statement');
-    fireEvent.click(option);
-
-    expect(mockOnChange).toHaveBeenCalledWith('Legal Hold Statement');
-
-    const searchInput = screen.getByPlaceholderText('Type to search...') as HTMLInputElement;
-    expect(searchInput.value).toBe('');
-  });
-});
+{ref}
+<i
+  className="lmnicon lmnicon-close"
+  style={{ fontSize: 10, cursor: 'pointer', color: '#666' }}
+  role="button"
+  tabIndex={0}
+  aria-label="Remove related instruction"
+  onClick={() => handleRemoveRelatedInstruction(id)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleRemoveRelatedInstruction(id);
+    }
+  }}
+/>
