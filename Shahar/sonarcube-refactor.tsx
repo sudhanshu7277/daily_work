@@ -165,8 +165,7 @@ describe('Breadcrumb Component', () => {
   });
 });
 
-// src/components/common/__tests__/DocumentTypeDropdown.test.tsx
-
+// Here is the updated src/components/common/DocumentTypeDropdown.test.tsx using types and mockOnChange:
 
 import { render } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
@@ -237,5 +236,3 @@ describe('DocumentTypeDropdown Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith('Tax Document');
   });
 });
-
-
