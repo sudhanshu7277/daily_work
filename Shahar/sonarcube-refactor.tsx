@@ -407,14 +407,15 @@ describe('MoreFiltersPanel Component', () => {
     instructionType: 'payment',
   };
 
-  const defaultProps = {
-    filters: mockFilters as any,
+  // Explicitly typing defaultProps as any prevents TS JSX spread errors
+  const defaultProps: any = {
+    filters: mockFilters,
     onFiltersChange: vi.fn(),
     clients: ['Client 1', 'Client 2'],
     deals: ['Deal 1', 'Deal 2'],
     users: ['User 1', 'User 2'],
     statuses: ['Active', 'Pending'],
-    instructionType: 'payment' as const,
+    instructionType: 'payment',
   };
 
   beforeEach(() => {
@@ -434,7 +435,9 @@ describe('MoreFiltersPanel Component', () => {
 
   it('triggers onFiltersChange when filter selection changes', () => {
     const handleFiltersChange = vi.fn();
-    render(<MoreFiltersPanel {...defaultProps} onFiltersChange={handleFiltersChange} />);
+    render(
+      <MoreFiltersPanel {...defaultProps} onFiltersChange={handleFiltersChange} />
+    );
 
     const filterElement =
       screen.queryByRole('combobox') ||
