@@ -252,3 +252,23 @@ sonar.test.inclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src
 sonar.exclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
 sonar.coverage.exclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
 sonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+
+// updated 
+
+// vite.config.ts
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      exclude: [
+        'dist/**',
+        'node_modules/**',
+        'src/test/**',
+        '**/*.test.{ts,tsx}',
+        '**/*.d.ts',
+      ],
+    },
+  },
+});
