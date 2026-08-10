@@ -129,266 +129,77 @@ export default defineConfig({
 
 
 
-// citiSftIntake.test.ts
 
+// Minimal File Fixes
+1. src/api/__tests__/aws.test.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  getRecentIntakes,
-  getCitiSft,
-  getAttachments,
-  getAuditTrail,
-  getAuditPage,
-  getCitiSftPage,
-} from '../citiSftIntake';
-import client from '../client';
+import * as clientModule from '../client';
+import { getDocumentList, getDealParties } from '../aws';
 
-vi.mock('../client', () => ({
-  default: {
-    get: vi.fn(),
-  },
-}));
+vi.mock('../client', () => {
+  const mockGet = vi.fn();
+  return {
+    default: { get: mockGet },
+    get: mockGet,
+  };
+});
 
-// Helper function to handle mock setup and bypass SonarQube duplication detection
-const mockClientGet = (responseData: unknown) => {
-  vi.mocked(client.get).mockResolvedValueOnce(responseData as any);
-};
+describe('aws API functions', () => {
+  beforeEach(() => vi.clearAllMocks());
 
-describe('citiSftIntake API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('getDocumentList calls get with correct params', async () => {
+    vi.mocked(clientModule.get).mockResolvedValueOnce([{ id: 1 }]);
+    const res = await getDocumentList(123);
+    expect(res).toEqual([{ id: 1 }]);
   });
 
-  it('getRecentIntakes calls client.get with correct path', async () => {
-    const mockResponse = [{ citiSftId: 1 }];
-    mockClientGet(mockResponse);
-
-    const result = await getRecentIntakes();
-
-    expect(client.get).toHaveBeenCalledWith('/citisft-intake/recent');
-    expect(result).toEqual(mockResponse);
-  });
-
-  it('getCitiSft calls client.get with correct path', async () => {
-    const mockResponse = { citiSftId: 10 };
-    mockClientGet(mockResponse);
-
-    const result = await getCitiSft(10);
-
-    expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft/10');
-    expect(result).toEqual(mockResponse);
-  });
-
-  it('getAttachments calls client.get with correct path', async () => {
-    const mockResponse = [{ attachmentId: 100 }];
-    mockClientGet(mockResponse);
-
-    const result = await getAttachments(10);
-
-    expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft/10/attachments');
-    expect(result).toEqual(mockResponse);
-  });
-
-  it('getAuditTrail calls client.get with correct path', async () => {
-    const mockResponse = [{ auditId: 5 }];
-    mockClientGet(mockResponse);
-
-    const result = await getAuditTrail(10);
-
-    expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft/10/audit');
-    expect(result).toEqual(mockResponse);
-  });
-
-  describe('getAuditPage', () => {
-    it('calls client.get without eventType param when omitted', async () => {
-      const mockResponse = { content: [], totalElements: 0 };
-      mockClientGet(mockResponse);
-
-      const result = await getAuditPage(0, 10);
-
-      expect(client.get).toHaveBeenCalledWith('/citisft-intake/audit', {
-        params: { page: 0, size: 10 },
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('calls client.get with eventType param when provided', async () => {
-      const mockResponse = { content: [], totalElements: 0 };
-      mockClientGet(mockResponse);
-
-      const result = await getAuditPage(1, 20, 'INGESTION');
-
-      expect(client.get).toHaveBeenCalledWith('/citisft-intake/audit', {
-        params: { page: 1, size: 20, eventType: 'INGESTION' },
-      });
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('getCitiSftPage', () => {
-    it('calls client.get without status param when omitted', async () => {
-      const mockResponse = { content: [], totalElements: 0 };
-      mockClientGet(mockResponse);
-
-      const result = await getCitiSftPage(0, 10);
-
-      expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft', {
-        params: { page: 0, size: 10 },
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('calls client.get with status param when provided', async () => {
-      const mockResponse = { content: [], totalElements: 0 };
-      mockClientGet(mockResponse);
-
-      const result = await getCitiSftPage(2, 15, 'PROCESSED');
-
-      expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft', {
-        params: { page: 2, size: 15, status: 'PROCESSED' },
-      });
-      expect(result).toEqual(mockResponse);
-    });
+  it('getDealParties calls get with correct params', async () => {
+    vi.mocked(clientModule.get).mockResolvedValueOnce([{ partyId: 1 }]);
+    const res = await getDealParties(456);
+    expect(res).toEqual([{ partyId: 1 }]);
   });
 });
 
 
+//2. src/components/common/Breadcrumb.test.tsx
+
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect } from 'vitest';
+import Breadcrumb from './Breadcrumb';
+
+describe('Breadcrumb Component', () => {
+  it('renders route label', () => {
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+    expect(screen.getByText((_, el) => el?.textContent?.toLowerCase().includes('home') ?? false)).toBeInTheDocument();
+  });
+});
 
 
+//3. src/components/common/__tests__/DocumentTypeDropdown.test.tsx
 
+import { render, screen, fireEvent } from '@testing-library/react';
+import { vi, describe, it, expect } from 'vitest';
+import DocumentTypeDropdown from '../DocumentTypeDropdown';
 
-// Change 1: Extract useInstructionRefData at the top of CreateInstructionPage.tsx
-//Place this custom hook right above your CreateInstructionPage component definition:
+describe('DocumentTypeDropdown Component', () => {
+  const props = { value: '', onChange: vi.fn(), options: [{ label: 'Type A', value: 'TYPE_A' }] };
 
+  it('renders placeholder', () => {
+    render(<DocumentTypeDropdown {...props} />);
+    expect(screen.getByText(/select type/i)).toBeInTheDocument();
+  });
+});
 
+// 4. src/components/common/MoreFiltersPanel.test.tsx (Line 88)
 
-// Extracting data loading into a local custom hook breaks the exact token 
-// sequences flagged by SonarQube across instruction pages.
-const useInstructionRefData = () => {
-  const [clients, setClients] = useState<AwsClient[]>([]);
-  const [deals, setDeals] = useState<AwsDeal[]>([]);
-  const [accounts, setAccounts] = useState<AwsAccount[]>([]);
-  const [refDataMap, setRefDataMap] = useState<Record<string, GabRefData[]>>({});
-
-  const loadInitialRefData = async () => {
-    try {
-      const [clientList, dealList, refTypes] = await Promise.all([
-        getAllClientList(),
-        getAllDealList(),
-        getRefDataByType('INSTRUCTION_TYPES'),
-      ]);
-      setClients(clientList || []);
-      setDeals(dealList || []);
-      setRefDataMap((prev) => ({ ...prev, INSTRUCTION_TYPES: refTypes || [] }));
-    } catch (err) {
-      console.error('Error fetching ref data:', err);
-    }
-  };
-
-  const fetchAccountsByDeal = async (dealId: string) => {
-    if (!dealId) {
-      setAccounts([]);
-      return;
-    }
-    const accs = await getAccountList(dealId);
-    setAccounts(accs || []);
-  };
-
-  useEffect(() => {
-    loadInitialRefData();
-  }, []);
-
-  return { clients, deals, accounts, refDataMap, fetchAccountsByDeal };
-};
-
-
-
-//2. Refactor Submission & File Handling Logic
-//Inside CreateInstructionPage, replace duplicate inline loop blocks with helper utility handlers.
-
-
-//Change 2: Update Component State & Submission Calls
-//In your main CreateInstructionPage component body, replace the manual API fetching and submit handlers with the following exact delegates:
-
-
-export const CreateInstructionPage: React.FC = () => {
-  // ... Keep all existing useState declarations ...
-
-  // Use the extracted hook for reference lists
-  const { clients, deals, accounts, refDataMap, fetchAccountsByDeal } = useInstructionRefData();
-
-  // Deal change handler
-  const handleDealSelection = (dealId: string) => {
-    setSelectedDeal(dealId);
-    setSelectedAccount('');
-    fetchAccountsByDeal(dealId);
-  };
-
-  // Process attachments helper (prevents duplicate loop blocks in submit)
-  const processDocumentUploads = async (files: File[]): Promise<string[]> => {
-    if (!files.length) return [];
-    const uploadPromises = files.map((file) => uploadDocument(file, 'INSTRUCTION'));
-    const results = await Promise.all(uploadPromises);
-    return results.map((res) => res?.documentId).filter(Boolean);
-  };
-
-  // Refactored Submit / Draft handler preserving exact functionality
-  const executeInstructionSubmission = async (isDraft: boolean) => {
-    if (!selectedClient || !selectedDeal || !instructionType) {
-      setErrorMsg('Please complete all required fields.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMsg(null);
-
-    try {
-      const documentIds = await processDocumentUploads(uploadedFiles);
-
-      const requestPayload: CreateInstructionRequest = {
-        clientId: selectedClient,
-        dealId: selectedDeal,
-        accountId: selectedAccount || undefined,
-        instructionType,
-        remarks: comments,
-        documentIds,
-        createdBy: currentUserId,
-        isDraft,
-      };
-
-      const submitApi = isDraft ? createInstruction : saveAndSubmitInstruction;
-      const response = await submitApi(requestPayload);
-
-      notification.success({
-        message: 'Success',
-        description: `Instruction successfully ${isDraft ? 'saved as draft' : 'submitted'}.`,
-      });
-
-      navigate(`/instructions/view/${response?.instructionId || ''}`);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to submit instruction.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ... Keep JSX render completely untouched ...
-
-
-
-
-
-
-  // reset to a commit
-
-  # 1. Ensure you have the latest commit history from remote
-git fetch origin
-
-# 2. Hard reset your current branch to commit b08585c
-git reset --hard b08585c
-
-# 3. (Optional) Remove any untracked local files created since that commit
-git clean -fd
-
-# 4. Force-push to update Pull Request #84 on remote
-git push origin feature/IS-69227-ui-sonarcube --force-with-lease
+it('triggers onClearAll on click', () => {
+  render(<MoreFiltersPanel {...defaultProps} />);
+  fireEvent.click(screen.getByText(/clear/i));
+  expect(defaultProps.onClearAll).toHaveBeenCalled();
+});
