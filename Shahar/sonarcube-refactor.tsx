@@ -330,11 +330,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import DocumentTypeDropdown from '../DocumentTypeDropdown';
 
 describe('DocumentTypeDropdown Component', () => {
-  const mockTypes = [
-    { label: 'Invoice', value: 'INVOICE' },
-    { label: 'Contract', value: 'CONTRACT' },
-    { label: 'Receipt', value: 'RECEIPT' },
-  ];
+  const mockTypes = ['Invoice', 'Contract', 'Receipt'];
 
   const defaultProps = {
     types: mockTypes,
@@ -363,7 +359,7 @@ describe('DocumentTypeDropdown Component', () => {
   it('filters the option list based on search input', () => {
     render(<DocumentTypeDropdown {...defaultProps} />);
 
-    // 1. Click toggle to open the dropdown listbox
+    // 1. Click toggle to open dropdown
     const toggle = screen.getByRole('combobox') || screen.getByText(/select type/i);
     fireEvent.click(toggle);
 
