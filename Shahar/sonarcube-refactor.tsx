@@ -163,20 +163,22 @@ describe('DocumentTypeDropdown Component', () => {
 });
 
 //src/components/common/Breadcrumb.test.tsx
-
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 import Breadcrumb from './Breadcrumb';
 
 describe('Breadcrumb Component', () => {
   it('renders and covers path rendering logic', () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/instructions/12345/create']}>
         <Breadcrumb />
       </MemoryRouter>
     );
-    
-    expect(screen.getByText(/instructions|12345|create/i)).toBeInTheDocument();
+
+    // Checks entire rendered container text across all child nodes
+    expect(container.textContent).toMatch(/instructions/i);
+    expect(container.textContent).toMatch(/12345/i);
+    expect(container.textContent).toMatch(/create/i);
   });
 });
