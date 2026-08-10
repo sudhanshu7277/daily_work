@@ -77,32 +77,48 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// modify vite config
-
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+// Updated vite.config.ts
 
 /// <reference types="vitest" />
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
+  base: '/nextgengab/ui',
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      '/nextgengab/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/setupTests.ts', // Adjust or remove if not using setupFiles
+    setupFiles: ['./src/test/setup.ts'],
+    css: false,
     coverage: {
-      provider: 'v8', // or 'istanbul'
-      reporter: ['text', 'json', 'lcov', 'html'], // 'lcov' generates coverage/lcov.info for SonarQube
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
       reportsDirectory: './coverage',
       exclude: [
         'node_modules/',
-        'src/setupTests.ts',
+        'src/test/**',
+        'src/**/*.types.ts',
+        'src/**/*.d.ts',
         'src/main.tsx',
         'src/vite-env.d.ts',
-        '**/*.types.ts',
-        '**/*.d.ts',
         '**/*.config.*',
-        'src/routes/**', // Exclude pure routing files if permitted
+        '**/index.ts',
       ],
     },
   },
