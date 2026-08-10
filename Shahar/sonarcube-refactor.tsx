@@ -125,36 +125,29 @@ describe('Breadcrumb Component', () => {
 });
 
 // 2. Fix src/components/common/__tests__/DocumentTypeDropdown.test.tsx
-
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import DocumentTypeDropdown from '../DocumentTypeDropdown';
 
-
-const DocumentTypeDropdownAny = DocumentTypeDropdown as any;
-
 describe('DocumentTypeDropdown Component', () => {
-  const mockOptions = [
+  const mockTypes = [
     { label: 'Invoice', value: 'invoice' },
     { label: 'Contract', value: 'contract' },
   ];
 
   it('selects option correctly by targeting ARIA roles', () => {
-    const handleSelect = vi.fn();
+    const handleChange = vi.fn();
 
     render(
       <DocumentTypeDropdown
-        options={mockOptions as any}
-        types={mockOptions as any}
-        onSelect={handleSelect}
-        onChange={handleSelect}
+        types={mockTypes as any}
+        onChange={handleChange}
         value=""
       />
     );
 
-    // Look for a select box, combobox, button, or clickable trigger
     const trigger =
       screen.queryByRole('combobox') ||
       screen.queryByRole('button') ||
@@ -163,23 +156,20 @@ describe('DocumentTypeDropdown Component', () => {
 
     fireEvent.click(trigger);
 
-    // Look for 'Invoice' option anywhere in DOM
     const invoiceOption = screen.getByText(/invoice/i);
     expect(invoiceOption).toBeInTheDocument();
 
     fireEvent.click(invoiceOption);
-    expect(handleSelect).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalled();
   });
 
   it('handles contract document type selection using explicit option queries', () => {
-    const handleSelect = vi.fn();
+    const handleChange = vi.fn();
 
     render(
       <DocumentTypeDropdown
-        options={mockOptions as any}
-        types={mockOptions as any}
-        onSelect={handleSelect}
-        onChange={handleSelect}
+        types={mockTypes as any}
+        onChange={handleChange}
         value=""
       />
     );
@@ -196,10 +186,9 @@ describe('DocumentTypeDropdown Component', () => {
     expect(contractOption).toBeInTheDocument();
 
     fireEvent.click(contractOption);
-    expect(handleSelect).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalled();
   });
 });
-
 
 //3. Fix src/components/common/MoreFiltersPanel.test.tsx
 
