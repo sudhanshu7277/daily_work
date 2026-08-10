@@ -373,3 +373,22 @@ export const CreateInstructionPage: React.FC = () => {
   };
 
   // ... Keep JSX render completely untouched ...
+
+
+
+
+
+
+  // reset to a commit
+
+  # 1. Ensure you have the latest commit history from remote
+git fetch origin
+
+# 2. Hard reset your current branch to commit b08585c
+git reset --hard b08585c
+
+# 3. (Optional) Remove any untracked local files created since that commit
+git clean -fd
+
+# 4. Force-push to update Pull Request #84 on remote
+git push origin feature/IS-69227-ui-sonarcube --force-with-lease
