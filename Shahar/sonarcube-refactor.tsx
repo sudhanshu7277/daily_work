@@ -624,3 +624,8 @@ describe('CallbackValidationForm Component', () => {
     });
   });
 });
+
+
+const mockGetDealParties = getDealParties as MockedFunction<typeof getDealParties>;
+const mockGetCallbacks = getCallbacks as MockedFunction<typeof getCallbacks>;
+const mockRecordCallback = recordCallback as MockedFunction<typeof recordCallback>;
