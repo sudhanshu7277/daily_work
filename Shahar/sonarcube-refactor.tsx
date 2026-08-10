@@ -324,24 +324,22 @@ describe('MoreFiltersPanel Component', () => {
 
 ///DocumentTypeDropdown.test.tsx
 
-
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DocumentTypeDropdown from '../DocumentTypeDropdown';
 
 describe('DocumentTypeDropdown Component', () => {
-  const mockOptions = [
+  const mockTypes = [
     { label: 'Invoice', value: 'INVOICE' },
     { label: 'Contract', value: 'CONTRACT' },
     { label: 'Receipt', value: 'RECEIPT' },
   ];
 
   const defaultProps = {
-    options: mockOptions,
+    types: mockTypes,
     value: '',
     onChange: vi.fn(),
-    placeholder: 'Select type',
   };
 
   beforeEach(() => {
@@ -351,7 +349,6 @@ describe('DocumentTypeDropdown Component', () => {
   it('renders without crashing', () => {
     const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
     expect(container).toBeTruthy();
-    expect(screen.getByText(/select type/i)).toBeTruthy();
   });
 
   it('opens dropdown menu on click', () => {
@@ -366,7 +363,7 @@ describe('DocumentTypeDropdown Component', () => {
   it('filters the option list based on search input', () => {
     render(<DocumentTypeDropdown {...defaultProps} />);
 
-    // 1. Click toggle to open the dropdown listbox (sets aria-expanded="true")
+    // 1. Click toggle to open the dropdown listbox
     const toggle = screen.getByRole('combobox') || screen.getByText(/select type/i);
     fireEvent.click(toggle);
 
@@ -377,7 +374,7 @@ describe('DocumentTypeDropdown Component', () => {
 
     fireEvent.change(searchInput, { target: { value: 'Invoice' } });
 
-    // 3. Assert filtered item exists and unfiltered item is hidden/filtered out
+    // 3. Assert filtered item exists and unfiltered item is filtered out
     expect(screen.getByText('Invoice')).toBeTruthy();
     expect(screen.queryByText('Contract')).toBeNull();
   });
