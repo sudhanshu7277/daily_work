@@ -404,7 +404,7 @@ describe('MoreFiltersPanel Component', () => {
     deals: ['Deal 1', 'Deal 2'],
     users: ['User 1', 'User 2'],
     statuses: ['Active', 'Pending'],
-    instructionType: ['Type 1', 'Type 2'],
+    instructionType: 'payment' as const,
   };
 
   beforeEach(() => {
@@ -419,7 +419,6 @@ describe('MoreFiltersPanel Component', () => {
   it('renders filter option lists properly', () => {
     render(<MoreFiltersPanel {...defaultProps} />);
 
-    // Verifies that passed prop values are present in the document
     expect(screen.getByText('Client 1')).toBeTruthy();
   });
 
@@ -427,7 +426,6 @@ describe('MoreFiltersPanel Component', () => {
     const handleFiltersChange = vi.fn();
     render(<MoreFiltersPanel {...defaultProps} onFiltersChange={handleFiltersChange} />);
 
-    // Locate an input, select, or button that modifies filters
     const filterElement =
       screen.queryByRole('combobox') ||
       screen.queryByRole('textbox') ||
@@ -435,7 +433,6 @@ describe('MoreFiltersPanel Component', () => {
 
     fireEvent.click(filterElement);
 
-    // Verify component interaction logic
     expect(filterElement).toBeTruthy();
   });
 });
