@@ -167,9 +167,11 @@ describe('AWS API Client', () => {
 
 // 2. src/components/common/Breadcrumb.test.tsx
 
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import '@testing-library/jest-dom';
 import Breadcrumb from './Breadcrumb';
 
 describe('Breadcrumb Component', () => {
@@ -187,17 +189,17 @@ describe('Breadcrumb Component', () => {
     );
 
     // Match text split across sub-elements or wrappers
-    const instructionsElement = screen.getByText((_, el) => 
+    const instructionsElement = screen.getByText((_, el) =>
       el?.textContent?.toLowerCase().includes('instructions') ?? false
     );
     expect(instructionsElement).toBeInTheDocument();
 
-    const dealElement = screen.getByText((_, el) => 
+    const dealElement = screen.getByText((_, el) =>
       el?.textContent?.includes('123') ?? false
     );
     expect(dealElement).toBeInTheDocument();
 
-    const createElement = screen.getByText((_, el) => 
+    const createElement = screen.getByText((_, el) =>
       el?.textContent?.toLowerCase().includes('create') ?? false
     );
     expect(createElement).toBeInTheDocument();
@@ -215,9 +217,14 @@ describe('Breadcrumb Component', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('link', { name: /instructions/i })).toHaveAttribute('href', '/instructions');
+    expect(screen.getByRole('link', { name: /instructions/i })).toHaveAttribute(
+      'href',
+      '/instructions'
+    );
   });
 });
+
+
 
 
 
