@@ -168,3 +168,71 @@ describe('Breadcrumb Component', () => {
     {typeof opt === 'object' ? opt.label : opt}
   </Dropdown.Item>
 ))}
+
+
+// DocumentTypeDropdown.test.tsx
+
+
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import '@testing-library/jest-dom';
+import DocumentTypeDropdown from '../DocumentTypeDropdown';
+
+describe('DocumentTypeDropdown Component', () => {
+  // Must be an array of strings matching DocumentTypeDropdownProps (types: string[])
+  const mockTypes = ['Invoice', 'Contract'];
+
+  it('selects option correctly by targeting ARIA roles', () => {
+    const handleChange = vi.fn();
+
+    render(
+      <DocumentTypeDropdown
+        types={mockTypes}
+        onChange={handleChange}
+        value=""
+      />
+    );
+
+    // Find the dropdown element
+    const trigger =
+      screen.queryByRole('combobox') ||
+      screen.queryByRole('button') ||
+      screen.queryByRole('textbox') ||
+      screen.getByText(/select type/i);
+
+    fireEvent.click(trigger);
+
+    const invoiceOption = screen.getByText('Invoice');
+    expect(invoiceOption).toBeInTheDocument();
+
+    fireEvent.click(invoiceOption);
+    expect(handleChange).toHaveBeenCalledWith('Invoice');
+  });
+
+  it('handles contract document type selection using explicit option queries', () => {
+    const handleChange = vi.fn();
+
+    render(
+      <DocumentTypeDropdown
+        types={mockTypes}
+        onChange={handleChange}
+        value=""
+      />
+    );
+
+    const trigger =
+      screen.queryByRole('combobox') ||
+      screen.queryByRole('button') ||
+      screen.queryByRole('textbox') ||
+      screen.getByText(/select type/i);
+
+    fireEvent.click(trigger);
+
+    const contractOption = screen.getByText('Contract');
+    expect(contractOption).toBeInTheDocument();
+
+    fireEvent.click(contractOption);
+    expect(handleChange).toHaveBeenCalledWith('Contract');
+  });
+});
