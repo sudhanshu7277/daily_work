@@ -314,3 +314,19 @@ const mockRefData = [
 ];
 
 
+
+// CallbackValidationForm.test.tsx
+// Replace lines 26-33 with:
+vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    Modal: Object.assign(
+      ({ children, visible }: any) =>
+        visible ? React.createElement('div', { 'data-testid': 'modal' }, children) : null,
+      { body: 'div', footer: 'div' }
+    ),
+  };
+});
+
+
