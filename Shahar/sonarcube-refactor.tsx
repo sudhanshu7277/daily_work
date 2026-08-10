@@ -166,13 +166,15 @@ describe('AWS API Client', () => {
 
 
 // 2. src/components/common/Breadcrumb.test.tsx
-
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import Breadcrumb from './Breadcrumb';
+
+// Cast component to accept props if type definition is missing in Breadcrumb.tsx
+const BreadcrumbComponent = Breadcrumb as React.ComponentType<any>;
 
 describe('Breadcrumb Component', () => {
   it('renders breadcrumb items correctly using robust element matching', () => {
@@ -184,11 +186,10 @@ describe('Breadcrumb Component', () => {
 
     render(
       <MemoryRouter>
-        <Breadcrumb items={items} />
+        <BreadcrumbComponent items={items} />
       </MemoryRouter>
     );
 
-    // Match text split across sub-elements or wrappers
     const instructionsElement = screen.getByText((_, el) =>
       el?.textContent?.toLowerCase().includes('instructions') ?? false
     );
@@ -213,7 +214,7 @@ describe('Breadcrumb Component', () => {
 
     render(
       <MemoryRouter>
-        <Breadcrumb items={items} />
+        <BreadcrumbComponent items={items} />
       </MemoryRouter>
     );
 
@@ -223,8 +224,6 @@ describe('Breadcrumb Component', () => {
     );
   });
 });
-
-
 
 
 
