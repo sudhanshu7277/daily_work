@@ -308,24 +308,25 @@ export default SearchableMultiSelect;
 
 // 4. src/components/common/__tests__/DocumentTypeDropdown.test.tsx
 
-
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import '@testing-library/jest-dom';
 import DocumentTypeDropdown from '../DocumentTypeDropdown';
 
 describe('DocumentTypeDropdown Component', () => {
-  const mockOptions = [
+  const mockTypes = [
     { label: 'Invoice', value: 'invoice' },
     { label: 'Contract', value: 'contract' },
   ];
 
   it('selects option correctly by targeting ARIA roles', () => {
-    const handleSelect = vi.fn();
+    const handleChange = vi.fn();
 
     render(
       <DocumentTypeDropdown
-        options={mockOptions}
-        onSelect={handleSelect}
+        types={mockTypes as any}
+        onChange={handleChange}
         value=""
       />
     );
@@ -334,21 +335,21 @@ describe('DocumentTypeDropdown Component', () => {
     const dropdownToggle = screen.getByRole('button');
     fireEvent.click(dropdownToggle);
 
-    // Target the option specifically by role to avoid matching trigger text
+    // Target option by role
     const invoiceOption = screen.getByRole('option', { name: 'Invoice' });
     expect(invoiceOption).toBeInTheDocument();
 
     fireEvent.click(invoiceOption);
-    expect(handleSelect).toHaveBeenCalledWith('invoice');
+    expect(handleChange).toHaveBeenCalledWith('invoice');
   });
 
   it('handles contract document type selection using explicit option queries', () => {
-    const handleSelect = vi.fn();
+    const handleChange = vi.fn();
 
     render(
       <DocumentTypeDropdown
-        options={mockOptions}
-        onSelect={handleSelect}
+        types={mockTypes as any}
+        onChange={handleChange}
         value=""
       />
     );
@@ -360,10 +361,6 @@ describe('DocumentTypeDropdown Component', () => {
     expect(contractOption).toBeInTheDocument();
 
     fireEvent.click(contractOption);
-    expect(handleSelect).toHaveBeenCalledWith('contract');
+    expect(handleChange).toHaveBeenCalledWith('contract');
   });
 });
-
-
-
-
