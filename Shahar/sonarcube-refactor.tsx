@@ -271,3 +271,22 @@ describe('CallbackValidationForm Component', () => {
     expect(container).toBeDefined();
   });
 });
+
+
+
+
+
+// Ensure top-level API mocks exist if the component fires requests on mount
+vi.mock('../../api/client', () => ({
+  default: {
+    get: vi.fn(() => Promise.resolve({ data: {} })),
+    post: vi.fn(() => Promise.resolve({ data: {} })),
+  },
+}));
+
+// Ensure tests render inside necessary providers (e.g. MemoryRouter)
+render(
+  <MemoryRouter>
+    <CallbackValidationForm />
+  </MemoryRouter>
+);
