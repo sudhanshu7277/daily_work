@@ -131,21 +131,21 @@ describe('DocumentTypeDropdown Component', () => {
 });
 
 
-//2. src/components/common/__tests__/MoreFiltersPanel.test.tsx
+//2. src/components/common/MoreFiltersPanel.test.tsx
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import MoreFiltersPanel from '../MoreFiltersPanel';
+import MoreFiltersPanel from './MoreFiltersPanel';
 
 // Mock API calls made in useEffect
-vi.mock('../../../api', () => ({
+vi.mock('../../api', () => ({
   getRefDataByType: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
 describe('MoreFiltersPanel Component', () => {
-  const defaultProps = {
-    instructionType: 'payment' as const,
+  const defaultProps: any = {
+    instructionType: 'payment',
     filters: {
       status: [],
       types: [],
@@ -188,7 +188,6 @@ describe('MoreFiltersPanel Component', () => {
     expect(document.body).toBeInTheDocument();
   });
 });
-
 
 //3. src/components/common/__tests__/Breadcrumb.test.tsx
 
