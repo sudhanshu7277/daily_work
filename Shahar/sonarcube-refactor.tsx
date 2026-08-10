@@ -320,3 +320,78 @@ describe('MoreFiltersPanel Component', () => {
     expect(handleClearAll).toHaveBeenCalledTimes(1);
   });
 });
+
+
+///DocumentTypeDropdown.test.tsx
+
+
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import DocumentTypeDropdown from '../DocumentTypeDropdown';
+
+describe('DocumentTypeDropdown Component', () => {
+  const mockOptions = [
+    { label: 'Invoice', value: 'INVOICE' },
+    { label: 'Contract', value: 'CONTRACT' },
+    { label: 'Receipt', value: 'RECEIPT' },
+  ];
+
+  const defaultProps = {
+    options: mockOptions,
+    value: '',
+    onChange: vi.fn(),
+    placeholder: 'Select type',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing', () => {
+    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
+    expect(container).toBeTruthy();
+    expect(screen.getByText(/select type/i)).toBeTruthy();
+  });
+
+  it('opens dropdown menu on click', () => {
+    render(<DocumentTypeDropdown {...defaultProps} />);
+
+    const toggle = screen.getByRole('combobox') || screen.getByText(/select type/i);
+    fireEvent.click(toggle);
+
+    expect(screen.getByText('Invoice')).toBeTruthy();
+  });
+
+  it('filters the option list based on search input', () => {
+    render(<DocumentTypeDropdown {...defaultProps} />);
+
+    // 1. Click toggle to open the dropdown listbox (sets aria-expanded="true")
+    const toggle = screen.getByRole('combobox') || screen.getByText(/select type/i);
+    fireEvent.click(toggle);
+
+    // 2. Query search input after menu opens
+    const searchInput =
+      screen.queryByPlaceholderText(/type to search/i) ||
+      screen.getByRole('textbox');
+
+    fireEvent.change(searchInput, { target: { value: 'Invoice' } });
+
+    // 3. Assert filtered item exists and unfiltered item is hidden/filtered out
+    expect(screen.getByText('Invoice')).toBeTruthy();
+    expect(screen.queryByText('Contract')).toBeNull();
+  });
+
+  it('calls onChange when an option is selected', () => {
+    const handleChange = vi.fn();
+    render(<DocumentTypeDropdown {...defaultProps} onChange={handleChange} />);
+
+    const toggle = screen.getByRole('combobox') || screen.getByText(/select type/i);
+    fireEvent.click(toggle);
+
+    const option = screen.getByText('Contract');
+    fireEvent.click(option);
+
+    expect(handleChange).toHaveBeenCalled();
+  });
+});
