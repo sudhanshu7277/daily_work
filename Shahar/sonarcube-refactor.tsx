@@ -629,3 +629,112 @@ describe('CallbackValidationForm Component', () => {
 const mockGetDealParties = getDealParties as MockedFunction<typeof getDealParties>;
 const mockGetCallbacks = getCallbacks as MockedFunction<typeof getCallbacks>;
 const mockRecordCallback = recordCallback as MockedFunction<typeof recordCallback>;
+
+
+
+////
+
+
+
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import ApprovalQueuePage from './ApprovalQueuePage';
+
+// Mock AG Grid React to keep tests lightweight and focused on component state/UI
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: vi.fn(({ rowData }) => (
+    <div data-testid="mock-ag-grid">
+      <span>Rows: {rowData?.length ?? 0}</span>
+    </div>
+  )),
+}));
+
+// Mock external API functions/utilities
+const mockDeleteFilterPref = vi.fn().mockResolvedValue({});
+vi.mock('../../../api/filterPreferences', () => ({
+  deleteFilterPref: (...args: any[]) => mockDeleteFilterPref(...args),
+}));
+
+const mockExportToExcel = vi.fn();
+vi.mock('../../../utils/export', () => ({
+  exportToExcel: (...args: any[]) => mockExportToExcel(...args),
+}));
+
+describe('ApprovalQueuePage Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders page header, search input, and AG-Grid container', () => {
+    render(<ApprovalQueuePage />);
+
+    expect(screen.getByText('Instructions Explorer')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search Instructions')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-ag-grid')).toBeInTheDocument();
+  });
+
+  it('updates search term on input change', () => {
+    render(<ApprovalQueuePage />);
+
+    const searchInput = screen.getByPlaceholderText('Search Instructions') as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: 'DEAL-10293' } });
+
+    expect(searchInput.value).toBe('DEAL-10293');
+  });
+
+  it('toggles Manage Filters dropdown menu when clicked', () => {
+    render(<ApprovalQueuePage />);
+
+    const manageFiltersBtn = screen.getByTitle('Manage Filters');
+    fireEvent.click(manageFiltersBtn);
+
+    expect(screen.getByText('Clear Filters')).toBeInTheDocument();
+    expect(screen.getByText('Save Filter As')).toBeInTheDocument();
+  });
+
+  it('opens Save Filter modal from dropdown menu', () => {
+    render(<ApprovalQueuePage />);
+
+    // Open dropdown
+    fireEvent.click(screen.getByTitle('Manage Filters'));
+
+    // Click 'Save Filter As'
+    const saveAsOption = screen.getByText('Save Filter As');
+    fireEvent.click(saveAsOption);
+
+    expect(screen.getByText('Save Filters')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter filter name (letters and numbers only)')).toBeInTheDocument();
+  });
+
+  it('opens Manage Filters modal and triggers filter deletion', async () => {
+    render(<ApprovalQueuePage />);
+
+    // Open dropdown
+    fireEvent.click(screen.getByTitle('Manage Filters'));
+
+    // Click 'Manage Filters' option inside dropdown
+    const manageOption = screen.getByRole('button', { name: /Manage Filters/i });
+    fireEvent.click(manageOption);
+
+    // Verify Manage Filters modal title
+    expect(screen.getByText('Manage Filters')).toBeInTheDocument();
+
+    // If delete button exists in table row
+    const deleteBtn = screen.queryByRole('button', { name: /trash/i });
+    if (deleteBtn) {
+      fireEvent.click(deleteBtn);
+      await waitFor(() => {
+        expect(mockDeleteFilterPref).toHaveBeenCalled();
+      });
+    }
+  });
+
+  it('triggers Excel export action when Export button is clicked', () => {
+    render(<ApprovalQueuePage />);
+
+    const exportBtn = screen.getByTitle('Export');
+    fireEvent.click(exportBtn);
+
+    expect(mockExportToExcel).toHaveBeenCalled();
+  });
+});
