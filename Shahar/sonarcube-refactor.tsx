@@ -126,3 +126,35 @@ export default defineConfig({
     },
   },
 });
+
+
+
+// citiSftIntake.test.ts
+
+// 1. Define a helper at the top of the test file
+
+const mockApiSuccess = (data: any) => {
+  vi.mocked(client.get).mockResolvedValueOnce(data as any);
+};
+
+//2. Simplify the test blocks
+Instead of multi-line setups, condense the tests:
+
+it('getAttachments calls client.get with correct endpoint', async () => {
+  const mockResponse = [{ attachmentId: 100, fileName: 'invoice.pdf' }];
+  mockApiSuccess(mockResponse);
+
+  const result = await getAttachments(10);
+  expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10/attachments');
+  expect(result).toEqual(mockResponse);
+});
+
+it('getAuditTrail calls client.get with correct endpoint', async () => {
+  const mockResponse = [{ auditId: 5, eventType: 'RECEIVED' }];
+  mockApiSuccess(mockResponse);
+
+  const result = await getAuditTrail(10);
+  expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10/audit');
+  expect(result).toEqual(mockResponse);
+});
+
