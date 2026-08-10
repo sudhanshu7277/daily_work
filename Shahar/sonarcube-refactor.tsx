@@ -272,3 +272,46 @@ export default defineConfig({
     },
   },
 });
+
+
+// 1. src/pages/dashboard/DashboardPage.tsx
+
+// src/pages/dashboard/DashboardPage.test.tsx
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi } from 'vitest';
+import DashboardPage from './DashboardPage';
+
+// Mock top-level API calls made on mount
+vi.mock('../../api/client', () => ({
+  default: { get: vi.fn(() => Promise.resolve({ data: [] })) }
+}));
+
+describe('DashboardPage', () => {
+  it('renders without crashing', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+    expect(container).toBeDefined();
+  });
+});
+
+// 2. src/pages/citiSftIntakeAuditPage.tsx
+
+
+// 3. src/components/documentViewer/NativePdfViewer.tsx
+
+
+// src/components/documentViewer/NativePdfViewer.test.tsx
+import { render } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import NativePdfViewer from './NativePdfViewer';
+
+describe('NativePdfViewer', () => {
+  it('renders pdf viewer container', () => {
+    const { container } = render(<NativePdfViewer fileUrl="sample.pdf" />);
+    expect(container).toBeDefined();
+  });
+});
