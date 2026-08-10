@@ -77,175 +77,80 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
+// 1. Breadcrumb.test.tsx (2 Failures)
 
-// 1. Fix src/components/common/Breadcrumb.test.tsx
-
+// src/components/common/Breadcrumb.test.tsx
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import '@testing-library/jest-dom';
 import Breadcrumb from './Breadcrumb';
 
-// Cast the component itself to 'any' so JSX accepts any props
-const BreadcrumbAny = Breadcrumb as any;
+const mockItems = [
+  { label: 'Instructions', path: '/instructions' },
+  { label: '123', path: '/instructions/123' },
+  { label: 'Create', path: '/instructions/123/create' },
+];
 
 describe('Breadcrumb Component', () => {
-  const items = [
-    { label: 'Instructions', href: '/instructions' },
-    { label: 'Deal #123', href: '/instructions/123' },
-    { label: 'Create' },
-  ];
-
   it('renders breadcrumb items correctly using robust element matching', () => {
     render(
       <MemoryRouter>
-        <BreadcrumbAny items={items} crumbs={items} paths={items} />
+        <Breadcrumb items={mockItems} />
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/instructions/i)).toBeInTheDocument();
-    expect(screen.getByText(/123/i)).toBeInTheDocument();
-    expect(screen.getByText(/create/i)).toBeInTheDocument();
+    // Using exact text or flexible function matcher
+    expect(screen.getByText((content, element) => 
+      element?.tagName.toLowerCase() === 'a' || element?.tagName.toLowerCase() === 'span'
+        ? content.toLowerCase().includes('instructions')
+        : false
+    )).toBeInTheDocument();
   });
 
   it('renders links for non-active items', () => {
     render(
       <MemoryRouter>
-        <BreadcrumbAny items={items} crumbs={items} paths={items} />
+        <Breadcrumb items={mockItems} />
       </MemoryRouter>
     );
 
-    const linkElement =
-      screen.queryByRole('link', { name: /instructions/i }) ||
-      screen.getByText(/instructions/i);
-
+    const linkElement = screen.getByRole('link', { name: /instructions/i });
     expect(linkElement).toBeInTheDocument();
+    expect(linkElement).toHaveAttribute('href', '/instructions');
   });
 });
 
-// 2. Fix src/components/common/__tests__/DocumentTypeDropdown.test.tsx
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
-import DocumentTypeDropdown from '../DocumentTypeDropdown';
 
-describe('DocumentTypeDropdown Component', () => {
-  const mockTypes = [
-    { label: 'Invoice', value: 'invoice' },
-    { label: 'Contract', value: 'contract' },
-  ];
+// 2. MoreFiltersPanel.test.tsx (3 Failures)
 
-  it('selects option correctly by targeting ARIA roles', () => {
-    const handleChange = vi.fn();
+// Fix A: Guard inside SearchableMultiSelect.tsx (Recommended)
 
-    render(
-      <DocumentTypeDropdown
-        types={mockTypes as any}
-        onChange={handleChange}
-        value=""
-      />
-    );
+// src/components/common/SearchableMultiSelect.tsx around line 74:
+{(filtered || []).map((o) => (
+  <Dropdown.Item key={o.value} value={o.value}>
+    {o.label}
+  </Dropdown.Item>
+))}
 
-    const trigger =
-      screen.queryByRole('combobox') ||
-      screen.queryByRole('button') ||
-      screen.queryByRole('textbox') ||
-      screen.getByText(/select/i);
+// 3. DocumentTypeDropdown.test.tsx (2 Failures)
 
-    fireEvent.click(trigger);
+// src/components/common/DocumentTypeDropdown.tsx
+// BAD:  <option key={opt.value}>{opt}</option>  or  <div>{opt}</div>
+// GOOD:
+{types.map((opt: any) => {
+  const label = typeof opt === 'object' ? opt.label : opt;
+  const val = typeof opt === 'object' ? opt.value : opt;
+  return (
+    <option key={val} value={val}>
+      {label}
+    </option>
+  );
+})}
 
-    const invoiceOption = screen.getByText(/invoice/i);
-    expect(invoiceOption).toBeInTheDocument();
+// If you are using custom option components (like Bootstrap/AntD Dropdown):
 
-    fireEvent.click(invoiceOption);
-    expect(handleChange).toHaveBeenCalled();
-  });
-
-  it('handles contract document type selection using explicit option queries', () => {
-    const handleChange = vi.fn();
-
-    render(
-      <DocumentTypeDropdown
-        types={mockTypes as any}
-        onChange={handleChange}
-        value=""
-      />
-    );
-
-    const trigger =
-      screen.queryByRole('combobox') ||
-      screen.queryByRole('button') ||
-      screen.queryByRole('textbox') ||
-      screen.getByText(/select/i);
-
-    fireEvent.click(trigger);
-
-    const contractOption = screen.getByText(/contract/i);
-    expect(contractOption).toBeInTheDocument();
-
-    fireEvent.click(contractOption);
-    expect(handleChange).toHaveBeenCalled();
-  });
-});
-
-//3. Fix src/components/common/MoreFiltersPanel.test.tsx
-
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
-import MoreFiltersPanel from './MoreFiltersPanel';
-
-const MoreFiltersPanelAny = MoreFiltersPanel as any;
-
-describe('MoreFiltersPanel Component', () => {
-  const defaultProps = {
-    isOpen: true,
-    open: true,
-    show: true,
-    onClose: vi.fn(),
-    onFiltersChange: vi.fn(),
-    onChange: vi.fn(),
-    onApply: vi.fn(),
-    filters: {},
-    initialFilters: {},
-  };
-
-  it('renders without crashing', () => {
-    const { container } = render(<MoreFiltersPanel {...(defaultProps as any)} />);
-    expect(container).toBeInTheDocument();
-  });
-
-  it('renders filter option lists properly', () => {
-    render(<MoreFiltersPanel {...(defaultProps as any)} />);
-    // Verify panel rendered content
-    expect(document.body).toBeInTheDocument();
-  });
-
-  it('triggers onFiltersChange when filter selection changes', () => {
-    const onFiltersChange = vi.fn();
-    const onChange = vi.fn();
-
-    const { container } = render(
-      <MoreFiltersPanel
-        {...(defaultProps as any)}
-        onFiltersChange={onFiltersChange}
-        onChange={onChange}
-      />
-    );
-
-    // Find any interactive element (button, checkbox, input, select) in the panel
-    const interactiveElement =
-      container.querySelector('input') ||
-      container.querySelector('button') ||
-      container.querySelector('select');
-
-    if (interactiveElement) {
-      fireEvent.click(interactiveElement);
-    }
-
-    expect(document.body).toBeInTheDocument();
-  });
-});
+{options?.map((opt: any) => (
+  <Dropdown.Item key={opt.value || opt} value={opt.value || opt}>
+    {typeof opt === 'object' ? opt.label : opt}
+  </Dropdown.Item>
+))}
