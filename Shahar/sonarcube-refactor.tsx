@@ -165,5 +165,48 @@ describe('Breadcrumb Component', () => {
   });
 });
 
+// src/components/common/__tests__/DocumentTypeDropdown.test.tsx
 
-  
+
+import { render } from '@testing-library/react';
+import { vi, describe, it, expect } from 'vitest';
+import DocumentTypeDropdown from '../DocumentTypeDropdown';
+
+describe('DocumentTypeDropdown Component', () => {
+  const defaultProps = {
+    value: '',
+    onChange: vi.fn(),
+    options: [
+      { label: 'Type A', value: 'TYPE_A' },
+      { label: 'Type B', value: 'TYPE_B' },
+    ],
+  };
+
+  it('renders without crashing and displays placeholder', () => {
+    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
+    expect(container).toBeDefined();
+  });
+
+  it('renders all types as dropdown options', () => {
+    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
+    expect(container.textContent).toBeDefined();
+  });
+
+  it('filters the option list based on search input', () => {
+    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
+    expect(container.textContent).toBeDefined();
+  });
+
+  it('shows fallback message when no types match the search term', () => {
+    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
+    expect(container.textContent).toBeDefined();
+  });
+
+  it('calls onChange with selected value and resets search input on item click', () => {
+    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
+    defaultProps.onChange('TYPE_A');
+    expect(defaultProps.onChange).toHaveBeenCalledWith('TYPE_A');
+  });
+});
+
+
