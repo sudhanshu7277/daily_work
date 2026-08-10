@@ -243,13 +243,31 @@ describe('AttachDocumentsModal Component', () => {
 //DashboardPage.test.tsx
 
 
-
-// sonar-project.properties
+// Step 1: Update sonar-project.properties
 
 
 sonar.sources=src
-sonar.tests=src
-sonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/__tests__/**
-sonar.exclusions=**/*.test.ts,**/*.test.tsx,**/__tests__/**
-sonar.coverage.exclusions=**/*.test.ts,**/*.test.tsx,**/__tests__/**
+sonar.exclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
+sonar.coverage.exclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
 
+
+
+// CallbackValidationForm.test.tsx
+
+
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect } from 'vitest';
+import CallbackValidationForm from './CallbackValidationForm';
+
+describe('CallbackValidationForm Component', () => {
+  it('renders without crashing under route context', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CallbackValidationForm />
+      </MemoryRouter>
+    );
+
+    expect(container).toBeDefined();
+  });
+});
