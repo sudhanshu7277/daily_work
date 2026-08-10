@@ -223,3 +223,90 @@ describe('MoreFiltersPanel Component', () => {
     expect(handleClearAll).toHaveBeenCalledTimes(1);
   });
 });
+
+
+//aws.test.tsimport { describe, it, expect, vi, beforeEach } from 'vitest';
+import { AwsDealParties, AwsDealDocuments, getDealParties, getDocumentList } from '../aws';
+import client from '../client';
+
+vi.mock('../client', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
+
+const mockedGet = vi.mocked(client.get);
+
+describe('aws API functions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getDocumentList', () => {
+    const mockDocs: AwsDealDocuments[] = [
+      {
+        dealId: 42,
+        dmcDocumentId: 100,
+        ecmDocumentId: 200,
+        fileName: 'contract.pdf',
+      } as unknown as AwsDealDocuments,
+    ];
+
+    it('should call get with correct URL and dealId param', async () => {
+      // Handles both axios wrapper returning { data: mockDocs } or direct data return
+      mockedGet.mockResolvedValue({ data: mockDocs, status: 200 });
+
+      const result = await getDocumentList('42');
+
+      expect(mockedGet).toHaveBeenCalledWith(
+        expect.stringContaining('42'),
+        expect.anything()
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should return empty array when API returns empty', async () => {
+      mockedGet.mockResolvedValue({ data: [] });
+
+      const result = await getDocumentList('42');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should propagate errors from the client', async () => {
+      const error = new Error('Network Error');
+      mockedGet.mockRejectedValue(error);
+
+      await expect(getDocumentList('42')).rejects.toThrow('Network Error');
+    });
+  });
+
+  describe('getDealParties', () => {
+    const mockParties: AwsDealParties[] = [
+      {
+        partyId: 'p1',
+        partyName: 'Test Party',
+      } as unknown as AwsDealParties,
+    ];
+
+    it('should call get with correct URL and dealId param', async () => {
+      mockedGet.mockResolvedValue({ data: mockParties, status: 200 });
+
+      const result = await getDealParties('42');
+
+      expect(mockedGet).toHaveBeenCalledWith(
+        expect.stringContaining('42'),
+        expect.anything()
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should propagate errors from the client', async () => {
+      const error = new Error('Failed to fetch parties');
+      mockedGet.mockRejectedValue(error);
+
+      await expect(getDealParties('42')).rejects.toThrow('Failed to fetch parties');
+    });
+  });
+});
