@@ -164,31 +164,27 @@ describe('DocumentTypeDropdown Component', () => {
 
 //src/components/common/Breadcrumb.test.tsx
 
+
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 import Breadcrumb from './Breadcrumb';
 
 describe('Breadcrumb Component', () => {
-  it('renders without crashing under route context', () => {
+  it('returns null when on root path', () => {
     const { container } = render(
-      <MemoryRouter initialEntries={['/instructions/12345']}>
+      <MemoryRouter initialEntries={['/']}>
         <Breadcrumb />
       </MemoryRouter>
     );
 
-    expect(container).toBeDefined();
+    expect(container.firstChild).toBeNull();
   });
 
-  it('handles item props gracefully if provided', () => {
-    const sampleItems = [
-      { label: 'Home', path: '/' },
-      { label: 'Instructions', path: '/instructions' },
-    ];
-
+  it('executes path parsing logic for mapped, numeric, and unmapped route segments', () => {
     const { container } = render(
-      <MemoryRouter>
-        <Breadcrumb items={sampleItems as any} />
+      <MemoryRouter initialEntries={['/instructions/12345/custom-route']}>
+        <Breadcrumb />
       </MemoryRouter>
     );
 
