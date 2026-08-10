@@ -281,13 +281,47 @@ export default defineConfig({
 // Replace lines 26-33 with:
 vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
   const actual: any = await importOriginal();
+  const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
     ...actual,
     Modal: Object.assign(
       ({ children, visible }: any) =>
-        visible ? React.createElement('div', { 'data-testid': 'modal' }, children) : null,
-      { body: 'div', footer: 'div' }
+        visible ? ReactActual.createElement('div', { 'data-testid': 'modal' }, children) : null,
+      { body: 'div' as any, footer: 'div' as any }
     ),
+    Button: ({ children, onClick, disabled, ...rest }: any) =>
+      ReactActual.createElement('button', { onClick, disabled, ...rest }, children),
+    Card: Object.assign(
+      ({ children, className }: any) =>
+        ReactActual.createElement('div', { className, 'data-testid': 'card' }, children),
+      { header: 'div' as any, body: 'div' as any }
+    ),
+    Alert: ({ children, content }: any) =>
+      ReactActual.createElement('div', { 'data-testid': 'alert' }, content || children),
+    El: ({ children, className, style }: any) =>
+      ReactActual.createElement('div', { className, style }, children),
+    TextArea: (props: any) => ReactActual.createElement('textarea', props),
+    Dropdown: Object.assign(
+      ({ children, ...props }: any) => ReactActual.createElement('select', props, children),
+      { Item: ({ children, ...props }: any) => ReactActual.createElement('option', props, children) }
+    ),
+    Icon: ({ type }: any) => ReactActual.createElement('i', { 'data-testid': `icon-${type}` }),
+    Table: ({ data, columns }: any) =>
+      ReactActual.createElement('table', { 'data-testid': 'icgds-table' },
+        ReactActual.createElement('tbody', null,
+          (data || []).map((row: any, i: number) =>
+            ReactActual.createElement('tr', { key: i },
+              (columns || []).map((col: any, j: number) =>
+                ReactActual.createElement('td', { key: j }, row[col.dataIndex] ?? '')
+              )
+            )
+          )
+        )
+      ),
+    Tag: ({ children }: any) =>
+      ReactActual.createElement('span', { 'data-testid': 'tag' }, children),
+    notification: { success: vi.fn(), error: vi.fn(), danger: vi.fn() },
+    Loading: ({ children }: any) => ReactActual.createElement('div', null, children),
   };
 });
 
@@ -314,9 +348,9 @@ const mockRefData = [
 ];
 
 
+// Step 1: Update Top-Level vi.mock at line 26
+//Replace your @citi-icg-172888/icgds-react mock at the top of CallbackValidationForm.test.tsx
 
-// CallbackValidationForm.test.tsx
-// Replace lines 26-33 with:
 vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
   const actual: any = await importOriginal();
   return {
@@ -329,4 +363,105 @@ vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
   };
 });
 
+
+// Step 2: Replace lines 106–216 with the Restored Test Suite
+//Replace the commented-out describe block in CallbackValidationForm.test.tsx with this clean, active suite:
+
+const defaultProps = {
+  visible: true,
+  instructionId: 42,
+  onClose: vi.fn(),
+  onSuccess: vi.fn(),
+};
+
+describe('CallbackValidationForm', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetDealParties.mockResolvedValue({ data: [] });
+    mockGetCallbacks.mockResolvedValue({ data: [] });
+  });
+
+  it('test_renders_modal_when_visible', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeTruthy();
+    });
+
+    expect(screen.getByText('Cancel')).toBeTruthy();
+    expect(screen.getByText('Submit')).toBeTruthy();
+  });
+
+  it('test_loads_deal_parties_on_open', async () => {
+    mockGetDealParties.mockResolvedValue({
+      data: [{ firstName: 'John', lastName: 'Smith', phoneNumber: '111', mobileNumber: '222', email: 'john@test.com' }],
+    });
+
+    render(<CallbackValidationForm {...defaultProps} instructionId={42} />);
+
+    await waitFor(() => {
+      expect(mockGetDealParties).toHaveBeenCalledWith(42);
+    });
+  });
+
+  it('test_loads_existing_callbacks_on_open', async () => {
+    mockGetCallbacks.mockResolvedValue({
+      data: [{ callbackId: 1, instructionId: 1, outcome: 'Callback Successful', contactName: 'John', phoneNumberCalled: '111' }],
+    });
+
+    render(<CallbackValidationForm {...defaultProps} instructionId={1} />);
+
+    await waitFor(() => {
+      expect(mockGetCallbacks).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it('test_does_not_render_when_not_visible', () => {
+    render(<CallbackValidationForm {...defaultProps} visible={false} />);
+    expect(screen.queryByTestId('modal')).toBeNull();
+  });
+
+  it('test_cancel_without_changes_calls_onClose', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeTruthy();
+    });
+
+    const cancelBtn = screen.getByText('Cancel');
+    fireEvent.click(cancelBtn);
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('test_submit_without_required_fields_shows_error', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeTruthy();
+    });
+
+    const submitBtn = screen.getByText('Submit');
+    fireEvent.click(submitBtn);
+  });
+
+  it('test_submit_with_valid_data_calls_recordCallback', async () => {
+    mockRecordCallback.mockResolvedValue({ data: { status: 'SUCCESS' } });
+
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeTruthy();
+    });
+  });
+
+  it('test_deals_with_api_error_on_load_gracefully', async () => {
+    mockGetDealParties.mockRejectedValue(new Error('API Error'));
+    mockGetCallbacks.mockRejectedValue(new Error('API Error'));
+
+    expect(() => {
+      render(<CallbackValidationForm {...defaultProps} />);
+    }).not.toThrow();
+  });
+});
 
