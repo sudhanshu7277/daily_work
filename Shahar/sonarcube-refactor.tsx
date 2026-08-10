@@ -143,3 +143,41 @@ describe('Breadcrumb Component', () => {
     expect(container).toBeInTheDocument();
   });
 });
+
+//Replace src/components/common/MoreFiltersPanel.test.tsx
+
+import React from 'react';
+import { render } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import '@testing-library/jest-dom';
+import MoreFiltersPanel from './MoreFiltersPanel';
+
+vi.mock('../../api', () => ({
+  getRefDataByType: vi.fn().mockResolvedValue({ data: [] }),
+}));
+
+describe('MoreFiltersPanel Component', () => {
+  const defaultProps: any = {
+    instructionType: 'payment',
+    filters: {
+      clients: [],
+      deals: [],
+      users: [],
+      statuses: [],
+      categories: [],
+      status: [],
+      types: [],
+      priority: [],
+    },
+    onFiltersChange: vi.fn(),
+    clients: [],
+    deals: [],
+    users: [],
+    statuses: [],
+  };
+
+  it('renders without crashing', () => {
+    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
+    expect(container).toBeInTheDocument();
+  });
+});
