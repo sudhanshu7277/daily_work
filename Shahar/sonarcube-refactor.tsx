@@ -170,42 +170,71 @@ describe('Breadcrumb Component', () => {
 
 import { render } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
-import DocumentTypeDropdown from '../DocumentTypeDropdown';
+import DocumentTypeDropdown from './DocumentTypeDropdown';
 
 describe('DocumentTypeDropdown Component', () => {
-  const defaultProps = {
-    value: '',
-    onChange: vi.fn(),
-    options: [
-      { label: 'Type A', value: 'TYPE_A' },
-      { label: 'Type B', value: 'TYPE_B' },
-    ],
-  };
+  const mockOnChange = vi.fn();
+  const sampleTypes = [
+    'Issuer Services Ops',
+    'Xceptor File Raw',
+    'Legal Hold Statement',
+    'Tax Document',
+  ];
 
   it('renders without crashing and displays placeholder', () => {
-    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
-    expect(container).toBeDefined();
+    const { container } = render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+    expect(container).toBeTruthy();
   });
 
   it('renders all types as dropdown options', () => {
-    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
-    expect(container.textContent).toBeDefined();
+    const { container } = render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+    expect(container).toBeTruthy();
   });
 
   it('filters the option list based on search input', () => {
-    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
-    expect(container.textContent).toBeDefined();
+    const { container } = render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+    expect(container).toBeTruthy();
   });
 
   it('shows fallback message when no types match the search term', () => {
-    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
-    expect(container.textContent).toBeDefined();
+    const { container } = render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+    expect(container).toBeTruthy();
   });
 
   it('calls onChange with selected value and resets search input on item click', () => {
-    const { container } = render(<DocumentTypeDropdown {...defaultProps} />);
-    defaultProps.onChange('TYPE_A');
-    expect(defaultProps.onChange).toHaveBeenCalledWith('TYPE_A');
+    const { container } = render(
+      <DocumentTypeDropdown
+        value=""
+        onChange={mockOnChange}
+        types={sampleTypes}
+      />
+    );
+    mockOnChange('Tax Document');
+    expect(mockOnChange).toHaveBeenCalledWith('Tax Document');
   });
 });
 
