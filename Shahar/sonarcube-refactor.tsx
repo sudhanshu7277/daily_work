@@ -242,3 +242,14 @@ describe('AttachDocumentsModal Component', () => {
 
 //DashboardPage.test.tsx
 
+
+
+// sonar-project.properties
+
+
+sonar.sources=src
+sonar.tests=src
+sonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/__tests__/**
+sonar.exclusions=**/*.test.ts,**/*.test.tsx,**/__tests__/**
+sonar.coverage.exclusions=**/*.test.ts,**/*.test.tsx,**/__tests__/**
+
