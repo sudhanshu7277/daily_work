@@ -107,7 +107,6 @@ vi.mock('../client', async (importOriginal) => {
 
 
 // Here are the complete, ready-to-use fixed files for all four components and test suites.
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get, post } from '../client';
 
@@ -124,14 +123,20 @@ describe('AWS API Client', () => {
   });
 
   it('should fetch document list with dealId parameter', async () => {
-    const mockData = [{ id: '1', name: 'Document 1' }];
-    vi.mocked(get).mockResolvedValueOnce(mockData);
+    const mockApiResponse = {
+      success: true,
+      message: 'Documents retrieved successfully',
+      timestamp: '2026-08-10T00:00:00Z',
+      data: [{ id: '1', name: 'Document 1' }],
+    };
+
+    vi.mocked(get).mockResolvedValueOnce(mockApiResponse);
 
     const dealId = 123;
     const response = await get('/aws/documents', { dealId });
 
     expect(get).toHaveBeenCalledWith('/aws/documents', { dealId });
-    expect(response).toEqual(mockData);
+    expect(response).toEqual(mockApiResponse);
   });
 
   it('should handle document upload requests', async () => {
@@ -141,11 +146,12 @@ describe('AWS API Client', () => {
       timestamp: '2026-08-10T00:00:00Z',
       data: { fileId: 'abc-123' },
     };
+
     vi.mocked(post).mockResolvedValueOnce(mockResponse);
-  
+
     const payload = { fileName: 'test.pdf', dealId: 123 };
     const response = await post('/aws/upload', payload);
-  
+
     expect(post).toHaveBeenCalledWith('/aws/upload', payload);
     expect(response).toEqual(mockResponse);
   });
