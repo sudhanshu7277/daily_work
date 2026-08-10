@@ -77,47 +77,33 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
-// Option 1: Fix SearchableMultiSelect.tsx line 80 (Recommended)
-In src/components/common/SearchableMultiSelect.tsx:
+// modify vite config
 
-// In SearchableMultiSelect.tsx line 80:
-// Change:
-{values.length > 0 && (
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-  // To:
-  {(values?.length ?? 0) > 0 && (
+/// <reference types="vitest" />
 
-//Option 2: Mock SearchableMultiSelect in MoreFiltersPanel.test.tsx
-
-import React from 'react';
-import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
-import MoreFiltersPanel from './MoreFiltersPanel';
-
-// Mock API
-vi.mock('../../api', () => ({
-  getRefDataByType: vi.fn().mockResolvedValue({ data: [] }),
-}));
-
-// Mock child component to prevent crash on undefined prop values
-vi.mock('./SearchableMultiSelect', () => ({
-  default: () => <div data-testid="searchable-multi-select" />,
-}));
-
-describe('MoreFiltersPanel Component', () => {
-  const defaultProps: any = {
-    instructionType: 'payment',
-    filters: {},
-    onFiltersChange: vi.fn(),
-    clients: [],
-    deals: [],
-    users: [],
-    statuses: [],
-  };
-
-  it('renders without crashing', () => {
-    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
-    expect(container).toBeInTheDocument();
-  });
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.ts', // Adjust or remove if not using setupFiles
+    coverage: {
+      provider: 'v8', // or 'istanbul'
+      reporter: ['text', 'json', 'lcov', 'html'], // 'lcov' generates coverage/lcov.info for SonarQube
+      reportsDirectory: './coverage',
+      exclude: [
+        'node_modules/',
+        'src/setupTests.ts',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        '**/*.types.ts',
+        '**/*.d.ts',
+        '**/*.config.*',
+        'src/routes/**', // Exclude pure routing files if permitted
+      ],
+    },
+  },
 });
