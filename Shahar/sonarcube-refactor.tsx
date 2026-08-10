@@ -143,89 +143,11 @@ describe('aws API functions', () => {
   });
 });
 
-// 1. Fix for src/components/common/Breadcrumb.test.tsx
-
-import { render, screen } from '@testing-library/react';
-import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
-import Breadcrumb from './Breadcrumb'; // Adjust import path if needed
-
-describe('Breadcrumb Component', () => {
-  it('renders breadcrumbs for mapped route labels', () => {
-    render(
-      <MemoryRouter initialEntries={['/instructions']}>
-        <Breadcrumb />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText(/instructions/i)).toBeInTheDocument();
-  });
-
-  it('formats numeric segments with a "#" prefix', () => {
-    render(
-      <MemoryRouter initialEntries={['/instructions/123']}>
-        <Breadcrumb />
-      </MemoryRouter>
-    );
-
-    // Matches "#123" or "123" segment formatting
-    expect(screen.getByText(/#123|123/)).toBeInTheDocument();
-  });
-
-  it('renders the "create" segment label for the /instructions/create route', () => {
-    render(
-      <MemoryRouter initialEntries={['/instructions/create']}>
-        <Breadcrumb />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText(/create/i)).toBeInTheDocument();
-  });
-});
 
 
-//2. Fix for src/components/common/MoreFiltersPanel.test.tsx
+//aws.test.ts
 
-import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
-import MoreFiltersPanel from './MoreFiltersPanel'; // Adjust import path if needed
-
-describe('MoreFiltersPanel Component', () => {
-  const defaultProps = {
-    isOpen: true,
-    onClose: jest.fn(),
-    onApply: jest.fn(),
-    onClearAll: jest.fn(),
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('renders without crashing', () => {
-    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
-    expect(container).toBeTruthy();
-  });
-
-  it('triggers onClearAll when clear button is clicked', () => {
-    const handleClearAll = jest.fn();
-
-    render(<MoreFiltersPanel {...defaultProps} onClearAll={handleClearAll} />);
-
-    // Query clear button by accessible role, text, or label
-    const clearButton =
-      screen.queryByRole('button', { name: /clear/i }) ||
-      screen.queryByText(/clear/i) ||
-      screen.getByRole('button', { name: /reset/i });
-
-    fireEvent.click(clearButton);
-
-    expect(handleClearAll).toHaveBeenCalledTimes(1);
-  });
-});
-
-
-//aws.test.tsimport { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AwsDealParties, AwsDealDocuments, getDealParties, getDocumentList } from '../aws';
 import client from '../client';
 
@@ -308,5 +230,93 @@ describe('aws API functions', () => {
 
       await expect(getDealParties('42')).rejects.toThrow('Failed to fetch parties');
     });
+  });
+});
+
+
+
+
+// Breadcrumb.test.tsx
+
+import React from 'react';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import Breadcrumb from './Breadcrumb';
+
+describe('Breadcrumb Component', () => {
+  it('renders breadcrumbs for mapped route labels', () => {
+    render(
+      <MemoryRouter initialEntries={['/instructions']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+
+    const element = screen.getByText(/instructions/i);
+    expect(element).toBeTruthy();
+  });
+
+  it('formats numeric segments with a "#" prefix', () => {
+    render(
+      <MemoryRouter initialEntries={['/instructions/123']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+
+    const element = screen.getByText(/#123|123/);
+    expect(element).toBeTruthy();
+  });
+
+  it('renders the "create" segment label for the /instructions/create route', () => {
+    render(
+      <MemoryRouter initialEntries={['/instructions/create']}>
+        <Breadcrumb />
+      </MemoryRouter>
+    );
+
+    const element = screen.getByText(/create/i);
+    expect(element).toBeTruthy();
+  });
+});
+
+
+// MoreFiltersPanel.test.tsx
+
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import MoreFiltersPanel from './MoreFiltersPanel';
+
+describe('MoreFiltersPanel Component', () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onApply: vi.fn(),
+    onClearAll: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing', () => {
+    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
+    expect(container).toBeTruthy();
+  });
+
+  it('triggers onClearAll when clear button is clicked', () => {
+    const handleClearAll = vi.fn();
+
+    render(<MoreFiltersPanel {...defaultProps} onClearAll={handleClearAll} />);
+
+    // Flexible query to find Clear/Reset button by role or text
+    const clearButton =
+      screen.queryByRole('button', { name: /clear/i }) ||
+      screen.queryByText(/clear/i) ||
+      screen.getByRole('button', { name: /reset/i });
+
+    fireEvent.click(clearButton);
+
+    expect(handleClearAll).toHaveBeenCalledTimes(1);
   });
 });
