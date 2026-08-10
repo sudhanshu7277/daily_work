@@ -135,12 +135,17 @@ describe('AWS API Client', () => {
   });
 
   it('should handle document upload requests', async () => {
-    const mockResponse = { success: true, fileId: 'abc-123' };
+    const mockResponse = {
+      success: true,
+      message: 'File uploaded successfully',
+      timestamp: '2026-08-10T00:00:00Z',
+      data: { fileId: 'abc-123' },
+    };
     vi.mocked(post).mockResolvedValueOnce(mockResponse);
-
+  
     const payload = { fileName: 'test.pdf', dealId: 123 };
     const response = await post('/aws/upload', payload);
-
+  
     expect(post).toHaveBeenCalledWith('/aws/upload', payload);
     expect(response).toEqual(mockResponse);
   });
