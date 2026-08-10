@@ -77,8 +77,17 @@ Starting with Phase 1 (The API Layer) will immediately jump your overall stateme
 
 
 
+// Option 1: Fix SearchableMultiSelect.tsx line 80 (Recommended)
+In src/components/common/SearchableMultiSelect.tsx:
 
-// src/components/common/MoreFiltersPanel.test.tsx
+// In SearchableMultiSelect.tsx line 80:
+// Change:
+{values.length > 0 && (
+
+  // To:
+  {(values?.length ?? 0) > 0 && (
+
+//Option 2: Mock SearchableMultiSelect in MoreFiltersPanel.test.tsx
 
 import React from 'react';
 import { render } from '@testing-library/react';
@@ -86,89 +95,20 @@ import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import MoreFiltersPanel from './MoreFiltersPanel';
 
+// Mock API
 vi.mock('../../api', () => ({
   getRefDataByType: vi.fn().mockResolvedValue({ data: [] }),
+}));
+
+// Mock child component to prevent crash on undefined prop values
+vi.mock('./SearchableMultiSelect', () => ({
+  default: () => <div data-testid="searchable-multi-select" />,
 }));
 
 describe('MoreFiltersPanel Component', () => {
   const defaultProps: any = {
     instructionType: 'payment',
     filters: {},
-    onFiltersChange: vi.fn(),
-    clients: [],
-    deals: [],
-    users: [],
-    statuses: [],
-  };
-
-  it('renders without crashing', () => {
-    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
-    expect(container).toBeInTheDocument();
-  });
-});
-
-//src/components/common/DocumentTypeDropdown.test.tsx
-
-import React from 'react';
-import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
-import DocumentTypeDropdown from '../DocumentTypeDropdown';
-
-describe('DocumentTypeDropdown Component', () => {
-  it('renders without crashing', () => {
-    const { container } = render(
-      <DocumentTypeDropdown types={['Invoice', 'Contract']} onChange={vi.fn()} value="" />
-    );
-    expect(container).toBeInTheDocument();
-  });
-});
-
-//src/components/common/Breadcrumb.test.tsx
-
-import React from 'react';
-import { render } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import '@testing-library/jest-dom';
-import Breadcrumb from '../Breadcrumb';
-
-describe('Breadcrumb Component', () => {
-  it('renders without crashing', () => {
-    const { container } = render(
-      <MemoryRouter initialEntries={['/']}>
-        <Breadcrumb />
-      </MemoryRouter>
-    );
-    expect(container).toBeInTheDocument();
-  });
-});
-
-//Replace src/components/common/MoreFiltersPanel.test.tsx
-
-import React from 'react';
-import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
-import MoreFiltersPanel from './MoreFiltersPanel';
-
-vi.mock('../../api', () => ({
-  getRefDataByType: vi.fn().mockResolvedValue({ data: [] }),
-}));
-
-describe('MoreFiltersPanel Component', () => {
-  const defaultProps: any = {
-    instructionType: 'payment',
-    filters: {
-      clients: [],
-      deals: [],
-      users: [],
-      statuses: [],
-      categories: [],
-      status: [],
-      types: [],
-      priority: [],
-    },
     onFiltersChange: vi.fn(),
     clients: [],
     deals: [],
