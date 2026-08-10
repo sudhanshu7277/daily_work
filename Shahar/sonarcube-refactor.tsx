@@ -247,46 +247,8 @@ describe('AttachDocumentsModal Component', () => {
 
 
 sonar.sources=src
+sonar.tests=src
+sonar.test.inclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
 sonar.exclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
 sonar.coverage.exclusions=src/**/*.test.ts,src/**/*.test.tsx,src/**/__tests__/**,src/test/**
-
-
-
-// CallbackValidationForm.test.tsx
-
-
-import { render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect } from 'vitest';
-import CallbackValidationForm from './CallbackValidationForm';
-
-describe('CallbackValidationForm Component', () => {
-  it('renders without crashing under route context', () => {
-    const { container } = render(
-      <MemoryRouter>
-        <CallbackValidationForm />
-      </MemoryRouter>
-    );
-
-    expect(container).toBeDefined();
-  });
-});
-
-
-
-
-
-// Ensure top-level API mocks exist if the component fires requests on mount
-vi.mock('../../api/client', () => ({
-  default: {
-    get: vi.fn(() => Promise.resolve({ data: {} })),
-    post: vi.fn(() => Promise.resolve({ data: {} })),
-  },
-}));
-
-// Ensure tests render inside necessary providers (e.g. MemoryRouter)
-render(
-  <MemoryRouter>
-    <CallbackValidationForm />
-  </MemoryRouter>
-);
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
