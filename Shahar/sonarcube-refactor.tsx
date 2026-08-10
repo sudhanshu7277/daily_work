@@ -130,31 +130,96 @@ export default defineConfig({
 
 
 // citiSftIntake.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  getRecentIntakes,
+  getInbox,
+  getAttachments,
+  getAuditTrail,
+  getAuditPage,
+  getInboxPage,
+} from '../citiSftIntake';
+import client from '../client';
 
-// 1. Define a helper at the top of the test file
+vi.mock('../client', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 
-const mockApiSuccess = (data: any) => {
-  vi.mocked(client.get).mockResolvedValueOnce(data as any);
+/**
+ * Helper function to mock successful client GET responses.
+ * Refactoring inline mocks into this helper eliminates SonarQube code duplication flags.
+ */
+const mockApiResponse = <T>(payload: T): void => {
+  vi.mocked(client.get).mockResolvedValueOnce(payload as any);
 };
 
-//2. Simplify the test blocks
-Instead of multi-line setups, condense the tests:
+describe('citiSftIntake API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-it('getAttachments calls client.get with correct endpoint', async () => {
-  const mockResponse = [{ attachmentId: 100, fileName: 'invoice.pdf' }];
-  mockApiSuccess(mockResponse);
+  it('getRecentIntakes calls client.get with correct endpoint', async () => {
+    const mockData = [{ id: 101, status: 'PROCESSED' }];
+    mockApiResponse(mockData);
 
-  const result = await getAttachments(10);
-  expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10/attachments');
-  expect(result).toEqual(mockResponse);
+    const result = await getRecentIntakes();
+
+    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/recent');
+    expect(result).toEqual(mockData);
+  });
+
+  it('getInbox calls client.get with correct endpoint', async () => {
+    const mockData = { id: 10, subject: 'Citi SFT Intake Item' };
+    mockApiResponse(mockData);
+
+    const result = await getInbox(10);
+
+    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox/10');
+    expect(result).toEqual(mockData);
+  });
+
+  it('getAttachments calls client.get with correct endpoint', async () => {
+    const mockData = [{ attachmentId: 200, fileName: 'sft_report.csv' }];
+    mockApiResponse(mockData);
+
+    const result = await getAttachments(10);
+
+    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox/10/attachments');
+    expect(result).toEqual(mockData);
+  });
+
+  it('getAuditTrail calls client.get with correct endpoint', async () => {
+    const mockData = [{ auditId: 50, eventType: 'COMPLETED' }];
+    mockApiResponse(mockData);
+
+    const result = await getAuditTrail(10);
+
+    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox/10/audit');
+    expect(result).toEqual(mockData);
+  });
+
+  it('getAuditPage calls client.get with pagination parameters', async () => {
+    const mockData = { content: [], totalElements: 0, totalPages: 0 };
+    mockApiResponse(mockData);
+
+    const result = await getAuditPage(0, 10);
+
+    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/audit?page=0&size=10');
+    expect(result).toEqual(mockData);
+  });
+
+  it('getInboxPage calls client.get with pagination parameters', async () => {
+    const mockData = { content: [], totalElements: 0, totalPages: 0 };
+    mockApiResponse(mockData);
+
+    const result = await getInboxPage(0, 10);
+
+    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox?page=0&size=10');
+    expect(result).toEqual(mockData);
+  });
 });
-
-it('getAuditTrail calls client.get with correct endpoint', async () => {
-  const mockResponse = [{ auditId: 5, eventType: 'RECEIVED' }];
-  mockApiSuccess(mockResponse);
-
-  const result = await getAuditTrail(10);
-  expect(client.get).toHaveBeenCalledWith('/email-intake/inbox/10/audit');
-  expect(result).toEqual(mockResponse);
-});
-
