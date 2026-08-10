@@ -274,194 +274,353 @@ export default defineConfig({
 });
 
 
+// src/pages/callbackValidation/CallbackValidationForm.test.tsx
 
-// CallbackValidationForm.test.tsx
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import CallbackValidationForm from './CallbackValidationForm';
+import { getDealParties } from '../../api/aws';
+import { getCallbacks, recordCallback } from '../../api/callbacks';
 
+// Mock API dependencies
+vi.mock('../../api/aws', () => ({
+  getDealParties: vi.fn(),
+}));
 
-// Replace lines 26-33 with:
+vi.mock('../../api/callbacks', () => ({
+  getCallbacks: vi.fn(),
+  recordCallback: vi.fn(),
+}));
+
+vi.mock('../../utils/auth', () => ({
+  getUserId: () => 'test.user',
+}));
+
+// Mock RadioGroup component
+vi.mock('@/components/common/RadioGroup', () => ({
+  default: ({ value, onChange, options }: any) => (
+    <div data-testid="radio-group">
+      {(options || []).map((opt: any) => (
+        <button
+          key={opt.id || opt.value}
+          data-testid={`radio-${opt.value}`}
+          onClick={() => onChange(opt.value)}
+        >
+          {opt.label || opt.value}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+// Mock UI Component Library (@citi-icg-172888/icgds-react)
 vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
   const actual: any = await importOriginal();
   const ReactActual = await vi.importActual<typeof import('react')>('react');
   return {
     ...actual,
-    Modal: Object.assign(
-      ({ children, visible }: any) =>
-        visible ? ReactActual.createElement('div', { 'data-testid': 'modal' }, children) : null,
-      { body: 'div' as any, footer: 'div' as any }
-    ),
+    Modal: ({ children, visible, title, onCancel, onApply, applyText }: any) =>
+      visible ? (
+        <div data-testid={`modal-${title || 'default'}`}>
+          <h3>{title}</h3>
+          {children}
+          {onApply && (
+            <button data-testid="modal-apply-btn" onClick={onApply}>
+              {applyText || 'Apply'}
+            </button>
+          )}
+          {onCancel && (
+            <button data-testid="modal-cancel-btn" onClick={onCancel}>
+              Cancel Modal
+            </button>
+          )}
+        </div>
+      ) : null,
     Button: ({ children, onClick, disabled, ...rest }: any) =>
       ReactActual.createElement('button', { onClick, disabled, ...rest }, children),
     Card: Object.assign(
       ({ children, className }: any) =>
         ReactActual.createElement('div', { className, 'data-testid': 'card' }, children),
-      { header: 'div' as any, body: 'div' as any }
+      {
+        header: ({ children }: any) => <div data-testid="card-header">{children}</div>,
+        body: ({ children }: any) => <div data-testid="card-body">{children}</div>,
+      }
     ),
-    Alert: ({ children, content }: any) =>
-      ReactActual.createElement('div', { 'data-testid': 'alert' }, content || children),
-    El: ({ children, className, style }: any) =>
-      ReactActual.createElement('div', { className, style }, children),
-    TextArea: (props: any) => ReactActual.createElement('textarea', props),
+    Alert: ({ children, content, onClose }: any) => (
+      <div data-testid="alert">
+        <span>{content || children}</span>
+        {onClose && (
+          <button data-testid="alert-close-btn" onClick={onClose}>
+            Close Alert
+          </button>
+        )}
+      </div>
+    ),
+    El: ({ children, className, style, onClick }: any) =>
+      ReactActual.createElement('div', { className, style, onClick }, children),
+    Input: ({ value, onChange, placeholder, disabled, style, maxLength }: any) =>
+      ReactActual.createElement('input', {
+        value: value ?? '',
+        placeholder,
+        disabled,
+        style,
+        maxLength,
+        onChange: (e: any) => onChange && onChange(e),
+      }),
+    TextArea: ({ value, onChange, placeholder, rows }: any) =>
+      ReactActual.createElement('textarea', {
+        value: value ?? '',
+        placeholder,
+        rows,
+        onChange: (e: any) => onChange && onChange(e),
+      }),
     Dropdown: Object.assign(
-      ({ children, ...props }: any) => ReactActual.createElement('select', props, children),
-      { Item: ({ children, ...props }: any) => ReactActual.createElement('option', props, children) }
+      ({ children, value, onChange }: any) =>
+        ReactActual.createElement(
+          'select',
+          {
+            value: value ?? '',
+            onChange: (e: any) => onChange && onChange(e.target.value),
+            'data-testid': 'dropdown-select',
+          },
+          children
+        ),
+      {
+        Item: ({ children, value }: any) =>
+          ReactActual.createElement('option', { value }, children),
+      }
     ),
-    Icon: ({ type }: any) => ReactActual.createElement('i', { 'data-testid': `icon-${type}` }),
-    Table: ({ data, columns }: any) =>
-      ReactActual.createElement('table', { 'data-testid': 'icgds-table' },
-        ReactActual.createElement('tbody', null,
-          (data || []).map((row: any, i: number) =>
-            ReactActual.createElement('tr', { key: i },
-              (columns || []).map((col: any, j: number) =>
-                ReactActual.createElement('td', { key: j }, row[col.dataIndex] ?? '')
-              )
-            )
-          )
-        )
-      ),
-    Tag: ({ children }: any) =>
-      ReactActual.createElement('span', { 'data-testid': 'tag' }, children),
-    notification: { success: vi.fn(), error: vi.fn(), danger: vi.fn() },
-    Loading: ({ children }: any) => ReactActual.createElement('div', null, children),
-  };
-});
-
-
-// Issue 2: Apply the Same Fix to  DashboardPage.test.tsx
-
-
-vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
-  const actual: any = await importOriginal();
-  return {
-    ...actual,
-  };
-});
-
-
-// Fix in src/pages/approval/ApprovalQueuePage.test.tsx:
-// Lines 259–261: Check the mock payload passed into getRefDataByType or useRefData prior to line 259. Ensure the mock array includes 3 refdata objects plus the 'Any' option (total 4):
-
-// Ensure your refdata mock setup returns 3 items:
-const mockRefData = [
-  { refCode: 'EMAIL_POLLER', refValue: 'Email Poller' },
-  { refCode: 'MANUAL', refValue: 'Manual' },
-  { refCode: 'SWIFT', refValue: 'Swift' },
-];
-
-
-// Step 1: Update Top-Level vi.mock at line 26
-//Replace your @citi-icg-172888/icgds-react mock at the top of CallbackValidationForm.test.tsx
-
-vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
-  const actual: any = await importOriginal();
-  return {
-    ...actual,
-    Modal: Object.assign(
-      ({ children, visible }: any) =>
-        visible ? React.createElement('div', { 'data-testid': 'modal' }, children) : null,
-      { body: 'div', footer: 'div' }
+    DatePicker: ({ value, onValueChange }: any) =>
+      ReactActual.createElement('input', {
+        'data-testid': 'date-picker',
+        value: value ? String(value) : '',
+        onChange: (e: any) => onValueChange && onValueChange(e.target.value),
+      }),
+    Icon: ({ type, onClick, className }: any) => (
+      <i data-testid={`icon-${type}`} className={className} onClick={onClick} />
     ),
+    Tag: ({ children }: any) => <span data-testid="tag">{children}</span>,
+    Loading: () => <div data-testid="loading-spinner">Loading...</div>,
   };
 });
 
+// Mock AgGridReact
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => (
+    <table data-testid="ag-grid-table">
+      <tbody>
+        {(rowData || []).map((row: any, rIdx: number) => (
+          <tr key={rIdx}>
+            {(columnDefs || []).map((col: any, cIdx: number) => (
+              <td key={cIdx}>
+                {col.cellRenderer
+                  ? col.cellRenderer({ value: row[col.field], data: row })
+                  : String(row[col.field] ?? '')}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ),
+}));
 
-// Step 2: Replace lines 106–216 with the Restored Test Suite
-//Replace the commented-out describe block in CallbackValidationForm.test.tsx with this clean, active suite:
+describe('CallbackValidationForm Component', () => {
+  const mockGetDealParties = getDealParties as jest.MockedFunction<typeof getDealParties>;
+  const mockGetCallbacks = getCallbacks as jest.MockedFunction<typeof getCallbacks>;
+  const mockRecordCallback = recordCallback as jest.MockedFunction<typeof recordCallback>;
 
-const defaultProps = {
-  visible: true,
-  instructionId: 42,
-  onClose: vi.fn(),
-  onSuccess: vi.fn(),
-};
+  const defaultProps = {
+    visible: true,
+    instruction: {
+      instructionId: 42,
+      dealId: 101,
+      countryDisplay: 'United States',
+    },
+    onClose: vi.fn(),
+    onComplete: vi.fn(),
+  };
 
-describe('CallbackValidationForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetDealParties.mockResolvedValue({ data: [] });
-    mockGetCallbacks.mockResolvedValue({ data: [] });
+    mockGetDealParties.mockResolvedValue({ data: [] } as any);
+    mockGetCallbacks.mockResolvedValue({ data: [] } as any);
   });
 
-  it('test_renders_modal_when_visible', async () => {
-    render(<CallbackValidationForm {...defaultProps} />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('modal')).toBeTruthy();
-    });
-
-    expect(screen.getByText('Cancel')).toBeTruthy();
-    expect(screen.getByText('Submit')).toBeTruthy();
-  });
-
-  it('test_loads_deal_parties_on_open', async () => {
+  it('1. Renders primary modal and fetches deal parties and callbacks on mount', async () => {
     mockGetDealParties.mockResolvedValue({
-      data: [{ firstName: 'John', lastName: 'Smith', phoneNumber: '111', mobileNumber: '222', email: 'john@test.com' }],
-    });
+      data: [{ firstName: 'Jane', lastName: 'Doe', phoneNumber: '5551234' }],
+    } as any);
 
-    render(<CallbackValidationForm {...defaultProps} instructionId={42} />);
-
-    await waitFor(() => {
-      expect(mockGetDealParties).toHaveBeenCalledWith(42);
-    });
-  });
-
-  it('test_loads_existing_callbacks_on_open', async () => {
-    mockGetCallbacks.mockResolvedValue({
-      data: [{ callbackId: 1, instructionId: 1, outcome: 'Callback Successful', contactName: 'John', phoneNumberCalled: '111' }],
-    });
-
-    render(<CallbackValidationForm {...defaultProps} instructionId={1} />);
-
-    await waitFor(() => {
-      expect(mockGetCallbacks).toHaveBeenCalledWith(1);
-    });
-  });
-
-  it('test_does_not_render_when_not_visible', () => {
-    render(<CallbackValidationForm {...defaultProps} visible={false} />);
-    expect(screen.queryByTestId('modal')).toBeNull();
-  });
-
-  it('test_cancel_without_changes_calls_onClose', async () => {
     render(<CallbackValidationForm {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('modal')).toBeTruthy();
+      expect(screen.getByTestId('modal-Record Callback Attempt')).toBeTruthy();
+      expect(mockGetDealParties).toHaveBeenCalledWith(101);
+      expect(mockGetCallbacks).toHaveBeenCalledWith(42);
+    });
+  });
+
+  it('2. Updates contact email, phone number, and renders summary block with icons', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter Contact Email')).toBeTruthy();
     });
 
-    const cancelBtn = screen.getByText('Cancel');
-    fireEvent.click(cancelBtn);
+    const emailInput = screen.getByPlaceholderText('Enter Contact Email');
+    const phoneInput = screen.getByPlaceholderText('e.g., +1 (432) 123 1234');
 
+    fireEvent.change(emailInput, { target: { value: 'jane.doe@citi.com' } });
+    fireEvent.change(phoneInput, { target: { value: '+1 (555) 999 8888' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-text')).toBeTruthy();
+      expect(screen.getByTestId('icon-phone')).toBeTruthy();
+      expect(screen.getByTestId('icon-mail')).toBeTruthy();
+      expect(screen.getByText('jane.doe@citi.com')).toBeTruthy();
+    });
+  });
+
+  it('3. Interacts with Time Picker: direct input and popup hour/minute selection', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('HH:MM')).toBeTruthy();
+    });
+
+    const timeInput = screen.getByPlaceholderText('HH:MM');
+    // Sanitize non-digits and limit length
+    fireEvent.change(timeInput, { target: { value: '14:30' } });
+    expect((timeInput as HTMLInputElement).value).toBe('14:30');
+
+    // Toggle popover clock icon
+    const clockBtn = screen.getByLabelText('Open time picker');
+    fireEvent.click(clockBtn);
+
+    // Click hour '09'
+    const hourBtn = screen.getByText('09');
+    fireEvent.click(hourBtn);
+
+    // Click minute '45'
+    const minBtn = screen.getByText('45');
+    fireEvent.click(minBtn);
+
+    expect((timeInput as HTMLInputElement).value).toBe('09:45');
+  });
+
+  it('4. Updates comment text and reflects length limit counter', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter callback notes...')).toBeTruthy();
+    });
+
+    const textArea = screen.getByPlaceholderText('Enter callback notes...');
+    fireEvent.change(textArea, { target: { value: 'Customer confirmed callback verification.' } });
+
+    expect(screen.getByText(/41\//)).toBeTruthy();
+  });
+
+  it('5. Collapses and expands middle section (Contact Details Grid)', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-eye')).toBeTruthy();
+    });
+
+    // Collapse
+    fireEvent.click(screen.getByTestId('icon-eye'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-eye-off')).toBeTruthy();
+      expect(screen.queryByTestId('ag-grid-table')).toBeNull();
+    });
+
+    // Expand
+    fireEvent.click(screen.getByTestId('icon-eye-off'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-eye')).toBeTruthy();
+    });
+  });
+
+  it('6. Triggers validation error on empty submit and allows closing the error alert', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Submit')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText('Submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('alert')).toBeTruthy();
+      expect(screen.getByText('Contact Name is required')).toBeTruthy();
+    });
+
+    // Close error alert
+    fireEvent.click(screen.getByTestId('alert-close-btn'));
+    expect(screen.queryByTestId('alert')).toBeNull();
+  });
+
+  it('7. Handles Cancel button: opens confirmation modal when dirty and confirms cancel', async () => {
+    render(<CallbackValidationForm {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter Contact Email')).toBeTruthy();
+    });
+
+    // Make form dirty
+    fireEvent.change(screen.getByPlaceholderText('Enter Contact Email'), {
+      target: { value: 'test@citi.com' },
+    });
+
+    // Click main Cancel
+    fireEvent.click(screen.getByText('Cancel'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal-Confirm Cancel')).toBeTruthy();
+      expect(
+        screen.getByText('Are you sure you want to cancel? All unsaved changes will be lost.')
+      ).toBeTruthy();
+    });
+
+    // Click 'Yes, Cancel' in confirmation modal
+    fireEvent.click(screen.getByTestId('modal-apply-btn'));
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('test_submit_without_required_fields_shows_error', async () => {
-    render(<CallbackValidationForm {...defaultProps} />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('modal')).toBeTruthy();
-    });
-
-    const submitBtn = screen.getByText('Submit');
-    fireEvent.click(submitBtn);
-  });
-
-  it('test_submit_with_valid_data_calls_recordCallback', async () => {
-    mockRecordCallback.mockResolvedValue({ data: { status: 'SUCCESS' } });
+  it('8. Submits form successfully and calls recordCallback API', async () => {
+    mockRecordCallback.mockResolvedValue({ data: { success: true } } as any);
 
     render(<CallbackValidationForm {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('modal')).toBeTruthy();
+      expect(screen.getByPlaceholderText('Enter Contact Name')).toBeTruthy();
     });
-  });
 
-  it('test_deals_with_api_error_on_load_gracefully', async () => {
-    mockGetDealParties.mockRejectedValue(new Error('API Error'));
-    mockGetCallbacks.mockRejectedValue(new Error('API Error'));
+    fireEvent.change(screen.getByPlaceholderText('Enter Contact Name'), {
+      target: { value: 'Alex Smith' },
+    });
+    fireEvent.click(screen.getByTestId('radio-Callback Successful'));
+    fireEvent.change(screen.getByPlaceholderText('Enter callback notes...'), {
+      target: { value: 'Verified details.' },
+    });
 
-    expect(() => {
-      render(<CallbackValidationForm {...defaultProps} />);
-    }).not.toThrow();
+    fireEvent.click(screen.getByText('Submit'));
+
+    await waitFor(() => {
+      expect(mockRecordCallback).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          contactName: 'Alex Smith',
+          outcome: 'Callback Successful',
+          commentText: 'Verified details.',
+        })
+      );
+      expect(defaultProps.onComplete).toHaveBeenCalled();
+    });
   });
 });
-
