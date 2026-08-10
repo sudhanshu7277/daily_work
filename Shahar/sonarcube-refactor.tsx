@@ -397,8 +397,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import MoreFiltersPanel from './MoreFiltersPanel';
 
 describe('MoreFiltersPanel Component', () => {
+  const mockFilters = {
+    client: '',
+    updatedIn: '',
+    valueDateRange: null,
+    deal: '',
+    user: '',
+    status: '',
+    instructionType: 'payment',
+  };
+
   const defaultProps = {
-    filters: {},
+    filters: mockFilters as any,
     onFiltersChange: vi.fn(),
     clients: ['Client 1', 'Client 2'],
     deals: ['Deal 1', 'Deal 2'],
