@@ -110,19 +110,22 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       reportsDirectory: './coverage',
-      exclude: [
-        'node_modules/',
-        'src/test/**',
-        'src/types/**',
-        'src/constants/**',
-        'src/main.tsx',
-        'src/vite-env.d.ts',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/__tests__/**',
-        '**/*.test.{ts,tsx,js,jsx}',
-        '**/*.spec.{ts,tsx,js,jsx}',
-      ],
+      // vite.config.ts inside test.coverage.exclude
+exclude: [
+  'node_modules/',
+  'src/test/**',
+  'src/types/**',
+  'src/constants/**',
+  'src/main.tsx',
+  'src/vite-env.d.ts',
+  '**/*.d.ts',
+  '**/*.config.*',
+  '**/__tests__/**',
+  '**/*.test.{ts,tsx,js,jsx}',
+  '**/*.spec.{ts,tsx,js,jsx}',
+  'src/**/mock*.{ts,tsx}', // Exclude mock data files
+  'src/**/index.{ts,tsx}', // Exclude re-export files
+],
     },
   },
 });
