@@ -274,44 +274,43 @@ export default defineConfig({
 });
 
 
-// 1. src/pages/dashboard/DashboardPage.tsx
 
-// src/pages/dashboard/DashboardPage.test.tsx
-import { render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect, vi } from 'vitest';
-import DashboardPage from './DashboardPage';
+// CallbackValidationForm.test.tsx
 
-// Mock top-level API calls made on mount
-vi.mock('../../api/client', () => ({
-  default: { get: vi.fn(() => Promise.resolve({ data: [] })) }
-}));
 
-describe('DashboardPage', () => {
-  it('renders without crashing', () => {
-    const { container } = render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
-    );
-    expect(container).toBeDefined();
-  });
+// Replace lines 26-33 with:
+vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    Modal: Object.assign(
+      ({ children, visible }: any) =>
+        visible ? React.createElement('div', { 'data-testid': 'modal' }, children) : null,
+      { body: 'div', footer: 'div' }
+    ),
+  };
 });
 
-// 2. src/pages/citiSftIntakeAuditPage.tsx
+
+// Issue 2: Apply the Same Fix to  DashboardPage.test.tsx
 
 
-// 3. src/components/documentViewer/NativePdfViewer.tsx
-
-
-// src/components/documentViewer/NativePdfViewer.test.tsx
-import { render } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import NativePdfViewer from './NativePdfViewer';
-
-describe('NativePdfViewer', () => {
-  it('renders pdf viewer container', () => {
-    const { container } = render(<NativePdfViewer fileUrl="sample.pdf" />);
-    expect(container).toBeDefined();
-  });
+vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+  };
 });
+
+
+// Fix in src/pages/approval/ApprovalQueuePage.test.tsx:
+// Lines 259–261: Check the mock payload passed into getRefDataByType or useRefData prior to line 259. Ensure the mock array includes 3 refdata objects plus the 'Any' option (total 4):
+
+// Ensure your refdata mock setup returns 3 items:
+const mockRefData = [
+  { refCode: 'EMAIL_POLLER', refValue: 'Email Poller' },
+  { refCode: 'MANUAL', refValue: 'Manual' },
+  { refCode: 'SWIFT', refValue: 'Swift' },
+];
+
+
