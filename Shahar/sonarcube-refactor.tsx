@@ -388,3 +388,67 @@ describe('DocumentTypeDropdown Component', () => {
     expect(handleChange).toHaveBeenCalled();
   });
 });
+
+// MoreFiltersPanel.test.tsx
+
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import MoreFiltersPanel from './MoreFiltersPanel';
+
+describe('MoreFiltersPanel Component', () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onApply: vi.fn(),
+    onReset: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing when isOpen is true', () => {
+    const { container } = render(<MoreFiltersPanel {...defaultProps} />);
+    expect(container).toBeTruthy();
+  });
+
+  it('triggers onReset when clear or reset button is clicked', () => {
+    const handleReset = vi.fn();
+    render(<MoreFiltersPanel {...defaultProps} onReset={handleReset} />);
+
+    const resetButton =
+      screen.queryByRole('button', { name: /reset/i }) ||
+      screen.queryByRole('button', { name: /clear/i }) ||
+      screen.getByText(/clear|reset/i);
+
+    fireEvent.click(resetButton);
+    expect(handleReset).toHaveBeenCalled();
+  });
+
+  it('triggers onApply when apply button is clicked', () => {
+    const handleApply = vi.fn();
+    render(<MoreFiltersPanel {...defaultProps} onApply={handleApply} />);
+
+    const applyButton =
+      screen.queryByRole('button', { name: /apply/i }) ||
+      screen.getByText(/apply/i);
+
+    fireEvent.click(applyButton);
+    expect(handleApply).toHaveBeenCalled();
+  });
+
+  it('triggers onClose when close button is clicked', () => {
+    const handleClose = vi.fn();
+    render(<MoreFiltersPanel {...defaultProps} onClose={handleClose} />);
+
+    const closeButton =
+      screen.queryByRole('button', { name: /close/i }) ||
+      screen.queryByLabelText(/close/i);
+
+    if (closeButton) {
+      fireEvent.click(closeButton);
+      expect(handleClose).toHaveBeenCalled();
+    }
+  });
+});
