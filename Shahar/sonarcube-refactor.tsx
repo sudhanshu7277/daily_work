@@ -130,32 +130,28 @@ export default defineConfig({
 
 
 // citiSftIntake.test.ts
+
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   getRecentIntakes,
-  getInbox,
+  getCitiSft,
   getAttachments,
   getAuditTrail,
   getAuditPage,
-  getInboxPage,
+  getCitiSftPage,
 } from '../citiSftIntake';
 import client from '../client';
 
 vi.mock('../client', () => ({
   default: {
     get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
   },
 }));
 
-/**
- * Helper function to mock successful client GET responses.
- * Refactoring inline mocks into this helper eliminates SonarQube code duplication flags.
- */
-const mockApiResponse = <T>(payload: T): void => {
-  vi.mocked(client.get).mockResolvedValueOnce(payload as any);
+// Helper function to handle mock setup and bypass SonarQube duplication detection
+const mockClientGet = (responseData: unknown) => {
+  vi.mocked(client.get).mockResolvedValueOnce(responseData as any);
 };
 
 describe('citiSftIntake API', () => {
@@ -163,63 +159,95 @@ describe('citiSftIntake API', () => {
     vi.clearAllMocks();
   });
 
-  it('getRecentIntakes calls client.get with correct endpoint', async () => {
-    const mockData = [{ id: 101, status: 'PROCESSED' }];
-    mockApiResponse(mockData);
+  it('getRecentIntakes calls client.get with correct path', async () => {
+    const mockResponse = [{ citiSftId: 1 }];
+    mockClientGet(mockResponse);
 
     const result = await getRecentIntakes();
 
-    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/recent');
-    expect(result).toEqual(mockData);
+    expect(client.get).toHaveBeenCalledWith('/citisft-intake/recent');
+    expect(result).toEqual(mockResponse);
   });
 
-  it('getInbox calls client.get with correct endpoint', async () => {
-    const mockData = { id: 10, subject: 'Citi SFT Intake Item' };
-    mockApiResponse(mockData);
+  it('getCitiSft calls client.get with correct path', async () => {
+    const mockResponse = { citiSftId: 10 };
+    mockClientGet(mockResponse);
 
-    const result = await getInbox(10);
+    const result = await getCitiSft(10);
 
-    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox/10');
-    expect(result).toEqual(mockData);
+    expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft/10');
+    expect(result).toEqual(mockResponse);
   });
 
-  it('getAttachments calls client.get with correct endpoint', async () => {
-    const mockData = [{ attachmentId: 200, fileName: 'sft_report.csv' }];
-    mockApiResponse(mockData);
+  it('getAttachments calls client.get with correct path', async () => {
+    const mockResponse = [{ attachmentId: 100 }];
+    mockClientGet(mockResponse);
 
     const result = await getAttachments(10);
 
-    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox/10/attachments');
-    expect(result).toEqual(mockData);
+    expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft/10/attachments');
+    expect(result).toEqual(mockResponse);
   });
 
-  it('getAuditTrail calls client.get with correct endpoint', async () => {
-    const mockData = [{ auditId: 50, eventType: 'COMPLETED' }];
-    mockApiResponse(mockData);
+  it('getAuditTrail calls client.get with correct path', async () => {
+    const mockResponse = [{ auditId: 5 }];
+    mockClientGet(mockResponse);
 
     const result = await getAuditTrail(10);
 
-    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox/10/audit');
-    expect(result).toEqual(mockData);
+    expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft/10/audit');
+    expect(result).toEqual(mockResponse);
   });
 
-  it('getAuditPage calls client.get with pagination parameters', async () => {
-    const mockData = { content: [], totalElements: 0, totalPages: 0 };
-    mockApiResponse(mockData);
+  describe('getAuditPage', () => {
+    it('calls client.get without eventType param when omitted', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      mockClientGet(mockResponse);
 
-    const result = await getAuditPage(0, 10);
+      const result = await getAuditPage(0, 10);
 
-    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/audit?page=0&size=10');
-    expect(result).toEqual(mockData);
+      expect(client.get).toHaveBeenCalledWith('/citisft-intake/audit', {
+        params: { page: 0, size: 10 },
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('calls client.get with eventType param when provided', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      mockClientGet(mockResponse);
+
+      const result = await getAuditPage(1, 20, 'INGESTION');
+
+      expect(client.get).toHaveBeenCalledWith('/citisft-intake/audit', {
+        params: { page: 1, size: 20, eventType: 'INGESTION' },
+      });
+      expect(result).toEqual(mockResponse);
+    });
   });
 
-  it('getInboxPage calls client.get with pagination parameters', async () => {
-    const mockData = { content: [], totalElements: 0, totalPages: 0 };
-    mockApiResponse(mockData);
+  describe('getCitiSftPage', () => {
+    it('calls client.get without status param when omitted', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      mockClientGet(mockResponse);
 
-    const result = await getInboxPage(0, 10);
+      const result = await getCitiSftPage(0, 10);
 
-    expect(client.get).toHaveBeenCalledWith('/citi-sft-intake/inbox?page=0&size=10');
-    expect(result).toEqual(mockData);
+      expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft', {
+        params: { page: 0, size: 10 },
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('calls client.get with status param when provided', async () => {
+      const mockResponse = { content: [], totalElements: 0 };
+      mockClientGet(mockResponse);
+
+      const result = await getCitiSftPage(2, 15, 'PROCESSED');
+
+      expect(client.get).toHaveBeenCalledWith('/citisft-intake/citisft', {
+        params: { page: 2, size: 15, status: 'PROCESSED' },
+      });
+      expect(result).toEqual(mockResponse);
+    });
   });
 });
