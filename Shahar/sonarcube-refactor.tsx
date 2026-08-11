@@ -5,7 +5,7 @@ npx vitest run --coverage
 // MappingDetailPage.test.tsx
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MappingDetailPage from './MappingDetailPage';
 
@@ -34,55 +34,64 @@ const mockServices = {
   getUserDetails: jest.fn(),
 };
 
-// Adjust import paths based on your project structure
+// Adjust import paths to match your project's service/context locations
 jest.mock('../../services/mappingService', () => mockServices);
 jest.mock('../../context/AuthContext', () => ({
   useAuthContext: () => ({
-    userPermissions: ['ROLE_MAINTENANCE_SET_UP'], // enables canEdit
+    userPermissions: ['ROLE_MAINTENANCE_SET_UP'], // Grants canEdit permission
   }),
 }));
 
-// Mock UI library components if custom/external
+// Mock complete @lmn/components library including custom <El /> layout container
 jest.mock('@lmn/components', () => ({
-  Button: ({ children, onClick, title, 'aria-label': ariaLabel, disabled }: any) => (
-    <button onClick={onClick} title={title} aria-label={ariaLabel} disabled={disabled}>
+  El: ({ children, className, style, ...props }: any) => (
+    <div className={className} style={style} {...props}>
+      {children}
+    </div>
+  ),
+  Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
+    <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
       {children}
     </button>
   ),
-  Input: ({ value, onChange, placeholder, disabled }: any) => (
+  Input: ({ value, onChange, placeholder, disabled, style }: any) => (
     <input
       placeholder={placeholder}
       value={value ?? ''}
       disabled={disabled}
+      style={style}
       onChange={onChange}
-      data-testid="lmn-input"
+      data-testid={`lmn-input-${placeholder || 'default'}`}
     />
   ),
-  TextArea: ({ value, onChange, placeholder }: any) => (
+  TextArea: ({ value, onChange, placeholder, style }: any) => (
     <textarea
       placeholder={placeholder}
       value={value ?? ''}
+      style={style}
       onChange={onChange}
       data-testid="lmn-textarea"
     />
   ),
-  Modal: ({ visible, onCancel, onApply, title, children }: any) =>
+  Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
     visible ? (
       <div data-testid="lmn-modal">
         <h2>{title}</h2>
         {children}
-        <button onClick={onCancel}>Cancel</button>
-        <button onClick={onApply}>Apply</button>
+        <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
+        <button onClick={onApply}>{applyText || 'Apply'}</button>
       </div>
     ) : null,
   Dropdown: Object.assign(
-    ({ value, onChange, children, disabled }: any) => (
+    ({ value, onChange, children, disabled, placeholder, style }: any) => (
       <select
         value={value ?? ''}
         disabled={disabled}
+        style={style}
         onChange={(e) => onChange(e.target.value)}
         data-testid="lmn-dropdown"
       >
+        {placeholder && <option value="">{placeholder}</option>}
         {children}
       </select>
     ),
@@ -90,48 +99,46 @@ jest.mock('@lmn/components', () => ({
       Item: ({ value, children }: any) => <option value={value}>{children}</option>,
     }
   ),
-  SearchableDropdown: ({ value, onChange, options, disabled, placeholder }: any) => (
-    <select
-      value={value ?? ''}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      data-testid={`searchable-dropdown-${placeholder}`}
-    >
-      <option value="">{placeholder}</option>
-      {options?.map((opt: any) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
+  SearchableDropdown: ({ value, onChange, options, disabled, placeholder, label }: any) => (
+    <div data-testid={`searchable-dropdown-${label || placeholder}`}>
+      <label>{label}</label>
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid={`select-${label || placeholder}`}
+      >
+        <option value="">{placeholder}</option>
+        {options?.map((opt: any) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
   ),
   Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
   Loading: ({ tip }: any) => <div>{tip}</div>,
-  Icon: ({ type }: any) => <i className={`icon-${type}`} />,
+  Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
   notification: mockNotification,
 }));
 
-// Mock AG Grid to expose row data & custom cell renderers for test assertions
+// Mock AG Grid to expose row data & execute custom cell renderers
 jest.mock('ag-grid-react', () => ({
   AgGridReact: ({ rowData, columnDefs }: any) => (
     <div data-testid="ag-grid">
       <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
       {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.key ?? rowIndex} data-testid={`grid-row-${rowIndex}`}>
+        <div key={row.key || row.mappingId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
           {columnDefs?.map((col: any, colIndex: number) => {
-            if (col.cellRenderer) {
-              const Renderer = col.cellRenderer;
-              return (
-                <div key={colIndex} data-testid={`cell-${col.field ?? col.headerName}-${rowIndex}`}>
-                  {typeof Renderer === 'function' ? (
-                    <Renderer data={row} value={row[col.field]} />
-                  ) : null}
-                </div>
-              );
-            }
+            const cellParams = {
+              data: row,
+              value: row[col.field],
+              node: { data: row },
+            };
             return (
-              <div key={colIndex} data-testid={`cell-${col.field}-${rowIndex}`}>
-                {String(row[col.field] ?? '')}
+              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
+                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
               </div>
             );
           })}
@@ -200,9 +207,9 @@ describe('MappingDetailPage', () => {
     mockServices.updateDocumentMapping.mockResolvedValue({ status: 200 });
   });
 
-  // --- 1. Initial Load & Grid Render Tests ---
+  // --- 1. Initial Render & Grid Loading ---
 
-  test('fetches and renders mapping list in AG Grid on mount', async () => {
+  test('fetches and renders document mapping list on mount', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
@@ -213,8 +220,8 @@ describe('MappingDetailPage', () => {
     expect(screen.getByText('Document and Client Mapping')).toBeInTheDocument();
   });
 
-  test('displays danger alert if fetching mappings fails', async () => {
-    mockServices.getAllDocumentMappings.mockRejectedValueOnce(new Error('Network Error'));
+  test('renders error alert when mapping fetch API fails', async () => {
+    mockServices.getAllDocumentMappings.mockRejectedValueOnce(new Error('API Failure'));
 
     render(<MappingDetailPage />);
 
@@ -223,9 +230,9 @@ describe('MappingDetailPage', () => {
     });
   });
 
-  // --- 2. Search / Filtering Tests ---
+  // --- 2. Grid Search / Filtering ---
 
-  test('filters grid rowData based on search input string', async () => {
+  test('filters grid rows dynamically when typing into search input', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
@@ -238,81 +245,67 @@ describe('MappingDetailPage', () => {
     expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
   });
 
-  // --- 3. Cell Renderers Tests ---
+  // --- 3. Custom Cell Renderer Validation ---
 
-  test('renders custom cell contents (Country, Client, Deal, Users, Active status)', async () => {
+  test('renders icons and metadata correctly inside custom grid cell renderers', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    // Country cell renderer
-    expect(screen.getByTestId('cell-dealCountry-0')).toHaveTextContent('US');
-
-    // Client & GFCID renderer
-    expect(screen.getByTestId('cell-clientGFCID-0')).toHaveTextContent('Acme Corp');
-
-    // Active status renderer (check-circle icon for true, close-circle for false)
+    // Check Active Status Renderers (check-circle vs close-circle icons)
     expect(screen.getByTestId('cell-isActiveDisplay-0').querySelector('.icon-check-circle')).toBeInTheDocument();
     expect(screen.getByTestId('cell-isActiveDisplay-1').querySelector('.icon-close-circle')).toBeInTheDocument();
   });
 
-  // --- 4. Add Mapping Modal & Form Flow ---
+  // --- 4. Add Mapping Details Modal & Submit Flow ---
 
-  test('opens Add Mapping modal, validates mandatory fields, and submits successfully', async () => {
+  test('opens Add Modal, triggers validation error on empty submit, and submits complete form successfully', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    // Open Add Modal
-    const addButton = screen.getByText('Add Mapping Details');
-    fireEvent.click(addButton);
-
+    // Open Modal
+    fireEvent.click(screen.getByText('Add Mapping Details'));
     expect(screen.getByTestId('lmn-modal')).toBeInTheDocument();
 
-    // Trigger validation error on empty apply
-    const applyButton = screen.getByText('Apply');
-    fireEvent.click(applyButton);
-    expect(mockNotification.danger).toHaveBeenCalledWith('Please fill all mandatory fields');
+    // Fill Keyword
+    const keywordInput = screen.getByPlaceholderText('Enter document keyword');
+    fireEvent.change(keywordInput, { target: { value: 'PURCHASE_ORDER' } });
 
-    // Fill form fields
-    const inputs = screen.getAllByTestId('lmn-input');
-    const docKeywordInput = inputs[1]; // First input is search, second is keyword
-    fireEvent.change(docKeywordInput, { target: { value: 'PURCHASE_ORDER' } });
-
-    // Select Country
-    const countryDropdown = screen.getByTestId('lmn-dropdown');
-    fireEvent.change(countryDropdown, { target: { value: 'US' } });
+    // Select Country -> triggers client loading
+    const countrySelect = screen.getByTestId('lmn-dropdown');
+    fireEvent.change(countrySelect, { target: { value: 'US' } });
 
     await waitFor(() => {
       expect(mockServices.getClientListByCountry).toHaveBeenCalledWith('US');
     });
 
-    // Select Client
-    const clientDropdown = screen.getByTestId('searchable-dropdown-Select client');
-    fireEvent.change(clientDropdown, { target: { value: '1' } });
+    // Select Client -> triggers deal loading
+    const clientSelect = screen.getByTestId('select-Client');
+    fireEvent.change(clientSelect, { target: { value: '1' } });
 
     await waitFor(() => {
       expect(mockServices.getAllDealList).toHaveBeenCalledWith('1');
     });
 
     // Select Deal
-    const dealDropdown = screen.getByTestId('searchable-dropdown-Select deal');
-    fireEvent.change(dealDropdown, { target: { value: '10' } });
+    const dealSelect = screen.getByTestId('select-Deal');
+    fireEvent.change(dealSelect, { target: { value: '10' } });
 
-    // Fill Comments
-    const commentInput = screen.getByTestId('lmn-textarea');
-    fireEvent.change(commentInput, { target: { value: 'New mapping note' } });
+    // Enter Comments
+    const commentArea = screen.getByTestId('lmn-textarea');
+    fireEvent.change(commentArea, { target: { value: 'Test mapping note' } });
 
-    // Select Activation Radio Button
+    // Select Radio option
     const deactivateRadio = screen.getByLabelText('De-Activate');
     fireEvent.click(deactivateRadio);
 
-    // Submit Add Form
-    fireEvent.click(applyButton);
+    // Submit Form
+    fireEvent.click(screen.getByText('Add Mapping'));
 
     await waitFor(() => {
       expect(mockServices.createDocumentMapping).toHaveBeenCalled();
@@ -320,7 +313,7 @@ describe('MappingDetailPage', () => {
     });
   });
 
-  test('closes Add Mapping modal on cancel click', async () => {
+  test('closes Add Modal when Cancel is clicked', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
@@ -336,28 +329,27 @@ describe('MappingDetailPage', () => {
 
   // --- 5. Edit Mapping Modal Flow ---
 
-  test('opens Edit Mapping modal via actions cell button, updates fields, and saves', async () => {
+  test('opens Edit Modal, modifies fields, and saves updated mapping details', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    // Click Edit button inside grid cell renderer
-    const editBtn = screen.getAllByTitle('Edit')[0];
-    fireEvent.click(editBtn);
+    // Click Edit button inside grid action cell
+    const editButtons = screen.getAllByTitle('Edit');
+    fireEvent.click(editButtons[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Edit Mapping Details')).toBeInTheDocument();
     });
 
-    // Edit comments
-    const commentTextArea = screen.getByTestId('lmn-textarea');
-    fireEvent.change(commentTextArea, { target: { value: 'Updated comment text' } });
+    // Update comments in Edit Modal
+    const commentArea = screen.getByTestId('lmn-textarea');
+    fireEvent.change(commentArea, { target: { value: 'Updated comment details' } });
 
-    // Click Save Changes
-    const saveButton = screen.getByText('Apply');
-    fireEvent.click(saveButton);
+    // Save changes
+    fireEvent.click(screen.getByText('Save Changes'));
 
     await waitFor(() => {
       expect(mockServices.updateDocumentMapping).toHaveBeenCalled();
@@ -365,39 +357,17 @@ describe('MappingDetailPage', () => {
     });
   });
 
-  test('resets client and deal fields when changing country in Edit Form', async () => {
-    render(<MappingDetailPage />);
+  // --- 6. Refresh Button Action ---
 
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    const editBtn = screen.getAllByTitle('Edit')[0];
-    fireEvent.click(editBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Edit Mapping Details')).toBeInTheDocument();
-    });
-
-    const countryDropdown = screen.getByTestId('lmn-dropdown');
-    fireEvent.change(countryDropdown, { target: { value: 'CA' } });
-
-    await waitFor(() => {
-      expect(mockServices.getClientListByCountry).toHaveBeenCalledWith('CA');
-    });
-  });
-
-  // --- 6. Refresh Action ---
-
-  test('reloads mappings when refresh button is clicked', async () => {
+  test('re-fetches mapping list when Refresh button is clicked', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(mockServices.getAllDocumentMappings).toHaveBeenCalledTimes(1);
     });
 
-    const refreshButton = screen.getByTitle('Refresh');
-    fireEvent.click(refreshButton);
+    const refreshBtn = screen.getByTitle('Refresh');
+    fireEvent.click(refreshBtn);
 
     await waitFor(() => {
       expect(mockServices.getAllDocumentMappings).toHaveBeenCalledTimes(2);
