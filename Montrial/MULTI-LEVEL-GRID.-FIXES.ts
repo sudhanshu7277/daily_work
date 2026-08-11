@@ -136,3 +136,19 @@ onCheckboxClick(uid: string): void {
       }
     }
   }
+
+
+  // lets ceee
+
+  onSelectAll(select: boolean): void {
+    const all = this.allNodes(); // Recurses N-levels deep across children & rolePlayers
+    if (!all.length) return;
+  
+    all.forEach(node => {
+      node._selected = select;
+    });
+  
+    this.syncHeaderCheckbox(); // Updates the header checkbox to 'all' (blue) or 'none' (empty)
+    this.refresh();
+    this.emitSelected();
+  }
