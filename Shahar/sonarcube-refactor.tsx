@@ -7,43 +7,45 @@ npx vitest run --coverage
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import MappingDetailPage from './MappingDetailPage';
 
 // --- Mocks ---
 
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-}));
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 const mockNotification = {
-  success: jest.fn(),
-  danger: jest.fn(),
-  info: jest.fn(),
-  warning: jest.fn(),
+  success: vi.fn(),
+  danger: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
 };
 
 const mockServices = {
-  getAllDocumentMappings: jest.fn(),
-  createDocumentMapping: jest.fn(),
-  updateDocumentMapping: jest.fn(),
-  getAllCountryList: jest.fn(),
-  getClientListByCountry: jest.fn(),
-  getAllDealList: jest.fn(),
-  getUserDetails: jest.fn(),
+  getAllDocumentMappings: vi.fn(),
+  createDocumentMapping: vi.fn(),
+  updateDocumentMapping: vi.fn(),
+  getAllCountryList: vi.fn(),
+  getClientListByCountry: vi.fn(),
+  getAllDealList: vi.fn(),
+  getUserDetails: vi.fn(),
 };
 
-// Adjust import paths to match your project's service/context locations
-jest.mock('../../services/mappingService', () => mockServices);
-jest.mock('../../context/AuthContext', () => ({
+vi.mock('../../services/mappingService', () => mockServices);
+vi.mock('../../context/AuthContext', () => ({
   useAuthContext: () => ({
-    userPermissions: ['ROLE_MAINTENANCE_SET_UP'], // Grants canEdit permission
+    userPermissions: ['ROLE_MAINTENANCE_SET_UP'],
   }),
 }));
 
-// Mock complete @lmn/components library including custom <El /> layout container
-jest.mock('@lmn/components', () => ({
+vi.mock('@lmn/components', () => ({
   El: ({ children, className, style, ...props }: any) => (
     <div className={className} style={style} {...props}>
       {children}
@@ -123,8 +125,7 @@ jest.mock('@lmn/components', () => ({
   notification: mockNotification,
 }));
 
-// Mock AG Grid to expose row data & execute custom cell renderers
-jest.mock('ag-grid-react', () => ({
+vi.mock('ag-grid-react', () => ({
   AgGridReact: ({ rowData, columnDefs }: any) => (
     <div data-testid="ag-grid">
       <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
@@ -198,7 +199,7 @@ const mockDeals = [
 
 describe('MappingDetailPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockServices.getAllDocumentMappings.mockResolvedValue(mockMappings);
     mockServices.getAllCountryList.mockResolvedValue(mockCountries);
     mockServices.getClientListByCountry.mockResolvedValue(mockClients);
@@ -207,9 +208,9 @@ describe('MappingDetailPage', () => {
     mockServices.updateDocumentMapping.mockResolvedValue({ status: 200 });
   });
 
-  // --- 1. Initial Render & Grid Loading ---
+  // --- Initial Render & Grid Loading ---
 
-  test('fetches and renders document mapping list on mount', async () => {
+  it('fetches and renders document mapping list on mount', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
@@ -220,7 +221,7 @@ describe('MappingDetailPage', () => {
     expect(screen.getByText('Document and Client Mapping')).toBeInTheDocument();
   });
 
-  test('renders error alert when mapping fetch API fails', async () => {
+  it('renders error alert when mapping fetch API fails', async () => {
     mockServices.getAllDocumentMappings.mockRejectedValueOnce(new Error('API Failure'));
 
     render(<MappingDetailPage />);
@@ -230,9 +231,9 @@ describe('MappingDetailPage', () => {
     });
   });
 
-  // --- 2. Grid Search / Filtering ---
+  // --- Grid Search / Filtering ---
 
-  test('filters grid rows dynamically when typing into search input', async () => {
+  it('filters grid rows dynamically when typing into search input', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
@@ -245,38 +246,34 @@ describe('MappingDetailPage', () => {
     expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
   });
 
-  // --- 3. Custom Cell Renderer Validation ---
+  // --- Custom Cell Renderer Validation ---
 
-  test('renders icons and metadata correctly inside custom grid cell renderers', async () => {
+  it('renders status icons correctly inside custom cell renderers', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    // Check Active Status Renderers (check-circle vs close-circle icons)
     expect(screen.getByTestId('cell-isActiveDisplay-0').querySelector('.icon-check-circle')).toBeInTheDocument();
     expect(screen.getByTestId('cell-isActiveDisplay-1').querySelector('.icon-close-circle')).toBeInTheDocument();
   });
 
-  // --- 4. Add Mapping Details Modal & Submit Flow ---
+  // --- Add Mapping Details Modal ---
 
-  test('opens Add Modal, triggers validation error on empty submit, and submits complete form successfully', async () => {
+  it('opens Add Modal, handles country/client/deal cascading changes, and submits form', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    // Open Modal
     fireEvent.click(screen.getByText('Add Mapping Details'));
     expect(screen.getByTestId('lmn-modal')).toBeInTheDocument();
 
-    // Fill Keyword
     const keywordInput = screen.getByPlaceholderText('Enter document keyword');
     fireEvent.change(keywordInput, { target: { value: 'PURCHASE_ORDER' } });
 
-    // Select Country -> triggers client loading
     const countrySelect = screen.getByTestId('lmn-dropdown');
     fireEvent.change(countrySelect, { target: { value: 'US' } });
 
@@ -284,7 +281,6 @@ describe('MappingDetailPage', () => {
       expect(mockServices.getClientListByCountry).toHaveBeenCalledWith('US');
     });
 
-    // Select Client -> triggers deal loading
     const clientSelect = screen.getByTestId('select-Client');
     fireEvent.change(clientSelect, { target: { value: '1' } });
 
@@ -292,19 +288,15 @@ describe('MappingDetailPage', () => {
       expect(mockServices.getAllDealList).toHaveBeenCalledWith('1');
     });
 
-    // Select Deal
     const dealSelect = screen.getByTestId('select-Deal');
     fireEvent.change(dealSelect, { target: { value: '10' } });
 
-    // Enter Comments
     const commentArea = screen.getByTestId('lmn-textarea');
     fireEvent.change(commentArea, { target: { value: 'Test mapping note' } });
 
-    // Select Radio option
     const deactivateRadio = screen.getByLabelText('De-Activate');
     fireEvent.click(deactivateRadio);
 
-    // Submit Form
     fireEvent.click(screen.getByText('Add Mapping'));
 
     await waitFor(() => {
@@ -313,7 +305,7 @@ describe('MappingDetailPage', () => {
     });
   });
 
-  test('closes Add Modal when Cancel is clicked', async () => {
+  it('closes Add Modal when Cancel is clicked', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
@@ -327,16 +319,15 @@ describe('MappingDetailPage', () => {
     expect(screen.queryByTestId('lmn-modal')).not.toBeInTheDocument();
   });
 
-  // --- 5. Edit Mapping Modal Flow ---
+  // --- Edit Mapping Modal ---
 
-  test('opens Edit Modal, modifies fields, and saves updated mapping details', async () => {
+  it('opens Edit Modal, modifies comments, and saves changes', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    // Click Edit button inside grid action cell
     const editButtons = screen.getAllByTitle('Edit');
     fireEvent.click(editButtons[0]);
 
@@ -344,11 +335,9 @@ describe('MappingDetailPage', () => {
       expect(screen.getByText('Edit Mapping Details')).toBeInTheDocument();
     });
 
-    // Update comments in Edit Modal
     const commentArea = screen.getByTestId('lmn-textarea');
     fireEvent.change(commentArea, { target: { value: 'Updated comment details' } });
 
-    // Save changes
     fireEvent.click(screen.getByText('Save Changes'));
 
     await waitFor(() => {
@@ -357,17 +346,16 @@ describe('MappingDetailPage', () => {
     });
   });
 
-  // --- 6. Refresh Button Action ---
+  // --- Refresh Button ---
 
-  test('re-fetches mapping list when Refresh button is clicked', async () => {
+  it('re-fetches mapping list on Refresh button click', async () => {
     render(<MappingDetailPage />);
 
     await waitFor(() => {
       expect(mockServices.getAllDocumentMappings).toHaveBeenCalledTimes(1);
     });
 
-    const refreshBtn = screen.getByTitle('Refresh');
-    fireEvent.click(refreshBtn);
+    fireEvent.click(screen.getByTitle('Refresh'));
 
     await waitFor(() => {
       expect(mockServices.getAllDocumentMappings).toHaveBeenCalledTimes(2);
