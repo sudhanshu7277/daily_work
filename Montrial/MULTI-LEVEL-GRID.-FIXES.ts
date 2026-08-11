@@ -1,0 +1,248 @@
+// Updated mapPlayer (Complete Function):
+
+
+private mapPlayer = (p: any): any => {
+    // Resolves nested child arrays dynamically at any level
+    const rawChildren = p.children || p.rolePlayers || p.subRolePlayers || [];
+    const hasChildren = Array.isArray(rawChildren) && rawChildren.length > 0;
+  
+    return {
+      profileName: this.toTitleCase(p.profileName) ?? '',
+      ocifId: this.extractOcifId(p),
+      status: mapLegalHoldStatusToUi(p.legalHoldStatus),
+      holdName: p.holdName ?? p.legalHoldName ?? '',
+      lifecycle: p.customerLifecycleStatus ?? p.lifecycle ?? 'N/A',
+      roleType: p.roleType ?? p.role ?? '',
+      address: typeof p.address === 'string' ? p.address : (p.address?.addressLineOne || ''),
+      isSuspect: p.isSuspectProfile === 'Yes' || p.isSuspect === true,
+      eDiscoveryProjectManager: p.eDiscoveryProjectManager ?? '',
+      responsibleLawyerEmail: p.responsibleLawyerEmail ?? '',
+      holdApplyDateTime: p.holdApplyDateTime ?? p.holdAppliedDate ?? '',
+      holdReleaseDate: p.holdReleaseDate ?? '',
+      
+      // Parent detection & state defaults
+      _isParent: hasChildren,
+      _expanded: false,
+      _selected: false,
+      
+      // Infinite depth recursion
+      children: rawChildren.map((rp: any) => this.mapPlayer(rp))
+    };
+  };
+
+
+
+  // 2. Complete Tree Processing Fixes (stampTree, flattenTree, onSortChanged)
+// Replace these three methods in EntityGridComponent in entity-grid.component.ts:
+
+private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
+    nodes.forEach((node, index) => {
+      // Generate deterministic UID for N-level tracking (e.g. r0, r0-0, r0-0-1)
+      node._uid = parentUid ? `${parentUid}-${index}` : `r${index}`;
+      
+      // Explicitly set node level without mutating outer scope variables
+      node._level = level;
+      
+      // Evaluate parent status dynamically
+      node._isParent = Array.isArray(node.children) && node.children.length > 0;
+      
+      // Maintain state or set defaults
+      node._expanded = node._expanded ?? false;
+      node._selected = node._selected ?? false;
+      node._isClusterEnd = false;
+  
+      // Recurse into sub-children passing level + 1 directly in function call argument
+      // DO NOT write level++ or level += 1 inside the loop
+      if (node._isParent && node.children?.length) {
+        this.stampTree(node.children, node._uid, level + 1);
+      }
+    });
+  }
+  
+  private flattenTree(): EntityRowNode[] {
+    const flattenedRows: EntityRowNode[] = [];
+  
+    // Sequential depth-first traversal to maintain visual tree ordering
+    const recurse = (nodes: EntityRowNode[]) => {
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        node._isClusterEnd = false;
+        flattenedRows.push(node);
+  
+        // Render children only if parent is expanded
+        if (node._isParent && node._expanded && node.children?.length) {
+          recurse(node.children);
+        }
+      }
+    };
+  
+    recurse(this.tree);
+  
+    // Mark cluster ends for visual border lines in AG Grid CSS
+    for (let i = 0; i < flattenedRows.length; i++) {
+      const nextIsRoot = flattenedRows[i + 1] && flattenedRows[i + 1]._level === 0;
+      const isLastRow = i === flattenedRows.length - 1;
+      if (nextIsRoot || isLastRow) {
+        flattenedRows[i]._isClusterEnd = true;
+      }
+    }
+  
+    return flattenedRows;
+  }
+  
+  onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState().find(s => s.sort != null);
+    if (!sortState) {
+      this.currentPage = 1;
+      this.refresh();
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir = sortState.sort as 'asc' | 'desc';
+  
+    const sortFn = (a: any, b: any) => {
+      const valA = (a[field] ?? '').toString().toLowerCase();
+      const valB = (b[field] ?? '').toString().toLowerCase();
+      return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    };
+  
+    // Sort top-level and all nested sub-branches recursively
+    const sortRecursive = (nodes: EntityRowNode[]) => {
+      nodes.sort(sortFn);
+      nodes.forEach(n => {
+        if (n._isParent && n.children?.length) {
+          sortRecursive(n.children);
+        }
+      });
+    };
+  
+    sortRecursive(this.tree);
+    this.currentPage = 1;
+    this.refresh();
+  }
+
+
+  /// 3. Complete Cell Renderer Class & Template (EntityNameCellComponent)Update the entire EntityNameCellComponent in entity-grid.component.ts. This aligns class properties (_level, _isParent, _selected, _expanded) with the inline template bindings and applies dynamic $24\text{px} \times N$ indenting:
+
+  @Component({
+    selector: 'app-entity-name-cell',
+    standalone: true,
+    imports: [CommonModule],
+    changeDetection: ChangeDetectionStrategy.Default,
+    template: `
+      <div class="name-cell" [style.padding-left.px]="_level * 24">
+        <span class="cb-wrap" (click)="onCheckClick($event)">
+          <span class="cb-box" [class.cb-box--checked]="_selected">
+            <svg *ngIf="_selected" viewBox="0 0 12 10" fill="none" width="12" height="10">
+              <polyline points="1.5 4.5, 9 11, 1" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </span>
+  
+        <span class="name-text" [class.name-text--parent]="_isParent">
+          {{ toTitleCase(name) }}
+        </span>
+  
+        <span
+          *ngIf="isSuspect"
+          class="suspect-icon"
+          title="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are placed on hold">
+          !
+        </span>
+  
+        <button *ngIf="_isParent" class="chevron-btn" (click)="onChevronClick($event)">
+          <span class="chevron-icon" [class.chevron-icon--up]="_expanded">
+            <svg viewBox="0 0 18 18" fill="none" width="18" height="18">
+              <path d="M4.5 7.5l4.5 4.5 4.5-4.5" stroke="#0079C1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    `,
+    styles: [`
+      :host { display: flex; align-items: center; width: 100%; overflow: hidden; }
+      .name-cell { display: flex; align-items: center; gap: 8px; width: 100%; overflow: hidden; }
+      .cb-wrap { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; padding: 2px; }
+      .cb-box {
+        width: 18px; height: 18px; border-radius: 3px; border: 1.5px solid #96a6b4;
+        background: #ffffff; display: flex; align-items: center; justify-content: center;
+        transition: background 0.12s, border-color 0.12s; flex-shrink: 0;
+      }
+      .cb-wrap:hover .cb-box { border-color: #0079C1; }
+      .cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
+      .name-text { color: #0079C1; font-size: 13px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+      .name-text--parent { font-weight: 700; }
+      .suspect-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 18px; height: 18px; border-radius: 50%; background-color: #e68a00;
+        color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0; cursor: pointer; margin-left: 4px;
+      }
+      .chevron-btn {
+        background: none !important; border: none; padding: 2px; cursor: pointer;
+        display: inline-flex; align-items: center; flex-shrink: 0; outline: none; margin-left: auto;
+      }
+      .chevron-btn:hover, .chevron-btn:focus, .chevron-btn:active { background: none !important; }
+      .chevron-icon { display: inline-flex; align-items: center; transform: rotate(0deg); transition: transform 0.2s ease; }
+      .chevron-icon--up { transform: rotate(180deg); }
+    `]
+  })
+  export class EntityNameCellComponent implements ICellRendererAngularComp {
+    name = '';
+    _isParent = false;
+    _expanded = false;
+    _selected = false;
+    isSuspect = false;
+    _level = 0;
+    private uid = '';
+    private onCheck!: (uid: string) => void;
+    private onToggle!: (uid: string) => void;
+  
+    constructor(private readonly cdr: ChangeDetectorRef) {}
+  
+    agInit(p: ICellRendererParams): void {
+      this.sync(p);
+    }
+  
+    refresh(p: ICellRendererParams): boolean {
+      this.sync(p);
+      this.cdr.detectChanges();
+      return true;
+    }
+  
+    private sync(p: ICellRendererParams): void {
+      const d = p.data as EntityRowNode;
+      this.name = String(p.value ?? '');
+      this._isParent = !!d?._isParent;
+      this._expanded = !!d?._expanded;
+      this._selected = !!d?._selected;
+      this.isSuspect = !!d?.isSuspect;
+      this._level = d?._level ?? 0;
+      this.uid = d?._uid ?? '';
+      this.onCheck = (p as any).onCheck;
+      this.onToggle = (p as any).onToggle;
+    }
+  
+    toTitleCase(str: string): string {
+      if (!str) return '';
+      return str
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+  
+    onCheckClick(e: MouseEvent): void {
+      e.stopPropagation();
+      if (this.onCheck && this.uid) {
+        this.onCheck(this.uid);
+      }
+    }
+  
+    onChevronClick(e: MouseEvent): void {
+      e.stopPropagation();
+      if (this.onToggle && this.uid) {
+        this.onToggle(this.uid);
+      }
+    }
+  }
