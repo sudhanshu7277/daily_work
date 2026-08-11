@@ -211,6 +211,7 @@ describe('TicklerTaskPage', () => {
 
 
 // src/App.test.tsx
+// src/App.test.tsx
 
 // Polyfill DOMMatrix before pdfjs-dist initializes in jsdom
 if (typeof window !== 'undefined' && !('DOMMatrix' in window)) {
@@ -222,8 +223,8 @@ if (typeof window !== 'undefined' && !('DOMMatrix' in window)) {
 }
 
 import '@testing-library/jest-dom/vitest';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('pdfjs-dist', () => ({
@@ -239,15 +240,30 @@ vi.mock('pdfjs-dist', () => ({
   }),
 }));
 
+vi.mock('./utils/auth', () => ({
+  getToken: vi.fn().mockReturnValue('mock-token'),
+  getUserId: vi.fn().mockReturnValue('AB12345'),
+  clearAuth: vi.fn(),
+  login: vi.fn(),
+}));
+
 import App from './App';
 
-describe('App Component', () => {
-  it('renders application shell without crashing', () => {
+describe('App', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders without crashing', () => {
+    const { container } = render(<App />);
+    expect(container).toBeInTheDocument();
+  });
+
+  it('mounts into the DOM correctly', () => {
     render(<App />);
     expect(document.body).toBeInTheDocument();
   });
 });
-
 
 
 // src/utils/exportExcel.test.ts
