@@ -2,25 +2,22 @@
 
 npx vitest run --coverage
 
-
-// Updated File: src/utils/exportExcel.test.ts
-
 // src/utils/exportExcel.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the entire xlsx module so no real file I/O happens.
-const mockJsonToSheet = vi.fn(() => ({ __sheet: true }));
-const mockBookNew = vi.fn(() => ({ __wb: true }));
+// Declare mocks with return values directly
+const mockJsonToSheet = vi.fn().mockReturnValue({ __sheet: true });
+const mockBookNew = vi.fn().mockReturnValue({ __wb: true });
 const mockBookAppendSheet = vi.fn();
 const mockWriteFile = vi.fn();
 
 vi.mock('xlsx', () => {
   const utils = {
-    json_to_sheet: (...a: unknown[]) => mockJsonToSheet(...a),
-    book_new: (...a: unknown[]) => mockBookNew(...a),
-    book_append_sheet: (...a: unknown[]) => mockBookAppendSheet(...a),
+    json_to_sheet: mockJsonToSheet,
+    book_new: mockBookNew,
+    book_append_sheet: mockBookAppendSheet,
   };
-  const writeFile = (...a: unknown[]) => mockWriteFile(...a);
+  const writeFile = mockWriteFile;
 
   return {
     __esModule: true,
@@ -83,7 +80,6 @@ describe('exportToExcel', () => {
 
     exportToExcel(data, columns, 'amounts');
 
-    // 0 and '' are not null/undefined, so ?? does not replace them.
     expect(mockJsonToSheet).toHaveBeenCalledWith([{ Amount: 0, Note: '' }]);
   });
 
