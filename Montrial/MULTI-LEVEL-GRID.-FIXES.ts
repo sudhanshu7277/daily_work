@@ -453,3 +453,53 @@ private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
   }
 
 
+  // syncHeaderCheckbox
+
+  private syncHeaderCheckbox(): void {
+    const nodes = this.allNodes();
+    if (!nodes.length) return;
+    
+    const sel = nodes.filter(n => n._selected).length;
+    const state: 'none' | 'some' | 'all' = sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
+  
+    if (this.columnDefs[0]) {
+      this.columnDefs[0] = {
+        ...this.columnDefs[0],
+        headerComponentParams: { ...this.columnDefs[0].headerComponentParams, state }
+      };
+      this.gridApi?.refreshHeader();
+    }
+  }
+  
+  private allNodes(): EntityRowNode[] {
+    const out: EntityRowNode[] = [];
+    const collect = (nodes: EntityRowNode[]) => {
+      if (!nodes) return;
+      for (const n of nodes) {
+        out.push(n);
+        if (n.children?.length) {
+          collect(n.children);
+        }
+      }
+    };
+    collect(this.tree);
+    return out;
+  }
+  
+  private findNode(
+    uid: string,
+    nodes: EntityRowNode[] = this.tree,
+    parent: EntityRowNode | null = null
+  ): { node: EntityRowNode; parent: EntityRowNode | null } | null {
+    if (!nodes) return null;
+    for (const n of nodes) {
+      if (n._uid === uid) return { node: n, parent };
+      if (n.children?.length) {
+        const res = this.findNode(uid, n.children, n);
+        if (res) return res;
+      }
+    }
+    return null;
+  }
+
+
