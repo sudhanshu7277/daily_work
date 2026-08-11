@@ -357,8 +357,13 @@ onCheckboxClick(uid: string): void {
     return null;
   }
   
-  private emitSelected(): void {
+// emit function
+
+private emitSelected(): void {
     const selected: EntityRowNode[] = [];
+    const selectedClusters: EntityRowNode[][] = [];
+  
+    // 1. Collect all checked profiles (individual or clustered)
     const collect = (nodes: EntityRowNode[]) => {
       if (!nodes) return;
       for (const n of nodes) {
@@ -369,13 +374,28 @@ onCheckboxClick(uid: string): void {
     };
     collect(this.tree);
   
+    // 2. Group fully selected root clusters
+    for (const root of this.tree) {
+      if (root._selected) {
+        const clusterNodes: EntityRowNode[] = [];
+        const collectCluster = (nodes: EntityRowNode[]) => {
+          for (const n of nodes) {
+            clusterNodes.push(n);
+            const kids = this.getChildren(n);
+            if (kids.length) collectCluster(kids);
+          }
+        };
+        collectCluster([root]);
+        selectedClusters.push(clusterNodes);
+      }
+    }
+  
     this.selectionChanged.emit({
       identifier: 'entity',
       selected,
       selectedRows: selected,
-      selectedClusters: []
+      selectedClusters
     });
   }
-
 
 
