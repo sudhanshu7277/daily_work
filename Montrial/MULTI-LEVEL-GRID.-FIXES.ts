@@ -1,86 +1,84 @@
-// 1. Update onHeaderCheckClick() in entity-grid.component.tsReplace onHeaderCheckClick() (around line 1227) with this logic. It evaluates all $N$-level nodes returned by allNodes() and bulk-sets _selected:
+// 1. Update flattenTree() in multi-level-customer-grid.component.ts / entity-grid.component.ts
+//In flattenTree(), update the final loop that sets _isClusterEnd. A row is only a cluster end if it belongs to a cluster (node._level > 0 or node._isParent). Standalone records (node._level === 0 && !node._isParent) must have _isClusterEnd = false.
 
-onHeaderCheckClick(): void {
-    const all = this.allNodes(); // Recurses N-levels deep via getChildren()
-    if (!all.length) return;
+private flattenTree(): EntityRowNode[] {
+    const flattenedRows: EntityRowNode[] = [];
   
-    // If every profile is already selected, deselect all; otherwise, select all
-    const areAllSelected = all.every(n => n._selected);
-    const targetState = !areAllSelected;
+    const recurse = (nodes: EntityRowNode[]) => {
+      if (!nodes) return;
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        node._isClusterEnd = false;
+        flattenedRows.push(node);
   
-    // 1. Bulk update selection state across all N-level nodes
-    all.forEach(node => {
-      node._selected = targetState;
-    });
-  
-    // 2. Sync header checkbox icon ('all' vs 'none')
-    this.syncHeaderCheckbox();
-  
-    // 3. Re-flatten rows & update AG Grid view
-    this.refresh();
-  
-    // 4. Emit updated selection array to side panel / host shell
-    this.emitSelected();
-  }
-
-
-  // 2. Connect onHeaderCheckClick in initColumns() and syncHeaderCheckbox()
-//Ensure columnDefs[0] passes onHeaderCheck pointing to onHeaderCheckClick() inside headerComponentParams:
-
-// In initColumns() (around line 385):
-
-this.columnDefs = [
-    {
-      field: 'profileName',
-      headerName: 'Profile Name',
-      headerComponent: NameHeaderComponent,
-      headerComponentParams: {
-        onHeaderCheck: () => this.onHeaderCheckClick(),
-        state: 'none'
-      },
-      cellRenderer: NameCellComponent,
-      cellRendererParams: {
-        onCheck: (uid: string) => this.onCheckboxClick(uid),
-        onToggle: (uid: string) => this.toggleExpand(uid)
-      }
-    },
-    // ... remaining column definitions
-  ];
-
-
-  // In syncHeaderCheckbox() (line 877 in Image 22):
-//Ensure syncHeaderCheckbox preserves onHeaderCheck when re-assigning headerComponentParams:
-
-private syncHeaderCheckbox(): void {
-    const nodes = this.allNodes();
-    const sel = nodes.filter(n => n._selected).length;
-    const state: 'none' | 'some' | 'all' = 
-      sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
-  
-    this.columnDefs[0] = {
-      ...this.columnDefs[0],
-      headerComponentParams: {
-        ...this.columnDefs[0].headerComponentParams,
-        state,
-        onHeaderCheck: () => this.onHeaderCheckClick()
+        const kids = this.getChildren(node);
+        if (node._isParent && node._expanded && kids.length) {
+          recurse(kids);
+        }
       }
     };
   
-    if (this.gridApi) {
-      this.gridApi.setGridOption('columnDefs', this.columnDefs);
+    recurse(this.tree);
+  
+    // Mark cluster ends ONLY for records that belong to a cluster
+    for (let i = 0; i < flattenedRows.length; i++) {
+      const node = flattenedRows[i];
+      const nextIsRoot = flattenedRows[i + 1] && flattenedRows[i + 1]._level === 0;
+      const isLastRow = i === flattenedRows.length - 1;
+  
+      // Check if the node is part of a cluster (has depth > 0 or has children)
+      const isPartOfCluster = node._level > 0 || node._isParent;
+  
+      if (isPartOfCluster && (nextIsRoot || isLastRow)) {
+        node._isClusterEnd = true;
+      } else {
+        node._isClusterEnd = false;
+      }
     }
-    this.gridApi?.refreshHeader();
+  
+    return flattenedRows;
   }
 
 
-  // 3. Header Component Click Handler (NameHeaderComponent)
-//In NameHeaderComponent (or EntityNameHeaderComponent), make sure the header checkbox click event fires params.onHeaderCheck():
+  // 2. Verify getRowClass in multi-level-customer-grid.component.ts
+//Ensure getRowClass returns standard 'row-child' for individual records:
 
-onCheckClick(e: MouseEvent): void {
-    e.stopPropagation();
-    if (this.params?.onHeaderCheck) {
-      this.params.onHeaderCheck();
+readonly getRowClass = (p: any): string => {
+    const d = p.data as EntityRowNode;
+    if (d?._isParent) {
+      return d._expanded ? 'row-parent-expanded' : 'row-parent-collapsed';
     }
+    return d?._isClusterEnd ? 'row-child row-cluster-end' : 'row-child';
+  };
+
+
+  //3. Verify SCSS/CSS Classes
+//Ensure your grid SCSS handles borders as follows:
+
+/* Standard Individual Rows & Non-Cluster Children */
+.ag-row.row-child {
+    background-color: $bmo-white !important;
+    border-bottom: 1px solid #d8e4e6 !important;
+    border-top: none !important;
+  }
+  
+  /* Expanded Cluster Header: 2px Blue Top Border */
+  .ag-row.row-parent-expanded {
+    background-color: #E8F4FD !important;
+    border-top: 2px solid $bmo-blue !important;
+    border-bottom: 1px solid #b8d9f0 !important;
+  }
+  
+  /* Collapsed Cluster Header: Standard 1px Borders */
+  .ag-row.row-parent-collapsed {
+    background-color: $bmo-white !important;
+    border-top: 1px solid #d8e4e6 !important;
+    border-bottom: 1px solid #d8e4e6 !important;
+  }
+  
+  /* Cluster End (Last Child of Cluster): 2px Blue Bottom Border */
+  .ag-row.row-cluster-end {
+    border-bottom: 2px solid $bmo-blue !important;
   }
 
 
