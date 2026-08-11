@@ -1,34 +1,32 @@
-// Step 1: Update toggleSelectAll in your Component (entity-grid.component.ts / multi-level-customer-grid.component.ts)
-//Replace or update toggleSelectAll so it targets row selection state:
+// 1. Fix toggleSelectAll & onHeaderCheckClick
+//Ensure toggleSelectAll explicitly calls this.syncHeaderCheckbox() after updating node selection:
 
-
-toggleSelectAll(event?: MouseEvent | boolean): void {
-    if (event && typeof event === 'object' && 'stopPropagation' in event) {
-      event.stopPropagation();
-    }
-  
-    const all = this.allNodes(); // Recurses N-levels deep via getChildren()
+toggleSelectAll(select?: boolean): void {
+    const all = this.allNodes();
     if (!all.length) return;
   
-    // Determine target state: if every row is checked, unselect all; otherwise, select all
+    // 1. Determine target state
     const areAllSelected = all.every(n => n._selected);
-    const targetState = typeof event === 'boolean' ? event : !areAllSelected;
+    const targetState = typeof select === 'boolean' ? select : !areAllSelected;
   
-    // Apply target selection state to all nodes across all N-levels
+    // 2. Set _selected state on all N-level nodes
     all.forEach(node => {
       node._selected = targetState;
     });
   
-    // Recompute, sync header icon, refresh grid, and emit selection
+    // 3. Recompute ancestors, sync header state, refresh grid, and emit event
+    this.recomputeAncestors(this.tree);
     this.syncHeaderCheckbox();
     this.refresh();
     this.emitSelected();
   }
+  
+  onHeaderCheckClick(): void {
+    this.toggleSelectAll();
+  }
 
-
-  // Step 2: Ensure syncHeaderCheckbox Refreshes the AG Grid Header
-//syncHeaderCheckbox() calculates whether all, some, or zero rows are selected across all levels and updates AG Grid's header parameters to display the blue checked state:
-
+  // 2. Fix syncHeaderCheckbox Method
+//Ensure syncHeaderCheckbox() correctly re-assigns headerComponentParams so AG Grid triggers a header re-render:
 
 private syncHeaderCheckbox(): void {
     const nodes = this.allNodes();
@@ -47,38 +45,39 @@ private syncHeaderCheckbox(): void {
           onHeaderCheck: () => this.toggleSelectAll()
         }
       };
-      // Force AG Grid to update the header UI to show/hide the blue checkmark
+      // Force AG Grid to update the header component UI
       this.gridApi?.refreshHeader();
     }
   }
 
+  // 3. Ensure onCheckboxClick Calls syncHeaderCheckbox
+//When individual or cluster row checkboxes are clicked, syncHeaderCheckbox() must also be invoked so the header checkbox dynamically syncs between 'none', 'some', and 'all'
 
-  // Step 3: Wire Header Column Defs (columnDefs)
-//In your column configuration array (initColumns()):
-
-{
-    field: 'profileName',
-    headerName: 'Profile Name',
-    headerComponent: NameHeaderComponent,
-    headerComponentParams: {
-      onHeaderCheck: () => this.toggleSelectAll(),
-      onSelectAll: (select: boolean) => this.toggleSelectAll(select),
-      state: 'none'
-    },
-    cellRenderer: NameCellComponent,
-    cellRendererParams: {
-      onCheck: (uid: string) => this.onCheckboxClick(uid),
-      onToggle: (uid: string) => this.toggleExpand(uid)
+onCheckboxClick(uid: string): void {
+    const found = this.findNode(uid);
+    if (!found) return;
+    const { node } = found;
+    node._selected = !node._selected;
+  
+    const children = this.getChildren(node);
+    if (node._isParent && children.length) {
+      this.setDescendantsSelected(children, node._selected);
     }
+    this.recomputeAncestors(this.tree);
+  
+    // Sync header state when row selection changes
+    this.syncHeaderCheckbox();
+    this.refresh();
+    this.emitSelected();
   }
 
 
-  /// Step 4: Header Cell Renderer Component (NameHeaderComponent)
-//Ensure the header component template binds the blue styling cb-box--checked when state === 'all':
+  // 4. Update Header Renderer Template & CSS (NameHeaderComponent)
+//In your header cell renderer (NameHeaderComponent / EntityNameHeaderComponent), make sure the CSS includes background: #0079C1 and the template renders the <svg> checkmark when state === 'all':
 
 
 @Component({
-    selector: 'app-name-header',
+    selector: 'app-entity-name-header',
     standalone: true,
     imports: [CommonModule],
     template: `
@@ -112,7 +111,7 @@ private syncHeaderCheckbox(): void {
       .header-title { font-weight: 700; color: #1a2533; font-size: 13px; }
     `]
   })
-  export class NameHeaderComponent implements IHeaderAngularComp {
+  export class EntityNameHeaderComponent implements IHeaderAngularComp {
     state: 'none' | 'some' | 'all' = 'none';
     private params: any;
   
@@ -134,8 +133,6 @@ private syncHeaderCheckbox(): void {
       e.stopPropagation();
       if (this.params?.onHeaderCheck) {
         this.params.onHeaderCheck();
-      } else if (this.params?.onSelectAll) {
-        this.params.onSelectAll(this.state !== 'all');
       }
     }
   }
