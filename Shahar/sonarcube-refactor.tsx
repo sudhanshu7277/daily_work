@@ -51,7 +51,7 @@ describe('documents API', () => {
   describe('getDocuments', () => {
     it('fetches documents for a given instructionId', async () => {
       const mockDocs = [{ id: 1, fileName: 'test.pdf' }];
-      vi.mocked(get).mockResolvedValueOnce(mockDocs);
+      vi.mocked(get as any).mockResolvedValueOnce(mockDocs);
 
       const result = await getDocuments(101);
 
@@ -63,7 +63,7 @@ describe('documents API', () => {
   describe('recordDocument', () => {
     it('records document with minimum required parameters', async () => {
       const mockDoc = { id: 1, fileName: 'doc.pdf' };
-      vi.mocked(post).mockResolvedValueOnce(mockDoc);
+      vi.mocked(post as any).mockResolvedValueOnce(mockDoc);
 
       const result = await recordDocument(101, {
         fileName: 'doc.pdf',
@@ -78,7 +78,7 @@ describe('documents API', () => {
 
     it('records document with all optional parameters provided', async () => {
       const mockDoc = { id: 2, fileName: 'doc2.pdf' };
-      vi.mocked(post).mockResolvedValueOnce(mockDoc);
+      vi.mocked(post as any).mockResolvedValueOnce(mockDoc);
 
       const result = await recordDocument(101, {
         fileName: 'doc2.pdf',
@@ -98,7 +98,7 @@ describe('documents API', () => {
   describe('uploadDocument', () => {
     it('uploads file with specified documentType and full metadata', async () => {
       const mockResponse = { data: { id: 1, fileName: 'upload.pdf' } };
-      vi.mocked(client.post).mockResolvedValueOnce(mockResponse);
+      vi.mocked(client.post as any).mockResolvedValueOnce(mockResponse);
 
       const mockFile = new File(['file contents'], 'upload.pdf', { type: 'application/pdf' });
 
@@ -127,7 +127,7 @@ describe('documents API', () => {
 
     it('uses fallback documentType "OTHER" when documentType is empty and metadata is omitted', async () => {
       const mockResponse = { data: { id: 2, fileName: 'fallback.txt' } };
-      vi.mocked(client.post).mockResolvedValueOnce(mockResponse);
+      vi.mocked(client.post as any).mockResolvedValueOnce(mockResponse);
 
       const mockFile = new File(['data'], 'fallback.txt', { type: 'text/plain' });
 
@@ -143,7 +143,7 @@ describe('documents API', () => {
   describe('downloadDocument', () => {
     it('triggers a browser file download via temporary anchor element', async () => {
       const mockBlob = new Blob(['binary file data'], { type: 'application/pdf' });
-      vi.mocked(client.get).mockResolvedValueOnce({ data: mockBlob });
+      vi.mocked(client.get as any).mockResolvedValueOnce({ data: mockBlob });
 
       const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
       const appendChildSpy = vi.spyOn(document.body, 'appendChild');
@@ -169,7 +169,7 @@ describe('documents API', () => {
 
   describe('deleteDocument', () => {
     it('sends delete request for specified instructionId and documentId', async () => {
-      vi.mocked(del).mockResolvedValueOnce(undefined);
+      vi.mocked(del as any).mockResolvedValueOnce(undefined);
 
       await deleteDocument(101, 202);
 
@@ -180,7 +180,7 @@ describe('documents API', () => {
   describe('updateDocument', () => {
     it('updates document metadata with query parameters', async () => {
       const mockUpdatedDoc = { id: 202, fileName: 'updated.pdf' };
-      vi.mocked(post).mockResolvedValueOnce(mockUpdatedDoc);
+      vi.mocked(post as any).mockResolvedValueOnce(mockUpdatedDoc);
 
       const result = await updateDocument(101, 202, {
         documentType: 'CONTRACT',
@@ -199,7 +199,7 @@ describe('documents API', () => {
 
     it('sends empty query string when no fields are passed', async () => {
       const mockUpdatedDoc = { id: 202 };
-      vi.mocked(post).mockResolvedValueOnce(mockUpdatedDoc);
+      vi.mocked(post as any).mockResolvedValueOnce(mockUpdatedDoc);
 
       const result = await updateDocument(101, 202, {});
 
@@ -211,7 +211,7 @@ describe('documents API', () => {
   describe('getDocumentPreviewBlob', () => {
     it('creates object URL directly when response data is an instance of Blob', async () => {
       const mockBlob = new Blob(['preview content'], { type: 'application/pdf' });
-      vi.mocked(client.get).mockResolvedValueOnce({ data: mockBlob });
+      vi.mocked(client.get as any).mockResolvedValueOnce({ data: mockBlob });
 
       const result = await getDocumentPreviewBlob(101, 202);
 
@@ -225,7 +225,7 @@ describe('documents API', () => {
 
     it('wraps non-Blob response data in a new Blob before creating object URL', async () => {
       const rawStringData = 'raw string data';
-      vi.mocked(client.get).mockResolvedValueOnce({ data: rawStringData });
+      vi.mocked(client.get as any).mockResolvedValueOnce({ data: rawStringData });
 
       const result = await getDocumentPreviewBlob(101, 202);
 
