@@ -4,251 +4,660 @@ npx vitest run --coverage
 
 
 
-// src/components/common/FilterPresetBar.test.tsx
+// src/pages/mappingDetail/MappingDetailPage.test.tsx
 
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
-import { FilterPresetBar } from './FilterPresetBar';
 
-// --- Mocks ---
-
-const mockListFilterPrefs = vi.fn();
-const mockSaveFilterPref = vi.fn();
-const mockDeleteFilterPref = vi.fn();
-
-vi.mock('../../api/filterPreferences', () => ({
-  listFilterPrefs: (...args: unknown[]) => mockListFilterPrefs(...args),
-  saveFilterPref: (...args: unknown[]) => mockSaveFilterPref(...args),
-  deleteFilterPref: (...args: unknown[]) => mockDeleteFilterPref(...args),
+// --- Hoisted Mocks ---
+const {
+  mockNotification,
+  mockGetAllDocumentMappings,
+  mockCreateDocumentMapping,
+  mockUpdateDocumentMapping,
+  mockGetAllCountryList,
+  mockGetClientListByCountry,
+  mockGetAllDealList,
+  mockNavigate,
+} = vi.hoisted(() => ({
+  mockNotification: {
+    success: vi.fn(),
+    danger: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  },
+  mockGetAllDocumentMappings: vi.fn(),
+  mockCreateDocumentMapping: vi.fn(),
+  mockUpdateDocumentMapping: vi.fn(),
+  mockGetAllCountryList: vi.fn(),
+  mockGetClientListByCountry: vi.fn(),
+  mockGetAllDealList: vi.fn(),
+  mockNavigate: vi.fn(),
 }));
 
-// Mock custom UI components library cleanly
-vi.mock('@citi-icg-172888/icgds-react', async () => {
-  const R = await vi.importActual<typeof import('react')>('react');
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
   return {
-    El: ({ children, ...rest }: any) => R.createElement('div', rest, children),
-    Input: ({ value, onChange, placeholder, disabled, ...rest }: any) =>
-      R.createElement('input', {
-        value: value ?? '',
-        placeholder,
-        disabled,
-        onChange: (e: any) => {
-          if (onChange) onChange(e);
-        },
-        ...rest,
-      }),
-    Button: ({ children, onClick, disabled, ...rest }: any) =>
-      R.createElement('button', { onClick, disabled, ...rest }, children),
-    Dropdown: Object.assign(
-      ({ children, onChange, value, placeholder }: any) =>
-        R.createElement(
-          'div',
-          { 'data-testid': 'dropdown', 'data-value': value ?? '' },
-          R.createElement('span', null, placeholder),
-          children,
-          R.createElement(
-            'button',
-            {
-              'data-testid': 'apply-num',
-              onClick: () => {
-                if (onChange) onChange(2);
-              },
-            },
-            'apply-num'
-          ),
-          R.createElement(
-            'button',
-            {
-              'data-testid': 'apply-str',
-              onClick: () => {
-                if (onChange) onChange('1');
-              },
-            },
-            'apply-str'
-          ),
-          R.createElement(
-            'button',
-            {
-              'data-testid': 'apply-nan',
-              onClick: () => {
-                if (onChange) onChange('abc');
-              },
-            },
-            'apply-nan'
-          )
-        ),
-      {
-        Item: ({ children, value }: any) =>
-          R.createElement('div', { 'data-testid': `option-${value}` }, children),
-      }
-    ),
+    ...actual,
+    useNavigate: () => mockNavigate,
   };
 });
 
-const PAGE_KEY = 'instructions';
+vi.mock('../../api/documentMappings', () => ({
+  getAllDocumentMappings: (...a: unknown[]) => mockGetAllDocumentMappings(...a),
+  createDocumentMapping: (...a: unknown[]) => mockCreateDocumentMapping(...a),
+  updateDocumentMapping: (...a: unknown[]) => mockUpdateDocumentMapping(...a),
+  getAllCountryList: (...a: unknown[]) => mockGetAllCountryList(...a),
+  getClientListByCountry: (...a: unknown[]) => mockGetClientListByCountry(...a),
+  getAllDealList: (...a: unknown[]) => mockGetAllDealList(...a),
+}));
 
-const prefDefault = {
-  filterPrefId: 1,
-  prefName: 'My default view',
-  filtersJson: JSON.stringify({ status: 'OPEN' }),
-  isDefault: true,
-};
+vi.mock('../../context/AuthContext', () => ({
+  useAuthContext: () => ({
+    userPermissions: ['ROLE_MAINTENANCE_SET_UP'],
+  }),
+}));
 
-const prefOther = {
-  filterPrefId: 2,
-  prefName: 'Second view',
-  filtersJson: JSON.stringify({ status: 'CLOSED' }),
-  isDefault: false,
-};
-
-function renderBar(overrides: Partial<Record<string, unknown>> = {}) {
-  const onApply = vi.fn();
-  const currentFilters = { status: 'PENDING' };
-
-  render(
-    <FilterPresetBar
-      pageKey={PAGE_KEY}
-      currentFilters={currentFilters}
-      onApply={onApply}
-      {...(overrides as any)}
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  El: ({ children, className, style, ...props }: any) => (
+    <div className={className} style={style} {...props}>
+      {children}
+    </div>
+  ),
+  Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
+    <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
+      {children}
+    </button>
+  ),
+  Input: ({ value, onChange, placeholder, disabled, style }: any) => (
+    <input
+      placeholder={placeholder}
+      value={value ?? ''}
+      disabled={disabled}
+      style={style}
+      onChange={onChange}
+      data-testid={`input-${placeholder || 'default'}`}
     />
-  );
+  ),
+  TextArea: ({ value, onChange, placeholder, style }: any) => (
+    <textarea
+      placeholder={placeholder}
+      value={value ?? ''}
+      style={style}
+      onChange={onChange}
+      data-testid="textarea"
+    />
+  ),
+  Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
+    visible ? (
+      <div data-testid="modal">
+        <h2>{title}</h2>
+        {children}
+        <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
+        <button onClick={onApply}>{applyText || 'Apply'}</button>
+      </div>
+    ) : null,
+  Dropdown: Object.assign(
+    ({ value, onChange, children, disabled, placeholder, style }: any) => (
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        style={style}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid="dropdown"
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {children}
+      </select>
+    ),
+    {
+      Item: ({ value, children }: any) => <option value={value}>{children}</option>,
+    }
+  ),
+  SearchableDropdown: ({ value, onChange, options, disabled, placeholder, label }: any) => (
+    <div data-testid={`searchable-dropdown-${label || placeholder}`}>
+      <label>{label}</label>
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid={`select-${label || placeholder}`}
+      >
+        <option value="">{placeholder}</option>
+        {options?.map((opt: any) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  ),
+  Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
+  Loading: ({ tip }: any) => <div>{tip}</div>,
+  Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
+  notification: mockNotification,
+}));
 
-  return { onApply, currentFilters };
-}
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => (
+    <div data-testid="ag-grid">
+      <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
+      {rowData?.map((row: any, rowIndex: number) => (
+        <div key={row.key || row.mappingId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+          {columnDefs?.map((col: any, colIndex: number) => {
+            const cellParams = {
+              data: row,
+              value: row[col.field],
+              node: { data: row },
+            };
+            return (
+              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
+                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  ),
+}));
 
-describe('FilterPresetBar', () => {
+import MappingDetailPage from './MappingDetailPage';
+
+const mockMappings = [
+  {
+    mappingId: 101,
+    docKeyword: 'INVOICE',
+    dealKey: 'DEAL-999',
+    dealName: 'Alpha Trade',
+    clientGFCID: 'GFC123',
+    clientName: 'Acme Corp',
+    dealCountry: 'US',
+    comments: 'Standard invoice mapping',
+    isActive: true,
+    createdBy: 'user1',
+    createdOn: '2026-01-15T10:00:00Z',
+    updatedBy: 'user2',
+    updatedOn: '2026-02-01T12:00:00Z',
+  },
+  {
+    mappingId: 102,
+    docKeyword: 'CONTRACT',
+    dealKey: 'DEAL-888',
+    dealName: 'Beta Finance',
+    clientGFCID: 'GFC456',
+    clientName: 'Globex Inc',
+    dealCountry: 'CA',
+    comments: 'Legal contract',
+    isActive: false,
+    createdBy: 'user3',
+    createdOn: '2026-03-10T08:30:00Z',
+  },
+];
+
+const mockCountries = [
+  { key: 'US', value: 'United States' },
+  { key: 'CA', value: 'Canada' },
+];
+
+const mockClients = [
+  { clientId: '1', clientName: 'Acme Corp', clientGFCID: 'GFC123' },
+  { clientId: '2', clientName: 'Globex Inc', clientGFCID: 'GFC456' },
+];
+
+const mockDeals = [
+  { dealId: '10', dealShortName: 'Alpha', dealLongName: 'Alpha Trade', dealKey: 'DEAL-999' },
+  { dealId: '20', dealShortName: 'Beta', dealLongName: 'Beta Finance', dealKey: 'DEAL-888' },
+];
+
+describe('MappingDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockListFilterPrefs.mockResolvedValue({ data: [prefDefault, prefOther] });
-    mockSaveFilterPref.mockResolvedValue({ data: { success: true } });
-    mockDeleteFilterPref.mockResolvedValue({ data: { success: true } });
+    mockGetAllDocumentMappings.mockResolvedValue(mockMappings);
+    mockGetAllCountryList.mockResolvedValue(mockCountries);
+    mockGetClientListByCountry.mockResolvedValue(mockClients);
+    mockGetAllDealList.mockResolvedValue(mockDeals);
+    mockCreateDocumentMapping.mockResolvedValue({ status: 200 });
+    mockUpdateDocumentMapping.mockResolvedValue({ status: 200 });
   });
 
-  it('loads prefs on mount and renders an item per saved view', async () => {
-    renderBar();
+  it('fetches and renders document mapping list on mount', async () => {
+    render(<MappingDetailPage />);
 
     await waitFor(() => {
-      expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY);
+      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    expect(screen.getByTestId('option-1').textContent).toContain('My default view (default)');
-    expect(screen.getByTestId('option-2').textContent).toBe('Second view');
+    expect(screen.getByText('Document and Client Mapping')).toBeInTheDocument();
   });
 
-  it('auto-applies the default pref (deserialized) on mount', async () => {
-    const { onApply } = renderBar();
+  it('renders error alert when mapping fetch API fails', async () => {
+    mockGetAllDocumentMappings.mockRejectedValueOnce(new Error('API Failure'));
+
+    render(<MappingDetailPage />);
 
     await waitFor(() => {
-      expect(onApply).toHaveBeenCalledWith({ status: 'OPEN' });
+      expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
     });
   });
 
-  it('tolerates a missing data field (res.data ?? [])', async () => {
-    mockListFilterPrefs.mockResolvedValue({});
+  it('filters grid rows dynamically when typing into search input', async () => {
+    render(<MappingDetailPage />);
 
-    const { onApply } = renderBar();
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+    const searchInput = screen.getByPlaceholderText('Search keyword / client / deal...');
+    fireEvent.change(searchInput, { target: { value: 'INVOICE' } });
 
-    expect(screen.queryByTestId('option-1')).toBeNull();
-    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
   });
 
-  it('applies the matching pref when a view is selected', async () => {
-    const { onApply } = renderBar();
+  it('renders status icons correctly inside custom cell renderers', async () => {
+    render(<MappingDetailPage />);
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
 
-    onApply.mockClear();
-
-    fireEvent.click(screen.getByTestId('apply-num'));
-
-    expect(onApply).toHaveBeenCalledWith({ status: 'CLOSED' });
+    expect(screen.getByTestId('cell-isActiveDisplay-0').querySelector('.icon-check-circle')).toBeInTheDocument();
+    expect(screen.getByTestId('cell-isActiveDisplay-1').querySelector('.icon-close-circle')).toBeInTheDocument();
   });
 
-  it('coerces a numeric-string selection via Number()', async () => {
-    const { onApply } = renderBar();
+  it('opens Add Modal, handles country/client/deal cascading changes, and submits form', async () => {
+    render(<MappingDetailPage />);
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
 
-    onApply.mockClear();
+    fireEvent.click(screen.getByText('Add Mapping Details'));
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('apply-str'));
+    const keywordInput = screen.getByPlaceholderText('Enter document keyword');
+    fireEvent.change(keywordInput, { target: { value: 'PURCHASE_ORDER' } });
 
-    expect(onApply).toHaveBeenCalledWith({ status: 'OPEN' });
-  });
+    const countrySelect = screen.getByTestId('dropdown');
+    fireEvent.change(countrySelect, { target: { value: 'US' } });
 
-  it('ignores a non-numeric selection (early return)', async () => {
-    const { onApply } = renderBar();
+    await waitFor(() => {
+      expect(mockGetClientListByCountry).toHaveBeenCalledWith('US');
+    });
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+    const clientSelect = screen.getByTestId('select-Client');
+    fireEvent.change(clientSelect, { target: { value: '1' } });
 
-    onApply.mockClear();
+    await waitFor(() => {
+      expect(mockGetAllDealList).toHaveBeenCalledWith('1');
+    });
 
-    fireEvent.click(screen.getByTestId('apply-nan'));
+    const dealSelect = screen.getByTestId('select-Deal');
+    fireEvent.change(dealSelect, { target: { value: '10' } });
 
-    expect(onApply).not.toHaveBeenCalled();
-  });
+    const commentArea = screen.getByTestId('textarea');
+    fireEvent.change(commentArea, { target: { value: 'Test mapping note' } });
 
-  it('does not save when the view name is blank', async () => {
-    renderBar();
+    const deactivateRadio = screen.getByLabelText('De-Activate');
+    fireEvent.click(deactivateRadio);
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+    fireEvent.click(screen.getByText('Add Mapping'));
 
-    const saveBtn = screen.getByText('Save view');
-    fireEvent.click(saveBtn);
-
-    expect(mockSaveFilterPref).not.toHaveBeenCalled();
-  });
-
-  it('saves a new view with serialized current filters, then reloads', async () => {
-    renderBar();
-
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
-
-    const input = screen.getByPlaceholderText('View name');
-    fireEvent.change(input, { target: { value: 'New view' } });
-
-    const saveBtn = screen.getByText('Save view');
-    fireEvent.click(saveBtn);
-
-    // Flush microtasks so the save promise resolves and calls listFilterPrefs
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockSaveFilterPref).toHaveBeenCalled();
-      expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
+      expect(mockCreateDocumentMapping).toHaveBeenCalled();
+      expect(mockNotification.success).toHaveBeenCalledWith('Document mapping created successfully');
     });
   });
 
-  it('disables Delete until a pref is selected, then deletes and reloads', async () => {
-    renderBar();
+  it('closes Add Modal when Cancel is clicked', async () => {
+    render(<MappingDetailPage />);
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
 
-    const deleteBtn = screen.getByText('Delete') as HTMLButtonElement;
-    expect(deleteBtn.disabled).toBe(true);
+    fireEvent.click(screen.getByText('Add Mapping Details'));
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('apply-num'));
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+  });
 
-    expect((screen.getByText('Delete') as HTMLButtonElement).disabled).toBe(false);
+  it('opens Edit Modal, modifies comments, and saves changes', async () => {
+    render(<MappingDetailPage />);
 
-    fireEvent.click(screen.getByText('Delete'));
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
 
-    // Flush microtasks so the delete promise resolves and calls listFilterPrefs
+    const editButtons = screen.getAllByTitle('Edit');
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Mapping Details')).toBeInTheDocument();
+    });
+
+    const commentArea = screen.getByTestId('textarea');
+    fireEvent.change(commentArea, { target: { value: 'Updated comment details' } });
+
+    fireEvent.click(screen.getByText('Save Changes'));
+
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockDeleteFilterPref).toHaveBeenCalledWith(2);
-      expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
+      expect(mockUpdateDocumentMapping).toHaveBeenCalled();
+      expect(mockNotification.success).toHaveBeenCalledWith('Document mapping updated successfully');
+    });
+  });
+
+  it('re-fetches mapping list on Refresh button click', async () => {
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTitle('Refresh'));
+
+    await waitFor(() => {
+      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+
+
+// src/pages/tickler/TicklerTaskPage.test.tsx
+
+// @vitest-environment jsdom
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import React from 'react';
+
+// --- Hoisted Mocks ---
+const {
+  mockNotification,
+  mockGetRefDataByType,
+  mockGetTicklerTasks,
+  mockCreateTicklerTask,
+  mockUpdateTicklerTask,
+  mockNavigate,
+} = vi.hoisted(() => ({
+  mockNotification: {
+    success: vi.fn(),
+    danger: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  },
+  mockGetRefDataByType: vi.fn(),
+  mockGetTicklerTasks: vi.fn(),
+  mockCreateTicklerTask: vi.fn(),
+  mockUpdateTicklerTask: vi.fn(),
+  mockNavigate: vi.fn(),
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
+}));
+
+vi.mock('../../api/tickler', () => ({
+  getTicklerTasks: (...a: unknown[]) => mockGetTicklerTasks(...a),
+  createTicklerTask: (...a: unknown[]) => mockCreateTicklerTask(...a),
+  updateTicklerTask: (...a: unknown[]) => mockUpdateTicklerTask(...a),
+}));
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuthContext: () => ({
+    userPermissions: ['ROLE_TICKLER_MAINTENANCE'],
+  }),
+}));
+
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  El: ({ children, className, style, ...props }: any) => (
+    <div className={className} style={style} {...props}>
+      {children}
+    </div>
+  ),
+  Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
+    <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
+      {children}
+    </button>
+  ),
+  Input: ({ value, onChange, placeholder, disabled, style }: any) => (
+    <input
+      placeholder={placeholder}
+      value={value ?? ''}
+      disabled={disabled}
+      style={style}
+      onChange={onChange}
+      data-testid={`input-${placeholder || 'default'}`}
+    />
+  ),
+  TextArea: ({ value, onChange, placeholder, style }: any) => (
+    <textarea
+      placeholder={placeholder}
+      value={value ?? ''}
+      style={style}
+      onChange={onChange}
+      data-testid="textarea"
+    />
+  ),
+  Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
+    visible ? (
+      <div data-testid="modal">
+        <h2>{title}</h2>
+        {children}
+        <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
+        <button onClick={onApply}>{applyText || 'Apply'}</button>
+      </div>
+    ) : null,
+  Dropdown: Object.assign(
+    ({ value, onChange, children, disabled, placeholder, style }: any) => (
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        style={style}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid="dropdown"
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {children}
+      </select>
+    ),
+    {
+      Item: ({ value, children }: any) => <option value={value}>{children}</option>,
+    }
+  ),
+  Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
+  Loading: ({ tip }: any) => <div>{tip}</div>,
+  Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
+  notification: mockNotification,
+}));
+
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => (
+    <div data-testid="ag-grid">
+      <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
+      {rowData?.map((row: any, rowIndex: number) => (
+        <div key={row.taskId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+          {columnDefs?.map((col: any, colIndex: number) => {
+            const cellParams = {
+              data: row,
+              value: row[col.field],
+              node: { data: row },
+            };
+            return (
+              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
+                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
+import TicklerTaskPage from './TicklerTaskPage';
+
+const mockTasks = [
+  {
+    taskId: 'TASK-101',
+    taskName: 'Review Credit Line',
+    category: 'CREDIT',
+    status: 'OPEN',
+    dueDate: '2026-09-01',
+    assignedTo: 'John Doe',
+    description: 'Annual credit assessment',
+  },
+  {
+    taskId: 'TASK-102',
+    taskName: 'Verify Compliance Docs',
+    category: 'LEGAL',
+    status: 'COMPLETED',
+    dueDate: '2026-08-15',
+    assignedTo: 'Jane Smith',
+    description: 'Check KYC documentation',
+  },
+];
+
+const mockCategories = [
+  { key: 'CREDIT', value: 'Credit Review' },
+  { key: 'LEGAL', value: 'Legal Documentation' },
+];
+
+describe('TicklerTaskPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetTicklerTasks.mockResolvedValue(mockTasks);
+    mockGetRefDataByType.mockResolvedValue(mockCategories);
+    mockCreateTicklerTask.mockResolvedValue({ status: 200 });
+    mockUpdateTicklerTask.mockResolvedValue({ status: 200 });
+  });
+
+  it('fetches tickler tasks and reference data on mount', async () => {
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(1);
+      expect(mockGetRefDataByType).toHaveBeenCalledWith('TICKLER_CATEGORY');
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+  });
+
+  it('displays danger alert if fetching tickler tasks fails', async () => {
+    mockGetTicklerTasks.mockRejectedValueOnce(new Error('Network error'));
+
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
+    });
+  });
+
+  it('filters task list based on search keyword input', async () => {
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search task / category / assigned...');
+    fireEvent.change(searchInput, { target: { value: 'Credit' } });
+
+    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
+  });
+
+  it('opens Create Task modal and submits new task details', async () => {
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Task'));
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+
+    const nameInput = screen.getByPlaceholderText('Enter task name');
+    fireEvent.change(nameInput, { target: { value: 'New Financial Audit' } });
+
+    const categorySelect = screen.getByTestId('dropdown');
+    fireEvent.change(categorySelect, { target: { value: 'CREDIT' } });
+
+    const descArea = screen.getByTestId('textarea');
+    fireEvent.change(descArea, { target: { value: 'Quarterly review notes' } });
+
+    fireEvent.click(screen.getByText('Apply'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockCreateTicklerTask).toHaveBeenCalled();
+      expect(mockNotification.success).toHaveBeenCalledWith('Tickler task created successfully');
+    });
+  });
+
+  it('opens Edit Task modal via cell renderer action and updates task', async () => {
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const editButtons = screen.getAllByTitle('Edit');
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeInTheDocument();
+    });
+
+    const descArea = screen.getByTestId('textarea');
+    fireEvent.change(descArea, { target: { value: 'Updated task description' } });
+
+    fireEvent.click(screen.getByText('Apply'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateTicklerTask).toHaveBeenCalled();
+      expect(mockNotification.success).toHaveBeenCalledWith('Tickler task updated successfully');
+    });
+  });
+
+  it('reloads task list when Refresh button is clicked', async () => {
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTitle('Refresh'));
+
+    await waitFor(() => {
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(2);
     });
   });
 });
