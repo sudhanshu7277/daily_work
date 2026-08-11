@@ -2,7 +2,8 @@
 
 npx vitest run --coverage
 
-// src/pages/audit/AuditTrailPage.test.tsx
+
+// src/pages/thresholds/ThresholdManagementPage.test.tsx
 
 // @vitest-environment jsdom
 
@@ -13,12 +14,25 @@ import '@testing-library/jest-dom';
 
 // --- Hoisted Mock Declarations ---
 const {
-  mockGetInstructionHistory,
-  mockGetFieldHistory,
+  mockNotification,
+  mockGetActiveThresholds,
+  mockCreateThreshold,
+  mockUpdateThreshold,
+  mockDeactivateThreshold,
+  mockGetRefDataByType,
   mockNavigate,
 } = vi.hoisted(() => ({
-  mockGetInstructionHistory: vi.fn(),
-  mockGetFieldHistory: vi.fn(),
+  mockNotification: {
+    success: vi.fn(),
+    danger: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  },
+  mockGetActiveThresholds: vi.fn(),
+  mockCreateThreshold: vi.fn(),
+  mockUpdateThreshold: vi.fn(),
+  mockDeactivateThreshold: vi.fn(),
+  mockGetRefDataByType: vi.fn(),
   mockNavigate: vi.fn(),
 }));
 
@@ -32,13 +46,19 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../api/audit', () => ({
-  getInstructionHistory: (...a: unknown[]) => mockGetInstructionHistory(...a),
-  getFieldHistory: (...a: unknown[]) => mockGetFieldHistory(...a),
+vi.mock('../../api/thresholds', () => ({
+  getActiveThresholds: (...a: unknown[]) => mockGetActiveThresholds(...a),
+  createThreshold: (...a: unknown[]) => mockCreateThreshold(...a),
+  updateThreshold: (...a: unknown[]) => mockUpdateThreshold(...a),
+  deactivateThreshold: (...a: unknown[]) => mockDeactivateThreshold(...a),
+}));
+
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
 }));
 
 vi.mock('../../utils/format', () => ({
-  formatDateTime: (val: string) => `Formatted: ${val}`,
+  formatCurrency: (val: number, curr: string) => `${curr} ${val}`,
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', async () => {
@@ -49,23 +69,25 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         {children}
       </div>
     ),
-    Button: ({ children, onClick, disabled, color, className }: any) => (
-      <button onClick={onClick} disabled={disabled} className={className} data-testid="search-button">
+    Button: ({ children, onClick, title, disabled, color, 'aria-label': ariaLabel }: any) => (
+      <button
+        onClick={onClick}
+        title={title}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        data-testid={`btn-${title || 'action'}`}
+      >
         {children}
       </button>
     ),
-    Input: ({ value, onChange, placeholder, disabled, onPressEnter }: any) => (
+    Input: ({ value, onChange, placeholder, disabled, type }: any) => (
       <input
         placeholder={placeholder}
         value={value ?? ''}
         disabled={disabled}
+        type={type}
         onChange={onChange}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && onPressEnter) {
-            onPressEnter();
-          }
-        }}
-        data-testid="instruction-input"
+        data-testid={`input-${placeholder || type || 'default'}`}
       />
     ),
     Card: Object.assign(
@@ -74,20 +96,36 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         body: ({ children }: any) => <div>{children}</div>,
       }
     ),
-    Tab: Object.assign(
-      ({ children }: any) => <div data-testid="tabs">{children}</div>,
+    Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
+      visible ? (
+        <div data-testid="modal">
+          <h2>{title}</h2>
+          {children}
+          <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
+          <button onClick={onApply}>{applyText || 'Apply'}</button>
+        </div>
+      ) : null,
+    Dropdown: Object.assign(
+      ({ value, onChange, children, disabled, placeholder, style, label }: any) => (
+        <select
+          value={value ?? ''}
+          disabled={disabled}
+          style={style}
+          onChange={(e) => onChange(e.target.value)}
+          data-testid={`dropdown-${label || placeholder || 'select'}`}
+        >
+          {placeholder && <option value="">{placeholder}</option>}
+          {children}
+        </select>
+      ),
       {
-        TabPane: ({ children, tab }: any) => (
-          <div data-testid="tab-pane">
-            <div data-testid="tab-header">{tab}</div>
-            {children}
-          </div>
-        ),
+        Item: ({ value, children }: any) => <option value={value}>{children}</option>,
       }
     ),
     Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
     Loading: ({ tip }: any) => <div data-testid="loading-spinner">{tip}</div>,
     Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
+    notification: mockNotification,
   };
 });
 
@@ -96,145 +134,277 @@ vi.mock('ag-grid-react', () => ({
     <div data-testid="ag-grid">
       <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
       {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.key || rowIndex} data-testid={`grid-row-${rowIndex}`}>
-          {columnDefs?.map((col: any, colIndex: number) => (
-            <div key={colIndex} data-testid={`cell-${col.field || colIndex}-${rowIndex}`}>
-              {row[col.field] ?? ''}
-            </div>
-          ))}
+        <div key={row.key || row.thresholdId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+          {columnDefs?.map((col: any, colIndex: number) => {
+            const cellParams = {
+              data: row,
+              value: row[col.field],
+              node: { data: row },
+            };
+            return (
+              <div key={colIndex} data-testid={`cell-${col.field || colIndex}-${rowIndex}`}>
+                {col.cellRenderer
+                  ? col.cellRenderer(cellParams)
+                  : col.valueFormatter
+                  ? col.valueFormatter(cellParams)
+                  : String(row[col.field] ?? '')}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
   ),
 }));
 
-import AuditTrailPage from './AuditTrailPage';
+import ThresholdManagementPage from './ThresholdManagementPage';
 
-// --- Test Fixtures ---
+// --- Test Data Fixtures ---
 
-const mockHistoryResponse = {
+const mockThresholdsList = [
+  {
+    thresholdId: 101,
+    currency: 'USD',
+    region: 'GLOBAL',
+    thresholdAmount: 50000,
+    requiresSuperChecker: true,
+    description: 'Global USD limit',
+  },
+  {
+    thresholdId: 102,
+    currency: 'EUR',
+    region: 'EMEA',
+    thresholdAmount: 75000,
+    requiresSuperChecker: false,
+    description: 'EMEA EUR limit',
+  },
+];
+
+const mockRegionRefData = {
   data: [
-    {
-      auditId: 1,
-      instructionId: 101,
-      action: 'STATUS_CHANGE',
-      oldStatus: 'NEW',
-      newStatus: 'APPROVED',
-      comments: 'Approved by manager',
-      performedBy: 'USER01',
-      performedOn: '2026-08-11T10:00:00Z',
-    },
+    { refCode: 'GLOBAL', refValue: 'Global' },
+    { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
   ],
 };
 
-const mockFieldHistoryResponse = {
-  data: [
-    {
-      fieldName: 'amount',
-      oldValue: '1000',
-      newValue: '2000',
-      changedBy: 'USER01',
-      changedOn: '2026-08-11T10:05:00Z',
-    },
-  ],
-};
-
-describe('AuditTrailPage', () => {
+describe('ThresholdManagementPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetInstructionHistory.mockResolvedValue(mockHistoryResponse);
-    mockGetFieldHistory.mockResolvedValue(mockFieldHistoryResponse);
+    mockGetActiveThresholds.mockResolvedValue({ data: mockThresholdsList });
+    mockGetRefDataByType.mockResolvedValue(mockRegionRefData);
+    mockCreateThreshold.mockResolvedValue({ status: 200 });
+    mockUpdateThreshold.mockResolvedValue({ status: 200 });
+    mockDeactivateThreshold.mockResolvedValue({ status: 200 });
   });
 
-  it('renders initial page state with disabled search button', () => {
-    render(<AuditTrailPage />);
-
-    expect(screen.getByText('Audit Trail')).toBeInTheDocument();
-
-    const searchBtn = screen.getByTestId('search-button') as HTMLButtonElement;
-    expect(searchBtn.disabled).toBe(true);
-  });
-
-  it('fetches history data when Instruction ID is entered and Search is clicked', async () => {
-    render(<AuditTrailPage />);
-
-    const input = screen.getByTestId('instruction-input');
-    fireEvent.change(input, { target: { value: '101' } });
-
-    const searchBtn = screen.getByTestId('search-button') as HTMLButtonElement;
-    expect(searchBtn.disabled).toBe(false);
-
-    fireEvent.click(searchBtn);
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+  it('fetches thresholds and region refData on mount and renders grid', async () => {
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
-      expect(mockGetInstructionHistory).toHaveBeenCalledWith(101);
-      expect(mockGetFieldHistory).toHaveBeenCalledWith(101);
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+      expect(mockGetRefDataByType).toHaveBeenCalledWith('REGION');
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    expect(screen.getByText(/Action History/i)).toBeInTheDocument();
-    expect(screen.getByText(/Field Changes/i)).toBeInTheDocument();
+    expect(screen.getByText('Payment Thresholds')).toBeInTheDocument();
   });
 
-  it('triggers search when Enter key is pressed inside the input field', async () => {
-    render(<AuditTrailPage />);
-
-    const input = screen.getByTestId('instruction-input');
-    fireEvent.change(input, { target: { value: '202' } });
-
-    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+  it('renders status icons correctly (check-circle for true, close-circle for false)', async () => {
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
-      expect(mockGetInstructionHistory).toHaveBeenCalledWith(202);
-      expect(mockGetFieldHistory).toHaveBeenCalledWith(202);
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
+
+    expect(screen.getByTestId('cell-requiresSuperChecker-0').querySelector('.icon-check-circle')).toBeInTheDocument();
+    expect(screen.getByTestId('cell-requiresSuperChecker-1').querySelector('.icon-close-circle')).toBeInTheDocument();
   });
 
-  it('displays empty state messages when search returns no action or field history', async () => {
-    mockGetInstructionHistory.mockResolvedValueOnce({ data: [] });
-    mockGetFieldHistory.mockResolvedValueOnce({ data: [] });
+  it('renders danger alert when fetching threshold list rejects', async () => {
+    mockGetActiveThresholds.mockRejectedValueOnce(new Error('Failed to load thresholds'));
 
-    render(<AuditTrailPage />);
-
-    const input = screen.getByTestId('instruction-input');
-    fireEvent.change(input, { target: { value: '999' } });
-
-    fireEvent.click(screen.getByTestId('search-button'));
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('No action history found')).toBeInTheDocument();
-      expect(screen.getByText('No field changes found')).toBeInTheDocument();
-    });
-  });
-
-  it('displays danger alert when API fetch fails', async () => {
-    mockGetInstructionHistory.mockRejectedValueOnce(new Error('Network Error'));
-
-    render(<AuditTrailPage />);
-
-    const input = screen.getByTestId('instruction-input');
-    fireEvent.change(input, { target: { value: '101' } });
-
-    fireEvent.click(screen.getByTestId('search-button'));
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
-      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Network Error');
+      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Failed to load thresholds');
+    });
+  });
+
+  it('opens Create Threshold modal, populates form fields, and submits successfully', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Threshold'));
+
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+    expect(screen.getByText('Create Threshold')).toBeInTheDocument();
+
+    // Fill Threshold Amount
+    const amountInput = screen.getByTestId('input-number');
+    fireEvent.change(amountInput, { target: { value: '120000' } });
+
+    // Fill Description
+    const descInput = screen.getByPlaceholderText('Threshold description');
+    fireEvent.change(descInput, { target: { value: 'New corporate limit' } });
+
+    // Submit Create Form
+    fireEvent.click(screen.getByText('Create'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockCreateThreshold).toHaveBeenCalledWith({
+        currency: 'USD',
+        region: 'GLOBAL',
+        thresholdAmount: 120000,
+        requiresSuperChecker: true,
+        description: 'New corporate limit',
+      });
+      expect(mockNotification.success).toHaveBeenCalledWith({
+        title: 'Created',
+        content: 'Threshold created',
+      });
+    });
+  });
+
+  it('opens Edit Threshold modal with pre-populated data and updates threshold', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    // Trigger openEditModal for row 0
+    const editBtn = screen.getAllByTitle('Edit')[0];
+    fireEvent.click(editBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeInTheDocument();
+      expect(screen.getByText('Edit Threshold')).toBeInTheDocument();
+    });
+
+    const amountInput = screen.getByTestId('input-number');
+    fireEvent.change(amountInput, { target: { value: '65000' } });
+
+    fireEvent.click(screen.getByText('Update'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateThreshold).toHaveBeenCalledWith(101, expect.objectContaining({
+        thresholdAmount: 65000,
+      }));
+      expect(mockNotification.success).toHaveBeenCalledWith({
+        title: 'Updated',
+        content: 'Threshold updated',
+      });
+    });
+  });
+
+  it('handles threshold deactivation via row action button', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const revokeBtn = screen.getAllByTitle('Revoke')[0];
+    fireEvent.click(revokeBtn);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockDeactivateThreshold).toHaveBeenCalledWith(101);
+      expect(mockNotification.success).toHaveBeenCalledWith({
+        title: 'Deactivated',
+        content: 'Threshold deactivated',
+      });
+    });
+  });
+
+  it('displays notification.danger when save action rejects', async () => {
+    mockCreateThreshold.mockRejectedValueOnce(new Error('Creation error'));
+
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Threshold'));
+    fireEvent.click(screen.getByText('Create'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockNotification.danger).toHaveBeenCalledWith({
+        title: 'Error',
+        content: 'Creation error',
+      });
+    });
+  });
+
+  it('displays notification.danger when deactivate action rejects', async () => {
+    mockDeactivateThreshold.mockRejectedValueOnce(new Error('Deactivation error'));
+
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const revokeBtn = screen.getAllByTitle('Revoke')[0];
+    fireEvent.click(revokeBtn);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockNotification.danger).toHaveBeenCalledWith({
+        title: 'Error',
+        content: 'Deactivation error',
+      });
+    });
+  });
+
+  it('closes Modal when Cancel button is clicked', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Threshold'));
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+  });
+
+  it('reloads threshold data when Refresh button is clicked', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTitle('Refresh'));
+
+    await waitFor(() => {
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(2);
     });
   });
 });
