@@ -1,131 +1,9 @@
-// Updated mapPlayer (Complete Function):
+// 1. EntityNameCellComponent (Class & Template Alignment)
+//Replace EntityNameCellComponent in entity-grid.component.ts. This aligns class properties (_level, _isParent, _selected, _expanded) with the 
+// //template bindings and applies dynamic padding calculated as _level * 24px.
 
 
-private mapPlayer = (p: any): any => {
-    // Resolves nested child arrays dynamically at any level
-    const rawChildren = p.children || p.rolePlayers || p.subRolePlayers || [];
-    const hasChildren = Array.isArray(rawChildren) && rawChildren.length > 0;
-  
-    return {
-      profileName: this.toTitleCase(p.profileName) ?? '',
-      ocifId: this.extractOcifId(p),
-      status: mapLegalHoldStatusToUi(p.legalHoldStatus),
-      holdName: p.holdName ?? p.legalHoldName ?? '',
-      lifecycle: p.customerLifecycleStatus ?? p.lifecycle ?? 'N/A',
-      roleType: p.roleType ?? p.role ?? '',
-      address: typeof p.address === 'string' ? p.address : (p.address?.addressLineOne || ''),
-      isSuspect: p.isSuspectProfile === 'Yes' || p.isSuspect === true,
-      eDiscoveryProjectManager: p.eDiscoveryProjectManager ?? '',
-      responsibleLawyerEmail: p.responsibleLawyerEmail ?? '',
-      holdApplyDateTime: p.holdApplyDateTime ?? p.holdAppliedDate ?? '',
-      holdReleaseDate: p.holdReleaseDate ?? '',
-      
-      // Parent detection & state defaults
-      _isParent: hasChildren,
-      _expanded: false,
-      _selected: false,
-      
-      // Infinite depth recursion
-      children: rawChildren.map((rp: any) => this.mapPlayer(rp))
-    };
-  };
-
-
-
-  // 2. Complete Tree Processing Fixes (stampTree, flattenTree, onSortChanged)
-// Replace these three methods in EntityGridComponent in entity-grid.component.ts:
-
-private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
-    nodes.forEach((node, index) => {
-      // Generate deterministic UID for N-level tracking (e.g. r0, r0-0, r0-0-1)
-      node._uid = parentUid ? `${parentUid}-${index}` : `r${index}`;
-      
-      // Explicitly set node level without mutating outer scope variables
-      node._level = level;
-      
-      // Evaluate parent status dynamically
-      node._isParent = Array.isArray(node.children) && node.children.length > 0;
-      
-      // Maintain state or set defaults
-      node._expanded = node._expanded ?? false;
-      node._selected = node._selected ?? false;
-      node._isClusterEnd = false;
-  
-      // Recurse into sub-children passing level + 1 directly in function call argument
-      // DO NOT write level++ or level += 1 inside the loop
-      if (node._isParent && node.children?.length) {
-        this.stampTree(node.children, node._uid, level + 1);
-      }
-    });
-  }
-  
-  private flattenTree(): EntityRowNode[] {
-    const flattenedRows: EntityRowNode[] = [];
-  
-    // Sequential depth-first traversal to maintain visual tree ordering
-    const recurse = (nodes: EntityRowNode[]) => {
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-        node._isClusterEnd = false;
-        flattenedRows.push(node);
-  
-        // Render children only if parent is expanded
-        if (node._isParent && node._expanded && node.children?.length) {
-          recurse(node.children);
-        }
-      }
-    };
-  
-    recurse(this.tree);
-  
-    // Mark cluster ends for visual border lines in AG Grid CSS
-    for (let i = 0; i < flattenedRows.length; i++) {
-      const nextIsRoot = flattenedRows[i + 1] && flattenedRows[i + 1]._level === 0;
-      const isLastRow = i === flattenedRows.length - 1;
-      if (nextIsRoot || isLastRow) {
-        flattenedRows[i]._isClusterEnd = true;
-      }
-    }
-  
-    return flattenedRows;
-  }
-  
-  onSortChanged(): void {
-    const sortState = this.gridApi?.getColumnState().find(s => s.sort != null);
-    if (!sortState) {
-      this.currentPage = 1;
-      this.refresh();
-      return;
-    }
-  
-    const field = sortState.colId;
-    const dir = sortState.sort as 'asc' | 'desc';
-  
-    const sortFn = (a: any, b: any) => {
-      const valA = (a[field] ?? '').toString().toLowerCase();
-      const valB = (b[field] ?? '').toString().toLowerCase();
-      return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    };
-  
-    // Sort top-level and all nested sub-branches recursively
-    const sortRecursive = (nodes: EntityRowNode[]) => {
-      nodes.sort(sortFn);
-      nodes.forEach(n => {
-        if (n._isParent && n.children?.length) {
-          sortRecursive(n.children);
-        }
-      });
-    };
-  
-    sortRecursive(this.tree);
-    this.currentPage = 1;
-    this.refresh();
-  }
-
-
-  /// 3. Complete Cell Renderer Class & Template (EntityNameCellComponent)Update the entire EntityNameCellComponent in entity-grid.component.ts. This aligns class properties (_level, _isParent, _selected, _expanded) with the inline template bindings and applies dynamic $24\text{px} \times N$ indenting:
-
-  @Component({
+@Component({
     selector: 'app-entity-name-cell',
     standalone: true,
     imports: [CommonModule],
@@ -245,4 +123,120 @@ private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
         this.onToggle(this.uid);
       }
     }
+  }
+
+
+  // 2. mapPlayer (Dynamic N-Level Array Normalization)
+//Update mapPlayer in EntityGridComponent (entity-grid.component.ts) 
+// to ensure child arrays (children or rolePlayers) are evaluated by array length rather than truthiness alone.
+
+
+private mapPlayer = (p: any): any => {
+    const rawChildren = (Array.isArray(p.children) && p.children.length > 0)
+      ? p.children
+      : ((Array.isArray(p.rolePlayers) && p.rolePlayers.length > 0) ? p.rolePlayers : []);
+  
+    const hasChildren = rawChildren.length > 0;
+  
+    return {
+      profileName: this.toTitleCase(p.profileName) ?? '',
+      ocifId: this.extractOcifId(p),
+      status: mapLegalHoldStatusToUi(p.legalHoldStatus),
+      holdName: p.holdName ?? p.legalHoldName ?? '',
+      lifecycle: p.customerLifecycleStatus ?? p.lifecycle ?? 'N/A',
+      roleType: p.roleType ?? p.role ?? '',
+      address: typeof p.address === 'string' ? p.address : (p.address?.addressLineOne || ''),
+      isSuspect: p.isSuspectProfile === 'Yes' || p.isSuspect === true,
+      eDiscoveryProjectManager: p.eDiscoveryProjectManager ?? '',
+      responsibleLawyerEmail: p.responsibleLawyerEmail ?? '',
+      holdApplyDateTime: p.holdApplyDateTime ?? p.holdAppliedDate ?? '',
+      holdReleaseDate: p.holdReleaseDate ?? '',
+      
+      _isParent: hasChildren,
+      _expanded: false,
+      _selected: false,
+      
+      children: rawChildren.map((rp: any) => this.mapPlayer(rp))
+    };
+  };
+
+
+  // 3. Tree Processing (stampTree, flattenTree, onSortChanged)
+//Replace these three methods in EntityGridComponent (entity-grid.component.ts). 
+// Passing level + 1 directly inside the function call preserves the parent scope's 
+// level variable without variable mutation across sibling iterations.
+
+
+private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
+    nodes.forEach((node, index) => {
+      node._uid = parentUid ? `${parentUid}-${index}` : `r${index}`;
+      node._level = level;
+      node._isParent = Array.isArray(node.children) && node.children.length > 0;
+      node._expanded = node._expanded ?? false;
+      node._selected = node._selected ?? false;
+      node._isClusterEnd = false;
+  
+      if (node._isParent && node.children?.length) {
+        this.stampTree(node.children, node._uid, level + 1);
+      }
+    });
+  }
+  
+  private flattenTree(): EntityRowNode[] {
+    const flattenedRows: EntityRowNode[] = [];
+  
+    const recurse = (nodes: EntityRowNode[]) => {
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        node._isClusterEnd = false;
+        flattenedRows.push(node);
+  
+        if (node._isParent && node._expanded && node.children?.length) {
+          recurse(node.children);
+        }
+      }
+    };
+  
+    recurse(this.tree);
+  
+    for (let i = 0; i < flattenedRows.length; i++) {
+      const nextIsRoot = flattenedRows[i + 1] && flattenedRows[i + 1]._level === 0;
+      const isLastRow = i === flattenedRows.length - 1;
+      if (nextIsRoot || isLastRow) {
+        flattenedRows[i]._isClusterEnd = true;
+      }
+    }
+  
+    return flattenedRows;
+  }
+  
+  onSortChanged(): void {
+    const sortState = this.gridApi?.getColumnState().find(s => s.sort != null);
+    if (!sortState) {
+      this.currentPage = 1;
+      this.refresh();
+      return;
+    }
+  
+    const field = sortState.colId;
+    const dir = sortState.sort as 'asc' | 'desc';
+  
+    const sortFn = (a: any, b: any) => {
+      const valA = (a[field] ?? '').toString().toLowerCase();
+      const valB = (b[field] ?? '').toString().toLowerCase();
+      return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    };
+  
+    const sortRecursive = (nodes: EntityRowNode[]) => {
+      nodes.sort(sortFn);
+      nodes.forEach(n => {
+        if (n._isParent && n.children?.length) {
+          sortRecursive(n.children);
+        }
+      });
+    };
+  
+    sortRecursive(this.tree);
+    this.currentPage = 1;
+    this.refresh();
   }
