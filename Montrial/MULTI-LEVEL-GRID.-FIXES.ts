@@ -240,3 +240,51 @@ private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
     this.currentPage = 1;
     this.refresh();
   }
+
+
+
+  ///
+
+  export interface EntityNode {
+    ocifId?: string;
+    profileName?: string;
+    legalHoldStatus?: 'LEGAL HOLD' | 'PROCESSING' | 'N/A' | string;
+    holdName?: string;
+    lifecycle?: string;
+    role?: string;
+    roleType?: string;
+    address?: string;
+    isParent?: boolean;
+    isExpanded?: boolean;
+    isSuspect?: boolean;
+    eDiscoveryProjectManager?: string;
+    responsibleLawyerEmail?: string;
+    holdApplyDateTime?: string;
+    holdReleaseDate?: string;
+    children?: EntityNode[];
+    rolePlayers?: EntityNode[];
+    [key: string]: any;
+  }
+  
+  export interface EntityRowNode extends EntityNode {
+    _uid: string;
+    _level: number;
+    _isParent: boolean;
+    _expanded: boolean;
+    _selected: boolean;
+    _isClusterEnd: boolean;
+    children?: EntityRowNode[];
+    rolePlayers?: EntityRowNode[];
+  }
+  
+  export interface EntitySelectionEvent {
+    identifier: 'entity' | 'customer';
+    selected: EntityRowNode[];
+    selectedRows?: EntityRowNode[];
+    selectedClusters?: EntityRowNode[][];
+  }
+  
+  export interface EntityGridResponse {
+    data: EntityNode[];
+    totalCount: number;
+  }
