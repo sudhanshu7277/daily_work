@@ -2,7 +2,6 @@
 
 npx vitest run --coverage
 
-
 // src/pages/audit/AuditTrailPage.test.tsx
 
 // @vitest-environment jsdom
@@ -10,6 +9,7 @@ npx vitest run --coverage
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
+import '@testing-library/jest-dom';
 
 // --- Hoisted Mock Declarations ---
 const {
@@ -75,11 +75,11 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
       }
     ),
     Tab: Object.assign(
-      ({ children, defaultActiveKey }: any) => <div data-testid="tabs">{children}</div>,
+      ({ children }: any) => <div data-testid="tabs">{children}</div>,
       {
-        TabPane: ({ children, tab, key }: any) => (
-          <div data-testid={`tab-pane-${key}`}>
-            <div>{tab}</div>
+        TabPane: ({ children, tab }: any) => (
+          <div data-testid="tab-pane">
+            <div data-testid="tab-header">{tab}</div>
             {children}
           </div>
         ),
@@ -175,8 +175,8 @@ describe('AuditTrailPage', () => {
       expect(mockGetFieldHistory).toHaveBeenCalledWith(101);
     });
 
-    expect(screen.getByTestId('tab-pane-history')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-pane-fields')).toBeInTheDocument();
+    expect(screen.getByText(/Action History/i)).toBeInTheDocument();
+    expect(screen.getByText(/Field Changes/i)).toBeInTheDocument();
   });
 
   it('triggers search when Enter key is pressed inside the input field', async () => {
