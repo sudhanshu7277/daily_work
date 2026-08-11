@@ -11,8 +11,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
-// --- Hoisted Mocks ---
-// Using vi.hoisted guarantees these variables are initialized BEFORE vi.mock factory functions run
+// --- Hoisted Mock Declarations ---
+// vi.hoisted guarantees these mock variables are initialized BEFORE any vi.mock factories run
 const {
   mockNotification,
   mockGetAuditTrail,
@@ -27,6 +27,8 @@ const {
   mockGetAuditTrail: vi.fn(),
   mockNavigate: vi.fn(),
 }));
+
+// --- Mocks ---
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -96,6 +98,8 @@ vi.mock('ag-grid-react', () => ({
 
 import AuditTrailPage from './AuditTrailPage';
 
+// --- Test Data Fixtures ---
+
 const mockAuditLogs = [
   {
     id: '1',
@@ -138,7 +142,7 @@ describe('AuditTrailPage', () => {
     });
   });
 
-  it('filters audit grid items when typing into the search input', async () => {
+  it('filters audit grid items when typing into search input', async () => {
     render(<AuditTrailPage />);
 
     await waitFor(() => {
