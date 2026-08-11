@@ -1,5 +1,6 @@
-// 1. Update flattenTree() in multi-level-customer-grid.component.ts / entity-grid.component.ts
-//In flattenTree(), update the final loop that sets _isClusterEnd. A row is only a cluster end if it belongs to a cluster (node._level > 0 or node._isParent). Standalone records (node._level === 0 && !node._isParent) must have _isClusterEnd = false.
+// 1. Update flattenTree() in multi-level-customer-grid.component.ts
+//In flattenTree(), ensure _isClusterEnd is set to true only if the node is part of an expanded cluster group (_level > 0 or _isParent). 
+// Standalone non-cluster records will remain _isClusterEnd = false:
 
 private flattenTree(): EntityRowNode[] {
     const flattenedRows: EntityRowNode[] = [];
@@ -8,7 +9,7 @@ private flattenTree(): EntityRowNode[] {
       if (!nodes) return;
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
-        node._isClusterEnd = false;
+        node._isClusterEnd = false; // Reset by default
         flattenedRows.push(node);
   
         const kids = this.getChildren(node);
@@ -20,16 +21,17 @@ private flattenTree(): EntityRowNode[] {
   
     recurse(this.tree);
   
-    // Mark cluster ends ONLY for records that belong to a cluster
+    // Apply _isClusterEnd ONLY to nodes inside a cluster
     for (let i = 0; i < flattenedRows.length; i++) {
       const node = flattenedRows[i];
-      const nextIsRoot = flattenedRows[i + 1] && flattenedRows[i + 1]._level === 0;
+      const nextNode = flattenedRows[i + 1];
+      const nextIsRoot = nextNode && nextNode._level === 0;
       const isLastRow = i === flattenedRows.length - 1;
   
-      // Check if the node is part of a cluster (has depth > 0 or has children)
-      const isPartOfCluster = node._level > 0 || node._isParent;
+      // A node is in a cluster if it is a parent OR a nested child (_level > 0)
+      const isClusterNode = node._isParent || node._level > 0;
   
-      if (isPartOfCluster && (nextIsRoot || isLastRow)) {
+      if (isClusterNode && (nextIsRoot || isLastRow)) {
         node._isClusterEnd = true;
       } else {
         node._isClusterEnd = false;
@@ -40,8 +42,9 @@ private flattenTree(): EntityRowNode[] {
   }
 
 
-  // 2. Verify getRowClass in multi-level-customer-grid.component.ts
-//Ensure getRowClass returns standard 'row-child' for individual records:
+  // 2. Verify getRowClass Method
+//getRowClass will assign standard 'row-child' to flat records, ensuring they receive 
+// faint gray borders without any heavy blue borders:
 
 readonly getRowClass = (p: any): string => {
     const d = p.data as EntityRowNode;
@@ -52,34 +55,29 @@ readonly getRowClass = (p: any): string => {
   };
 
 
-  //3. Verify SCSS/CSS Classes
-//Ensure your grid SCSS handles borders as follows:
+  // 3. Verify SCSS Border DefinitionsEnsure your component SCSS styles standard rows with $1\text{px}$ light gray borders matching Image 29:
 
-/* Standard Individual Rows & Non-Cluster Children */
+  /* Standard / Flat Non-Cluster Rows */
 .ag-row.row-child {
-    background-color: $bmo-white !important;
-    border-bottom: 1px solid #d8e4e6 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e0e0e0 !important;
     border-top: none !important;
   }
   
-  /* Expanded Cluster Header: 2px Blue Top Border */
+  /* Expanded Cluster Group Header: Top Blue Accent */
   .ag-row.row-parent-expanded {
     background-color: #E8F4FD !important;
-    border-top: 2px solid $bmo-blue !important;
+    border-top: 2px solid #0079C1 !important;
     border-bottom: 1px solid #b8d9f0 !important;
   }
   
-  /* Collapsed Cluster Header: Standard 1px Borders */
+  /* Collapsed Cluster Parent Row */
   .ag-row.row-parent-collapsed {
-    background-color: $bmo-white !important;
-    border-top: 1px solid #d8e4e6 !important;
-    border-bottom: 1px solid #d8e4e6 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e0e0e0 !important;
   }
   
-  /* Cluster End (Last Child of Cluster): 2px Blue Bottom Border */
+  /* Cluster End (Bottom of Expanded Cluster Group Only) */
   .ag-row.row-cluster-end {
-    border-bottom: 2px solid $bmo-blue !important;
+    border-bottom: 2px solid #0079C1 !important;
   }
-
-
-  
