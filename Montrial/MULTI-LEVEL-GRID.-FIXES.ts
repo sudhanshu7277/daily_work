@@ -288,3 +288,168 @@ private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
     data: EntityNode[];
     totalCount: number;
   }
+
+
+
+
+
+
+  //// MORE CHANGES BASED ON MODEL
+
+
+  // 1. Shared Model Contract (entity-grid.model.ts)
+
+  export interface EntityNode {
+    // Common Identifiers & Names
+    ocifId?: string;
+    profileName?: string;
+    firstName?: string;
+    lastName?: string;
+    legalName?: string;
+  
+    // Statuses & Holds
+    legalHoldStatus?: 'LEGAL HOLD' | 'PROCESSING' | 'N/A' | string;
+    status?: 'LEGAL HOLD' | 'PROCESSING' | 'N/A' | string;
+    customerStatus?: string;
+    holdName?: string;
+    lifecycle?: string;
+  
+    // Roles & Contact
+    role?: string;
+    roleType?: string;
+    address?: string;
+  
+    // Flags & Metadata
+    isParent?: boolean;
+    isExpanded?: boolean;
+    isSuspect?: boolean;
+    eDiscoveryProjectManager?: string;
+    responsibleLawyerEmail?: string;
+    holdApplyDateTime?: string;
+    holdReleaseDate?: string;
+  
+    // Recursive Tree Properties
+    children?: EntityNode[];
+    rolePlayers?: EntityNode[];
+    [key: string]: any;
+  }
+  
+  export interface EntityRowNode extends EntityNode {
+    _uid: string;
+    _level: number;
+    _isParent: boolean;
+    _expanded: boolean;
+    _selected: boolean;
+    _isClusterEnd: boolean;
+    children?: EntityRowNode[];
+    rolePlayers?: EntityRowNode[];
+  }
+  
+  export interface EntitySelectionEvent {
+    identifier: 'entity' | 'customer';
+    selected: EntityRowNode[];
+    selectedRows?: EntityRowNode[];
+    selectedClusters?: EntityRowNode[][];
+  }
+  
+  export interface EntityGridResponse {
+    data: EntityNode[];
+    totalCount: number;
+  }
+
+
+  // 2. Updates in MultiLevelCustomerGridComponent (multi-level-customer-grid.component.ts)
+//A. Import EntityRowNode
+// At the top of multi-level-customer-grid.component.ts:
+
+import { EntityRowNode, EntitySelectionEvent } from './entity-grid.model';
+
+
+// B. Update Class Properties
+// Ensure the class properties use EntityRowNode:
+
+tree: EntityRowNode[] = [];
+rowData: EntityRowNode[] = [];
+
+
+// C. Update Tree & Helper Methods
+//Update stampTree, flattenTree, allNodes, and findNode to strictly use EntityRowNode:
+
+
+private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
+    if (!nodes) return;
+    nodes.forEach((node, index) => {
+      node._uid = parentUid ? `${parentUid}-${index}` : `r${index}`;
+      node._level = level;
+      node._isParent = Array.isArray(node.children) && node.children.length > 0;
+      node._expanded = node._expanded ?? false;
+      node._selected = node._selected ?? false;
+      node._isClusterEnd = false;
+  
+      if (node._isParent && node.children?.length) {
+        this.stampTree(node.children, node._uid, level + 1);
+      }
+    });
+  }
+  
+  private flattenTree(): EntityRowNode[] {
+    const flattenedRows: EntityRowNode[] = [];
+  
+    const recurse = (nodes: EntityRowNode[]) => {
+      if (!nodes) return;
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        node._isClusterEnd = false;
+        flattenedRows.push(node);
+  
+        if (node._isParent && node._expanded && node.children?.length) {
+          recurse(node.children);
+        }
+      }
+    };
+  
+    recurse(this.tree);
+  
+    for (let i = 0; i < flattenedRows.length; i++) {
+      const nextIsRoot = flattenedRows[i + 1] && flattenedRows[i + 1]._level === 0;
+      const isLastRow = i === flattenedRows.length - 1;
+      if (nextIsRoot || isLastRow) {
+        flattenedRows[i]._isClusterEnd = true;
+      }
+    }
+  
+    return flattenedRows;
+  }
+  
+  private allNodes(): EntityRowNode[] {
+    const out: EntityRowNode[] = [];
+    const collect = (nodes: EntityRowNode[]) => {
+      if (!nodes) return;
+      for (const n of nodes) {
+        out.push(n);
+        if (n.children?.length) {
+          collect(n.children);
+        }
+      }
+    };
+    collect(this.tree);
+    return out;
+  }
+  
+  private findNode(
+    uid: string,
+    nodes: EntityRowNode[] = this.tree,
+    parent: EntityRowNode | null = null
+  ): { node: EntityRowNode; parent: EntityRowNode | null } | null {
+    if (!nodes) return null;
+    for (const n of nodes) {
+      if (n._uid === uid) return { node: n, parent };
+      if (n.children?.length) {
+        const res = this.findNode(uid, n.children, n);
+        if (res) return res;
+      }
+    }
+    return null;
+  }
+
+
