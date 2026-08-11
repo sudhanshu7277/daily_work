@@ -2,192 +2,211 @@
 
 npx vitest run --coverage
 
-// src/components/common/MoreFiltersPanel.test.tsx
+// src/pages/tickler/TicklerTaskPage.test.tsx
 
-// src/components/common/MoreFiltersPanel.test.tsx
+// src/pages/tickler/TicklerTaskPage.test.tsx
 
 // @vitest-environment jsdom
-
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { notification } from '@citi-icg-172888/icgds-react';
 import React from 'react';
-import MoreFiltersPanel, { INITIAL_MORE_FILTERS, type MoreFiltersState } from './MoreFiltersPanel';
 
-// --- mock the refdata API (two calls fire on mount) ---
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
+const mockCreateTask = vi.fn();
+const mockGetTasksByAssignee = vi.fn();
+const mockGetTasksByRegion = vi.fn();
+const mockCompleteTask = vi.fn();
+const mockGetPendingCount = vi.fn();
+
+vi.mock('../../api/tickler', () => ({
+  createTask: (...a: unknown[]) => mockCreateTask(...a),
+  getTasksByAssignee: (...a: unknown[]) => mockGetTasksByAssignee(...a),
+  getTasksByRegion: (...a: unknown[]) => mockGetTasksByRegion(...a),
+  completeTask: (...a: unknown[]) => mockCompleteTask(...a),
+  getPendingCount: (...a: unknown[]) => mockGetPendingCount(...a),
+}));
+
 const mockGetRefDataByType = vi.fn();
 vi.mock('../../api/refdata', () => ({
-  getRefDataByType: (...args: unknown[]) => mockGetRefDataByType(...args),
+  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
 }));
 
-// --- mock the child SearchableMultiSelect ---
-// Each stub surfaces its fieldLabel + the option values, plus a button that
-// fires onChange(['__picked__']) so we can assert the parent's updateFilter wiring.
-vi.mock('./SearchableMultiSelect', () => ({
-  default: ({ fieldLabel, options, onChange }: any) =>
-    React.createElement(
-      'div',
-      {
-        'data-testid': `mss-${fieldLabel}`,
-      },
-      React.createElement(
-        'span',
-        {
-          'data-testid': `mss-${fieldLabel}-options`,
-        },
-        (options ?? []).map((o: any) => o.value).join(',')
-      ),
-      React.createElement(
-        'button',
-        {
-          'data-testid': `mss-${fieldLabel}-change`,
-          onClick: () => onChange(['__picked__']),
-        },
-        'change'
-      )
-    ),
+vi.mock('../../utils/format', () => ({
+  formatDate: (v: string) => v,
 }));
 
-// --- mock the design-system components ---
-vi.mock('@citi-icg-172888/icgds-react', async () => {
-  const R = await vi.importActual<typeof import('react')>('react');
+vi.mock('../../utils/auth', () => ({
+  getUserId: () => 'AB12345',
+}));
+
+const mockNotification = {
+  success: vi.fn(),
+  danger: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+};
+
+vi.mock('@citi-icg-172888/icgds-react', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
   return {
-    El: ({ children, ...rest }: any) => R.createElement('div', rest, children),
-    Dropdown: Object.assign(
-      ({ children, value, onChange }: any) =>
-        R.createElement(
-          'div',
-          {
-            'data-testid': 'updated-in',
-            'data-value': value ?? '',
-          },
-          children,
-          R.createElement(
-            'button',
-            {
-              'data-testid': 'updated-in-change',
-              onClick: () => onChange('6'),
-            },
-            'change'
-          )
-        ),
-      {
-        Item: ({ children, value }: any) =>
-          R.createElement('div', { 'data-testid': `updated-in-opt-${value}` }, children),
-      }
-    ),
-
-    RangePicker: ({ onValueChange, placeholder }: any) =>
-      R.createElement('button', {
-        'data-testid': `range-${(placeholder ?? []).join('-')}`,
-        onClick: () => onValueChange([new Date('2024-01-01'), new Date('2024-01-31')]),
-      }),
+    ...actual,
+    notification: mockNotification,
   };
 });
 
-const CLIENTS = [{ value: 'C1', label: 'Client One' }];
-const DEALS = [{ value: 'D1', label: 'Deal One' }];
-const USERS = [{ value: 'U1', label: 'User One' }];
-const STATUSES = [{ value: 'OPEN', label: 'Open' }];
+import TicklerTaskPage from './TicklerTaskPage';
 
-function renderPanel(overrides: Partial<MoreFiltersState> = {}, onFiltersChange = vi.fn()) {
-  const filters = { ...INITIAL_MORE_FILTERS, ...overrides };
-  render(
-    <MoreFiltersPanel
-      instructionType="payment"
-      filters={filters}
-      onFiltersChange={onFiltersChange}
-      clients={CLIENTS}
-      deals={DEALS}
-      users={USERS}
-      statuses={STATUSES}
-    />
-  );
+const sampleTask = {
+  taskId: 5,
+  instructionId: 200,
+  taskDescription: 'Follow up on callback',
+  assignedTo: 'AB12345',
+  priority: 'HIGH',
+  region: 'NAM',
+  dueDate: '2026-06-01',
+  completedOn: null,
+};
 
-  return { filters, onFiltersChange };
-}
-
-describe('MoreFiltersPanel', () => {
+describe('TicklerTaskPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // default: both refdata calls resolve empty
+    mockGetTasksByAssignee.mockResolvedValue({ data: [] });
+    mockGetPendingCount.mockResolvedValue({ data: 0 });
     mockGetRefDataByType.mockResolvedValue({ data: [] });
   });
 
-  it('fetches both category ref-data types on mount', async () => {
-    renderPanel();
+  it('renders the page header with the pending count', async () => {
+    mockGetPendingCount.mockResolvedValue({ data: 7 });
+    render(<TicklerTaskPage />);
     await waitFor(() => {
-      expect(mockGetRefDataByType).toHaveBeenCalledWith('NON_PAYMENT_CATEGORIES');
-      expect(mockGetRefDataByType).toHaveBeenCalledWith('PAYMENT_CATEGORIES');
+      expect(screen.getByText('Tickler Tasks')).toBeInTheDocument();
+      expect(screen.getByText('(7 pending)')).toBeInTheDocument();
     });
   });
 
-  it('renders all six filter dropdowns and both range pickers', () => {
-    renderPanel();
-    expect(screen.getByTestId('mss-client')).toBeTruthy();
-    expect(screen.getByTestId('mss-deal')).toBeTruthy();
-    expect(screen.getByTestId('mss-category')).toBeTruthy();
-    expect(screen.getByTestId('mss-admin maker')).toBeTruthy();
-    expect(screen.getByTestId('mss-status')).toBeTruthy();
-    expect(screen.getByTestId('updated-in')).toBeTruthy();
-    expect(screen.getAllByTestId('range-From-To')).toHaveLength(2);
-  });
-
-  it('passes the provided option lists down to the child selects', () => {
-    renderPanel();
-    expect(screen.getByTestId('mss-client-options').textContent).toBe('C1');
-    expect(screen.getByTestId('mss-deal-options').textContent).toBe('D1');
-    expect(screen.getByTestId('mss-admin maker-options').textContent).toBe('U1');
-    expect(screen.getByTestId('mss-status-options').textContent).toBe('OPEN');
-  });
-
-  it('merges, dedupes and sorts the category options from both ref-data calls', async () => {
-    mockGetRefDataByType.mockImplementation((type: string) => {
-      if (type === 'NON_PAYMENT_CATEGORIES')
-        return Promise.resolve({ data: [{ refValue: 'Zebra' }, { refValue: 'Alpha' }] });
-      return Promise.resolve({ data: [{ refValue: 'Alpha' }, { refValue: 'Mango' }] });
-    });
-
-    renderPanel();
-    // Sorted + deduped: Alpha, Mango, Zebra
+  it('loads tasks and pending count on mount using the default assignee', async () => {
+    render(<TicklerTaskPage />);
     await waitFor(() => {
-      expect(screen.getByTestId('mss-category-options').textContent).toBe('Alpha,Mango,Zebra');
+      expect(mockGetTasksByAssignee).toHaveBeenCalledWith('AB12345');
+      expect(mockGetPendingCount).toHaveBeenCalled();
     });
   });
 
-  it('falls back to empty category options when a ref-data call rejects', async () => {
-    mockGetRefDataByType.mockRejectedValue(new Error('boom'));
-    renderPanel();
+  it('unwraps a paged response via the .content branch', async () => {
+    mockGetTasksByAssignee.mockResolvedValue({ data: { content: [sampleTask] } });
+    render(<TicklerTaskPage />);
     await waitFor(() => {
-      expect(mockGetRefDataByType).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('Follow up on callback')).toBeInTheDocument();
     });
-    expect(screen.getByTestId('mss-category-options').textContent).toBe('');
   });
 
-  it('calls onFiltersChange with the updated client array, preserving other filters', () => {
-    const onFiltersChange = vi.fn();
-    renderPanel({ status: ['OPEN'] }, onFiltersChange);
-    fireEvent.click(screen.getByTestId('mss-client-change'));
-    expect(onFiltersChange).toHaveBeenCalledWith(
-      expect.objectContaining({ client: ['__picked__'], status: ['OPEN'] })
-    );
+  it('displays task data in the grid', async () => {
+    mockGetTasksByAssignee.mockResolvedValue({ data: [sampleTask] });
+    render(<TicklerTaskPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Follow up on callback')).toBeInTheDocument();
+      expect(screen.getByText('#200')).toBeInTheDocument();
+    });
   });
 
-  it('stringifies the Updated In dropdown value before propagating it', () => {
-    const onFiltersChange = vi.fn();
-    renderPanel({}, onFiltersChange);
-    fireEvent.click(screen.getByTestId('updated-in-change'));
-    expect(onFiltersChange).toHaveBeenCalledWith(
-      expect.objectContaining({ updatedIn: '6' })
-    );
+  it('shows an error alert when loading fails', async () => {
+    mockGetTasksByAssignee.mockRejectedValue(new Error('Network error'));
+    render(<TicklerTaskPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+    });
   });
 
-  it('propagates the Value Date range through updateFilter', () => {
-    const onFiltersChange = vi.fn();
-    renderPanel({}, onFiltersChange);
-    // first range picker rendered is Value Date
-    fireEvent.click(screen.getAllByTestId('range-From-To')[0]);
-    expect(onFiltersChange).toHaveBeenCalledWith(
-      expect.objectContaining({ valueDateRange: expect.any(Array) })
+  it('falls back to a default message for non-Error throws', async () => {
+    mockGetTasksByAssignee.mockRejectedValue('boom');
+    render(<TicklerTaskPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load tasks')).toBeInTheDocument();
+    });
+  });
+
+  it('navigates to the instruction detail when the link is clicked', async () => {
+    mockGetTasksByAssignee.mockResolvedValue({ data: [sampleTask] });
+    render(<TicklerTaskPage />);
+    await waitFor(() => expect(screen.getByText('#200')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('#200'));
+    expect(mockNavigate).toHaveBeenCalledWith('/instructions/200');
+  });
+
+  it('completes a task from the Complete action button', async () => {
+    mockGetTasksByAssignee.mockResolvedValue({ data: [sampleTask] });
+    mockCompleteTask.mockResolvedValue({ data: {} });
+    render(<TicklerTaskPage />);
+    await waitFor(() => expect(screen.getByText('Complete')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Complete'));
+    });
+
+    expect(mockCompleteTask).toHaveBeenCalledWith(5);
+    await waitFor(() => expect(notification.success).toHaveBeenCalled());
+  });
+
+  it('shows a validation error when creating a task with missing fields', async () => {
+    render(<TicklerTaskPage />);
+    await waitFor(() => expect(screen.getByText('Create Task')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Task'));
+    await waitFor(() => expect(screen.getByText('Create')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create'));
+    });
+
+    expect(notification.danger).toHaveBeenCalledWith({
+      title: 'Validation',
+      content: 'Instruction ID, description, and assignee are required',
+    });
+    expect(mockCreateTask).not.toHaveBeenCalled();
+  });
+
+  it('creates a task when the form is valid', async () => {
+    mockCreateTask.mockResolvedValue({ data: {} });
+    render(<TicklerTaskPage />);
+    await waitFor(() => expect(screen.getByText('Create Task')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Task'));
+    await waitFor(() => expect(screen.getByText('Create')).toBeInTheDocument());
+    const instructionInput = screen.getByRole('spinbutton');
+    fireEvent.change(instructionInput, { target: { value: '200' } });
+    const description = screen.getByPlaceholderText('Task description');
+    fireEvent.change(description, { target: { value: 'Do the thing' } });
+    const assignee = screen.getByPlaceholderText('User ID');
+    fireEvent.change(assignee, { target: { value: 'CD67890' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create'));
+    });
+
+    expect(mockCreateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instructionId: 200,
+        taskDescription: 'Do the thing',
+        assignedTo: 'CD67890',
+      }),
     );
+
+    await waitFor(() => expect(notification.success).toHaveBeenCalled());
+  });
+
+  it('shows a create error notification when createTask fails', async () => {
+    mockCreateTask.mockRejectedValue(new Error('Create failed'));
+    render(<TicklerTaskPage />);
+    await waitFor(() => expect(screen.getByText('Create Task')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Task'));
+    await waitFor(() => expect(screen.getByText('Create')).toBeInTheDocument());
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '1' } });
+    fireEvent.change(screen.getByPlaceholderText('Task description'), { target: { value: 'x' } });
+    fireEvent.change(screen.getByPlaceholderText('User ID'), { target: { value: 'y' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create'));
+    });
+    await waitFor(() => expect(notification.danger).toHaveBeenCalled());
   });
 });
