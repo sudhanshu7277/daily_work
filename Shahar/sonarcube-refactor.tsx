@@ -2,409 +2,274 @@
 
 npx vitest run --coverage
 
-
-// src/pages/thresholds/ThresholdManagementPage.test.tsx
+// src/context/AuthContext.test.tsx
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 
 // --- Hoisted Mock Declarations ---
+// Using vi.hoisted guarantees these mock functions are initialized BEFORE vi.mock factories execute.
 const {
-  mockNotification,
-  mockGetActiveThresholds,
-  mockCreateThreshold,
-  mockUpdateThreshold,
-  mockDeactivateThreshold,
-  mockGetRefDataByType,
-  mockNavigate,
+  mockGetCurrentUserRoles,
+  mockLogin,
+  mockGetToken,
+  mockIsTokenExpired,
+  mockGetTokenExpiry,
+  mockSetUserRole,
 } = vi.hoisted(() => ({
-  mockNotification: {
-    success: vi.fn(),
-    danger: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  },
-  mockGetActiveThresholds: vi.fn(),
-  mockCreateThreshold: vi.fn(),
-  mockUpdateThreshold: vi.fn(),
-  mockDeactivateThreshold: vi.fn(),
-  mockGetRefDataByType: vi.fn(),
-  mockNavigate: vi.fn(),
+  mockGetCurrentUserRoles: vi.fn(),
+  mockLogin: vi.fn(),
+  mockGetToken: vi.fn(),
+  mockIsTokenExpired: vi.fn(),
+  mockGetTokenExpiry: vi.fn(),
+  mockSetUserRole: vi.fn(),
 }));
 
-// --- Module Mocks ---
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock('../../api/thresholds', () => ({
-  getActiveThresholds: (...a: unknown[]) => mockGetActiveThresholds(...a),
-  createThreshold: (...a: unknown[]) => mockCreateThreshold(...a),
-  updateThreshold: (...a: unknown[]) => mockUpdateThreshold(...a),
-  deactivateThreshold: (...a: unknown[]) => mockDeactivateThreshold(...a),
+// --- Mock the roles API ---
+vi.mock('../api/roles', () => ({
+  getCurrentUserRoles: (...a: unknown[]) => mockGetCurrentUserRoles(...a),
 }));
 
-vi.mock('../../api/refdata', () => ({
-  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
+// --- Mock the auth utils ---
+vi.mock('../utils/auth', () => ({
+  login: (...a: unknown[]) => mockLogin(...a),
+  getToken: (...a: unknown[]) => mockGetToken(...a),
+  isTokenExpired: (...a: unknown[]) => mockIsTokenExpired(...a),
+  getTokenExpiry: (...a: unknown[]) => mockGetTokenExpiry(...a),
+  setUserRole: (...a: unknown[]) => mockSetUserRole(...a),
 }));
 
-vi.mock('../../utils/format', () => ({
-  formatCurrency: (val: number, curr: string) => `${curr} ${val}`,
-}));
+import { AuthProvider, useAuth } from './AuthContext';
 
-vi.mock('@citi-icg-172888/icgds-react', async () => {
-  const R = await vi.importActual<typeof import('react')>('react');
-  return {
-    El: ({ children, className, style, ...props }: any) => (
-      <div className={className} style={style} {...props}>
-        {children}
-      </div>
-    ),
-    Button: ({ children, onClick, title, disabled, color, 'aria-label': ariaLabel }: any) => (
-      <button
-        onClick={onClick}
-        title={title}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        data-testid={`btn-${title || 'action'}`}
-      >
-        {children}
-      </button>
-    ),
-    Input: ({ value, onChange, placeholder, disabled, type }: any) => (
-      <input
-        placeholder={placeholder}
-        value={value ?? ''}
-        disabled={disabled}
-        type={type}
-        onChange={onChange}
-        data-testid={`input-${placeholder || type || 'default'}`}
-      />
-    ),
-    Card: Object.assign(
-      ({ children, className }: any) => <div className={className}>{children}</div>,
-      {
-        body: ({ children }: any) => <div>{children}</div>,
-      }
-    ),
-    Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
-      visible ? (
-        <div data-testid="modal">
-          <h2>{title}</h2>
-          {children}
-          <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
-          <button onClick={onApply}>{applyText || 'Apply'}</button>
-        </div>
-      ) : null,
-    Dropdown: Object.assign(
-      ({ value, onChange, children, disabled, placeholder, style, label }: any) => (
-        <select
-          value={value ?? ''}
-          disabled={disabled}
-          style={style}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid={`dropdown-${label || placeholder || 'select'}`}
-        >
-          {placeholder && <option value="">{placeholder}</option>}
-          {children}
-        </select>
-      ),
-      {
-        Item: ({ value, children }: any) => <option value={value}>{children}</option>,
-      }
-    ),
-    Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
-    Loading: ({ tip }: any) => <div data-testid="loading-spinner">{tip}</div>,
-    Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
-    notification: mockNotification,
-  };
-});
+// A tiny consumer that surfaces the context state as text/buttons
+function Consumer() {
+  const {
+    soeid,
+    roles,
+    activeRole,
+    region,
+    error,
+    hasRole,
+    hasAnyRole,
+    hasPermission,
+    setActiveRole,
+  } = useAuth();
 
-vi.mock('ag-grid-react', () => ({
-  AgGridReact: ({ rowData, columnDefs }: any) => (
-    <div data-testid="ag-grid">
-      <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
-      {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.key || row.thresholdId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
-          {columnDefs?.map((col: any, colIndex: number) => {
-            const cellParams = {
-              data: row,
-              value: row[col.field],
-              node: { data: row },
-            };
-            return (
-              <div key={colIndex} data-testid={`cell-${col.field || colIndex}-${rowIndex}`}>
-                {col.cellRenderer
-                  ? col.cellRenderer(cellParams)
-                  : col.valueFormatter
-                  ? col.valueFormatter(cellParams)
-                  : String(row[col.field] ?? '')}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+  return (
+    <div>
+      <span data-testid="soeid">{soeid}</span>
+      <span data-testid="roles">{roles.join(',')}</span>
+      <span data-testid="active-role">{activeRole ?? 'none'}</span>
+      <span data-testid="region">{region ?? 'none'}</span>
+      <span data-testid="error">{error ?? 'none'}</span>
+      <span data-testid="has-latam">{String(hasRole('ROLE_USERS_LATAM'))}</span>
+      <span data-testid="has-any">{String(hasAnyRole(['ROLE_USERS_NAM']))}</span>
+      <span data-testid="has-perm">{String(hasPermission('CAN_EDIT'))}</span>
+      <button onClick={() => setActiveRole('ROLE_USERS_NAM')}>switch</button>
     </div>
-  ),
-}));
+  );
+}
 
-import ThresholdManagementPage from './ThresholdManagementPage';
+function renderWithProvider() {
+  return render(
+    <AuthProvider>
+      <Consumer />
+    </AuthProvider>
+  );
+}
 
-// --- Test Data Fixtures ---
-
-const mockThresholdsList = [
-  {
-    thresholdId: 101,
-    currency: 'USD',
-    region: 'GLOBAL',
-    thresholdAmount: 50000,
-    requiresSuperChecker: true,
-    description: 'Global USD limit',
-  },
-  {
-    thresholdId: 102,
-    currency: 'EUR',
-    region: 'EMEA',
-    thresholdAmount: 75000,
-    requiresSuperChecker: false,
-    description: 'EMEA EUR limit',
-  },
-];
-
-const mockRegionRefData = {
-  data: [
-    { refCode: 'GLOBAL', refValue: 'Global' },
-    { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
-  ],
-};
-
-describe('ThresholdManagementPage', () => {
+describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetActiveThresholds.mockResolvedValue({ data: mockThresholdsList });
-    mockGetRefDataByType.mockResolvedValue(mockRegionRefData);
-    mockCreateThreshold.mockResolvedValue({ status: 200 });
-    mockUpdateThreshold.mockResolvedValue({ status: 200 });
-    mockDeactivateThreshold.mockResolvedValue({ status: 200 });
+    // Enable fake timers with shouldAdvanceTime: true so RTL waitFor polling functions work cleanly
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // getTokenExpiry drives scheduleRefresh; return 0 so it early-returns and schedules nothing.
+    mockGetTokenExpiry.mockReturnValue(0);
   });
 
-  it('fetches thresholds and region refData on mount and renders grid', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
-      expect(mockGetRefDataByType).toHaveBeenCalledWith('REGION');
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    expect(screen.getByText('Payment Thresholds')).toBeInTheDocument();
+  afterEach(() => {
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
-  it('renders status icons correctly (check-circle for true, close-circle for false)', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+  it('uses the existing valid token path (getCurrentUserRoles) and resolves region + activeRole', async () => {
+    mockGetToken.mockReturnValue('valid.token');
+    mockIsTokenExpired.mockReturnValue(false);
+    mockGetCurrentUserRoles.mockResolvedValue({
+      data: { soeid: 'AB12345', roles: ['ROLE_USERS_LATAM', 'ROLE_MAKER'] },
     });
 
-    expect(screen.getByTestId('cell-requiresSuperChecker-0').querySelector('.icon-check-circle')).toBeInTheDocument();
-    expect(screen.getByTestId('cell-requiresSuperChecker-1').querySelector('.icon-close-circle')).toBeInTheDocument();
-  });
+    renderWithProvider();
 
-  it('renders danger alert when fetching threshold list rejects', async () => {
-    mockGetActiveThresholds.mockRejectedValueOnce(new Error('Failed to load thresholds'));
-
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
-      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Failed to load thresholds');
-    });
-  });
-
-  it('opens Create Threshold modal, populates form fields, and submits successfully', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Add Threshold'));
-
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
-    expect(screen.getByText('Create Threshold')).toBeInTheDocument();
-
-    // Fill Threshold Amount
-    const amountInput = screen.getByTestId('input-number');
-    fireEvent.change(amountInput, { target: { value: '120000' } });
-
-    // Fill Description
-    const descInput = screen.getByPlaceholderText('Threshold description');
-    fireEvent.change(descInput, { target: { value: 'New corporate limit' } });
-
-    // Submit Create Form
-    fireEvent.click(screen.getByText('Create'));
+    // While loading, the splash shows instead of the consumer.
+    expect(screen.getByText('Authenticating...')).toBeInTheDocument();
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockCreateThreshold).toHaveBeenCalledWith({
-        currency: 'USD',
-        region: 'GLOBAL',
-        thresholdAmount: 120000,
-        requiresSuperChecker: true,
-        description: 'New corporate limit',
-      });
-      expect(mockNotification.success).toHaveBeenCalledWith({
-        title: 'Created',
-        content: 'Threshold created',
-      });
+      expect(screen.getByTestId('soeid')).toHaveTextContent('AB12345');
     });
+
+    expect(mockGetCurrentUserRoles).toHaveBeenCalledTimes(1);
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(screen.getByTestId('roles')).toHaveTextContent('ROLE_USERS_LATAM,ROLE_MAKER');
+
+    // First role becomes activeRole, and setUserRole is persisted.
+    expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_LATAM');
+    expect(mockSetUserRole).toHaveBeenCalledWith('ROLE_USERS_LATAM');
+
+    // LATAM has highest region priority.
+    expect(screen.getByTestId('region')).toHaveTextContent('LATAM');
+    expect(screen.getByTestId('error')).toHaveTextContent('none');
   });
 
-  it('opens Edit Threshold modal with pre-populated data and updates threshold', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+  it('falls back to login() when there is no valid token', async () => {
+    mockGetToken.mockReturnValue(null);
+    mockIsTokenExpired.mockReturnValue(true);
+    mockLogin.mockResolvedValue({
+      token: 'fresh.token',
+      soeid: 'CD67890',
+      roles: ['ROLE_USERS_EMEA'],
     });
 
-    // Trigger openEditModal for row 0
-    const editBtn = screen.getAllByTitle('Edit')[0];
-    fireEvent.click(editBtn);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('modal')).toBeInTheDocument();
-      expect(screen.getByText('Edit Threshold')).toBeInTheDocument();
-    });
-
-    const amountInput = screen.getByTestId('input-number');
-    fireEvent.change(amountInput, { target: { value: '65000' } });
-
-    fireEvent.click(screen.getByText('Update'));
+    renderWithProvider();
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockUpdateThreshold).toHaveBeenCalledWith(101, expect.objectContaining({
-        thresholdAmount: 65000,
-      }));
-      expect(mockNotification.success).toHaveBeenCalledWith({
-        title: 'Updated',
-        content: 'Threshold updated',
-      });
+      expect(screen.getByTestId('soeid')).toHaveTextContent('CD67890');
     });
+
+    expect(mockLogin).toHaveBeenCalledTimes(1);
+    expect(mockGetCurrentUserRoles).not.toHaveBeenCalled();
+    expect(screen.getByTestId('region')).toHaveTextContent('EMEA');
   });
 
-  it('handles threshold deactivation via row action button', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+  it('sets NO_REGION_MESSAGE error when the user has no region role', async () => {
+    mockGetToken.mockReturnValue('valid.token');
+    mockIsTokenExpired.mockReturnValue(false);
+    mockGetCurrentUserRoles.mockResolvedValue({
+      data: { soeid: 'EF00000', roles: ['ROLE_MAKER'] },
     });
 
-    const revokeBtn = screen.getAllByTitle('Revoke')[0];
-    fireEvent.click(revokeBtn);
+    renderWithProvider();
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockDeactivateThreshold).toHaveBeenCalledWith(101);
-      expect(mockNotification.success).toHaveBeenCalledWith({
-        title: 'Deactivated',
-        content: 'Threshold deactivated',
-      });
+      expect(screen.getByTestId('soeid')).toHaveTextContent('EF00000');
     });
+
+    expect(screen.getByTestId('region')).toHaveTextContent('none');
+    expect(screen.getByTestId('error')).toHaveTextContent(/no region assigned/i);
   });
 
-  it('displays notification.danger when save action rejects', async () => {
-    mockCreateThreshold.mockRejectedValueOnce(new Error('Creation error'));
+  it('sets an error message when fetchRoles rejects', async () => {
+    mockGetToken.mockReturnValue(null);
+    mockIsTokenExpired.mockReturnValue(true);
+    mockLogin.mockRejectedValue(new Error('login failed'));
 
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Add Threshold'));
-    fireEvent.click(screen.getByText('Create'));
+    renderWithProvider();
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockNotification.danger).toHaveBeenCalledWith({
-        title: 'Error',
-        content: 'Creation error',
-      });
+      expect(screen.getByTestId('error')).toHaveTextContent('login failed');
     });
   });
 
-  it('displays notification.danger when deactivate action rejects', async () => {
-    mockDeactivateThreshold.mockRejectedValueOnce(new Error('Deactivation error'));
-
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+  it('dedupes duplicate roles via the Set', async () => {
+    mockGetToken.mockReturnValue('valid.token');
+    mockIsTokenExpired.mockReturnValue(false);
+    mockGetCurrentUserRoles.mockResolvedValue({
+      data: { soeid: 'GH11111', roles: ['ROLE_USERS_NAM', 'ROLE_USERS_NAM', 'ROLE_MAKER'] },
     });
 
-    const revokeBtn = screen.getAllByTitle('Revoke')[0];
-    fireEvent.click(revokeBtn);
+    renderWithProvider();
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockNotification.danger).toHaveBeenCalledWith({
-        title: 'Error',
-        content: 'Deactivation error',
-      });
+      expect(screen.getByTestId('roles')).toHaveTextContent('ROLE_USERS_NAM,ROLE_MAKER');
     });
   });
 
-  it('closes Modal when Cancel button is clicked', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+  it('exposes working hasRole / hasAnyRole / hasPermission helpers', async () => {
+    mockGetToken.mockReturnValue('valid.token');
+    mockIsTokenExpired.mockReturnValue(false);
+    mockGetCurrentUserRoles.mockResolvedValue({
+      data: { soeid: 'IJ22222', roles: ['ROLE_USERS_LATAM'] },
     });
 
-    fireEvent.click(screen.getByText('Add Threshold'));
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
+    renderWithProvider();
 
-    fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-latam')).toHaveTextContent('true');
+    });
+
+    // hasAnyRole(['ROLE_USERS_NAM']) -> false (user only has LATAM)
+    expect(screen.getByTestId('has-any')).toHaveTextContent('false');
+
+    // permissions are always [] in this implementation
+    expect(screen.getByTestId('has-perm')).toHaveTextContent('false');
   });
 
-  it('reloads threshold data when Refresh button is clicked', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+  it('setActiveRole updates activeRole and persists via setUserRole', async () => {
+    mockGetToken.mockReturnValue('valid.token');
+    mockIsTokenExpired.mockReturnValue(false);
+    mockGetCurrentUserRoles.mockResolvedValue({
+      data: { soeid: 'KL33333', roles: ['ROLE_USERS_LATAM', 'ROLE_USERS_NAM'] },
     });
 
-    fireEvent.click(screen.getByTitle('Refresh'));
+    renderWithProvider();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     await waitFor(() => {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_LATAM');
     });
+
+    mockSetUserRole.mockClear();
+
+    act(() => {
+      fireEvent.click(screen.getByText('switch'));
+    });
+
+    expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_NAM');
+    expect(mockSetUserRole).toHaveBeenCalledWith('ROLE_USERS_NAM');
+  });
+
+  it('useAuth throws when used outside an AuthProvider', () => {
+    // Silence the expected React error boundary logging.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    function Orphan() {
+      useAuth();
+      return null;
+    }
+
+    expect(() => render(<Orphan />)).toThrow('useAuth must be used within an AuthProvider');
+
+    spy.mockRestore();
   });
 });
