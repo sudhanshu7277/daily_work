@@ -4,8 +4,6 @@ npx vitest run --coverage
 
 // src/pages/tickler/TicklerTaskPage.test.tsx
 
-// src/pages/tickler/TicklerTaskPage.test.tsx
-
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -208,5 +206,150 @@ describe('TicklerTaskPage', () => {
       fireEvent.click(screen.getByText('Create'));
     });
     await waitFor(() => expect(notification.danger).toHaveBeenCalled());
+  });
+});
+
+
+// src/App.test.tsx
+
+// Polyfill DOMMatrix before pdfjs-dist initializes in jsdom
+if (typeof window !== 'undefined' && !('DOMMatrix' in window)) {
+  (window as unknown as Record<string, unknown>).DOMMatrix = class DOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    constructor() {}
+    toString() { return 'matrix(1, 0, 0, 1, 0, 0)'; }
+  };
+}
+
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+
+vi.mock('pdfjs-dist', () => ({
+  GlobalWorkerOptions: { workerSrc: '' },
+  getDocument: vi.fn().mockReturnValue({
+    promise: Promise.resolve({
+      numPages: 1,
+      getPage: vi.fn().mockResolvedValue({
+        getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),
+        render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+      }),
+    }),
+  }),
+}));
+
+import App from './App';
+
+describe('App Component', () => {
+  it('renders application shell without crashing', () => {
+    render(<App />);
+    expect(document.body).toBeInTheDocument();
+  });
+});
+
+
+
+// src/utils/exportExcel.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const { mockJsonToSheet, mockBookNew, mockBookAppendSheet, mockWriteFile } = vi.hoisted(() => ({
+  mockJsonToSheet: vi.fn().mockReturnValue({}),
+  mockBookNew: vi.fn().mockReturnValue({ SheetNames: [], Sheets: {} }),
+  mockBookAppendSheet: vi.fn(),
+  mockWriteFile: vi.fn(),
+}));
+
+vi.mock('xlsx', () => ({
+  default: {
+    utils: {
+      json_to_sheet: mockJsonToSheet,
+      book_new: mockBookNew,
+      book_append_sheet: mockBookAppendSheet,
+    },
+    writeFile: mockWriteFile,
+  },
+  utils: {
+    json_to_sheet: mockJsonToSheet,
+    book_new: mockBookNew,
+    book_append_sheet: mockBookAppendSheet,
+  },
+  writeFile: mockWriteFile,
+}));
+
+import { exportToExcel } from './exportExcel';
+
+describe('exportToExcel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('exports structured data to an excel file', () => {
+    const data = [
+      { id: 101, name: 'Task A', status: 'Pending' },
+      { id: 102, name: 'Task B', status: 'Completed' },
+    ];
+    const columns = [
+      { title: 'ID', dataIndex: 'id' },
+      { title: 'Task Name', dataIndex: 'name' },
+      { title: 'Status', dataIndex: 'status' },
+    ];
+
+    exportToExcel(data, columns, 'export_test');
+
+    expect(mockJsonToSheet).toHaveBeenCalled();
+    expect(mockBookNew).toHaveBeenCalled();
+    expect(mockBookAppendSheet).toHaveBeenCalled();
+    expect(mockWriteFile).toHaveBeenCalledWith(expect.anything(), 'export_test.xlsx');
+  });
+});
+
+
+//src/api/client.test.ts
+
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const { mockGetToken, mockClearAuth, mockLogin } = vi.hoisted(() => ({
+  mockGetToken: vi.fn(),
+  mockClearAuth: vi.fn(),
+  mockLogin: vi.fn(),
+}));
+
+vi.mock('../utils/auth', () => ({
+  getToken: mockGetToken,
+  clearAuth: mockClearAuth,
+  login: mockLogin,
+}));
+
+import client from './client';
+
+describe('API Client', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('attaches authorization bearer token to request headers if token exists', async () => {
+    mockGetToken.mockReturnValue('mock-jwt-token');
+
+    const config = await client.interceptors.request.handlers[0].fulfilled({
+      headers: {},
+    });
+
+    expect(config.headers.Authorization).toBe('Bearer mock-jwt-token');
+  });
+
+  it('clears authentication upon receiving a 401 response', async () => {
+    const errorResponse = {
+      response: { status: 401 },
+    };
+
+    const errorHandler = client.interceptors.response.handlers[0].rejected;
+
+    if (errorHandler) {
+      await expect(errorHandler(errorResponse)).rejects.toEqual(errorResponse);
+      expect(mockClearAuth).toHaveBeenCalled();
+    }
   });
 });
