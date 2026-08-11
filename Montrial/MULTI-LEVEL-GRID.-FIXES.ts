@@ -503,3 +503,15 @@ private stampTree(nodes: EntityRowNode[], parentUid: string, level = 0): void {
   }
 
 
+
+  //getRowClass
+
+  readonly getRowClass = (p: any): string => {
+    const d = p.data as EntityRowNode;
+    if (d?._isParent) {
+      return d._expanded ? 'row-parent-expanded' : 'row-parent-collapsed';
+    }
+    return d?._isClusterEnd ? 'row-child row-cluster-end' : 'row-child';
+  };
+
+
