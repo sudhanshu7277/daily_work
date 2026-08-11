@@ -8,27 +8,21 @@ npx vitest run --coverage
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
 
 // --- Hoisted Mock Declarations ---
-// vi.hoisted guarantees these mock variables are initialized BEFORE any vi.mock factories run
 const {
-  mockNotification,
-  mockGetAuditTrail,
+  mockGetInstructionHistory,
+  mockGetFieldHistory,
   mockNavigate,
 } = vi.hoisted(() => ({
-  mockNotification: {
-    success: vi.fn(),
-    danger: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  },
-  mockGetAuditTrail: vi.fn(),
+  mockGetInstructionHistory: vi.fn(),
+  mockGetFieldHistory: vi.fn(),
   mockNavigate: vi.fn(),
 }));
 
-// --- Mocks ---
+// --- Module Mocks ---
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -39,57 +33,75 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../api/audit', () => ({
-  getAuditTrail: (...a: unknown[]) => mockGetAuditTrail(...a),
-  getAuditLogs: (...a: unknown[]) => mockGetAuditTrail(...a),
+  getInstructionHistory: (...a: unknown[]) => mockGetInstructionHistory(...a),
+  getFieldHistory: (...a: unknown[]) => mockGetFieldHistory(...a),
 }));
 
-vi.mock('@citi-icg-172888/icgds-react', () => ({
-  El: ({ children, className, style, ...props }: any) => (
-    <div className={className} style={style} {...props}>
-      {children}
-    </div>
-  ),
-  Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
-    <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
-      {children}
-    </button>
-  ),
-  Input: ({ value, onChange, placeholder, disabled, style }: any) => (
-    <input
-      placeholder={placeholder}
-      value={value ?? ''}
-      disabled={disabled}
-      style={style}
-      onChange={onChange}
-      data-testid={`input-${placeholder || 'default'}`}
-    />
-  ),
-  Card: ({ children, className }: any) => <div className={className}>{children}</div>,
-  Tab: ({ children }: any) => <div>{children}</div>,
-  Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
-  Loading: ({ tip }: any) => <div>{tip}</div>,
-  Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
-  notification: mockNotification,
+vi.mock('../../utils/format', () => ({
+  formatDateTime: (val: string) => `Formatted: ${val}`,
 }));
+
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const R = await vi.importActual<typeof import('react')>('react');
+  return {
+    El: ({ children, className, style, ...props }: any) => (
+      <div className={className} style={style} {...props}>
+        {children}
+      </div>
+    ),
+    Button: ({ children, onClick, disabled, color, className }: any) => (
+      <button onClick={onClick} disabled={disabled} className={className} data-testid="search-button">
+        {children}
+      </button>
+    ),
+    Input: ({ value, onChange, placeholder, disabled, onPressEnter }: any) => (
+      <input
+        placeholder={placeholder}
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={onChange}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && onPressEnter) {
+            onPressEnter();
+          }
+        }}
+        data-testid="instruction-input"
+      />
+    ),
+    Card: Object.assign(
+      ({ children, className }: any) => <div className={className}>{children}</div>,
+      {
+        body: ({ children }: any) => <div>{children}</div>,
+      }
+    ),
+    Tab: Object.assign(
+      ({ children, defaultActiveKey }: any) => <div data-testid="tabs">{children}</div>,
+      {
+        TabPane: ({ children, tab, key }: any) => (
+          <div data-testid={`tab-pane-${key}`}>
+            <div>{tab}</div>
+            {children}
+          </div>
+        ),
+      }
+    ),
+    Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
+    Loading: ({ tip }: any) => <div data-testid="loading-spinner">{tip}</div>,
+    Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
+  };
+});
 
 vi.mock('ag-grid-react', () => ({
   AgGridReact: ({ rowData, columnDefs }: any) => (
     <div data-testid="ag-grid">
       <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
       {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.id || rowIndex} data-testid={`grid-row-${rowIndex}`}>
-          {columnDefs?.map((col: any, colIndex: number) => {
-            const cellParams = {
-              data: row,
-              value: row[col.field],
-              node: { data: row },
-            };
-            return (
-              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
-                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
-              </div>
-            );
-          })}
+        <div key={row.key || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+          {columnDefs?.map((col: any, colIndex: number) => (
+            <div key={colIndex} data-testid={`cell-${col.field || colIndex}-${rowIndex}`}>
+              {row[col.field] ?? ''}
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -98,75 +110,131 @@ vi.mock('ag-grid-react', () => ({
 
 import AuditTrailPage from './AuditTrailPage';
 
-// --- Test Data Fixtures ---
+// --- Test Fixtures ---
 
-const mockAuditLogs = [
-  {
-    id: '1',
-    action: 'UPDATE_MAPPING',
-    user: 'AB12345',
-    timestamp: '2026-08-11T10:00:00Z',
-    details: 'Updated document mapping record #101',
-  },
-  {
-    id: '2',
-    action: 'CREATE_TASK',
-    user: 'CD67890',
-    timestamp: '2026-08-11T11:00:00Z',
-    details: 'Created new tickler task #202',
-  },
-];
+const mockHistoryResponse = {
+  data: [
+    {
+      auditId: 1,
+      instructionId: 101,
+      action: 'STATUS_CHANGE',
+      oldStatus: 'NEW',
+      newStatus: 'APPROVED',
+      comments: 'Approved by manager',
+      performedBy: 'USER01',
+      performedOn: '2026-08-11T10:00:00Z',
+    },
+  ],
+};
+
+const mockFieldHistoryResponse = {
+  data: [
+    {
+      fieldName: 'amount',
+      oldValue: '1000',
+      newValue: '2000',
+      changedBy: 'USER01',
+      changedOn: '2026-08-11T10:05:00Z',
+    },
+  ],
+};
 
 describe('AuditTrailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuditTrail.mockResolvedValue(mockAuditLogs);
+    mockGetInstructionHistory.mockResolvedValue(mockHistoryResponse);
+    mockGetFieldHistory.mockResolvedValue(mockFieldHistoryResponse);
   });
 
-  it('fetches and displays audit log entries in AG Grid on mount', async () => {
+  it('renders initial page state with disabled search button', () => {
     render(<AuditTrailPage />);
 
+    expect(screen.getByText('Audit Trail')).toBeInTheDocument();
+
+    const searchBtn = screen.getByTestId('search-button') as HTMLButtonElement;
+    expect(searchBtn.disabled).toBe(true);
+  });
+
+  it('fetches history data when Instruction ID is entered and Search is clicked', async () => {
+    render(<AuditTrailPage />);
+
+    const input = screen.getByTestId('instruction-input');
+    fireEvent.change(input, { target: { value: '101' } });
+
+    const searchBtn = screen.getByTestId('search-button') as HTMLButtonElement;
+    expect(searchBtn.disabled).toBe(false);
+
+    fireEvent.click(searchBtn);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     await waitFor(() => {
-      expect(mockGetAuditTrail).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+      expect(mockGetInstructionHistory).toHaveBeenCalledWith(101);
+      expect(mockGetFieldHistory).toHaveBeenCalledWith(101);
+    });
+
+    expect(screen.getByTestId('tab-pane-history')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-pane-fields')).toBeInTheDocument();
+  });
+
+  it('triggers search when Enter key is pressed inside the input field', async () => {
+    render(<AuditTrailPage />);
+
+    const input = screen.getByTestId('instruction-input');
+    fireEvent.change(input, { target: { value: '202' } });
+
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockGetInstructionHistory).toHaveBeenCalledWith(202);
+      expect(mockGetFieldHistory).toHaveBeenCalledWith(202);
     });
   });
 
-  it('renders a danger alert if fetching audit records fails', async () => {
-    mockGetAuditTrail.mockRejectedValueOnce(new Error('Failed to fetch audit records'));
+  it('displays empty state messages when search returns no action or field history', async () => {
+    mockGetInstructionHistory.mockResolvedValueOnce({ data: [] });
+    mockGetFieldHistory.mockResolvedValueOnce({ data: [] });
 
     render(<AuditTrailPage />);
+
+    const input = screen.getByTestId('instruction-input');
+    fireEvent.change(input, { target: { value: '999' } });
+
+    fireEvent.click(screen.getByTestId('search-button'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('No action history found')).toBeInTheDocument();
+      expect(screen.getByText('No field changes found')).toBeInTheDocument();
+    });
+  });
+
+  it('displays danger alert when API fetch fails', async () => {
+    mockGetInstructionHistory.mockRejectedValueOnce(new Error('Network Error'));
+
+    render(<AuditTrailPage />);
+
+    const input = screen.getByTestId('instruction-input');
+    fireEvent.change(input, { target: { value: '101' } });
+
+    fireEvent.click(screen.getByTestId('search-button'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
-    });
-  });
-
-  it('filters audit grid items when typing into search input', async () => {
-    render(<AuditTrailPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'UPDATE' } });
-
-    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
-  });
-
-  it('reloads audit records when refresh button is clicked', async () => {
-    render(<AuditTrailPage />);
-
-    await waitFor(() => {
-      expect(mockGetAuditTrail).toHaveBeenCalledTimes(1);
-    });
-
-    const refreshBtn = screen.getByTitle(/refresh/i);
-    fireEvent.click(refreshBtn);
-
-    await waitFor(() => {
-      expect(mockGetAuditTrail).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Network Error');
     });
   });
 });
