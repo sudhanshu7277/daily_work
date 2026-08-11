@@ -2,63 +2,249 @@
 
 npx vitest run --coverage
 
-// src/App.test.tsx
-// src/App.test.tsx
+// src/components/common/FilterPresetBar.test.tsx
+
+// src/components/common/FilterPresetBar.test.tsx
+
+// @vitest-environment jsdom
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+import { FilterPresetBar } from './FilterPresetBar';
 
-// Array to record protected roles received by route guards during renders
-let protectedRoles: string[][] = [];
+const mockListFilterPrefs = vi.fn();
+const mockSaveFilterPref = vi.fn();
+const mockDeleteFilterPref = vi.fn();
 
-// Mock sub-components and pages rendered by routes
-vi.mock('./pages/InstructionDetail', () => ({
-  default: () => <div data-testid="instruction-detail">Instruction Detail</div>,
+vi.mock('../../api/filterPreferences', () => ({
+  listFilterPrefs: (...args: unknown[]) => mockListFilterPrefs(...args),
+  saveFilterPref: (...args: unknown[]) => mockSaveFilterPref(...args),
+  deleteFilterPref: (...args: unknown[]) => mockDeleteFilterPref(...args),
 }));
 
-// Mock ProtectedRoute to capture allowedRoles configuration
-vi.mock('./components/ProtectedRoute', () => ({
-  default: ({ allowedRoles, children }: { allowedRoles: string[]; children: React.ReactNode }) => {
-    protectedRoles.push(allowedRoles);
-    return <>{children}</>;
-  },
-}));
+// Design-system mock (mirrors SearchableMultiSelect.test.tsx).
+// The Dropdown exposes buttons that fire onChange with a numeric id,
+// a numeric-string (to hit the Number() branch), and a non-numeric
+// string (to hit the !Number.isFinite early-return).
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const R = await vi.importActual<typeof import('react')>('react');
+  return {
+    El: ({ children, ...rest }: any) => R.createElement('div', rest, children),
+    Input: ({ value, onChange, placeholder, ...rest }: any) =>
+      R.createElement('input', {
+        value,
+        onChange: (e: any) => {
+          // Robustly handle both synthetic event e and raw value string
+          if (onChange) {
+            onChange(e);
+            if (e?.target?.value !== undefined) {
+              onChange(e.target.value);
+            }
+          }
+        },
+        placeholder,
+        ...rest,
+      }),
+    Button: ({ children, onClick, disabled, ...rest }: any) =>
+      R.createElement('button', { onClick, disabled, ...rest }, children),
+    Dropdown: Object.assign(
+      ({ children, onChange, value, placeholder }: any) =>
+        R.createElement(
+          'div',
+          { 'data-testid': 'dropdown', 'data-value': value ?? '' },
+          R.createElement('span', null, placeholder),
+          children,
+          R.createElement(
+            'button',
+            { 'data-testid': 'apply-num', onClick: () => onChange(2) },
+            'apply-num'
+          ),
+          R.createElement(
+            'button',
+            { 'data-testid': 'apply-str', onClick: () => onChange('1') },
+            'apply-str'
+          ),
+          R.createElement(
+            'button',
+            { 'data-testid': 'apply-nan', onClick: () => onChange('abc') },
+            'apply-nan'
+          )
+        ),
+      {
+        Item: ({ children, value }: any) =>
+          R.createElement('div', { 'data-testid': `option-${value}` }, children),
+      }
+    ),
+  };
+});
 
-import App from './App';
+const PAGE_KEY = 'instructions';
 
-/**
- * Helper to update browser location state and render the App component
- */
-const renderAt = (path: string) => {
-  window.history.pushState({}, 'Test page', path);
-  return render(<App />);
+// filtersJson strings are what deserializeFilters will JSON.parse.
+const prefDefault = {
+  filterPrefId: 1,
+  prefName: 'My default view',
+  filtersJson: JSON.stringify({ status: 'OPEN' }),
+  isDefault: true,
 };
 
-describe('App route wiring', () => {
+const prefOther = {
+  filterPrefId: 2,
+  prefName: 'Second view',
+  filtersJson: JSON.stringify({ status: 'CLOSED' }),
+  isDefault: false,
+};
+
+function renderBar(overrides: Partial<Record<string, unknown>> = {}) {
+  const onApply = vi.fn();
+  const currentFilters = { status: 'PENDING' };
+
+  render(
+    <FilterPresetBar
+      pageKey={PAGE_KEY}
+      currentFilters={currentFilters}
+      onApply={onApply}
+      {...(overrides as any)}
+    />
+  );
+
+  return { onApply, currentFilters };
+}
+
+describe('FilterPresetBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    protectedRoles = [];
+    mockListFilterPrefs.mockResolvedValue({ data: [prefDefault, prefOther] });
+    mockSaveFilterPref.mockResolvedValue({});
+    mockDeleteFilterPref.mockResolvedValue({});
   });
 
-  it('guards /whitelist with only ROLE_MAINTENANCE_SET_UP', () => {
-    renderAt('/whitelist');
+  it('loads prefs on mount and renders an item per saved view', async () => {
+    renderBar();
 
-    expect(protectedRoles[0]).toEqual(['ROLE_MAINTENANCE_SET_UP']);
+    await waitFor(() => {
+      expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY);
+    });
+
+    // default item shows the "(default)" suffix; the other shows its raw name
+    expect(screen.getByTestId('option-1').textContent).toContain('My default view (default)');
+    expect(screen.getByTestId('option-2').textContent).toBe('Second view');
   });
 
-  it('guards /thresholds with the maintenance/checker roles', () => {
-    renderAt('/thresholds');
+  it('auto-applies the default pref (deserialized) on mount', async () => {
+    const { onApply } = renderBar();
 
-    expect(protectedRoles[0]).toEqual([
-      'ROLE_MAINTENANCE_SET_UP',
-      'ROLE_PAYMENT_CHECKER',
-      'ROLE_SUPER_CHECKER',
-    ]);
+    await waitFor(() => {
+      expect(onApply).toHaveBeenCalledWith({ status: 'OPEN' });
+    });
   });
 
-  it('matches the dynamic :id param route for instruction detail', () => {
-    renderAt('/instructions/12345');
+  it('tolerates a missing data field (res.data ?? [])', async () => {
+    mockListFilterPrefs.mockResolvedValue({});
 
-    expect(screen.getByTestId('instruction-detail')).toBeTruthy();
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    // no prefs => no options and no auto-apply
+    expect(screen.queryByTestId('option-1')).toBeNull();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it('applies the matching pref when a view is selected', async () => {
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    onApply.mockClear();
+
+    fireEvent.click(screen.getByTestId('apply-num'));
+
+    expect(onApply).toHaveBeenCalledWith({ status: 'CLOSED' });
+  });
+
+  it('coerces a numeric-string selection via Number()', async () => {
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    onApply.mockClear();
+
+    fireEvent.click(screen.getByTestId('apply-str'));
+
+    expect(onApply).toHaveBeenCalledWith({ status: 'OPEN' });
+  });
+
+  it('ignores a non-numeric selection (early return)', async () => {
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    onApply.mockClear();
+
+    fireEvent.click(screen.getByTestId('apply-nan'));
+
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it('does not save when the view name is blank', async () => {
+    renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    fireEvent.click(saveBtn);
+
+    expect(mockSaveFilterPref).not.toHaveBeenCalled();
+  });
+
+  it('saves a new view with serialized current filters, then reloads', async () => {
+    renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'New view' } });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(mockSaveFilterPref).toHaveBeenCalled();
+    });
+
+    const [calledPageKey, calledName, calledFilters] = mockSaveFilterPref.mock.calls[0];
+    expect(calledPageKey).toBe(PAGE_KEY);
+    expect(calledName).toBe('New view');
+    expect(JSON.parse(calledFilters)).toEqual({ status: 'PENDING' });
+
+    await waitFor(() => {
+      expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('disables Delete until a pref is selected, then deletes and reloads', async () => {
+    renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
+
+    const deleteBtn = screen.getByRole('button', { name: /delete/i });
+    expect(deleteBtn).toBeDisabled();
+
+    // Select preset with ID 2 to enable deletion
+    fireEvent.click(screen.getByTestId('apply-num'));
+
+    expect(deleteBtn).not.toBeDisabled();
+
+    fireEvent.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(mockDeleteFilterPref).toHaveBeenCalledWith(2);
+    });
+
+    await waitFor(() => {
+      expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
+    });
   });
 });
