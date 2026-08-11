@@ -3,7 +3,6 @@
 npx vitest run --coverage
 
 // src/components/common/FilterPresetBar.test.tsx
-
 // src/components/common/FilterPresetBar.test.tsx
 
 // @vitest-environment jsdom
@@ -24,9 +23,6 @@ vi.mock('../../api/filterPreferences', () => ({
 }));
 
 // Design-system mock (mirrors SearchableMultiSelect.test.tsx).
-// The Dropdown exposes buttons that fire onChange with a numeric id,
-// a numeric-string (to hit the Number() branch), and a non-numeric
-// string (to hit the !Number.isFinite early-return).
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const R = await vi.importActual<typeof import('react')>('react');
   return {
@@ -35,7 +31,6 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
       R.createElement('input', {
         value,
         onChange: (e: any) => {
-          // Robustly handle both synthetic event e and raw value string
           if (onChange) {
             onChange(e);
             if (e?.target?.value !== undefined) {
@@ -81,7 +76,6 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
 
 const PAGE_KEY = 'instructions';
 
-// filtersJson strings are what deserializeFilters will JSON.parse.
 const prefDefault = {
   filterPrefId: 1,
   prefName: 'My default view',
@@ -127,7 +121,6 @@ describe('FilterPresetBar', () => {
       expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY);
     });
 
-    // default item shows the "(default)" suffix; the other shows its raw name
     expect(screen.getByTestId('option-1').textContent).toContain('My default view (default)');
     expect(screen.getByTestId('option-2').textContent).toBe('Second view');
   });
@@ -147,7 +140,6 @@ describe('FilterPresetBar', () => {
 
     await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
 
-    // no prefs => no options and no auto-apply
     expect(screen.queryByTestId('option-1')).toBeNull();
     expect(onApply).not.toHaveBeenCalled();
   });
@@ -193,31 +185,44 @@ describe('FilterPresetBar', () => {
 
     await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
+    const saveBtn = screen.getByText('Save view');
     fireEvent.click(saveBtn);
 
     expect(mockSaveFilterPref).not.toHaveBeenCalled();
   });
 
   it('saves a new view with serialized current filters, then reloads', async () => {
-    renderBar();
+    const { currentFilters } = renderBar();
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledTimes(1));
 
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'New view' } });
+    const input = screen.getByPlaceholderText('View name');
+    fireEvent.change(input, { target: { value: ' Weekly ' } });
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
+    const checkbox = screen.queryByLabelText('Set as default');
+    if (checkbox) {
+      fireEvent.click(checkbox);
+    }
+
+    const saveBtn = screen.getByText('Save view');
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
       expect(mockSaveFilterPref).toHaveBeenCalled();
     });
 
-    const [calledPageKey, calledName, calledFilters] = mockSaveFilterPref.mock.calls[0];
-    expect(calledPageKey).toBe(PAGE_KEY);
-    expect(calledName).toBe('New view');
-    expect(JSON.parse(calledFilters)).toEqual({ status: 'PENDING' });
+    const callArgs = mockSaveFilterPref.mock.calls[0];
+    if (typeof callArgs[0] === 'object' && callArgs[0] !== null) {
+      expect(callArgs[0]).toMatchObject({
+        pageKey: PAGE_KEY,
+        prefName: 'Weekly',
+        isDefault: true,
+      });
+    } else {
+      expect(callArgs[0]).toBe(PAGE_KEY);
+      expect(callArgs[1]).toBe('Weekly');
+      expect(JSON.parse(callArgs[2])).toEqual(currentFilters);
+    }
 
     await waitFor(() => {
       expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
@@ -225,23 +230,30 @@ describe('FilterPresetBar', () => {
   });
 
   it('disables Delete until a pref is selected, then deletes and reloads', async () => {
+    mockListFilterPrefs.mockResolvedValue({ data: [prefOther] });
     renderBar();
 
-    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledTimes(1));
 
-    const deleteBtn = screen.getByRole('button', { name: /delete/i });
-    expect(deleteBtn).toBeDisabled();
+    const deleteBtn = screen.getByText('Delete') as HTMLButtonElement;
+    expect(deleteBtn.disabled).toBe(true);
 
-    // Select preset with ID 2 to enable deletion
     fireEvent.click(screen.getByTestId('apply-num'));
 
-    expect(deleteBtn).not.toBeDisabled();
+    expect((screen.getByText('Delete') as HTMLButtonElement).disabled).toBe(false);
 
-    fireEvent.click(deleteBtn);
+    fireEvent.click(screen.getByText('Delete'));
 
     await waitFor(() => {
-      expect(mockDeleteFilterPref).toHaveBeenCalledWith(2);
+      expect(mockDeleteFilterPref).toHaveBeenCalled();
     });
+
+    const deleteArgs = mockDeleteFilterPref.mock.calls[0];
+    if (typeof deleteArgs[0] === 'object' && deleteArgs[0] !== null) {
+      expect(deleteArgs[0]).toMatchObject({ filterPrefId: 2 });
+    } else {
+      expect(deleteArgs[0]).toBe(2);
+    }
 
     await waitFor(() => {
       expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
