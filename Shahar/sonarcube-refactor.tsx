@@ -7,19 +7,26 @@ npx vitest run --coverage
 // document.test.ts
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import axios from 'axios';
+import client, { get, post, del } from './client';
 import {
-  getDocumentPreviewBlob,
-  downloadDocument,
+  getDocuments,
+  recordDocument,
   uploadDocument,
+  downloadDocument,
   deleteDocument,
-  getDocumentList,
-} from './document';
+  updateDocument,
+  getDocumentPreviewBlob,
+} from './documents';
 
-// --- Mocks ---
-
-vi.mock('axios');
-const mockedAxios = vi.mocked(axios, true);
+vi.mock('./client', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+  get: vi.fn(),
+  post: vi.fn(),
+  del: vi.fn(),
+}));
 
 describe('documents API', () => {
   const createObjectURLMock = vi.fn();
@@ -28,9 +35,9 @@ describe('documents API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    createObjectURLMock.mockReturnValue('blob:preview-2');
+    createObjectURLMock.mockReturnValue('blob:preview-url');
+    revokeObjectURLMock.mockImplementation(() => {});
 
-    // Stub global URL methods safely in Vitest
     vi.stubGlobal('URL', {
       createObjectURL: createObjectURLMock,
       revokeObjectURL: revokeObjectURLMock,
@@ -41,99 +48,193 @@ describe('documents API', () => {
     vi.unstubAllGlobals();
   });
 
-  describe('getDocumentList', () => {
-    it('fetches list of documents successfully', async () => {
-      const mockDocs = [{ id: '1', name: 'Invoice.pdf' }];
-      mockedAxios.get.mockResolvedValueOnce({ data: mockDocs });
+  describe('getDocuments', () => {
+    it('fetches documents for a given instructionId', async () => {
+      const mockDocs = [{ id: 1, fileName: 'test.pdf' }];
+      vi.mocked(get).mockResolvedValueOnce(mockDocs);
 
-      const result = await getDocumentList('DEAL-123');
+      const result = await getDocuments(101);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith('/documents', {
-        params: { dealKey: 'DEAL-123' },
-      });
+      expect(get).toHaveBeenCalledWith('/instructions/101/documents');
       expect(result).toEqual(mockDocs);
     });
   });
 
-  describe('getDocumentPreviewBlob', () => {
-    it('returns object URL directly when response is already a Blob', async () => {
-      const mockBlob = new Blob(['test content'], { type: 'application/pdf' });
-      mockedAxios.get.mockResolvedValueOnce({ data: mockBlob });
+  describe('recordDocument', () => {
+    it('records document with minimum required parameters', async () => {
+      const mockDoc = { id: 1, fileName: 'doc.pdf' };
+      vi.mocked(post).mockResolvedValueOnce(mockDoc);
 
-      const result = await getDocumentPreviewBlob('doc-101');
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/documents/doc-101/preview', {
-        responseType: 'blob',
+      const result = await recordDocument(101, {
+        fileName: 'doc.pdf',
+        documentType: 'TAX_FORM',
       });
-      expect(createObjectURLMock).toHaveBeenCalledWith(mockBlob);
-      expect(result).toBe('blob:preview-2');
+
+      expect(post).toHaveBeenCalledWith(
+        '/instructions/101/documents?fileName=doc.pdf&documentType=TAX_FORM',
+      );
+      expect(result).toEqual(mockDoc);
     });
 
-    it('wraps non-Blob response data in a Blob before creating preview URL', async () => {
-      const mockNonBlobData = { content: 'sample-document-text' };
-      mockedAxios.get.mockResolvedValueOnce({ data: mockNonBlobData });
+    it('records document with all optional parameters provided', async () => {
+      const mockDoc = { id: 2, fileName: 'doc2.pdf' };
+      vi.mocked(post).mockResolvedValueOnce(mockDoc);
 
-      const result = await getDocumentPreviewBlob('doc-102');
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/documents/doc-102/preview', {
-        responseType: 'blob',
+      const result = await recordDocument(101, {
+        fileName: 'doc2.pdf',
+        documentType: 'INVOICE',
+        dmcDocumentId: 'DMC-888',
+        fileSize: 1024,
+        contentType: 'application/pdf',
       });
-      expect(createObjectURLMock).toHaveBeenCalledTimes(1);
 
-      // Extract argument passed to createObjectURL and unwrap if array-wrapped
-      const rawArg = createObjectURLMock.mock.calls[0][0];
-      const targetBlob = Array.isArray(rawArg) ? rawArg[0] : rawArg;
-
-      expect(targetBlob?.constructor?.name).toBe('Blob');
-      expect(result).toBe('blob:preview-2');
-    });
-  });
-
-  describe('downloadDocument', () => {
-    it('triggers document download via anchor element click', async () => {
-      const mockBlob = new Blob(['file binary content'], { type: 'application/pdf' });
-      mockedAxios.get.mockResolvedValueOnce({ data: mockBlob });
-
-      const linkClickSpy = vi
-        .spyOn(HTMLAnchorElement.prototype, 'click')
-        .mockImplementation(() => {});
-
-      await downloadDocument('doc-103', 'Contract.pdf');
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/documents/doc-103/download', {
-        responseType: 'blob',
-      });
-      expect(createObjectURLMock).toHaveBeenCalledWith(mockBlob);
-      expect(linkClickSpy).toHaveBeenCalled();
-
-      linkClickSpy.mockRestore();
+      expect(post).toHaveBeenCalledWith(
+        '/instructions/101/documents?fileName=doc2.pdf&documentType=INVOICE&dmcDocumentId=DMC-888&fileSize=1024&contentType=application%2Fpdf',
+      );
+      expect(result).toEqual(mockDoc);
     });
   });
 
   describe('uploadDocument', () => {
-    it('sends FormData to upload document', async () => {
-      const mockFile = new File(['dummy content'], 'test.txt', { type: 'text/plain' });
-      mockedAxios.post.mockResolvedValueOnce({ data: { success: true } });
+    it('uploads file with specified documentType and full metadata', async () => {
+      const mockResponse = { data: { id: 1, fileName: 'upload.pdf' } };
+      vi.mocked(client.post).mockResolvedValueOnce(mockResponse);
 
-      const result = await uploadDocument(mockFile, 'DEAL-999');
+      const mockFile = new File(['file contents'], 'upload.pdf', { type: 'application/pdf' });
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        '/documents/upload',
+      const result = await uploadDocument(101, mockFile, 'PASSPORT', {
+        classification: 'CONFIDENTIAL',
+        documentRegion: 'US-EAST',
+        documentDate: '2026-08-11',
+        retentionCode: 'RET-7YR',
+      });
+
+      expect(client.post).toHaveBeenCalledWith(
+        '/instructions/101/documents/upload',
         expect.any(FormData),
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        { headers: { 'Content-Type': 'multipart/form-data' } },
       );
-      expect(result).toEqual({ success: true });
+
+      const formDataSent = vi.mocked(client.post).mock.calls[0][1] as FormData;
+      expect(formDataSent.get('file')).toEqual(mockFile);
+      expect(formDataSent.get('documentType')).toBe('PASSPORT');
+      expect(formDataSent.get('classification')).toBe('CONFIDENTIAL');
+      expect(formDataSent.get('documentRegion')).toBe('US-EAST');
+      expect(formDataSent.get('documentDate')).toBe('2026-08-11');
+      expect(formDataSent.get('retentionCode')).toBe('RET-7YR');
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it('uses fallback documentType "OTHER" when documentType is empty and metadata is omitted', async () => {
+      const mockResponse = { data: { id: 2, fileName: 'fallback.txt' } };
+      vi.mocked(client.post).mockResolvedValueOnce(mockResponse);
+
+      const mockFile = new File(['data'], 'fallback.txt', { type: 'text/plain' });
+
+      const result = await uploadDocument(101, mockFile, '');
+
+      const formDataSent = vi.mocked(client.post).mock.calls[0][1] as FormData;
+      expect(formDataSent.get('documentType')).toBe('OTHER');
+      expect(formDataSent.get('classification')).toBeNull();
+      expect(result).toEqual(mockResponse.data);
+    });
+  });
+
+  describe('downloadDocument', () => {
+    it('triggers a browser file download via temporary anchor element', async () => {
+      const mockBlob = new Blob(['binary file data'], { type: 'application/pdf' });
+      vi.mocked(client.get).mockResolvedValueOnce({ data: mockBlob });
+
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      const appendChildSpy = vi.spyOn(document.body, 'appendChild');
+      const removeSpy = vi.spyOn(HTMLAnchorElement.prototype, 'remove');
+
+      await downloadDocument(101, 202, 'Report.pdf');
+
+      expect(client.get).toHaveBeenCalledWith(
+        '/instructions/101/documents/202/download',
+        { responseType: 'blob' },
+      );
+      expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob));
+      expect(appendChildSpy).toHaveBeenCalled();
+      expect(clickSpy).toHaveBeenCalled();
+      expect(removeSpy).toHaveBeenCalled();
+      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:preview-url');
+
+      clickSpy.mockRestore();
+      appendChildSpy.mockRestore();
+      removeSpy.mockRestore();
     });
   });
 
   describe('deleteDocument', () => {
-    it('deletes document by ID', async () => {
-      mockedAxios.delete.mockResolvedValueOnce({ data: { status: 200 } });
+    it('sends delete request for specified instructionId and documentId', async () => {
+      vi.mocked(del).mockResolvedValueOnce(undefined);
 
-      const result = await deleteDocument('doc-104');
+      await deleteDocument(101, 202);
 
-      expect(mockedAxios.delete).toHaveBeenCalledWith('/documents/doc-104');
-      expect(result).toEqual({ status: 200 });
+      expect(del).toHaveBeenCalledWith('/instructions/101/documents/202/delete');
+    });
+  });
+
+  describe('updateDocument', () => {
+    it('updates document metadata with query parameters', async () => {
+      const mockUpdatedDoc = { id: 202, fileName: 'updated.pdf' };
+      vi.mocked(post).mockResolvedValueOnce(mockUpdatedDoc);
+
+      const result = await updateDocument(101, 202, {
+        documentType: 'CONTRACT',
+        fileName: 'updated.pdf',
+        classification: 'RESTRICTED',
+        documentRegion: 'EU-WEST',
+        documentDate: '2026-01-01',
+        retentionCode: 'RET-3YR',
+      });
+
+      expect(post).toHaveBeenCalledWith(
+        '/instructions/101/documents/202/update?documentType=CONTRACT&fileName=updated.pdf&classification=RESTRICTED&documentRegion=EU-WEST&documentDate=2026-01-01&retentionCode=RET-3YR',
+      );
+      expect(result).toEqual(mockUpdatedDoc);
+    });
+
+    it('sends empty query string when no fields are passed', async () => {
+      const mockUpdatedDoc = { id: 202 };
+      vi.mocked(post).mockResolvedValueOnce(mockUpdatedDoc);
+
+      const result = await updateDocument(101, 202, {});
+
+      expect(post).toHaveBeenCalledWith('/instructions/101/documents/202/update?');
+      expect(result).toEqual(mockUpdatedDoc);
+    });
+  });
+
+  describe('getDocumentPreviewBlob', () => {
+    it('creates object URL directly when response data is an instance of Blob', async () => {
+      const mockBlob = new Blob(['preview content'], { type: 'application/pdf' });
+      vi.mocked(client.get).mockResolvedValueOnce({ data: mockBlob });
+
+      const result = await getDocumentPreviewBlob(101, 202);
+
+      expect(client.get).toHaveBeenCalledWith(
+        '/instructions/101/documents/202/preview',
+        { responseType: 'blob' },
+      );
+      expect(createObjectURLMock).toHaveBeenCalledWith(mockBlob);
+      expect(result).toBe('blob:preview-url');
+    });
+
+    it('wraps non-Blob response data in a new Blob before creating object URL', async () => {
+      const rawStringData = 'raw string data';
+      vi.mocked(client.get).mockResolvedValueOnce({ data: rawStringData });
+
+      const result = await getDocumentPreviewBlob(101, 202);
+
+      expect(client.get).toHaveBeenCalledWith(
+        '/instructions/101/documents/202/preview',
+        { responseType: 'blob' },
+      );
+      expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob));
+      expect(result).toBe('blob:preview-url');
     });
   });
 });
