@@ -3,273 +3,252 @@
 npx vitest run --coverage
 
 
-// src/context/AuthContext.test.tsx
+
+// src/components/common/FilterPresetBar.test.tsx
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
+import { FilterPresetBar } from './FilterPresetBar';
 
-// --- Hoisted Mock Declarations ---
-// vi.hoisted guarantees mock variables are initialized before vi.mock factories run.
-const {
-  mockGetCurrentUserRoles,
-  mockLogin,
-  mockGetToken,
-  mockIsTokenExpired,
-  mockGetTokenExpiry,
-  mockSetUserRole,
-} = vi.hoisted(() => ({
-  mockGetCurrentUserRoles: vi.fn(),
-  mockLogin: vi.fn(),
-  mockGetToken: vi.fn(),
-  mockIsTokenExpired: vi.fn(),
-  mockGetTokenExpiry: vi.fn(),
-  mockSetUserRole: vi.fn(),
+// --- Mocks ---
+
+const mockListFilterPrefs = vi.fn();
+const mockSaveFilterPref = vi.fn();
+const mockDeleteFilterPref = vi.fn();
+
+vi.mock('../../api/filterPreferences', () => ({
+  listFilterPrefs: (...args: unknown[]) => mockListFilterPrefs(...args),
+  saveFilterPref: (...args: unknown[]) => mockSaveFilterPref(...args),
+  deleteFilterPref: (...args: unknown[]) => mockDeleteFilterPref(...args),
 }));
 
-// --- Mock the roles API ---
-vi.mock('../api/roles', () => ({
-  getCurrentUserRoles: (...a: unknown[]) => mockGetCurrentUserRoles(...a),
-}));
+// Mock custom UI components library cleanly
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const R = await vi.importActual<typeof import('react')>('react');
+  return {
+    El: ({ children, ...rest }: any) => R.createElement('div', rest, children),
+    Input: ({ value, onChange, placeholder, disabled, ...rest }: any) =>
+      R.createElement('input', {
+        value: value ?? '',
+        placeholder,
+        disabled,
+        onChange: (e: any) => {
+          if (onChange) onChange(e);
+        },
+        ...rest,
+      }),
+    Button: ({ children, onClick, disabled, ...rest }: any) =>
+      R.createElement('button', { onClick, disabled, ...rest }, children),
+    Dropdown: Object.assign(
+      ({ children, onChange, value, placeholder }: any) =>
+        R.createElement(
+          'div',
+          { 'data-testid': 'dropdown', 'data-value': value ?? '' },
+          R.createElement('span', null, placeholder),
+          children,
+          R.createElement(
+            'button',
+            {
+              'data-testid': 'apply-num',
+              onClick: () => {
+                if (onChange) onChange(2);
+              },
+            },
+            'apply-num'
+          ),
+          R.createElement(
+            'button',
+            {
+              'data-testid': 'apply-str',
+              onClick: () => {
+                if (onChange) onChange('1');
+              },
+            },
+            'apply-str'
+          ),
+          R.createElement(
+            'button',
+            {
+              'data-testid': 'apply-nan',
+              onClick: () => {
+                if (onChange) onChange('abc');
+              },
+            },
+            'apply-nan'
+          )
+        ),
+      {
+        Item: ({ children, value }: any) =>
+          R.createElement('div', { 'data-testid': `option-${value}` }, children),
+      }
+    ),
+  };
+});
 
-// --- Mock the auth utils ---
-vi.mock('../utils/auth', () => ({
-  login: (...a: unknown[]) => mockLogin(...a),
-  getToken: (...a: unknown[]) => mockGetToken(...a),
-  isTokenExpired: (...a: unknown[]) => mockIsTokenExpired(...a),
-  getTokenExpiry: (...a: unknown[]) => mockGetTokenExpiry(...a),
-  setUserRole: (...a: unknown[]) => mockSetUserRole(...a),
-}));
+const PAGE_KEY = 'instructions';
 
-import { AuthProvider, useAuth } from './AuthContext';
+const prefDefault = {
+  filterPrefId: 1,
+  prefName: 'My default view',
+  filtersJson: JSON.stringify({ status: 'OPEN' }),
+  isDefault: true,
+};
 
-// A tiny consumer that surfaces the context state as text/buttons
-function Consumer() {
-  const {
-    soeid,
-    roles,
-    activeRole,
-    region,
-    error,
-    hasRole,
-    hasAnyRole,
-    hasPermission,
-    setActiveRole,
-  } = useAuth();
+const prefOther = {
+  filterPrefId: 2,
+  prefName: 'Second view',
+  filtersJson: JSON.stringify({ status: 'CLOSED' }),
+  isDefault: false,
+};
 
-  return (
-    <div>
-      <span data-testid="soeid">{soeid}</span>
-      <span data-testid="roles">{roles.join(',')}</span>
-      <span data-testid="active-role">{activeRole ?? 'none'}</span>
-      <span data-testid="region">{region ?? 'none'}</span>
-      <span data-testid="error">{error ?? 'none'}</span>
-      <span data-testid="has-latam">{String(hasRole('ROLE_USERS_LATAM'))}</span>
-      <span data-testid="has-any">{String(hasAnyRole(['ROLE_USERS_NAM']))}</span>
-      <span data-testid="has-perm">{String(hasPermission('CAN_EDIT'))}</span>
-      <button onClick={() => setActiveRole('ROLE_USERS_NAM')}>switch</button>
-    </div>
+function renderBar(overrides: Partial<Record<string, unknown>> = {}) {
+  const onApply = vi.fn();
+  const currentFilters = { status: 'PENDING' };
+
+  render(
+    <FilterPresetBar
+      pageKey={PAGE_KEY}
+      currentFilters={currentFilters}
+      onApply={onApply}
+      {...(overrides as any)}
+    />
   );
+
+  return { onApply, currentFilters };
 }
 
-function renderWithProvider() {
-  return render(
-    <AuthProvider>
-      <Consumer />
-    </AuthProvider>
-  );
-}
-
-describe('AuthContext', () => {
+describe('FilterPresetBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Enable fake timers with shouldAdvanceTime: true so waitFor doesn't time out polling JSDOM
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    // getTokenExpiry drives scheduleRefresh; return 0 so it early-returns and schedules nothing.
-    mockGetTokenExpiry.mockReturnValue(0);
+    mockListFilterPrefs.mockResolvedValue({ data: [prefDefault, prefOther] });
+    mockSaveFilterPref.mockResolvedValue({ data: { success: true } });
+    mockDeleteFilterPref.mockResolvedValue({ data: { success: true } });
   });
 
-  afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
-  });
+  it('loads prefs on mount and renders an item per saved view', async () => {
+    renderBar();
 
-  it('uses the existing valid token path (getCurrentUserRoles) and resolves region + activeRole', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'AB12345', roles: ['ROLE_USERS_LATAM', 'ROLE_MAKER'] },
+    await waitFor(() => {
+      expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY);
     });
 
-    renderWithProvider();
+    expect(screen.getByTestId('option-1').textContent).toContain('My default view (default)');
+    expect(screen.getByTestId('option-2').textContent).toBe('Second view');
+  });
 
-    // While loading, the splash shows instead of the consumer.
-    expect(screen.getByText('Authenticating...')).toBeInTheDocument();
+  it('auto-applies the default pref (deserialized) on mount', async () => {
+    const { onApply } = renderBar();
 
+    await waitFor(() => {
+      expect(onApply).toHaveBeenCalledWith({ status: 'OPEN' });
+    });
+  });
+
+  it('tolerates a missing data field (res.data ?? [])', async () => {
+    mockListFilterPrefs.mockResolvedValue({});
+
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    expect(screen.queryByTestId('option-1')).toBeNull();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it('applies the matching pref when a view is selected', async () => {
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    onApply.mockClear();
+
+    fireEvent.click(screen.getByTestId('apply-num'));
+
+    expect(onApply).toHaveBeenCalledWith({ status: 'CLOSED' });
+  });
+
+  it('coerces a numeric-string selection via Number()', async () => {
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    onApply.mockClear();
+
+    fireEvent.click(screen.getByTestId('apply-str'));
+
+    expect(onApply).toHaveBeenCalledWith({ status: 'OPEN' });
+  });
+
+  it('ignores a non-numeric selection (early return)', async () => {
+    const { onApply } = renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    onApply.mockClear();
+
+    fireEvent.click(screen.getByTestId('apply-nan'));
+
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it('does not save when the view name is blank', async () => {
+    renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalled());
+
+    const saveBtn = screen.getByText('Save view');
+    fireEvent.click(saveBtn);
+
+    expect(mockSaveFilterPref).not.toHaveBeenCalled();
+  });
+
+  it('saves a new view with serialized current filters, then reloads', async () => {
+    renderBar();
+
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
+
+    const input = screen.getByPlaceholderText('View name');
+    fireEvent.change(input, { target: { value: 'New view' } });
+
+    const saveBtn = screen.getByText('Save view');
+    fireEvent.click(saveBtn);
+
+    // Flush microtasks so the save promise resolves and calls listFilterPrefs
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('soeid')).toHaveTextContent('AB12345');
+      expect(mockSaveFilterPref).toHaveBeenCalled();
+      expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
     });
-
-    expect(mockGetCurrentUserRoles).toHaveBeenCalledTimes(1);
-    expect(mockLogin).not.toHaveBeenCalled();
-    expect(screen.getByTestId('roles')).toHaveTextContent('ROLE_USERS_LATAM,ROLE_MAKER');
-
-    // First role becomes activeRole, and setUserRole is persisted.
-    expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_LATAM');
-    expect(mockSetUserRole).toHaveBeenCalledWith('ROLE_USERS_LATAM');
-
-    // LATAM has highest region priority.
-    expect(screen.getByTestId('region')).toHaveTextContent('LATAM');
-    expect(screen.getByTestId('error')).toHaveTextContent('none');
   });
 
-  it('falls back to login() when there is no valid token', async () => {
-    mockGetToken.mockReturnValue(null);
-    mockIsTokenExpired.mockReturnValue(true);
-    mockLogin.mockResolvedValue({
-      token: 'fresh.token',
-      soeid: 'CD67890',
-      roles: ['ROLE_USERS_EMEA'],
-    });
+  it('disables Delete until a pref is selected, then deletes and reloads', async () => {
+    renderBar();
 
-    renderWithProvider();
+    await waitFor(() => expect(mockListFilterPrefs).toHaveBeenCalledWith(PAGE_KEY));
 
+    const deleteBtn = screen.getByText('Delete') as HTMLButtonElement;
+    expect(deleteBtn.disabled).toBe(true);
+
+    fireEvent.click(screen.getByTestId('apply-num'));
+
+    expect((screen.getByText('Delete') as HTMLButtonElement).disabled).toBe(false);
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    // Flush microtasks so the delete promise resolves and calls listFilterPrefs
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('soeid')).toHaveTextContent('CD67890');
+      expect(mockDeleteFilterPref).toHaveBeenCalledWith(2);
+      expect(mockListFilterPrefs).toHaveBeenCalledTimes(2);
     });
-
-    expect(mockLogin).toHaveBeenCalledTimes(1);
-    expect(mockGetCurrentUserRoles).not.toHaveBeenCalled();
-    expect(screen.getByTestId('region')).toHaveTextContent('EMEA');
-  });
-
-  it('sets NO_REGION_MESSAGE error when the user has no region role', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'EF00000', roles: ['ROLE_MAKER'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('soeid')).toHaveTextContent('EF00000');
-    });
-
-    expect(screen.getByTestId('region')).toHaveTextContent('none');
-    expect(screen.getByTestId('error')).toHaveTextContent(/no region assigned/i);
-  });
-
-  it('sets an error message when fetchRoles rejects', async () => {
-    mockGetToken.mockReturnValue(null);
-    mockIsTokenExpired.mockReturnValue(true);
-    mockLogin.mockRejectedValue(new Error('login failed'));
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('error')).toHaveTextContent('login failed');
-    });
-  });
-
-  it('dedupes duplicate roles via the Set', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'GH11111', roles: ['ROLE_USERS_NAM', 'ROLE_USERS_NAM', 'ROLE_MAKER'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('roles')).toHaveTextContent('ROLE_USERS_NAM,ROLE_MAKER');
-    });
-  });
-
-  it('exposes working hasRole / hasAnyRole / hasPermission helpers', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'IJ22222', roles: ['ROLE_USERS_LATAM'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('has-latam')).toHaveTextContent('true');
-    });
-
-    // hasAnyRole(['ROLE_USERS_NAM']) -> false (user only has LATAM)
-    expect(screen.getByTestId('has-any')).toHaveTextContent('false');
-
-    // permissions are always [] in this implementation
-    expect(screen.getByTestId('has-perm')).toHaveTextContent('false');
-  });
-
-  it('setActiveRole updates activeRole and persists via setUserRole', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'KL33333', roles: ['ROLE_USERS_LATAM', 'ROLE_USERS_NAM'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_LATAM');
-    });
-
-    mockSetUserRole.mockClear();
-
-    act(() => {
-      screen.getByText('switch').click();
-    });
-
-    expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_NAM');
-    expect(mockSetUserRole).toHaveBeenCalledWith('ROLE_USERS_NAM');
-  });
-
-  it('useAuth throws when used outside an AuthProvider', () => {
-    // Silence the expected React error boundary logging.
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    function Orphan() {
-      useAuth();
-      return null;
-    }
-
-    expect(() => render(<Orphan />)).toThrow('useAuth must be used within an AuthProvider');
-
-    spy.mockRestore();
   });
 });
