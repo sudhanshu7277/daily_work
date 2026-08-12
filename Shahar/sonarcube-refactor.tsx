@@ -12,7 +12,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CallbackValidationForm from './CallbackValidationForm';
-import * as service from './callbackValidationService'; // Adjust path to API service
+import * as callbackService from './callbackValidationService'; // Adjust path if service is located in API directory
 
 vi.mock('./callbackValidationService', () => ({
   getCallbackValidationData: vi.fn(),
@@ -20,28 +20,35 @@ vi.mock('./callbackValidationService', () => ({
 
 describe('CallbackValidationForm', () => {
   const mockOnClose = vi.fn();
+  const mockId = '12345';
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders modal when visible and fetches initial data', async () => {
-    const mockData = { clientName: 'Test Client', status: 'Pending' };
-    (service.getCallbackValidationData as any).mockResolvedValue({ data: mockData });
+    const mockResponseData = {
+      clientName: 'Test Client',
+      status: 'Validated',
+    };
+
+    (callbackService.getCallbackValidationData as any).mockResolvedValue({
+      data: mockResponseData,
+    });
 
     render(
       <CallbackValidationForm
         visible={true}
         onClose={mockOnClose}
-        id="123"
+        id={mockId}
       />
     );
 
-    // Verify API request was triggered
-    expect(service.getCallbackValidationData).toHaveBeenCalledTimes(1);
-    expect(service.getCallbackValidationData).toHaveBeenCalledWith('123');
+    // Verify service call was triggered on mount when visible is true
+    expect(callbackService.getCallbackValidationData).toHaveBeenCalledTimes(1);
+    expect(callbackService.getCallbackValidationData).toHaveBeenCalledWith(mockId);
 
-    // Wait for async state update and modal content rendering
+    // Wait for async request to resolve and state updates to render
     await waitFor(() => {
       expect(screen.getByText('Callback Validation')).toBeInTheDocument();
     });
@@ -54,14 +61,14 @@ describe('CallbackValidationForm', () => {
       <CallbackValidationForm
         visible={false}
         onClose={mockOnClose}
-        id="123"
+        id={mockId}
       />
     );
 
-    // Verify API is NOT called
-    expect(service.getCallbackValidationData).not.toHaveBeenCalled();
+    // Verify API service is not invoked when hidden
+    expect(callbackService.getCallbackValidationData).not.toHaveBeenCalled();
 
-    // Verify Modal is NOT rendered in the DOM
+    // Verify Modal is not present in the DOM
     expect(screen.queryByText('Callback Validation')).not.toBeInTheDocument();
   });
 });
