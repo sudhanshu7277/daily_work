@@ -58,3 +58,13 @@ const newFiles = Array.from(e.target.files!);
 
 // With this:
 const newFiles = Array.from(e.target.files);
+
+
+//
+
+const options = (res.data ?? [])
+  .filter((item) => !!item.refCode && !!item.refValue)
+  .map((item) => ({
+    code: item.refCode,
+    label: item.refValue,
+  }));
