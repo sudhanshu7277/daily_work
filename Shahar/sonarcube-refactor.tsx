@@ -2,274 +2,389 @@
 
 npx vitest run --coverage
 
-// src/context/AuthContext.test.tsx
+// src/pages/mappingDetail/MappingDetailPage.test.tsx
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 
-// --- Hoisted Mock Declarations ---
-// Using vi.hoisted guarantees these mock functions are initialized BEFORE vi.mock factories execute.
+// --- Hoisted Mocks ---
 const {
-  mockGetCurrentUserRoles,
-  mockLogin,
-  mockGetToken,
-  mockIsTokenExpired,
-  mockGetTokenExpiry,
-  mockSetUserRole,
+  mockNotification,
+  mockGetAllDocumentMappings,
+  mockCreateDocumentMapping,
+  mockUpdateDocumentMapping,
+  mockGetAllCountryList,
+  mockGetClientListByCountry,
+  mockGetAllDealList,
+  mockNavigate,
 } = vi.hoisted(() => ({
-  mockGetCurrentUserRoles: vi.fn(),
-  mockLogin: vi.fn(),
-  mockGetToken: vi.fn(),
-  mockIsTokenExpired: vi.fn(),
-  mockGetTokenExpiry: vi.fn(),
-  mockSetUserRole: vi.fn(),
+  mockNotification: {
+    success: vi.fn(),
+    danger: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  },
+  mockGetAllDocumentMappings: vi.fn(),
+  mockCreateDocumentMapping: vi.fn(),
+  mockUpdateDocumentMapping: vi.fn(),
+  mockGetAllCountryList: vi.fn(),
+  mockGetClientListByCountry: vi.fn(),
+  mockGetAllDealList: vi.fn(),
+  mockNavigate: vi.fn(),
 }));
 
-// --- Mock the roles API ---
-vi.mock('../api/roles', () => ({
-  getCurrentUserRoles: (...a: unknown[]) => mockGetCurrentUserRoles(...a),
+// --- Module Mocks ---
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock('../../api/documentMappings', () => ({
+  getAllDocumentMappings: (...a: unknown[]) => mockGetAllDocumentMappings(...a),
+  createDocumentMapping: (...a: unknown[]) => mockCreateDocumentMapping(...a),
+  updateDocumentMapping: (...a: unknown[]) => mockUpdateDocumentMapping(...a),
+  getAllCountryList: (...a: unknown[]) => mockGetAllCountryList(...a),
+  getClientListByCountry: (...a: unknown[]) => mockGetClientListByCountry(...a),
+  getAllDealList: (...a: unknown[]) => mockGetAllDealList(...a),
 }));
 
-// --- Mock the auth utils ---
-vi.mock('../utils/auth', () => ({
-  login: (...a: unknown[]) => mockLogin(...a),
-  getToken: (...a: unknown[]) => mockGetToken(...a),
-  isTokenExpired: (...a: unknown[]) => mockIsTokenExpired(...a),
-  getTokenExpiry: (...a: unknown[]) => mockGetTokenExpiry(...a),
-  setUserRole: (...a: unknown[]) => mockSetUserRole(...a),
+// Mock both useAuth and useAuthContext to satisfy all AuthContext hooks
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    hasRole: () => true,
+    hasAnyRole: () => true,
+    hasPermission: () => true,
+    soeid: 'TEST01',
+    roles: ['ROLE_MAINTENANCE_SET_UP'],
+  }),
+  useAuthContext: () => ({
+    userPermissions: ['ROLE_MAINTENANCE_SET_UP'],
+  }),
 }));
 
-import { AuthProvider, useAuth } from './AuthContext';
+vi.mock('@citi-icg-172888/icgds-react', async () => {
+  const R = await vi.importActual<typeof import('react')>('react');
+  return {
+    El: ({ children, className, style, ...props }: any) => (
+      <div className={className} style={style} {...props}>
+        {children}
+      </div>
+    ),
+    Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
+      <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
+        {children}
+      </button>
+    ),
+    Input: ({ value, onChange, placeholder, disabled, style }: any) => (
+      <input
+        placeholder={placeholder}
+        value={value ?? ''}
+        disabled={disabled}
+        style={style}
+        onChange={onChange}
+        data-testid={`input-${placeholder || 'default'}`}
+      />
+    ),
+    TextArea: ({ value, onChange, placeholder, style }: any) => (
+      <textarea
+        placeholder={placeholder}
+        value={value ?? ''}
+        style={style}
+        onChange={onChange}
+        data-testid="textarea"
+      />
+    ),
+    Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
+      visible ? (
+        <div data-testid="modal">
+          <h2>{title}</h2>
+          {children}
+          <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
+          <button onClick={onApply}>{applyText || 'Apply'}</button>
+        </div>
+      ) : null,
+    Dropdown: Object.assign(
+      ({ value, onChange, children, disabled, placeholder, style }: any) => (
+        <select
+          value={value ?? ''}
+          disabled={disabled}
+          style={style}
+          onChange={(e) => onChange(e.target.value)}
+          data-testid="dropdown"
+        >
+          {placeholder && <option value="">{placeholder}</option>}
+          {children}
+        </select>
+      ),
+      {
+        Item: ({ value, children }: any) => <option value={value}>{children}</option>,
+      }
+    ),
+    SearchableDropdown: ({ value, onChange, options, disabled, placeholder, label }: any) => (
+      <div data-testid={`searchable-dropdown-${label || placeholder}`}>
+        <label>{label}</label>
+        <select
+          value={value ?? ''}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          data-testid={`select-${label || placeholder}`}
+        >
+          <option value="">{placeholder}</option>
+          {options?.map((opt: any) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    ),
+    Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
+    Loading: ({ tip }: any) => <div>{tip}</div>,
+    Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
+    notification: mockNotification,
+  };
+});
 
-// A tiny consumer that surfaces the context state as text/buttons
-function Consumer() {
-  const {
-    soeid,
-    roles,
-    activeRole,
-    region,
-    error,
-    hasRole,
-    hasAnyRole,
-    hasPermission,
-    setActiveRole,
-  } = useAuth();
-
-  return (
-    <div>
-      <span data-testid="soeid">{soeid}</span>
-      <span data-testid="roles">{roles.join(',')}</span>
-      <span data-testid="active-role">{activeRole ?? 'none'}</span>
-      <span data-testid="region">{region ?? 'none'}</span>
-      <span data-testid="error">{error ?? 'none'}</span>
-      <span data-testid="has-latam">{String(hasRole('ROLE_USERS_LATAM'))}</span>
-      <span data-testid="has-any">{String(hasAnyRole(['ROLE_USERS_NAM']))}</span>
-      <span data-testid="has-perm">{String(hasPermission('CAN_EDIT'))}</span>
-      <button onClick={() => setActiveRole('ROLE_USERS_NAM')}>switch</button>
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData, columnDefs }: any) => (
+    <div data-testid="ag-grid">
+      <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
+      {rowData?.map((row: any, rowIndex: number) => (
+        <div key={row.key || row.mappingId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+          {columnDefs?.map((col: any, colIndex: number) => {
+            const cellParams = {
+              data: row,
+              value: row[col.field],
+              node: { data: row },
+            };
+            return (
+              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
+                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
-  );
-}
+  ),
+}));
 
-function renderWithProvider() {
-  return render(
-    <AuthProvider>
-      <Consumer />
-    </AuthProvider>
-  );
-}
+import MappingDetailPage from './MappingDetailPage';
 
-describe('AuthContext', () => {
+// --- Test Data Fixtures ---
+
+const mockMappings = [
+  {
+    mappingId: 101,
+    docKeyword: 'INVOICE',
+    dealKey: 'DEAL-999',
+    dealName: 'Alpha Trade',
+    clientGFCID: 'GFC123',
+    clientName: 'Acme Corp',
+    dealCountry: 'US',
+    comments: 'Standard invoice mapping',
+    isActive: true,
+    createdBy: 'user1',
+    createdOn: '2026-01-15T10:00:00Z',
+    updatedBy: 'user2',
+    updatedOn: '2026-02-01T12:00:00Z',
+  },
+  {
+    mappingId: 102,
+    docKeyword: 'CONTRACT',
+    dealKey: 'DEAL-888',
+    dealName: 'Beta Finance',
+    clientGFCID: 'GFC456',
+    clientName: 'Globex Inc',
+    dealCountry: 'CA',
+    comments: 'Legal contract',
+    isActive: false,
+    createdBy: 'user3',
+    createdOn: '2026-03-10T08:30:00Z',
+  },
+];
+
+const mockCountries = [
+  { key: 'US', value: 'United States' },
+  { key: 'CA', value: 'Canada' },
+];
+
+const mockClients = [
+  { clientId: '1', clientName: 'Acme Corp', clientGFCID: 'GFC123' },
+  { clientId: '2', clientName: 'Globex Inc', clientGFCID: 'GFC456' },
+];
+
+const mockDeals = [
+  { dealId: '10', dealShortName: 'Alpha', dealLongName: 'Alpha Trade', dealKey: 'DEAL-999' },
+  { dealId: '20', dealShortName: 'Beta', dealLongName: 'Beta Finance', dealKey: 'DEAL-888' },
+];
+
+describe('MappingDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Enable fake timers with shouldAdvanceTime: true so RTL waitFor polling functions work cleanly
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    // getTokenExpiry drives scheduleRefresh; return 0 so it early-returns and schedules nothing.
-    mockGetTokenExpiry.mockReturnValue(0);
+    mockGetAllDocumentMappings.mockResolvedValue(mockMappings);
+    mockGetAllCountryList.mockResolvedValue(mockCountries);
+    mockGetClientListByCountry.mockResolvedValue(mockClients);
+    mockGetAllDealList.mockResolvedValue(mockDeals);
+    mockCreateDocumentMapping.mockResolvedValue({ status: 200 });
+    mockUpdateDocumentMapping.mockResolvedValue({ status: 200 });
   });
 
-  afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
-  });
+  it('fetches and renders document mapping list on mount', async () => {
+    render(<MappingDetailPage />);
 
-  it('uses the existing valid token path (getCurrentUserRoles) and resolves region + activeRole', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'AB12345', roles: ['ROLE_USERS_LATAM', 'ROLE_MAKER'] },
+    await waitFor(() => {
+      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    renderWithProvider();
+    expect(screen.getByText('Document and Client Mapping')).toBeInTheDocument();
+  });
 
-    // While loading, the splash shows instead of the consumer.
-    expect(screen.getByText('Authenticating...')).toBeInTheDocument();
+  it('renders error alert when mapping fetch API fails', async () => {
+    mockGetAllDocumentMappings.mockRejectedValueOnce(new Error('API Failure'));
+
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
+    });
+  });
+
+  it('filters grid rows dynamically when typing into search input', async () => {
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search keyword / client / deal...');
+    fireEvent.change(searchInput, { target: { value: 'INVOICE' } });
+
+    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
+  });
+
+  it('renders status icons correctly inside custom cell renderers', async () => {
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    expect(screen.getByTestId('cell-isActiveDisplay-0').querySelector('.icon-check-circle')).toBeInTheDocument();
+    expect(screen.getByTestId('cell-isActiveDisplay-1').querySelector('.icon-close-circle')).toBeInTheDocument();
+  });
+
+  it('opens Add Modal, handles country/client/deal cascading changes, and submits form', async () => {
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Mapping Details'));
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+
+    const keywordInput = screen.getByPlaceholderText('Enter document keyword');
+    fireEvent.change(keywordInput, { target: { value: 'PURCHASE_ORDER' } });
+
+    const countrySelect = screen.getByTestId('dropdown');
+    fireEvent.change(countrySelect, { target: { value: 'US' } });
+
+    await waitFor(() => {
+      expect(mockGetClientListByCountry).toHaveBeenCalledWith('US');
+    });
+
+    const clientSelect = screen.getByTestId('select-Client');
+    fireEvent.change(clientSelect, { target: { value: '1' } });
+
+    await waitFor(() => {
+      expect(mockGetAllDealList).toHaveBeenCalledWith('1');
+    });
+
+    const dealSelect = screen.getByTestId('select-Deal');
+    fireEvent.change(dealSelect, { target: { value: '10' } });
+
+    const commentArea = screen.getByTestId('textarea');
+    fireEvent.change(commentArea, { target: { value: 'Test mapping note' } });
+
+    const deactivateRadio = screen.getByLabelText('De-Activate');
+    fireEvent.click(deactivateRadio);
+
+    fireEvent.click(screen.getByText('Add Mapping'));
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('soeid')).toHaveTextContent('AB12345');
+      expect(mockCreateDocumentMapping).toHaveBeenCalled();
+      expect(mockNotification.success).toHaveBeenCalledWith('Document mapping created successfully');
     });
-
-    expect(mockGetCurrentUserRoles).toHaveBeenCalledTimes(1);
-    expect(mockLogin).not.toHaveBeenCalled();
-    expect(screen.getByTestId('roles')).toHaveTextContent('ROLE_USERS_LATAM,ROLE_MAKER');
-
-    // First role becomes activeRole, and setUserRole is persisted.
-    expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_LATAM');
-    expect(mockSetUserRole).toHaveBeenCalledWith('ROLE_USERS_LATAM');
-
-    // LATAM has highest region priority.
-    expect(screen.getByTestId('region')).toHaveTextContent('LATAM');
-    expect(screen.getByTestId('error')).toHaveTextContent('none');
   });
 
-  it('falls back to login() when there is no valid token', async () => {
-    mockGetToken.mockReturnValue(null);
-    mockIsTokenExpired.mockReturnValue(true);
-    mockLogin.mockResolvedValue({
-      token: 'fresh.token',
-      soeid: 'CD67890',
-      roles: ['ROLE_USERS_EMEA'],
+  it('closes Add Modal when Cancel is clicked', async () => {
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    renderWithProvider();
+    fireEvent.click(screen.getByText('Add Mapping Details'));
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+  });
+
+  it('opens Edit Modal, modifies comments, and saves changes', async () => {
+    render(<MappingDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const editButtons = screen.getAllByTitle('Edit');
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Mapping Details')).toBeInTheDocument();
+    });
+
+    const commentArea = screen.getByTestId('textarea');
+    fireEvent.change(commentArea, { target: { value: 'Updated comment details' } });
+
+    fireEvent.click(screen.getByText('Save Changes'));
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('soeid')).toHaveTextContent('CD67890');
+      expect(mockUpdateDocumentMapping).toHaveBeenCalled();
+      expect(mockNotification.success).toHaveBeenCalledWith('Document mapping updated successfully');
     });
-
-    expect(mockLogin).toHaveBeenCalledTimes(1);
-    expect(mockGetCurrentUserRoles).not.toHaveBeenCalled();
-    expect(screen.getByTestId('region')).toHaveTextContent('EMEA');
   });
 
-  it('sets NO_REGION_MESSAGE error when the user has no region role', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'EF00000', roles: ['ROLE_MAKER'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+  it('re-fetches mapping list on Refresh button click', async () => {
+    render(<MappingDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('soeid')).toHaveTextContent('EF00000');
+      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByTestId('region')).toHaveTextContent('none');
-    expect(screen.getByTestId('error')).toHaveTextContent(/no region assigned/i);
-  });
-
-  it('sets an error message when fetchRoles rejects', async () => {
-    mockGetToken.mockReturnValue(null);
-    mockIsTokenExpired.mockReturnValue(true);
-    mockLogin.mockRejectedValue(new Error('login failed'));
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+    fireEvent.click(screen.getByTitle('Refresh'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('error')).toHaveTextContent('login failed');
+      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(2);
     });
-  });
-
-  it('dedupes duplicate roles via the Set', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'GH11111', roles: ['ROLE_USERS_NAM', 'ROLE_USERS_NAM', 'ROLE_MAKER'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('roles')).toHaveTextContent('ROLE_USERS_NAM,ROLE_MAKER');
-    });
-  });
-
-  it('exposes working hasRole / hasAnyRole / hasPermission helpers', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'IJ22222', roles: ['ROLE_USERS_LATAM'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('has-latam')).toHaveTextContent('true');
-    });
-
-    // hasAnyRole(['ROLE_USERS_NAM']) -> false (user only has LATAM)
-    expect(screen.getByTestId('has-any')).toHaveTextContent('false');
-
-    // permissions are always [] in this implementation
-    expect(screen.getByTestId('has-perm')).toHaveTextContent('false');
-  });
-
-  it('setActiveRole updates activeRole and persists via setUserRole', async () => {
-    mockGetToken.mockReturnValue('valid.token');
-    mockIsTokenExpired.mockReturnValue(false);
-    mockGetCurrentUserRoles.mockResolvedValue({
-      data: { soeid: 'KL33333', roles: ['ROLE_USERS_LATAM', 'ROLE_USERS_NAM'] },
-    });
-
-    renderWithProvider();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_LATAM');
-    });
-
-    mockSetUserRole.mockClear();
-
-    act(() => {
-      fireEvent.click(screen.getByText('switch'));
-    });
-
-    expect(screen.getByTestId('active-role')).toHaveTextContent('ROLE_USERS_NAM');
-    expect(mockSetUserRole).toHaveBeenCalledWith('ROLE_USERS_NAM');
-  });
-
-  it('useAuth throws when used outside an AuthProvider', () => {
-    // Silence the expected React error boundary logging.
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    function Orphan() {
-      useAuth();
-      return null;
-    }
-
-    expect(() => render(<Orphan />)).toThrow('useAuth must be used within an AuthProvider');
-
-    spy.mockRestore();
   });
 });
