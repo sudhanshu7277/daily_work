@@ -28,21 +28,34 @@ const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
 //2. Simplify the JSX inside renderTaskOverview
 // Replace lines 2026–2036 with a direct call to the extracted handler:
 
-<i
-  className="lmnicon lmnicon-close"
-  role="button"
-  tabIndex={isRelatedInstructionsReadOnly ? -1 : 0}
+
+/* CSS */
+.btn-unstyled {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+<button
+  type="button"
   aria-label="Remove instruction"
+  className="btn-unstyled"
+  disabled={isRelatedInstructionsReadOnly}
   style={{
     fontSize: 10,
     cursor: isRelatedInstructionsReadOnly ? 'not-allowed' : 'pointer',
     color: isRelatedInstructionsReadOnly ? '#aaa' : '#666',
   }}
   onClick={() => handleRemoveRelatedInstruction(id)}
-  onKeyDown={(e) => {
-    if ((e.key === 'Enter' || e.key === ' ') && !isRelatedInstructionsReadOnly) {
-      e.preventDefault();
-      handleRemoveRelatedInstruction(id);
-    }
-  }}
-/>
+>
+  <i className="lmnicon lmnicon-close" />
+</button>
