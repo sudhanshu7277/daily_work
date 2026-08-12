@@ -11,22 +11,17 @@
       const sameComposite = targetKey && this.getSelectionKey(node) === targetKey;
       const sameOcifFallback = !targetKey && ocifId && (node['ocifId'] === ocifId || node['proxyOcifId'] === ocifId || node['ecifId'] === ocifId);
   
+      // Unselect ONLY the exact matching node
       if ((sameComposite || sameOcifFallback) && node._selected) {
         node._selected = false;
         changed = true;
-  
-        // If a parent node is deselected, cascade deselection down to all N-level descendants
-        const kids = this.getChildren(node);
-        if (node._isParent && kids.length) {
-          this.setDescendantsSelected(kids, false);
-        }
       }
     }
   
     if (changed) {
-      // 1. Recompute parent selection states across all N-levels
+      // 1. Recompute parent/ancestor states up the tree (parents turn unselected/indeterminate)
       this.recomputeAncestors(this.tree);
-      // 2. Sync the Profile Name header checkbox icon ('all', 'some', or 'none')
+      // 2. Sync the header checkbox state ('some' or 'none')
       this.syncHeaderCheckbox();
       // 3. Refresh AG Grid view
       this.refresh();
