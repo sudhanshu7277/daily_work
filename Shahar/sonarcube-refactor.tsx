@@ -7,55 +7,29 @@ npx vitest run --coverage
 npx tsc --noEmit
 
 // Refactored Code for SetupInstructionModal.tsx
-// 1. Add the Handler Function inside SetupInstructionModal (near your other event handlers)
 
 
-const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
-  if (isRelatedInstructionsReadOnly) return;
 
-  const newIds = (form.relatedInstructionIds ?? []).filter((x) => x !== idToRemove);
-
-  const getRef = (nid: number | string) =>
-    adminMakerInstructions.find((i) => i.instructionId === nid)?.instructionRef;
-
-  const newRefs = newIds.map(getRef).filter(Boolean).join(', ');
-
-  updateField('relatedInstructionIds', newIds);
-  updateField('relatedInstructions', newRefs);
+const getRelatedInstructionPlaceholder = () => {
+  if (relatedInstructionLoading) return 'Loading instructions...';
+  if (!canShowRelatedDropdown) return 'Select Instruction Type or Request Type first';
+  return 'Search and select instructions to mark as duplicate...';
 };
 
 
-//2. Simplify the JSX inside renderTaskOverview
-// Replace lines 2026–2036 with a direct call to the extracted handler:
+// Replace lines 2054–2060 with the clean helper call:
 
-
-/* CSS */
-.btn-unstyled {
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-<button
-  type="button"
-  aria-label="Remove instruction"
-  className="btn-unstyled"
-  disabled={isRelatedInstructionsReadOnly}
-  style={{
-    fontSize: 10,
-    cursor: isRelatedInstructionsReadOnly ? 'not-allowed' : 'pointer',
-    color: isRelatedInstructionsReadOnly ? '#aaa' : '#666',
+<Input
+  placeholder={getRelatedInstructionPlaceholder()}
+  value={relatedInstructionSearch}
+  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isRelatedInstructionsReadOnly) return;
+    setRelatedInstructionSearch(e.target.value);
+    setRelatedDropdownOpen(true);
   }}
-  onClick={() => handleRemoveRelatedInstruction(id)}
->
-  <i className="lmnicon lmnicon-close" />
-</button>
+  onFocus={() => {
+    if (isRelatedInstructionsReadOnly) return;
+    setRelatedDropdownOpen(true);
+  }}
+  disabled={!canShowRelatedDropdown || isRelatedInstructionsReadOnly}
+/>
