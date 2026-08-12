@@ -6,153 +6,215 @@ npx vitest run --coverage
 
 npx tsc --noEmit
 
+// src/pages/emailIntake/EmailIntakeAuditPage.test.tsx
 
 // @vitest-environment jsdom
-
-// src/components/documentViewer/NativePdfViewer.test.tsx
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import type { CapturedField } from '../../types/documentViewer';
 
-// ---- Mock Canvas 2D context for jsdom environment ----
-if (typeof HTMLCanvasElement !== 'undefined') {
-  HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
-    fillRect: vi.fn(),
-    clearRect: vi.fn(),
-    getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-    putImageData: vi.fn(),
-    createImageData: vi.fn(() => []),
-    setTransform: vi.fn(),
-    drawImage: vi.fn(),
-    save: vi.fn(),
-    fillText: vi.fn(),
-    restore: vi.fn(),
-    beginPath: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    closePath: vi.fn(),
-    stroke: vi.fn(),
-    translate: vi.fn(),
-    scale: vi.fn(),
-    rotate: vi.fn(),
-    arc: vi.fn(),
-    fill: vi.fn(),
-    measureText: vi.fn().mockReturnValue({ width: 0 }),
-    transform: vi.fn(),
-    rect: vi.fn(),
-    clip: vi.fn(),
-  }) as any;
+// ---- Stub DOM Blob/URL APIs for jsdom ----
+if (typeof window.URL.createObjectURL === 'undefined') {
+  Object.defineProperty(window.URL, 'createObjectURL', {
+    value: vi.fn(() => 'blob:http://localhost/mock-blob-url'),
+    writable: true,
+  });
+}
+if (typeof window.URL.revokeObjectURL === 'undefined') {
+  Object.defineProperty(window.URL, 'revokeObjectURL', {
+    value: vi.fn(),
+    writable: true,
+  });
 }
 
-// --- Mock pdfjs-dist: the module touches GlobalWorkerOptions at import time
-//     and calls getDocument(pdfUrl).promise in a useEffect. ---
-const mockGetPage = vi.fn();
-const mockDestroy = vi.fn();
-let getDocumentImpl: (url: string) => { promise: Promise<any>; destroy?: () => void };
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  getDocument: (url: string) => getDocumentImpl(url),
+// --- API Mocks ---
+const mockGetAuditPage = vi.fn();
+const mockGetInboxPage = vi.fn();
+
+vi.mock('../../api/emailIntake', () => ({
+  getAuditPage: (...a: unknown[]) => mockGetAuditPage(...a),
+  getInboxPage: (...a: unknown[]) => mockGetInboxPage(...a),
 }));
 
-// --- Mock the design-system components ---
+// --- Export Utility Mock ---
+const mockExportToCsv = vi.fn();
+vi.mock('../../utils/exportExcel', () => ({
+  exportToCsv: (...a: unknown[]) => mockExportToCsv(...a),
+}));
+
+// --- Format Utility Mock ---
+vi.mock('../../utils/format', () => ({
+  formatDate: (v: string) => v,
+  formatDateTime: (v: string) => v,
+}));
+
+// --- AG-Grid Mocks ---
+vi.mock('ag-grid-community/styles/ag-grid.css', () => ({}));
+vi.mock('ag-grid-community/styles/ag-theme-quartz.css', () => ({}));
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: ({ rowData }: { rowData: unknown[] }) =>
+    React.createElement('div', {
+      'data-testid': 'ag-grid',
+      'data-rowcount': rowData?.length ?? 0,
+    }),
+}));
+
+// --- Design System Mock ---
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const R = await vi.importActual<typeof import('react')>('react');
   return {
-    El: ({ children, className, style }: any) =>
+    El: ({ children, className, style, ...props }: any) =>
+      R.createElement('div', { className, style, ...props }, children),
+    Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) =>
+      R.createElement('button', { onClick, title, disabled, 'aria-label': ariaLabel }, children),
+    Input: ({ value, onChange, placeholder, disabled, style }: any) =>
+      R.createElement('input', {
+        placeholder,
+        value: value ?? '',
+        disabled,
+        style,
+        onChange,
+        'data-testid': `input-${placeholder || 'default'}`,
+      }),
+    Alert: ({ children, type }: any) =>
+      R.createElement('div', { role: 'alert', 'data-testid': `alert-${type}` }, children),
+    Loading: ({ tip }: any) =>
+      R.createElement('div', { 'data-testid': 'loading' }, tip || 'Loading...'),
+    Icon: ({ type, className }: any) =>
+      R.createElement('i', { className: `icon-${type} ${className || ''}` }),
+    Card: ({ children, className, style }: any) =>
       R.createElement('div', { className, style }, children),
-    Button: ({ children, onClick, disabled }: any) =>
-      R.createElement('button', { onClick, disabled }, children),
-    Icon: ({ type }: any) =>
-      R.createElement('span', { 'data-testid': 'icon', 'data-icon-type': type }),
     Tag: ({ children, color }: any) =>
-      R.createElement('span', { 'data-testid': 'tag', 'data-color': color }, children),
+      R.createElement('span', { 'data-color': color }, children),
+    Dropdown: Object.assign(
+      ({ value, onChange, children, disabled, placeholder }: any) =>
+        R.createElement(
+          'select',
+          {
+            role: 'combobox',
+            value: value ?? '',
+            disabled,
+            onChange: (e: any) => onChange(e.target.value),
+          },
+          placeholder && R.createElement('option', { value: '' }, placeholder),
+          children
+        ),
+      { Item: ({ value, children }: any) => R.createElement('option', { value }, children) }
+    ),
   };
 });
 
-import NativePdfViewer from './NativePdfViewer';
+import EmailIntakeAuditPage from './EmailIntakeAuditPage';
 
-const FIELDS: CapturedField[] = [
-  { id: 'f1', value: 'A', page: 1, color: '#00aa00', x: 10, y: 20, width: 30, height: 40 },
-];
+const auditData = {
+  data: {
+    content: [
+      {
+        id: 1,
+        emailSubject: 'Payment Instruction',
+        sender: 'client@example.com',
+        status: 'PROCESSED',
+        receivedAt: '2026-01-01',
+      },
+    ],
+    totalElements: 1,
+    totalPages: 1,
+  },
+};
 
-/** Build a fake PDFDocumentProxy that resolves getDocument().promise. */
-function makePdfDoc(numPages: number) {
-  return {
-    numPages,
-    destroy: mockDestroy,
-    getPage: mockGetPage,
-  };
-}
+const inboxData = {
+  data: {
+    content: [
+      {
+        id: 2,
+        emailSubject: 'Urgent Wire',
+        sender: 'vendor@example.com',
+        status: 'PENDING',
+        receivedAt: '2026-01-02',
+      },
+      {
+        id: 3,
+        emailSubject: 'Statement Request',
+        sender: 'info@example.com',
+        status: 'COMPLETED',
+        receivedAt: '2026-01-03',
+      },
+    ],
+    totalElements: 2,
+    totalPages: 1,
+  },
+};
 
-describe('NativePdfViewer', () => {
+describe('EmailIntakeAuditPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // default: getPage returns a page whose render succeeds
-    mockGetPage.mockResolvedValue({
-      getViewport: () => ({ width: 100, height: 200 }),
-      render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
-    });
-
-    // default happy path: a 2-page doc
-    getDocumentImpl = () => ({ promise: Promise.resolve(makePdfDoc(2)) });
+    mockGetAuditPage.mockResolvedValue(auditData);
+    mockGetInboxPage.mockResolvedValue(inboxData);
   });
 
-  it('shows the loading state before the PDF resolves', () => {
-    // never-resolving promise keeps loading=true
-    getDocumentImpl = () => ({ promise: new Promise(() => {}) });
-    render(<NativePdfViewer pdfUrl="/sample.pdf" fields={[]} activeFieldId={null} />);
-    expect(screen.getByText('Loading PDF...')).toBeTruthy();
-  });
+  it('loads audit data on mount and renders the grid with the audit rows', async () => {
+    render(<EmailIntakeAuditPage />);
 
-  it('renders the toolbar with page count once the PDF loads', async () => {
-    render(<NativePdfViewer pdfUrl="/sample.pdf" fields={FIELDS} activeFieldId={null} />);
+    expect(screen.getByTestId('loading')).toBeTruthy();
+
     await waitFor(() => {
-      expect(screen.getByText('Page 1 / 2')).toBeTruthy();
+      expect(mockGetAuditPage).toHaveBeenCalled();
     });
 
-    // default zoom is 150%
-    expect(screen.getByText('150%')).toBeTruthy();
+    const grid = await screen.findByTestId('ag-grid');
+    expect(grid.getAttribute('data-rowcount')).toBe('1');
   });
 
-  it('renders an error state when getDocument rejects', async () => {
-    getDocumentImpl = () => ({ promise: Promise.reject(new Error('boom')) });
-    render(<NativePdfViewer pdfUrl="/bad.pdf" fields={[]} activeFieldId={null} />);
+  it('switches to the inbox tab and loads inbox data', async () => {
+    render(<EmailIntakeAuditPage />);
+
+    await screen.findByTestId('ag-grid');
+
+    const inboxTab = screen.getByText(/Inbox/i);
+    fireEvent.click(inboxTab);
+
     await waitFor(() => {
-      expect(screen.getByText('boom')).toBeTruthy();
+      expect(mockGetInboxPage).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ag-grid').getAttribute('data-rowcount')).toBe('2');
     });
   });
 
-  it('disables the previous-page button on the first page', async () => {
-    render(<NativePdfViewer pdfUrl="/sample.pdf" fields={[]} activeFieldId={null} />);
-    await waitFor(() => expect(screen.getByText('Page 1 / 2')).toBeTruthy());
-    const buttons = screen.getAllByRole('button');
-    // buttons: [prev, next, zoom-out, zoom-in]
-    expect((buttons[0] as HTMLButtonElement).disabled).toBe(true); // prev at page 1
-    expect((buttons[1] as HTMLButtonElement).disabled).toBe(false); // next enabled (2 pages)
+  it('shows an error alert when the audit fetch fails', async () => {
+    mockGetAuditPage.mockRejectedValueOnce(new Error('Failed to fetch audit data'));
+
+    render(<EmailIntakeAuditPage />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Failed to fetch audit data');
   });
 
-  it('increments the zoom percentage when zoom-in is clicked', async () => {
-    render(<NativePdfViewer pdfUrl="/sample.pdf" fields={[]} activeFieldId={null} />);
-    await waitFor(() => expect(screen.getByText('150%')).toBeTruthy());
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[3]); // zoom-in
-    await waitFor(() => expect(screen.getByText('175%')).toBeTruthy()); // +25% step
+  it('exports CSV when audit data is present', async () => {
+    render(<EmailIntakeAuditPage />);
+
+    await screen.findByTestId('ag-grid');
+
+    const exportBtn = screen.getByText(/Export CSV/i);
+    fireEvent.click(exportBtn);
+
+    expect(window.URL.createObjectURL).toHaveBeenCalled();
   });
 
-  it('decrements the zoom percentage when zoom-out is clicked', async () => {
-    render(<NativePdfViewer pdfUrl="/sample.pdf" fields={[]} activeFieldId={null} />);
-    await waitFor(() => expect(screen.getByText('150%')).toBeTruthy());
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[2]); // zoom-out
-    await waitFor(() => expect(screen.getByText('125%')).toBeTruthy());
-  });
+  it('does not export when there is no audit content', async () => {
+    mockGetAuditPage.mockResolvedValueOnce({
+      data: { content: [], totalElements: 0, totalPages: 0 },
+    });
 
-  it('destroys the PDF document on unmount', async () => {
-    const { unmount } = render(<NativePdfViewer pdfUrl="/sample.pdf" fields={[]} activeFieldId={null} />);
-    await waitFor(() => expect(screen.getByText('Page 1 / 2')).toBeTruthy());
-    unmount();
-    expect(mockDestroy).toHaveBeenCalled();
+    render(<EmailIntakeAuditPage />);
+
+    await screen.findByTestId('ag-grid');
+
+    const exportBtn = screen.getByText(/Export CSV/i);
+    fireEvent.click(exportBtn);
+
+    expect(window.URL.createObjectURL).not.toHaveBeenCalled();
   });
 });
