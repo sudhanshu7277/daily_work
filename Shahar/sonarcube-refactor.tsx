@@ -30,10 +30,19 @@ const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
 
 <i
   className="lmnicon lmnicon-close"
+  role="button"
+  tabIndex={isRelatedInstructionsReadOnly ? -1 : 0}
+  aria-label="Remove instruction"
   style={{
     fontSize: 10,
     cursor: isRelatedInstructionsReadOnly ? 'not-allowed' : 'pointer',
     color: isRelatedInstructionsReadOnly ? '#aaa' : '#666',
   }}
   onClick={() => handleRemoveRelatedInstruction(id)}
+  onKeyDown={(e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !isRelatedInstructionsReadOnly) {
+      e.preventDefault();
+      handleRemoveRelatedInstruction(id);
+    }
+  }}
 />
