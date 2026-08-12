@@ -49,3 +49,12 @@ for (const item of Array.from(items)) {
   const file = item.getAsFile();
   if (file) files.push(file);
 }
+
+
+//
+
+// Replace this:
+const newFiles = Array.from(e.target.files!);
+
+// With this:
+const newFiles = Array.from(e.target.files);
