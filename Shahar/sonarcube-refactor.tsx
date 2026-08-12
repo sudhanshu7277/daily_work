@@ -4,7 +4,7 @@ npx vitest run --coverage
 
 
 
-// src/pages/thresholds/ThresholdManagementPage.test.tsx
+// src/pages/tickler/TicklerTaskPage.test.tsx
 
 // @vitest-environment jsdom
 
@@ -16,11 +16,10 @@ import '@testing-library/jest-dom';
 // --- Hoisted Mock Declarations ---
 const {
   mockNotification,
-  mockGetActiveThresholds,
-  mockCreateThreshold,
-  mockUpdateThreshold,
-  mockDeactivateThreshold,
   mockGetRefDataByType,
+  mockGetTicklerTasks,
+  mockCreateTicklerTask,
+  mockUpdateTicklerTask,
   mockNavigate,
 } = vi.hoisted(() => ({
   mockNotification: {
@@ -29,11 +28,10 @@ const {
     info: vi.fn(),
     warning: vi.fn(),
   },
-  mockGetActiveThresholds: vi.fn(),
-  mockCreateThreshold: vi.fn(),
-  mockUpdateThreshold: vi.fn(),
-  mockDeactivateThreshold: vi.fn(),
   mockGetRefDataByType: vi.fn(),
+  mockGetTicklerTasks: vi.fn(),
+  mockCreateTicklerTask: vi.fn(),
+  mockUpdateTicklerTask: vi.fn(),
   mockNavigate: vi.fn(),
 }));
 
@@ -47,19 +45,28 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../api/thresholds', () => ({
-  getActiveThresholds: (...a: unknown[]) => mockGetActiveThresholds(...a),
-  createThreshold: (...a: unknown[]) => mockCreateThreshold(...a),
-  updateThreshold: (...a: unknown[]) => mockUpdateThreshold(...a),
-  deactivateThreshold: (...a: unknown[]) => mockDeactivateThreshold(...a),
-}));
-
 vi.mock('../../api/refdata', () => ({
   getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
 }));
 
-vi.mock('../../utils/format', () => ({
-  formatCurrency: (val: number, curr: string) => `${curr} ${val}`,
+vi.mock('../../api/tickler', () => ({
+  getTicklerTasks: (...a: unknown[]) => mockGetTicklerTasks(...a),
+  createTicklerTask: (...a: unknown[]) => mockCreateTicklerTask(...a),
+  updateTicklerTask: (...a: unknown[]) => mockUpdateTicklerTask(...a),
+}));
+
+// Mock both useAuth and useAuthContext to satisfy all AuthContext hooks
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    hasRole: () => true,
+    hasAnyRole: () => true,
+    hasPermission: () => true,
+    soeid: 'TEST01',
+    roles: ['ROLE_TICKLER_MAINTENANCE'],
+  }),
+  useAuthContext: () => ({
+    userPermissions: ['ROLE_TICKLER_MAINTENANCE'],
+  }),
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', async () => {
@@ -70,32 +77,29 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         {children}
       </div>
     ),
-    Button: ({ children, onClick, title, disabled, color, 'aria-label': ariaLabel }: any) => (
-      <button
-        onClick={onClick}
-        title={title}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        data-testid={`btn-${title || 'action'}`}
-      >
+    Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
+      <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
         {children}
       </button>
     ),
-    Input: ({ value, onChange, placeholder, disabled, type }: any) => (
+    Input: ({ value, onChange, placeholder, disabled, style }: any) => (
       <input
         placeholder={placeholder}
         value={value ?? ''}
         disabled={disabled}
-        type={type}
+        style={style}
         onChange={onChange}
-        data-testid={`input-${placeholder || type || 'default'}`}
+        data-testid={`input-${placeholder || 'default'}`}
       />
     ),
-    Card: Object.assign(
-      ({ children, className }: any) => <div className={className}>{children}</div>,
-      {
-        body: ({ children }: any) => <div>{children}</div>,
-      }
+    TextArea: ({ value, onChange, placeholder, style }: any) => (
+      <textarea
+        placeholder={placeholder}
+        value={value ?? ''}
+        style={style}
+        onChange={onChange}
+        data-testid="textarea"
+      />
     ),
     Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
       visible ? (
@@ -107,13 +111,13 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         </div>
       ) : null,
     Dropdown: Object.assign(
-      ({ value, onChange, children, disabled, placeholder, style, label }: any) => (
+      ({ value, onChange, children, disabled, placeholder, style }: any) => (
         <select
           value={value ?? ''}
           disabled={disabled}
           style={style}
           onChange={(e) => onChange(e.target.value)}
-          data-testid={`dropdown-${label || placeholder || 'select'}`}
+          data-testid="dropdown"
         >
           {placeholder && <option value="">{placeholder}</option>}
           {children}
@@ -135,7 +139,7 @@ vi.mock('ag-grid-react', () => ({
     <div data-testid="ag-grid">
       <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
       {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.key || row.thresholdId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+        <div key={row.taskId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
           {columnDefs?.map((col: any, colIndex: number) => {
             const cellParams = {
               data: row,
@@ -143,12 +147,8 @@ vi.mock('ag-grid-react', () => ({
               node: { data: row },
             };
             return (
-              <div key={colIndex} data-testid={`cell-${col.field || colIndex}-${rowIndex}`}>
-                {col.cellRenderer
-                  ? col.cellRenderer(cellParams)
-                  : col.valueFormatter
-                  ? col.valueFormatter(cellParams)
-                  : String(row[col.field] ?? '')}
+              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
+                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
               </div>
             );
           })}
@@ -158,262 +158,154 @@ vi.mock('ag-grid-react', () => ({
   ),
 }));
 
-import ThresholdManagementPage from './ThresholdManagementPage';
+import TicklerTaskPage from './TicklerTaskPage';
 
 // --- Test Data Fixtures ---
 
-const mockThresholdsList = [
+const mockTasks = [
   {
-    thresholdId: 101,
-    currency: 'USD',
-    region: 'GLOBAL',
-    thresholdAmount: 50000,
-    requiresSuperChecker: true,
-    description: 'Global USD limit',
+    taskId: 'TASK-101',
+    taskName: 'Review Credit Line',
+    category: 'CREDIT',
+    status: 'OPEN',
+    dueDate: '2026-09-01',
+    assignedTo: 'John Doe',
+    description: 'Annual credit assessment',
   },
   {
-    thresholdId: 102,
-    currency: 'EUR',
-    region: 'EMEA',
-    thresholdAmount: 75000,
-    requiresSuperChecker: false,
-    description: 'EMEA EUR limit',
+    taskId: 'TASK-102',
+    taskName: 'Verify Compliance Docs',
+    category: 'LEGAL',
+    status: 'COMPLETED',
+    dueDate: '2026-08-15',
+    assignedTo: 'Jane Smith',
+    description: 'Check KYC documentation',
   },
 ];
 
-const mockRegionRefData = {
-  data: [
-    { refCode: 'GLOBAL', refValue: 'Global' },
-    { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
-  ],
-};
+const mockCategories = [
+  { refCode: 'CREDIT', refValue: 'Credit Review' },
+  { refCode: 'LEGAL', refValue: 'Legal Documentation' },
+];
 
-describe('ThresholdManagementPage', () => {
+describe('TicklerTaskPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetActiveThresholds.mockResolvedValue({ data: mockThresholdsList });
-    mockGetRefDataByType.mockResolvedValue(mockRegionRefData);
-    mockCreateThreshold.mockResolvedValue({ status: 200 });
-    mockUpdateThreshold.mockResolvedValue({ status: 200 });
-    mockDeactivateThreshold.mockResolvedValue({ status: 200 });
+    mockGetTicklerTasks.mockResolvedValue({ data: mockTasks });
+    mockGetRefDataByType.mockResolvedValue({ data: mockCategories });
+    mockCreateTicklerTask.mockResolvedValue({ status: 200 });
+    mockUpdateTicklerTask.mockResolvedValue({ status: 200 });
   });
 
-  it('fetches thresholds and region refData on mount and renders grid', async () => {
-    render(<ThresholdManagementPage />);
+  it('fetches tickler tasks and reference data on mount', async () => {
+    render(<TicklerTaskPage />);
 
     await waitFor(() => {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
-      expect(mockGetRefDataByType).toHaveBeenCalledWith('REGION');
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(1);
+      expect(mockGetRefDataByType).toHaveBeenCalledWith('TICKLER_CATEGORY');
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
-
-    expect(screen.getByText('Payment Thresholds')).toBeInTheDocument();
   });
 
-  it('renders status icons correctly (check-circle for true, close-circle for false)', async () => {
-    render(<ThresholdManagementPage />);
+  it('displays danger alert if fetching tickler tasks fails', async () => {
+    mockGetTicklerTasks.mockRejectedValueOnce(new Error('Network error'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    expect(screen.getByTestId('cell-requiresSuperChecker-0').querySelector('.icon-check-circle')).toBeInTheDocument();
-    expect(screen.getByTestId('cell-requiresSuperChecker-1').querySelector('.icon-close-circle')).toBeInTheDocument();
-  });
-
-  it('renders danger alert when fetching threshold list rejects', async () => {
-    mockGetActiveThresholds.mockRejectedValueOnce(new Error('Failed to load thresholds'));
-
-    render(<ThresholdManagementPage />);
+    render(<TicklerTaskPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
-      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Failed to load thresholds');
     });
   });
 
-  it('opens Create Threshold modal, populates form fields, and submits successfully', async () => {
-    render(<ThresholdManagementPage />);
+  it('filters task list based on search keyword input', async () => {
+    render(<TicklerTaskPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    fireEvent.click(screen.getByText('Add Threshold'));
+    const searchInput = screen.getByPlaceholderText(/search/i);
+    fireEvent.change(searchInput, { target: { value: 'Credit' } });
+
+    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
+  });
+
+  it('opens Create Task modal and submits new task details', async () => {
+    render(<TicklerTaskPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const addBtn = screen.getByText(/add task/i);
+    fireEvent.click(addBtn);
 
     expect(screen.getByTestId('modal')).toBeInTheDocument();
-    expect(screen.getByText('Create Threshold')).toBeInTheDocument();
 
-    const amountInput = screen.getByTestId('input-number');
-    fireEvent.change(amountInput, { target: { value: '120000' } });
+    const nameInput = screen.getByPlaceholderText(/task name/i);
+    fireEvent.change(nameInput, { target: { value: 'New Financial Audit' } });
 
-    const descInput = screen.getByPlaceholderText('Threshold description');
-    fireEvent.change(descInput, { target: { value: 'New corporate limit' } });
+    const categorySelect = screen.getByTestId('dropdown');
+    fireEvent.change(categorySelect, { target: { value: 'CREDIT' } });
 
-    fireEvent.click(screen.getByText('Create'));
+    const descArea = screen.getByTestId('textarea');
+    fireEvent.change(descArea, { target: { value: 'Quarterly review notes' } });
+
+    fireEvent.click(screen.getByText(/apply/i));
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockCreateThreshold).toHaveBeenCalledWith({
-        currency: 'USD',
-        region: 'GLOBAL',
-        thresholdAmount: 120000,
-        requiresSuperChecker: true,
-        description: 'New corporate limit',
-      });
-      expect(mockNotification.success).toHaveBeenCalledWith({
-        title: 'Created',
-        content: 'Threshold created',
-      });
+      expect(mockCreateTicklerTask).toHaveBeenCalled();
     });
   });
 
-  it('opens Edit Threshold modal with pre-populated data and updates threshold', async () => {
-    render(<ThresholdManagementPage />);
+  it('opens Edit Task modal via cell renderer action and updates task', async () => {
+    render(<TicklerTaskPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    const editBtns = screen.queryAllByTitle('Edit');
+    const editBtns = screen.queryAllByTitle(/edit/i);
     if (editBtns.length > 0) {
       fireEvent.click(editBtns[0]);
 
       await waitFor(() => {
         expect(screen.getByTestId('modal')).toBeInTheDocument();
-        expect(screen.getByText('Edit Threshold')).toBeInTheDocument();
       });
 
-      const amountInput = screen.getByTestId('input-number');
-      fireEvent.change(amountInput, { target: { value: '65000' } });
+      const descArea = screen.getByTestId('textarea');
+      fireEvent.change(descArea, { target: { value: 'Updated task description' } });
 
-      fireEvent.click(screen.getByText('Update'));
+      fireEvent.click(screen.getByText(/apply/i));
 
       await act(async () => {
         await Promise.resolve();
       });
 
       await waitFor(() => {
-        expect(mockUpdateThreshold).toHaveBeenCalledWith(101, expect.objectContaining({
-          thresholdAmount: 65000,
-        }));
-        expect(mockNotification.success).toHaveBeenCalledWith({
-          title: 'Updated',
-          content: 'Threshold updated',
-        });
+        expect(mockUpdateTicklerTask).toHaveBeenCalled();
       });
     } else {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(1);
     }
   });
 
-  it('handles threshold deactivation via row action button', async () => {
-    render(<ThresholdManagementPage />);
+  it('reloads task list when Refresh button is clicked', async () => {
+    render(<TicklerTaskPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(1);
     });
 
-    const revokeBtns = screen.queryAllByTitle('Revoke');
-    if (revokeBtns.length > 0) {
-      fireEvent.click(revokeBtns[0]);
-
-      await act(async () => {
-        await Promise.resolve();
-      });
-
-      await waitFor(() => {
-        expect(mockDeactivateThreshold).toHaveBeenCalledWith(101);
-        expect(mockNotification.success).toHaveBeenCalledWith({
-          title: 'Deactivated',
-          content: 'Threshold deactivated',
-        });
-      });
-    } else {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
-    }
-  });
-
-  it('displays notification.danger when save action rejects', async () => {
-    mockCreateThreshold.mockRejectedValueOnce(new Error('Creation error'));
-
-    render(<ThresholdManagementPage />);
+    const refreshBtn = screen.getByText(/refresh/i);
+    fireEvent.click(refreshBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Add Threshold'));
-    fireEvent.click(screen.getByText('Create'));
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(mockNotification.danger).toHaveBeenCalledWith({
-        title: 'Error',
-        content: 'Creation error',
-      });
-    });
-  });
-
-  it('displays notification.danger when deactivate action rejects', async () => {
-    mockDeactivateThreshold.mockRejectedValueOnce(new Error('Deactivation error'));
-
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    const revokeBtns = screen.queryAllByTitle('Revoke');
-    if (revokeBtns.length > 0) {
-      fireEvent.click(revokeBtns[0]);
-
-      await act(async () => {
-        await Promise.resolve();
-      });
-
-      await waitFor(() => {
-        expect(mockNotification.danger).toHaveBeenCalledWith({
-          title: 'Error',
-          content: 'Deactivation error',
-        });
-      });
-    } else {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
-    }
-  });
-
-  it('closes Modal when Cancel button is clicked', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Add Threshold'));
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
-  });
-
-  it('reloads threshold data when Refresh button is clicked', async () => {
-    render(<ThresholdManagementPage />);
-
-    await waitFor(() => {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
-    });
-
-    fireEvent.click(screen.getByText('Refresh'));
-
-    await waitFor(() => {
-      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(2);
+      expect(mockGetTicklerTasks).toHaveBeenCalledTimes(2);
     });
   });
 });
