@@ -8,28 +8,73 @@ npx tsc --noEmit
 
 // Refactored Code for SetupInstructionModal.tsx
 
+// Step 1: Add the Handler Function
+// Add this handler function inside SetupInstructionModal next 
+// to your other handlers (such as handleRemoveRelatedInstruction):
 
+const handleToggleRelatedInstruction = (targetId: number) => {
+  if (isRelatedInstructionsReadOnly) return;
 
-const getRelatedInstructionPlaceholder = () => {
-  if (relatedInstructionLoading) return 'Loading instructions...';
-  if (!canShowRelatedDropdown) return 'Select Instruction Type or Request Type first';
-  return 'Search and select instructions to mark as duplicate...';
+  const currentIds = (form.relatedInstructionIds ?? []) as number[];
+  const isSelected = currentIds.includes(targetId);
+  const newIds = isSelected
+    ? currentIds.filter((x) => x !== targetId)
+    : [...currentIds, targetId];
+
+  const getRef = (nid: number) =>
+    adminMakerInstructions.find((i) => i.instructionId === nid)?.instructionRef;
+
+  const newRefs = newIds.map(getRef).filter(Boolean).join(', ');
+
+  updateField('relatedInstructionIds', newIds);
+  updateField('relatedInstructions', newRefs);
 };
 
 
-// Replace lines 2054–2060 with the clean helper call:
+// Step 2: Replace Lines 2089 to 2134 in JSX
+// Replace the entire block (lines 2089–2134) with this clean code:
 
-<Input
-  placeholder={getRelatedInstructionPlaceholder()}
-  value={relatedInstructionSearch}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isRelatedInstructionsReadOnly) return;
-    setRelatedInstructionSearch(e.target.value);
-    setRelatedDropdownOpen(true);
-  }}
-  onFocus={() => {
-    if (isRelatedInstructionsReadOnly) return;
-    setRelatedDropdownOpen(true);
-  }}
-  disabled={!canShowRelatedDropdown || isRelatedInstructionsReadOnly}
-/>
+{(() => {
+  const relatedIds = (form.relatedInstructionIds ?? []) as number[];
+  const searchLower = relatedInstructionSearch.toLowerCase();
+
+  return relatedInstructionOptions
+    .filter((opt) => opt.label.toLowerCase().includes(searchLower))
+    .map((opt) => {
+      const numId = Number(opt.value);
+      const isSelected = relatedIds.includes(numId);
+
+      return (
+        <El
+          key={opt.value}
+          role="option"
+          aria-selected={isSelected}
+          tabIndex={0}
+          className="lmn-d-flex lmn-align-items-center"
+          style={{
+            padding: '8px 12px',
+            cursor: 'pointer',
+            background: isSelected ? '#f0f5ff' : 'transparent',
+            borderBottom: '1px solid #f0f0f0',
+            fontSize: 12,
+            gap: 8,
+          }}
+          onClick={() => handleToggleRelatedInstruction(numId)}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleToggleRelatedInstruction(numId);
+            }
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={isSelected}
+            readOnly
+            style={{ cursor: 'pointer' }}
+          />
+          <span>{opt.label}</span>
+        </El>
+      );
+    });
+})()}
