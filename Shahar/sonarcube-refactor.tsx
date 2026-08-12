@@ -6,9 +6,10 @@ npx vitest run --coverage
 
 npx tsc --noEmit
 
-// maintenance/MaintenancePage.test.tsx
+// IntakeChannelsPage.test.tsx
 
-// src/pages/maintenance/MaintenancePage.test.tsx
+
+// src/pages/intakeChannels/IntakeChannelsPage.test.tsx
 
 // @vitest-environment jsdom
 
@@ -27,12 +28,12 @@ const { mockNotification } = vi.hoisted(() => ({
 }));
 
 // ---- API Mocks ----
-const mockGetMaintenanceData = vi.fn();
-const mockUpdateMaintenanceData = vi.fn();
+const mockGetIntakeChannels = vi.fn();
+const mockUpdateIntakeChannel = vi.fn();
 
-vi.mock('../../api/maintenance', () => ({
-  getMaintenanceData: (...a: unknown[]) => mockGetMaintenanceData(...a),
-  updateMaintenanceData: (...a: unknown[]) => mockUpdateMaintenanceData(...a),
+vi.mock('../../api/intakeChannels', () => ({
+  getIntakeChannels: (...a: unknown[]) => mockGetIntakeChannels(...a),
+  updateIntakeChannel: (...a: unknown[]) => mockUpdateIntakeChannel(...a),
 }));
 
 // ---- Utils & Formatting Mocks ----
@@ -110,49 +111,49 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
   };
 });
 
-import MaintenancePage from './MaintenancePage';
+import IntakeChannelsPage from './IntakeChannelsPage';
 
-const mockItems = {
+const sampleChannels = {
   data: {
     content: [
-      { id: 1, keyName: 'SYSTEM_FLAG', keyValue: 'ACTIVE', status: 'ENABLED' },
-      { id: 2, keyName: 'TIMEOUT_MINS', keyValue: '30', status: 'ENABLED' },
+      { id: 1, channelName: 'SWIFT', channelType: 'SWIFT_MT', status: 'ACTIVE' },
+      { id: 2, channelName: 'EMAIL_INTAKE', channelType: 'EMAIL', status: 'ACTIVE' },
     ],
     totalElements: 2,
   },
 };
 
-describe('MaintenancePage', () => {
+describe('IntakeChannelsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetMaintenanceData.mockResolvedValue(mockItems);
-    mockUpdateMaintenanceData.mockResolvedValue({ success: true });
+    mockGetIntakeChannels.mockResolvedValue(sampleChannels);
+    mockUpdateIntakeChannel.mockResolvedValue({ success: true });
   });
 
-  it('renders the maintenance page and fetches grid data on mount', async () => {
-    render(<MaintenancePage />);
+  it('renders intake channels page and loads data on mount', async () => {
+    render(<IntakeChannelsPage />);
 
     expect(screen.getByTestId('loading')).toBeTruthy();
 
     await waitFor(() => {
-      expect(mockGetMaintenanceData).toHaveBeenCalled();
+      expect(mockGetIntakeChannels).toHaveBeenCalled();
     });
 
     const grid = await screen.findByTestId('ag-grid');
     expect(grid.getAttribute('data-rowcount')).toBe('2');
   });
 
-  it('shows an alert when loading maintenance data fails', async () => {
-    mockGetMaintenanceData.mockRejectedValueOnce(new Error('Failed to load maintenance settings'));
+  it('displays an error alert when intake channel fetch fails', async () => {
+    mockGetIntakeChannels.mockRejectedValueOnce(new Error('Failed to load intake channels'));
 
-    render(<MaintenancePage />);
+    render(<IntakeChannelsPage />);
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('Failed to load maintenance settings');
+    expect(alert.textContent).toContain('Failed to load intake channels');
   });
 
-  it('re-fetches maintenance data when Refresh button is clicked', async () => {
-    render(<MaintenancePage />);
+  it('triggers refresh when refresh button is clicked', async () => {
+    render(<IntakeChannelsPage />);
 
     await screen.findByTestId('ag-grid');
 
@@ -160,7 +161,7 @@ describe('MaintenancePage', () => {
     fireEvent.click(refreshBtn);
 
     await waitFor(() => {
-      expect(mockGetMaintenanceData).toHaveBeenCalledTimes(2);
+      expect(mockGetIntakeChannels).toHaveBeenCalledTimes(2);
     });
   });
 });
