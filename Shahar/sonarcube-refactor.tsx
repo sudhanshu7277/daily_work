@@ -7,8 +7,7 @@ npx vitest run --coverage
 npx tsc --noEmit
 
 
-
-// src/pages/citiSftIntake/CitiSftIntakeAuditPage.test.tsx
+// src/pages/emailIntake/EmailIntakeAuditPage.test.tsx
 
 // @vitest-environment jsdom
 
@@ -17,15 +16,21 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // --- API Mocks ---
-const mockGetAuditPage = vi.fn();
-const mockGetCitiSftPage = vi.fn();
+const mockGetEmailAuditPage = vi.fn();
+const mockGetEmailInboxPage = vi.fn();
 
-vi.mock('../../api/citiSftIntake', () => ({
-  getAuditPage: (...a: unknown[]) => mockGetAuditPage(...a),
-  getCitiSftPage: (...a: unknown[]) => mockGetCitiSftPage(...a),
+vi.mock('../../api/emailIntake', () => ({
+  getEmailAuditPage: (...a: unknown[]) => mockGetEmailAuditPage(...a),
+  getEmailInboxPage: (...a: unknown[]) => mockGetEmailInboxPage(...a),
 }));
 
-// --- Format Util Mock ---
+// --- Export Utility Mock ---
+const mockExportToCsv = vi.fn();
+vi.mock('../../utils/exportExcel', () => ({
+  exportToCsv: (...a: unknown[]) => mockExportToCsv(...a),
+}));
+
+// --- Format Utility Mock ---
 vi.mock('../../utils/format', () => ({
   formatDate: (v: string) => v,
 }));
@@ -86,18 +91,17 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
   };
 });
 
-import CitiSftIntakeAuditPage from './CitiSftIntakeAuditPage';
+import EmailIntakeAuditPage from './EmailIntakeAuditPage';
 
-const auditPage = {
+const auditData = {
   data: {
     content: [
       {
-        auditId: 1,
-        citiSftId: 10,
-        eventType: 'FILE_RECEIVED',
-        eventDetail: 'got it',
-        status: 'COMPLETED',
-        createdOn: '2026-01-01',
+        id: 1,
+        emailSubject: 'Payment Instruction',
+        sender: 'client@example.com',
+        status: 'PROCESSED',
+        receivedAt: '2026-01-01',
       },
     ],
     totalElements: 1,
@@ -105,24 +109,22 @@ const auditPage = {
   },
 };
 
-const inboxPage = {
+const inboxData = {
   data: {
     content: [
       {
-        citiSftId: 10,
-        fileName: 'a.csv',
-        countryCode: 'US',
-        processingStatus: 'COMPLETED',
-        gabInstructionId: 99,
-        receivedOn: '2026-01-01',
+        id: 2,
+        emailSubject: 'Urgent Wire',
+        sender: 'vendor@example.com',
+        status: 'PENDING',
+        receivedAt: '2026-01-02',
       },
       {
-        citiSftId: 11,
-        fileName: 'b.csv',
-        countryCode: 'GB',
-        processingStatus: 'FAILED',
-        gabInstructionId: null,
-        receivedOn: '2026-01-02',
+        id: 3,
+        emailSubject: 'Statement Request',
+        sender: 'info@example.com',
+        status: 'COMPLETED',
+        receivedAt: '2026-01-03',
       },
     ],
     totalElements: 2,
@@ -130,36 +132,36 @@ const inboxPage = {
   },
 };
 
-describe('CitiSftIntakeAuditPage', () => {
+describe('EmailIntakeAuditPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuditPage.mockResolvedValue(auditPage);
-    mockGetCitiSftPage.mockResolvedValue(inboxPage);
+    mockGetEmailAuditPage.mockResolvedValue(auditData);
+    mockGetEmailInboxPage.mockResolvedValue(inboxData);
   });
 
-  it('loads the audit tab on mount and renders its grid', async () => {
-    render(<CitiSftIntakeAuditPage />);
+  it('loads audit data on mount and renders the grid with the audit rows', async () => {
+    render(<EmailIntakeAuditPage />);
 
     expect(screen.getByTestId('loading')).toBeTruthy();
 
     await waitFor(() => {
-      expect(mockGetAuditPage).toHaveBeenCalledWith(0, 20, undefined);
+      expect(mockGetEmailAuditPage).toHaveBeenCalled();
     });
 
     const grid = await screen.findByTestId('ag-grid');
     expect(grid.getAttribute('data-rowcount')).toBe('1');
-    expect(mockGetCitiSftPage).not.toHaveBeenCalled();
   });
 
-  it('switches to the inbox tab and calls getCitiSftPage', async () => {
-    render(<CitiSftIntakeAuditPage />);
+  it('switches to the inbox tab and loads inbox data', async () => {
+    render(<EmailIntakeAuditPage />);
 
     await screen.findByTestId('ag-grid');
 
-    fireEvent.click(screen.getByText(/CitiSftIntake Inbox/i));
+    const inboxTab = screen.getByText(/Inbox/i);
+    fireEvent.click(inboxTab);
 
     await waitFor(() => {
-      expect(mockGetCitiSftPage).toHaveBeenCalledWith(0, 20, undefined);
+      expect(mockGetEmailInboxPage).toHaveBeenCalled();
     });
 
     await waitFor(() => {
@@ -167,38 +169,38 @@ describe('CitiSftIntakeAuditPage', () => {
     });
   });
 
-  it('shows an error alert when the audit load fails', async () => {
-    mockGetAuditPage.mockRejectedValueOnce(new Error('boom'));
+  it('shows an error alert when the audit fetch fails', async () => {
+    mockGetEmailAuditPage.mockRejectedValueOnce(new Error('Failed to fetch audit data'));
 
-    render(<CitiSftIntakeAuditPage />);
+    render(<EmailIntakeAuditPage />);
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('boom');
+    expect(alert.textContent).toContain('Failed to fetch audit data');
   });
 
-  it('re-invokes the active loader when Refresh is clicked', async () => {
-    render(<CitiSftIntakeAuditPage />);
-
-    await screen.findByTestId('ag-grid');
-    expect(mockGetAuditPage).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByText(/Refresh/i));
-
-    await waitFor(() => {
-      expect(mockGetAuditPage).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  it('applies the event-type filter to the audit query', async () => {
-    render(<CitiSftIntakeAuditPage />);
+  it('exports CSV when audit data is present', async () => {
+    render(<EmailIntakeAuditPage />);
 
     await screen.findByTestId('ag-grid');
 
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'FILE_RECEIVED' } });
+    const exportBtn = screen.getByText(/Export/i);
+    fireEvent.click(exportBtn);
 
-    await waitFor(() => {
-      expect(mockGetAuditPage).toHaveBeenCalledWith(0, 20, 'FILE_RECEIVED');
+    expect(mockExportToCsv).toHaveBeenCalled();
+  });
+
+  it('does not export when there is no audit content', async () => {
+    mockGetEmailAuditPage.mockResolvedValueOnce({
+      data: { content: [], totalElements: 0, totalPages: 0 },
     });
+
+    render(<EmailIntakeAuditPage />);
+
+    await screen.findByTestId('ag-grid');
+
+    const exportBtn = screen.getByText(/Export/i);
+    fireEvent.click(exportBtn);
+
+    expect(mockExportToCsv).not.toHaveBeenCalled();
   });
 });
