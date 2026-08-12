@@ -55,4 +55,4 @@ const filteredRelatedOptions = (relatedInstructionOptions ?? []).filter((opt) =>
 
 // id fix
 
-<El key={row.id ?? `account-row-${idx}`} className="lmn-d-flex lmn-mb-8px lmn-align-items-center"></El>
+<El key={`account-${row.awsAccount || idx}-${idx}`} className="lmn-d-flex lmn-mb-8px lmn-align-items-center"></El>
