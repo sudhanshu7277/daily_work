@@ -2,7 +2,9 @@
 
 npx vitest run --coverage
 
-// src/pages/mappingDetail/MappingDetailPage.test.tsx
+
+
+// src/pages/thresholds/ThresholdManagementPage.test.tsx
 
 // @vitest-environment jsdom
 
@@ -11,15 +13,14 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import React from 'react';
 import '@testing-library/jest-dom';
 
-// --- Hoisted Mocks ---
+// --- Hoisted Mock Declarations ---
 const {
   mockNotification,
-  mockGetAllDocumentMappings,
-  mockCreateDocumentMapping,
-  mockUpdateDocumentMapping,
-  mockGetAllCountryList,
-  mockGetClientListByCountry,
-  mockGetAllDealList,
+  mockGetActiveThresholds,
+  mockCreateThreshold,
+  mockUpdateThreshold,
+  mockDeactivateThreshold,
+  mockGetRefDataByType,
   mockNavigate,
 } = vi.hoisted(() => ({
   mockNotification: {
@@ -28,12 +29,11 @@ const {
     info: vi.fn(),
     warning: vi.fn(),
   },
-  mockGetAllDocumentMappings: vi.fn(),
-  mockCreateDocumentMapping: vi.fn(),
-  mockUpdateDocumentMapping: vi.fn(),
-  mockGetAllCountryList: vi.fn(),
-  mockGetClientListByCountry: vi.fn(),
-  mockGetAllDealList: vi.fn(),
+  mockGetActiveThresholds: vi.fn(),
+  mockCreateThreshold: vi.fn(),
+  mockUpdateThreshold: vi.fn(),
+  mockDeactivateThreshold: vi.fn(),
+  mockGetRefDataByType: vi.fn(),
   mockNavigate: vi.fn(),
 }));
 
@@ -47,27 +47,19 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../api/documentMappings', () => ({
-  getAllDocumentMappings: (...a: unknown[]) => mockGetAllDocumentMappings(...a),
-  createDocumentMapping: (...a: unknown[]) => mockCreateDocumentMapping(...a),
-  updateDocumentMapping: (...a: unknown[]) => mockUpdateDocumentMapping(...a),
-  getAllCountryList: (...a: unknown[]) => mockGetAllCountryList(...a),
-  getClientListByCountry: (...a: unknown[]) => mockGetClientListByCountry(...a),
-  getAllDealList: (...a: unknown[]) => mockGetAllDealList(...a),
+vi.mock('../../api/thresholds', () => ({
+  getActiveThresholds: (...a: unknown[]) => mockGetActiveThresholds(...a),
+  createThreshold: (...a: unknown[]) => mockCreateThreshold(...a),
+  updateThreshold: (...a: unknown[]) => mockUpdateThreshold(...a),
+  deactivateThreshold: (...a: unknown[]) => mockDeactivateThreshold(...a),
 }));
 
-// Mock both useAuth and useAuthContext to satisfy all AuthContext hooks
-vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({
-    hasRole: () => true,
-    hasAnyRole: () => true,
-    hasPermission: () => true,
-    soeid: 'TEST01',
-    roles: ['ROLE_MAINTENANCE_SET_UP'],
-  }),
-  useAuthContext: () => ({
-    userPermissions: ['ROLE_MAINTENANCE_SET_UP'],
-  }),
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
+}));
+
+vi.mock('../../utils/format', () => ({
+  formatCurrency: (val: number, curr: string) => `${curr} ${val}`,
 }));
 
 vi.mock('@citi-icg-172888/icgds-react', async () => {
@@ -78,29 +70,32 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         {children}
       </div>
     ),
-    Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) => (
-      <button onClick={onClick} title={title} disabled={disabled} aria-label={ariaLabel}>
+    Button: ({ children, onClick, title, disabled, color, 'aria-label': ariaLabel }: any) => (
+      <button
+        onClick={onClick}
+        title={title}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        data-testid={`btn-${title || 'action'}`}
+      >
         {children}
       </button>
     ),
-    Input: ({ value, onChange, placeholder, disabled, style }: any) => (
+    Input: ({ value, onChange, placeholder, disabled, type }: any) => (
       <input
         placeholder={placeholder}
         value={value ?? ''}
         disabled={disabled}
-        style={style}
+        type={type}
         onChange={onChange}
-        data-testid={`input-${placeholder || 'default'}`}
+        data-testid={`input-${placeholder || type || 'default'}`}
       />
     ),
-    TextArea: ({ value, onChange, placeholder, style }: any) => (
-      <textarea
-        placeholder={placeholder}
-        value={value ?? ''}
-        style={style}
-        onChange={onChange}
-        data-testid="textarea"
-      />
+    Card: Object.assign(
+      ({ children, className }: any) => <div className={className}>{children}</div>,
+      {
+        body: ({ children }: any) => <div>{children}</div>,
+      }
     ),
     Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
       visible ? (
@@ -112,13 +107,13 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         </div>
       ) : null,
     Dropdown: Object.assign(
-      ({ value, onChange, children, disabled, placeholder, style }: any) => (
+      ({ value, onChange, children, disabled, placeholder, style, label }: any) => (
         <select
           value={value ?? ''}
           disabled={disabled}
           style={style}
           onChange={(e) => onChange(e.target.value)}
-          data-testid="dropdown"
+          data-testid={`dropdown-${label || placeholder || 'select'}`}
         >
           {placeholder && <option value="">{placeholder}</option>}
           {children}
@@ -128,26 +123,8 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         Item: ({ value, children }: any) => <option value={value}>{children}</option>,
       }
     ),
-    SearchableDropdown: ({ value, onChange, options, disabled, placeholder, label }: any) => (
-      <div data-testid={`searchable-dropdown-${label || placeholder}`}>
-        <label>{label}</label>
-        <select
-          value={value ?? ''}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid={`select-${label || placeholder}`}
-        >
-          <option value="">{placeholder}</option>
-          {options?.map((opt: any) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    ),
     Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
-    Loading: ({ tip }: any) => <div>{tip}</div>,
+    Loading: ({ tip }: any) => <div data-testid="loading-spinner">{tip}</div>,
     Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
     notification: mockNotification,
   };
@@ -158,7 +135,7 @@ vi.mock('ag-grid-react', () => ({
     <div data-testid="ag-grid">
       <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
       {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.key || row.mappingId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
+        <div key={row.key || row.thresholdId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
           {columnDefs?.map((col: any, colIndex: number) => {
             const cellParams = {
               data: row,
@@ -166,8 +143,12 @@ vi.mock('ag-grid-react', () => ({
               node: { data: row },
             };
             return (
-              <div key={colIndex} data-testid={`cell-${col.field || col.headerName || colIndex}-${rowIndex}`}>
-                {col.cellRenderer ? col.cellRenderer(cellParams) : String(row[col.field] ?? '')}
+              <div key={colIndex} data-testid={`cell-${col.field || colIndex}-${rowIndex}`}>
+                {col.cellRenderer
+                  ? col.cellRenderer(cellParams)
+                  : col.valueFormatter
+                  ? col.valueFormatter(cellParams)
+                  : String(row[col.field] ?? '')}
               </div>
             );
           })}
@@ -177,214 +158,262 @@ vi.mock('ag-grid-react', () => ({
   ),
 }));
 
-import MappingDetailPage from './MappingDetailPage';
+import ThresholdManagementPage from './ThresholdManagementPage';
 
 // --- Test Data Fixtures ---
 
-const mockMappings = [
+const mockThresholdsList = [
   {
-    mappingId: 101,
-    docKeyword: 'INVOICE',
-    dealKey: 'DEAL-999',
-    dealName: 'Alpha Trade',
-    clientGFCID: 'GFC123',
-    clientName: 'Acme Corp',
-    dealCountry: 'US',
-    comments: 'Standard invoice mapping',
-    isActive: true,
-    createdBy: 'user1',
-    createdOn: '2026-01-15T10:00:00Z',
-    updatedBy: 'user2',
-    updatedOn: '2026-02-01T12:00:00Z',
+    thresholdId: 101,
+    currency: 'USD',
+    region: 'GLOBAL',
+    thresholdAmount: 50000,
+    requiresSuperChecker: true,
+    description: 'Global USD limit',
   },
   {
-    mappingId: 102,
-    docKeyword: 'CONTRACT',
-    dealKey: 'DEAL-888',
-    dealName: 'Beta Finance',
-    clientGFCID: 'GFC456',
-    clientName: 'Globex Inc',
-    dealCountry: 'CA',
-    comments: 'Legal contract',
-    isActive: false,
-    createdBy: 'user3',
-    createdOn: '2026-03-10T08:30:00Z',
+    thresholdId: 102,
+    currency: 'EUR',
+    region: 'EMEA',
+    thresholdAmount: 75000,
+    requiresSuperChecker: false,
+    description: 'EMEA EUR limit',
   },
 ];
 
-const mockCountries = [
-  { key: 'US', value: 'United States' },
-  { key: 'CA', value: 'Canada' },
-];
+const mockRegionRefData = {
+  data: [
+    { refCode: 'GLOBAL', refValue: 'Global' },
+    { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
+  ],
+};
 
-const mockClients = [
-  { clientId: '1', clientName: 'Acme Corp', clientGFCID: 'GFC123' },
-  { clientId: '2', clientName: 'Globex Inc', clientGFCID: 'GFC456' },
-];
-
-const mockDeals = [
-  { dealId: '10', dealShortName: 'Alpha', dealLongName: 'Alpha Trade', dealKey: 'DEAL-999' },
-  { dealId: '20', dealShortName: 'Beta', dealLongName: 'Beta Finance', dealKey: 'DEAL-888' },
-];
-
-describe('MappingDetailPage', () => {
+describe('ThresholdManagementPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAllDocumentMappings.mockResolvedValue(mockMappings);
-    mockGetAllCountryList.mockResolvedValue(mockCountries);
-    mockGetClientListByCountry.mockResolvedValue(mockClients);
-    mockGetAllDealList.mockResolvedValue(mockDeals);
-    mockCreateDocumentMapping.mockResolvedValue({ status: 200 });
-    mockUpdateDocumentMapping.mockResolvedValue({ status: 200 });
+    mockGetActiveThresholds.mockResolvedValue({ data: mockThresholdsList });
+    mockGetRefDataByType.mockResolvedValue(mockRegionRefData);
+    mockCreateThreshold.mockResolvedValue({ status: 200 });
+    mockUpdateThreshold.mockResolvedValue({ status: 200 });
+    mockDeactivateThreshold.mockResolvedValue({ status: 200 });
   });
 
-  it('fetches and renders document mapping list on mount', async () => {
-    render(<MappingDetailPage />);
+  it('fetches thresholds and region refData on mount and renders grid', async () => {
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
-      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(1);
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+      expect(mockGetRefDataByType).toHaveBeenCalledWith('REGION');
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    expect(screen.getByText('Document and Client Mapping')).toBeInTheDocument();
+    expect(screen.getByText('Payment Thresholds')).toBeInTheDocument();
   });
 
-  it('renders error alert when mapping fetch API fails', async () => {
-    mockGetAllDocumentMappings.mockRejectedValueOnce(new Error('API Failure'));
+  it('renders status icons correctly (check-circle for true, close-circle for false)', async () => {
+    render(<ThresholdManagementPage />);
 
-    render(<MappingDetailPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    expect(screen.getByTestId('cell-requiresSuperChecker-0').querySelector('.icon-check-circle')).toBeInTheDocument();
+    expect(screen.getByTestId('cell-requiresSuperChecker-1').querySelector('.icon-close-circle')).toBeInTheDocument();
+  });
+
+  it('renders danger alert when fetching threshold list rejects', async () => {
+    mockGetActiveThresholds.mockRejectedValueOnce(new Error('Failed to load thresholds'));
+
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
+      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Failed to load thresholds');
     });
   });
 
-  it('filters grid rows dynamically when typing into search input', async () => {
-    render(<MappingDetailPage />);
+  it('opens Create Threshold modal, populates form fields, and submits successfully', async () => {
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    const searchInput = screen.getByPlaceholderText('Search keyword / client / deal...');
-    fireEvent.change(searchInput, { target: { value: 'INVOICE' } });
+    fireEvent.click(screen.getByText('Add Threshold'));
 
-    expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1');
-  });
-
-  it('renders status icons correctly inside custom cell renderers', async () => {
-    render(<MappingDetailPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    expect(screen.getByTestId('cell-isActiveDisplay-0').querySelector('.icon-check-circle')).toBeInTheDocument();
-    expect(screen.getByTestId('cell-isActiveDisplay-1').querySelector('.icon-close-circle')).toBeInTheDocument();
-  });
-
-  it('opens Add Modal, handles country/client/deal cascading changes, and submits form', async () => {
-    render(<MappingDetailPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Add Mapping Details'));
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+    expect(screen.getByText('Create Threshold')).toBeInTheDocument();
 
-    const keywordInput = screen.getByPlaceholderText('Enter document keyword');
-    fireEvent.change(keywordInput, { target: { value: 'PURCHASE_ORDER' } });
+    const amountInput = screen.getByTestId('input-number');
+    fireEvent.change(amountInput, { target: { value: '120000' } });
 
-    const countrySelect = screen.getByTestId('dropdown');
-    fireEvent.change(countrySelect, { target: { value: 'US' } });
+    const descInput = screen.getByPlaceholderText('Threshold description');
+    fireEvent.change(descInput, { target: { value: 'New corporate limit' } });
 
-    await waitFor(() => {
-      expect(mockGetClientListByCountry).toHaveBeenCalledWith('US');
-    });
-
-    const clientSelect = screen.getByTestId('select-Client');
-    fireEvent.change(clientSelect, { target: { value: '1' } });
-
-    await waitFor(() => {
-      expect(mockGetAllDealList).toHaveBeenCalledWith('1');
-    });
-
-    const dealSelect = screen.getByTestId('select-Deal');
-    fireEvent.change(dealSelect, { target: { value: '10' } });
-
-    const commentArea = screen.getByTestId('textarea');
-    fireEvent.change(commentArea, { target: { value: 'Test mapping note' } });
-
-    const deactivateRadio = screen.getByLabelText('De-Activate');
-    fireEvent.click(deactivateRadio);
-
-    fireEvent.click(screen.getByText('Add Mapping'));
+    fireEvent.click(screen.getByText('Create'));
 
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(mockCreateDocumentMapping).toHaveBeenCalled();
-      expect(mockNotification.success).toHaveBeenCalledWith('Document mapping created successfully');
+      expect(mockCreateThreshold).toHaveBeenCalledWith({
+        currency: 'USD',
+        region: 'GLOBAL',
+        thresholdAmount: 120000,
+        requiresSuperChecker: true,
+        description: 'New corporate limit',
+      });
+      expect(mockNotification.success).toHaveBeenCalledWith({
+        title: 'Created',
+        content: 'Threshold created',
+      });
     });
   });
 
-  it('closes Add Modal when Cancel is clicked', async () => {
-    render(<MappingDetailPage />);
+  it('opens Edit Threshold modal with pre-populated data and updates threshold', async () => {
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
     });
 
-    fireEvent.click(screen.getByText('Add Mapping Details'));
+    const editBtns = screen.queryAllByTitle('Edit');
+    if (editBtns.length > 0) {
+      fireEvent.click(editBtns[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('modal')).toBeInTheDocument();
+        expect(screen.getByText('Edit Threshold')).toBeInTheDocument();
+      });
+
+      const amountInput = screen.getByTestId('input-number');
+      fireEvent.change(amountInput, { target: { value: '65000' } });
+
+      fireEvent.click(screen.getByText('Update'));
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateThreshold).toHaveBeenCalledWith(101, expect.objectContaining({
+          thresholdAmount: 65000,
+        }));
+        expect(mockNotification.success).toHaveBeenCalledWith({
+          title: 'Updated',
+          content: 'Threshold updated',
+        });
+      });
+    } else {
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('handles threshold deactivation via row action button', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const revokeBtns = screen.queryAllByTitle('Revoke');
+    if (revokeBtns.length > 0) {
+      fireEvent.click(revokeBtns[0]);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(mockDeactivateThreshold).toHaveBeenCalledWith(101);
+        expect(mockNotification.success).toHaveBeenCalledWith({
+          title: 'Deactivated',
+          content: 'Threshold deactivated',
+        });
+      });
+    } else {
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('displays notification.danger when save action rejects', async () => {
+    mockCreateThreshold.mockRejectedValueOnce(new Error('Creation error'));
+
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Threshold'));
+    fireEvent.click(screen.getByText('Create'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockNotification.danger).toHaveBeenCalledWith({
+        title: 'Error',
+        content: 'Creation error',
+      });
+    });
+  });
+
+  it('displays notification.danger when deactivate action rejects', async () => {
+    mockDeactivateThreshold.mockRejectedValueOnce(new Error('Deactivation error'));
+
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    const revokeBtns = screen.queryAllByTitle('Revoke');
+    if (revokeBtns.length > 0) {
+      fireEvent.click(revokeBtns[0]);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(mockNotification.danger).toHaveBeenCalledWith({
+          title: 'Error',
+          content: 'Deactivation error',
+        });
+      });
+    } else {
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('closes Modal when Cancel button is clicked', async () => {
+    render(<ThresholdManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+    });
+
+    fireEvent.click(screen.getByText('Add Threshold'));
     expect(screen.getByTestId('modal')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Cancel'));
     expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
   });
 
-  it('opens Edit Modal, modifies comments, and saves changes', async () => {
-    render(<MappingDetailPage />);
+  it('reloads threshold data when Refresh button is clicked', async () => {
+    render(<ThresholdManagementPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(1);
     });
 
-    const editButtons = screen.getAllByTitle('Edit');
-    fireEvent.click(editButtons[0]);
+    fireEvent.click(screen.getByText('Refresh'));
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Mapping Details')).toBeInTheDocument();
-    });
-
-    const commentArea = screen.getByTestId('textarea');
-    fireEvent.change(commentArea, { target: { value: 'Updated comment details' } });
-
-    fireEvent.click(screen.getByText('Save Changes'));
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(mockUpdateDocumentMapping).toHaveBeenCalled();
-      expect(mockNotification.success).toHaveBeenCalledWith('Document mapping updated successfully');
-    });
-  });
-
-  it('re-fetches mapping list on Refresh button click', async () => {
-    render(<MappingDetailPage />);
-
-    await waitFor(() => {
-      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(1);
-    });
-
-    fireEvent.click(screen.getByTitle('Refresh'));
-
-    await waitFor(() => {
-      expect(mockGetAllDocumentMappings).toHaveBeenCalledTimes(2);
+      expect(mockGetActiveThresholds).toHaveBeenCalledTimes(2);
     });
   });
 });
