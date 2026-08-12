@@ -30,3 +30,12 @@ Replace lines 3329 through 3339 with:
   <Icon type="download" className="lmn-mr-4px" />
   {doc.fileName}
 </button>
+
+
+// Refactored Code (Lines 1884–1889)
+//Replace lines 1884 through 1889 with:
+
+const resolvedInstructionType =
+  form.requestType === REQUEST_TYPES.ADMINISTRATIVE || isNonPayment
+    ? "Non-Payment"
+    : "Payment";
