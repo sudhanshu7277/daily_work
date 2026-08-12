@@ -14,3 +14,12 @@ const [selectedClient, setSelectedClient] = useState<AwsClient | null>(null);
 
 
 const [selectedDeal, setSelectedDeal] = useState<AwsDeal | null>(null);
+
+
+<tr
+  key={`${doc.name}-${idx}`}
+  style={{
+    borderBottom:
+      "1px solid var(--lmn-border-color, #e0e0e0)",
+  }}
+></tr>
