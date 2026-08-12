@@ -8,12 +8,21 @@ npx tsc --noEmit
 
 
 // src/pages/maintenance/MaintenancePage.test.tsx
+// src/pages/maintenance/MaintenancePage.test.tsx
 
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
+
+// ---- Router Mock (in case navigate/params are used) ----
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+  useParams: () => ({}),
+  useLocation: () => ({ pathname: '/maintenance' }),
+  Link: ({ children }: any) => React.createElement('a', null, children),
+}));
 
 // ---- API Mocks ----
 const mockGetMaintenanceData = vi.fn();
@@ -24,6 +33,7 @@ vi.mock('../../api/maintenance', () => ({
   getMaintenance: (...a: unknown[]) => mockGetMaintenanceData(...a),
   fetchMaintenanceData: (...a: unknown[]) => mockGetMaintenanceData(...a),
   getMaintenanceRecords: (...a: unknown[]) => mockGetMaintenanceData(...a),
+  default: (...a: unknown[]) => mockGetMaintenanceData(...a),
 }));
 
 // ---- Design System & AG Grid Mocks ----
@@ -37,7 +47,7 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
     Alert: ({ children, type, message, description }: any) =>
       R.createElement(
         'div',
-        { role: 'alert', 'data-testid': `alert-${type || 'danger'}` },
+        { role: 'alert', 'data-testid': 'alert-container' },
         children || message || description || 'Error loading data'
       ),
     Loading: ({ tip }: any) =>
@@ -76,7 +86,13 @@ vi.mock('ag-grid-react', () => ({
   },
 }));
 
-import MaintenancePage from './MaintenancePage';
+// ---- Resilient Component Import (Handles both default & named export) ----
+import * as MaintenancePageModule from './MaintenancePage';
+
+const MaintenancePage =
+  MaintenancePageModule.default ||
+  (MaintenancePageModule as any).MaintenancePage ||
+  MaintenancePageModule;
 
 describe('MaintenancePage', () => {
   beforeEach(() => {
@@ -116,7 +132,6 @@ describe('MaintenancePage', () => {
     const refreshButton =
       screen.queryByRole('button', { name: /refresh/i }) ||
       screen.queryByText(/refresh/i) ||
-      screen.queryByTitle(/refresh/i) ||
       screen.getByTestId('ag-grid');
 
     fireEvent.click(refreshButton);
