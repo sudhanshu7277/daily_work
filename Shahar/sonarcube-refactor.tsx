@@ -6,51 +6,29 @@ npx vitest run --coverage
 
 npx tsc --noEmit
 
-// IntakeChannelsPage.test.tsx
-
-
-// src/pages/intakeChannels/IntakeChannelsPage.test.tsx
+// // src/pages/intakeChannels/IntakeChannelsPage.test.tsx
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 
-// ---- Vitest Hoisted Mocks ----
-const { mockNotification } = vi.hoisted(() => ({
-  mockNotification: {
-    success: vi.fn(),
-    danger: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  },
+// ---- Child Component Mocks ----
+vi.mock('../aws-sync/AwsTicklerSyncPage', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'aws-tickler-sync-page' }, 'AWS Tickler Sync Page Mock'),
 }));
 
-// ---- API Mocks ----
-const mockGetIntakeChannels = vi.fn();
-const mockUpdateIntakeChannel = vi.fn();
-
-vi.mock('../../api/intakeChannels', () => ({
-  getIntakeChannels: (...a: unknown[]) => mockGetIntakeChannels(...a),
-  updateIntakeChannel: (...a: unknown[]) => mockUpdateIntakeChannel(...a),
+vi.mock('../emailIntake/EmailIntakeAuditPage', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'email-intake-audit-page' }, 'Email Intake Audit Page Mock'),
 }));
 
-// ---- Utils & Formatting Mocks ----
-vi.mock('../../utils/format', () => ({
-  formatDate: (v: string) => v,
-  formatDateTime: (v: string) => v,
+vi.mock('../citiSftIntake/CitiSftIntakeAuditPage', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'citisft-intake-audit-page' }, 'CitiSFT Intake Audit Page Mock'),
 }));
 
-// ---- AG-Grid Mocks ----
-vi.mock('ag-grid-community/styles/ag-grid.css', () => ({}));
-vi.mock('ag-grid-community/styles/ag-theme-quartz.css', () => ({}));
-vi.mock('ag-grid-react', () => ({
-  AgGridReact: ({ rowData }: { rowData: unknown[] }) =>
-    React.createElement('div', {
-      'data-testid': 'ag-grid',
-      'data-rowcount': rowData?.length ?? 0,
-    }),
+vi.mock('../tickler/TicklerTaskPage', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'tickler-task-page' }, 'Tickler Task Page Mock'),
 }));
 
 // ---- Design System Mock ----
@@ -59,109 +37,64 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
   return {
     El: ({ children, className, style, ...props }: any) =>
       R.createElement('div', { className, style, ...props }, children),
-    Button: ({ children, onClick, title, disabled, type }: any) =>
-      R.createElement('button', { onClick, title, disabled, type }, children),
-    Input: ({ value, onChange, placeholder, disabled, style, name }: any) =>
-      R.createElement('input', {
-        name,
-        placeholder,
-        value: value ?? '',
-        disabled,
-        style,
-        onChange,
-        'data-testid': `input-${name || placeholder || 'default'}`,
-      }),
-    Alert: ({ children, type }: any) =>
-      R.createElement('div', { role: 'alert', 'data-testid': `alert-${type}` }, children),
-    Loading: ({ tip }: any) =>
-      R.createElement('div', { 'data-testid': 'loading' }, tip || 'Loading...'),
-    Icon: ({ type, className }: any) =>
-      R.createElement('i', { className: `icon-${type} ${className || ''}` }),
-    Card: ({ children, className, style }: any) =>
-      R.createElement('div', { className, style }, children),
-    Tag: ({ children, color }: any) =>
-      R.createElement('span', { 'data-color': color }, children),
-    Modal: ({ visible, children, title, onCancel, onApply }: any) =>
-      visible
-        ? R.createElement(
-            'div',
-            { role: 'dialog', 'data-testid': 'modal' },
-            R.createElement('h2', null, title),
-            children,
-            R.createElement('button', { type: 'button', onClick: onCancel }, 'Cancel'),
-            R.createElement('button', { type: 'button', onClick: onApply }, 'Save')
-          )
-        : null,
-    Dropdown: Object.assign(
-      ({ value, onChange, children, disabled, placeholder }: any) =>
-        R.createElement(
-          'select',
-          {
-            role: 'combobox',
-            value: value ?? '',
-            disabled,
-            onChange: (e: any) => onChange(e.target.value),
-          },
-          placeholder && R.createElement('option', { value: '' }, placeholder),
-          children
-        ),
-      { Item: ({ value, children }: any) => R.createElement('option', { value }, children) }
+    Icon: ({ type, className, style }: any) =>
+      R.createElement('i', { className, style, 'data-icon-type': type }),
+    Card: Object.assign(
+      ({ children, onClick, className, style, layer }: any) =>
+        R.createElement('div', { onClick, className, style, 'data-layer': layer, 'data-testid': 'card' }, children),
+      {
+        body: ({ children, style }: any) => R.createElement('div', { style }, children),
+      }
     ),
-    notification: mockNotification,
   };
 });
 
 import IntakeChannelsPage from './IntakeChannelsPage';
 
-const sampleChannels = {
-  data: {
-    content: [
-      { id: 1, channelName: 'SWIFT', channelType: 'SWIFT_MT', status: 'ACTIVE' },
-      { id: 2, channelName: 'EMAIL_INTAKE', channelType: 'EMAIL', status: 'ACTIVE' },
-    ],
-    totalElements: 2,
-  },
-};
-
 describe('IntakeChannelsPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetIntakeChannels.mockResolvedValue(sampleChannels);
-    mockUpdateIntakeChannel.mockResolvedValue({ success: true });
-  });
-
-  it('renders intake channels page and loads data on mount', async () => {
+  it('renders title and all four channel cards initially with no active component', () => {
     render(<IntakeChannelsPage />);
 
-    expect(screen.getByTestId('loading')).toBeTruthy();
+    expect(screen.getByText('Intake Channels')).toBeTruthy();
+    expect(screen.getByText('AWS Tickler Sync')).toBeTruthy();
+    expect(screen.getByText('Email Intake')).toBeTruthy();
+    expect(screen.getByText('CitiSFT Intake')).toBeTruthy();
+    expect(screen.getByText('Tickler Tasks')).toBeTruthy();
 
-    await waitFor(() => {
-      expect(mockGetIntakeChannels).toHaveBeenCalled();
-    });
-
-    const grid = await screen.findByTestId('ag-grid');
-    expect(grid.getAttribute('data-rowcount')).toBe('2');
+    expect(screen.queryByTestId('aws-tickler-sync-page')).toBeNull();
+    expect(screen.queryByTestId('email-intake-audit-page')).toBeNull();
+    expect(screen.queryByTestId('citisft-intake-audit-page')).toBeNull();
+    expect(screen.queryByTestId('tickler-task-page')).toBeNull();
   });
 
-  it('displays an error alert when intake channel fetch fails', async () => {
-    mockGetIntakeChannels.mockRejectedValueOnce(new Error('Failed to load intake channels'));
-
+  it('activates AWS Tickler Sync channel on click and toggles off on re-click', () => {
     render(<IntakeChannelsPage />);
 
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('Failed to load intake channels');
+    const awsCard = screen.getByText('AWS Tickler Sync');
+    fireEvent.click(awsCard);
+
+    expect(screen.getByTestId('aws-tickler-sync-page')).toBeTruthy();
+
+    // Click again to deselect
+    fireEvent.click(awsCard);
+    expect(screen.queryByTestId('aws-tickler-sync-page')).toBeNull();
   });
 
-  it('triggers refresh when refresh button is clicked', async () => {
+  it('switches active component when different channel cards are clicked', () => {
     render(<IntakeChannelsPage />);
 
-    await screen.findByTestId('ag-grid');
+    // Click Email Intake
+    fireEvent.click(screen.getByText('Email Intake'));
+    expect(screen.getByTestId('email-intake-audit-page')).toBeTruthy();
 
-    const refreshBtn = screen.getByText(/Refresh/i);
-    fireEvent.click(refreshBtn);
+    // Click CitiSFT Intake
+    fireEvent.click(screen.getByText('CitiSFT Intake'));
+    expect(screen.queryByTestId('email-intake-audit-page')).toBeNull();
+    expect(screen.getByTestId('citisft-intake-audit-page')).toBeTruthy();
 
-    await waitFor(() => {
-      expect(mockGetIntakeChannels).toHaveBeenCalledTimes(2);
-    });
+    // Click Tickler Tasks
+    fireEvent.click(screen.getByText('Tickler Tasks'));
+    expect(screen.queryByTestId('citisft-intake-audit-page')).toBeNull();
+    expect(screen.getByTestId('tickler-task-page')).toBeTruthy();
   });
 });
