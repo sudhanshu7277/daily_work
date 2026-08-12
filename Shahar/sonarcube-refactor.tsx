@@ -60,3 +60,26 @@ npm run build
 git add vite.config.ts
 git commit -m "add esnext target to vite config IS-71990"
 git push
+
+
+
+// src/test-utils/setupMocks.ts
+
+import { vi } from 'vitest';
+
+export const mockNotification = {
+  success: vi.fn(),
+  danger: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+};
+
+
+
+// vite.config.ts
+exclude: [
+  'src/**/*.test.{ts,tsx}',
+  'src/test-utils/**',
+  'src/main.tsx',
+  'src/vite-env.d.ts'
+],
