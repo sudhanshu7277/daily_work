@@ -39,3 +39,13 @@ const resolvedInstructionType =
   form.requestType === REQUEST_TYPES.ADMINISTRATIVE || isNonPayment
     ? "Non-Payment"
     : "Payment";
+
+
+    // Option 1: Clean for...of Loop (Recommended)
+//Replace lines 1399–1403 with:
+
+const files: File[] = [];
+for (const item of Array.from(items)) {
+  const file = item.getAsFile();
+  if (file) files.push(file);
+}
