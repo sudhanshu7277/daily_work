@@ -8,51 +8,17 @@ npx tsc --noEmit
 
 // Refactored Code for SetupInstructionModal.tsx
 
-// Refactored Code (Without IIFE)
-//1. Add pre-computations at the top of renderTaskOverview
-//Inside renderTaskOverview, place these variables right before its return ( statement:
+// Step 1: Add a Helper Function
+//Add this helper function inside renderReview (or at the top level of the component):
 
-const relatedIds = (form.relatedInstructionIds ?? []) as number[];
-const searchLower = (relatedInstructionSearch ?? '').toLowerCase();
-
-const filteredRelatedOptions = (relatedInstructionOptions ?? []).filter((opt) =>
-  (opt.label ?? '').toLowerCase().includes(searchLower)
-);
+const formatBoolean = (val?: boolean | null) => {
+  if (val === true) return 'Yes';
+  if (val === false) return 'No';
+  return '-';
+};
 
 
-// Part 2: Replace the JSX block (Lines 2089–2134)
-// Replace the entire mapping block (lines 2089 to 2134) in your JSX with:
+// Step 2: Update Lines 3573–3579
+//Replace lines 3573–3579 with the single helper call:
 
-{filteredRelatedOptions.map((opt) => {
-  const numId = Number(opt.value);
-  const isSelected = relatedIds.includes(numId);
-
-  return (
-    <label
-      key={opt.value}
-      className="lmn-d-flex lmn-align-items-center"
-      style={{
-        padding: '8px 12px',
-        cursor: 'pointer',
-        background: isSelected ? '#f0f5ff' : 'transparent',
-        borderBottom: '1px solid #f0f0f0',
-        fontSize: 12,
-        gap: 8,
-        display: 'flex',
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={isSelected}
-        onChange={() => handleToggleRelatedInstruction(numId)}
-        style={{ cursor: 'pointer' }}
-      />
-      <span>{opt.label}</span>
-    </label>
-  );
-})}
-
-
-// id fix
-
-<El key={`account-${row.awsAccount || idx}-${idx}`} className="lmn-d-flex lmn-mb-8px lmn-align-items-center"></El>
+{renderReviewRow("Xceptor", formatBoolean(form.xceptor))}
