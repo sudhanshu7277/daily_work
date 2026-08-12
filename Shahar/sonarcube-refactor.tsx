@@ -9,6 +9,6 @@ npx tsc --noEmit
 // Refactored Code for SetupInstructionModal.tsx
 
 
-const options = [...enriched].sort((a, b) =>
-  (a.selectedLabel ?? a.label).localeCompare(b.selectedLabel ?? b.label)
-);
+const [, setSelectedClient] = useState<AwsClient | null>(null);
+
+const [, setSelectedDeal] = useState<AwsDeal | null>(null);
