@@ -3,68 +3,56 @@
 npx vitest run --coverage
 
 
-// src/utils/auth.test.ts
+// src/test-utils/setupMocks.ts
 
-// @vitest-environment jsdom
+import { vi } from 'vitest';
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import '@testing-library/jest-dom';
+export const mockNotification = {
+  success: vi.fn(),
+  danger: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+};
 
-import {
-  getToken,
-  setToken,
-  clearAuth,
-  getTokenExpiry,
-  isTokenExpired,
-} from './auth';
-
-// Helper: Converts a string to base64url format without using regex
-function toBase64Url(str: string): string {
-  // Use Buffer if in Node environment, or btoa fallback
-  let b64 = typeof Buffer !== 'undefined'
-    ? Buffer.from(str).toString('base64')
-    : btoa(str);
-
-  // Convert standard base64 characters to base64url
-  b64 = b64.replace(/\+/g, '-').replace(/\//g, '_');
-
-  // Strip trailing '=' padding using simple string slicing (No regex = No Sonar ReDoS)
-  while (b64.endsWith('=')) {
-    b64 = b64.slice(0, -1);
-  }
-
-  return b64;
+export function setupCommonMocks() {
+  vi.mock('@citi-icg-172888/icgds-react', async () => {
+    const R = await vi.importActual<typeof import('react')>('react');
+    return {
+      El: ({ children, className, style, ...props }: any) =>
+        R.createElement('div', { className, style, ...props }, children),
+      Button: ({ children, onClick, title, disabled }: any) =>
+        R.createElement('button', { onClick, title, disabled }, children),
+      Input: ({ value, onChange, placeholder, disabled, type }: any) =>
+        R.createElement('input', { placeholder, value: value ?? '', disabled, type, onChange }),
+      Card: Object.assign(
+        ({ children, className }: any) => R.createElement('div', { className }, children),
+        { body: ({ children }: any) => R.createElement('div', null, children) }
+      ),
+      Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
+        visible
+          ? R.createElement(
+              'div',
+              { 'data-testid': 'modal' },
+              R.createElement('h2', null, title),
+              children,
+              R.createElement('button', { onClick: onCancel }, cancelText || 'Cancel'),
+              R.createElement('button', { onClick: onApply }, applyText || 'Apply')
+            )
+          : null,
+      Dropdown: Object.assign(
+        ({ value, onChange, children, disabled, placeholder }: any) =>
+          R.createElement(
+            'select',
+            { value: value ?? '', disabled, onChange: (e: any) => onChange(e.target.value) },
+            placeholder && R.createElement('option', { value: '' }, placeholder),
+            children
+          ),
+        { Item: ({ value, children }: any) => R.createElement('option', { value }, children) }
+      ),
+      Alert: ({ children, type }: any) => R.createElement('div', { 'data-testid': `alert-${type}` }, children),
+      Loading: ({ tip }: any) => R.createElement('div', null, tip),
+      Icon: ({ type, className }: any) => R.createElement('i', { className: `icon-${type} ${className || ''}` }),
+      notification: mockNotification,
+    };
+  });
 }
-
-// Build a fake JWT whose payload is base64url-encoded JSON.
-function makeToken(payload: Record<string, unknown>): string {
-  const headerB64 = toBase64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-  const payloadB64 = toBase64Url(JSON.stringify(payload));
-
-  return `${headerB64}.${payloadB64}.sig`;
-}
-
-describe('auth utils', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('stores and retrieves token correctly', () => {
-    setToken('test-jwt-token');
-    expect(getToken()).toBe('test-jwt-token');
-  });
-
-  it('clears token on clearAuth', () => {
-    setToken('test-jwt-token');
-    clearAuth();
-    expect(getToken()).toBeNull();
-  });
-
-  it('extracts token expiry correctly from mock token', () => {
-    const exp = Math.floor(Date.now() / 1000) + 3600;
-    const token = makeToken({ exp });
-
-    expect(getTokenExpiry(token)).toBe(exp);
-    expect(isTokenExpired(token)).toBe(false);
-  });
-});
