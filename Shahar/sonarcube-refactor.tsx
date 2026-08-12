@@ -7,7 +7,6 @@ npx vitest run --coverage
 npx tsc --noEmit
 
 // signatureValidation/SignatureValidationPage.test.tsx
-
 it('shows a validation error and does not submit when required fields are empty', async () => {
   render(
     <SignatureValidationForm
@@ -22,7 +21,9 @@ it('shows a validation error and does not submit when required fields are empty'
 
   fireEvent.click(screen.getByText('Submit'));
 
-  expect(await screen.findByText('Signature Validation Source is required')).toBeInTheDocument();
+  expect(
+    await screen.findByText(/Signature Validation Source is required/i)
+  ).toBeInTheDocument();
   expect(mockSubmitSignatureValidation).not.toHaveBeenCalled();
 });
 
@@ -62,13 +63,17 @@ it('submits successfully when saved values pre-populate the required fields', as
   fireEvent.click(screen.getByText('Submit'));
 
   await waitFor(() => {
-    expect(mockSubmitSignatureValidation).toHaveBeenCalledWith(123, expect.objectContaining({
-      signatureValidationSource: 'EMAIL',
-      signatureStatus: 'Signature Approved',
-      commentText: 'looks good',
-    }));
+    expect(mockSubmitSignatureValidation).toHaveBeenCalledWith(
+      123,
+      expect.objectContaining({
+        signatureValidationSource: 'EMAIL',
+        signatureStatus: 'Signature Approved',
+        commentText: 'looks good',
+      })
+    );
   });
 
   expect(mockNotification.success).toHaveBeenCalled();
   expect(onComplete).toHaveBeenCalled();
+});
 });
