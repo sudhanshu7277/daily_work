@@ -9,6 +9,8 @@ npx tsc --noEmit
 // Refactored Code for SetupInstructionModal.tsx
 
 
-const [, setSelectedClient] = useState<AwsClient | null>(null);
+const [selectedClient, setSelectedClient] = useState<AwsClient | null>(null);
 
-const [, setSelectedDeal] = useState<AwsDeal | null>(null);
+
+
+const [selectedDeal, setSelectedDeal] = useState<AwsDeal | null>(null);
