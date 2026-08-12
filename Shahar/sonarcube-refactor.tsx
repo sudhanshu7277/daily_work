@@ -8,17 +8,25 @@ npx tsc --noEmit
 
 // Refactored Code for SetupInstructionModal.tsx
 
-// Step 1: Add a Helper Function
-//Add this helper function inside renderReview (or at the top level of the component):
+// Refactored Code (Lines 3329–3339)
+Replace lines 3329 through 3339 with:
 
-const formatBoolean = (val?: boolean | null) => {
-  if (val === true) return 'Yes';
-  if (val === false) return 'No';
-  return '-';
-};
-
-
-// Step 2: Update Lines 3573–3579
-//Replace lines 3573–3579 with the single helper call:
-
-{renderReviewRow("Xceptor", formatBoolean(form.xceptor))}
+<button
+  type="button"
+  className="btn-unstyled"
+  onClick={() => handleDownloadExistingDoc(doc)}
+  title={`Download ${doc.fileName}`}
+  style={{
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    color: 'var(--lmn-link-color, #1890ff)',
+    textDecoration: 'underline',
+    display: 'inline-flex',
+    alignItems: 'center',
+  }}
+>
+  <Icon type="download" className="lmn-mr-4px" />
+  {doc.fileName}
+</button>
