@@ -3,367 +3,209 @@
 npx vitest run --coverage
 
 
-// src/pages/tickler/TicklerTaskPage.test.tsx
 
-// @vitest-environment jsdom
+// 1. Fix src/api/client.test.ts (Delphyne Reliability Issue)
+//Problem: Wrapping responseInterceptor.rejected inside an if block allows the test to pass vacuously if the interceptor is missing.
+//Solution: Remove the if conditional and explicitly assert the existence of responseInterceptor and its rejected function.
+
+// src/api/client.test.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import React from 'react';
-import '@testing-library/jest-dom';
+import type { InternalAxiosRequestConfig } from 'axios';
 
-// --- Hoisted Mock Declarations ---
-const {
-  mockNotification,
-  mockGetTasksByAssignee,
-  mockGetTasksByRegion,
-  mockGetPendingCount,
-  mockCompleteTask,
-  mockCreateTask,
-  mockGetRefDataByType,
-  mockGetUserId,
-  mockNavigate,
-} = vi.hoisted(() => ({
-  mockNotification: {
-    success: vi.fn(),
-    danger: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  },
-  mockGetTasksByAssignee: vi.fn(),
-  mockGetTasksByRegion: vi.fn(),
-  mockGetPendingCount: vi.fn(),
-  mockCompleteTask: vi.fn(),
-  mockCreateTask: vi.fn(),
-  mockGetRefDataByType: vi.fn(),
-  mockGetUserId: vi.fn(),
-  mockNavigate: vi.fn(),
+const { mockGetToken, mockClearAuth, mockLogin } = vi.hoisted(() => ({
+  mockGetToken: vi.fn(),
+  mockClearAuth: vi.fn(),
+  mockLogin: vi.fn(),
 }));
 
-// --- Module Mocks ---
+vi.mock('../utils/auth', () => ({
+  getToken: mockGetToken,
+  clearAuth: mockClearAuth,
+  login: mockLogin,
+}));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
+import client from './client';
+
+describe('API Client', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('attaches authorization bearer token to request headers if token exists', async () => {
+    mockGetToken.mockReturnValue('mock-jwt-token');
+
+    const requestInterceptor = (client.interceptors.request as any).handlers[0];
+    const mockConfig = { headers: {} } as InternalAxiosRequestConfig;
+
+    const config = await requestInterceptor.fulfilled(mockConfig);
+
+    expect(config.headers.Authorization).toBe('Bearer mock-jwt-token');
+  });
+
+  it('clears authentication upon receiving a 401 response', async () => {
+    const mockAxiosError = {
+      config: { _retry: false },
+      response: { status: 401, data: { message: 'Unauthorized' } },
+    };
+
+    const responseInterceptor = (client.interceptors.response as any).handlers[0];
+
+    // Fail explicitly if interceptor or handler is missing (eliminates silent skipping)
+    expect(responseInterceptor).toBeDefined();
+    expect(typeof responseInterceptor.rejected).toBe('function');
+
+    try {
+      await responseInterceptor.rejected(mockAxiosError);
+    } catch {
+      // Interceptor re-throws after cleanup
+    }
+
+    expect(mockClearAuth).toHaveBeenCalled();
+  });
 });
 
-vi.mock('../../api/tickler', () => ({
-  getTasksByAssignee: (...a: unknown[]) => mockGetTasksByAssignee(...a),
-  getTasksByRegion: (...a: unknown[]) => mockGetTasksByRegion(...a),
-  getPendingCount: (...a: unknown[]) => mockGetPendingCount(...a),
-  completeTask: (...a: unknown[]) => mockCompleteTask(...a),
-  createTask: (...a: unknown[]) => mockCreateTask(...a),
-}));
 
-vi.mock('../../api/refdata', () => ({
-  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
-}));
+// 2. Fix CommonJS require('react') in ES Module Mocks
+//Problem: Using const R = require('react') inside synchronous vi.mock factories causes build/runtime failures in ES module environments.
+//Solution: Convert all design system mock factories to
 
-vi.mock('../../utils/auth', () => ({
-  getUserId: () => mockGetUserId(),
-}));
+// Apply this pattern across 
+// 
+// CitiSftIntakeAuditPage.test.tsx, 
+// EmailIntakeAuditPage.test.tsx, 
+// DocumentViewerPage.test.tsx,
+//  SignatureValidationPage.test.tsx
 
-vi.mock('../../utils/format', () => ({
-  formatDate: (val: string) => `Formatted: ${val}`,
-}));
 
-vi.mock('../../components/common/PriorityTag', () => ({
-  default: ({ priority }: { priority: string }) => <div data-testid="priority-tag">{priority}</div>,
-}));
+// Replace:
+// vi.mock('@citi-icg-172888/icgds-react', () => {
+//   const R = require('react');
 
+// With async factory:
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const R = await vi.importActual<typeof import('react')>('react');
   return {
-    El: ({ children, className, style, ...props }: any) => (
-      <div className={className} style={style} {...props}>
-        {children}
-      </div>
-    ),
-    Button: ({ children, onClick, title, disabled, color, size, 'aria-label': ariaLabel }: any) => (
-      <button
-        onClick={onClick}
-        title={title}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        data-testid={`btn-${color || 'default'}`}
-      >
-        {children}
-      </button>
-    ),
-    Input: ({ value, onChange, placeholder, disabled, type }: any) => (
-      <input
-        placeholder={placeholder}
-        value={value ?? ''}
-        disabled={disabled}
-        type={type}
-        onChange={onChange}
-        data-testid={`input-${placeholder || type || 'default'}`}
-      />
-    ),
-    TextArea: ({ value, onChange, placeholder, disabled }: any) => (
-      <textarea
-        placeholder={placeholder}
-        value={value ?? ''}
-        disabled={disabled}
-        onChange={onChange}
-        data-testid={`textarea-${placeholder || 'default'}`}
-      />
-    ),
-    Card: Object.assign(
-      ({ children, className }: any) => <div className={className}>{children}</div>,
-      {
-        body: ({ children }: any) => <div>{children}</div>,
-      }
-    ),
-    Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
-      visible ? (
-        <div data-testid="modal">
-          <h2>{title}</h2>
-          {children}
-          <button onClick={onCancel}>{cancelText || 'Cancel'}</button>
-          <button onClick={onApply}>{applyText || 'Apply'}</button>
-        </div>
-      ) : null,
-    Dropdown: Object.assign(
-      ({ value, onChange, children, disabled, placeholder, style, label }: any) => (
-        <select
-          value={value ?? ''}
-          disabled={disabled}
-          style={style}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid={`dropdown-${label || placeholder || 'select'}`}
-        >
-          {placeholder && <option value="">{placeholder}</option>}
-          {children}
-        </select>
-      ),
-      {
-        Item: ({ value, children }: any) => <option value={value}>{children}</option>,
-      }
-    ),
-    Tab: Object.assign(
-      ({ children }: any) => <div data-testid="tabs">{children}</div>,
-      {
-        TabPane: ({ children, tab }: any) => (
-          <div>
-            <div>{tab}</div>
-            {children}
-          </div>
-        ),
-      }
-    ),
-    Alert: ({ children, type }: any) => <div data-testid={`alert-${type}`}>{children}</div>,
-    Loading: ({ tip }: any) => <div data-testid="loading-spinner">{tip}</div>,
-    Icon: ({ type, className }: any) => <i className={`icon-${type} ${className || ''}`} />,
-    notification: mockNotification,
+    El: ({ children, className, style, ...props }: any) =>
+      R.createElement('div', { className, style, ...props }, children),
+    Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) =>
+      R.createElement('button', { onClick, title, disabled, 'aria-label': ariaLabel }, children),
+    Input: ({ value, onChange, placeholder, disabled, style }: any) =>
+      R.createElement('input', {
+        placeholder,
+        value: value ?? '',
+        disabled,
+        style,
+        onChange,
+        'data-testid': `input-${placeholder || 'default'}`,
+      }),
+    Alert: ({ children, type }: any) => R.createElement('div', { 'data-testid': `alert-${type}` }, children),
+    Loading: ({ tip }: any) => R.createElement('div', null, tip),
+    Icon: ({ type, className }: any) => R.createElement('i', { className: `icon-${type} ${className || ''}` }),
   };
 });
 
-vi.mock('ag-grid-react', () => ({
-  AgGridReact: ({ rowData, columnDefs }: any) => (
-    <div data-testid="ag-grid">
-      <div data-testid="grid-row-count">{rowData?.length ?? 0}</div>
-      {rowData?.map((row: any, rowIndex: number) => (
-        <div key={row.taskId || rowIndex} data-testid={`grid-row-${rowIndex}`}>
-          {columnDefs?.map((col: any, colIndex: number) => {
-            const cellParams = {
-              data: row,
-              value: row[col.field],
-              node: { data: row },
-            };
-            return (
-              <div key={colIndex} data-testid={`cell-${col.field || col.colId || colIndex}-${rowIndex}`}>
-                {col.cellRenderer
-                  ? col.cellRenderer(cellParams)
-                  : col.valueFormatter
-                  ? col.valueFormatter(cellParams)
-                  : String(row[col.field] ?? '')}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  ),
-}));
 
-import TicklerTaskPage from './TicklerTaskPage';
+// Verify that vitest.config.ts or vite.config.ts exports coverage in lcov format:
 
-// --- Test Data Fixtures ---
-
-const mockTasksList = [
-  {
-    taskId: 101,
-    instructionId: 5001,
-    taskDescription: 'Review Compliance Docs',
-    assignedTo: 'USER123',
-    priority: 'HIGH',
-    region: 'NAM',
-    dueDate: '2026-09-01',
-    completedOn: null,
+export default defineConfig({
+  test: {
+    coverage: {
+      reporter: ['text', 'lcov', 'html'],
+      reportsDirectory: './coverage',
+    },
   },
-  {
-    taskId: 102,
-    instructionId: 5002,
-    taskDescription: 'Verify Credit Assessment',
-    assignedTo: 'USER123',
-    priority: 'MEDIUM',
-    region: 'EMEA',
-    dueDate: '2026-08-15',
-    completedOn: '2026-08-10',
-  },
-];
+});
 
-const mockRegionRefData = {
-  data: [
-    { refCode: 'NAM', refValue: 'North America' },
-    { refCode: 'EMEA', refValue: 'Europe, Middle East, Africa' },
-  ],
+// sonar-project.properties
+
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+
+
+// 1. Ensure Vitest Outputs coverage/lcov.info
+//In your vite.config.ts or vitest.config.ts, verify or update the 
+// test coverage configuration so it outputs the standard lcov format:
+
+
+// vite.config.ts or vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    coverage: {
+      provider: 'v8', // or 'c8' / 'istanbul'
+      reporter: ['text', 'lcov', 'html'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx', 'src/vite-env.d.ts'],
+    },
+  },
+});
+
+
+
+// Option A: Centralize Mocks in src/test-utils/setupMocks.ts
+// Create src/test-utils/setupMocks.ts:
+
+// src/test-utils/setupMocks.ts
+import { vi } from 'vitest';
+import React from 'react';
+
+export const mockNotification = {
+  success: vi.fn(),
+  danger: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
 };
 
-describe('TicklerTaskPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetUserId.mockReturnValue('USER123');
-    mockGetTasksByAssignee.mockResolvedValue({ data: mockTasksList });
-    mockGetPendingCount.mockResolvedValue({ data: 1 });
-    mockGetRefDataByType.mockResolvedValue(mockRegionRefData);
-    mockCompleteTask.mockResolvedValue({ status: 200 });
-    mockCreateTask.mockResolvedValue({ status: 200 });
+export function setupCommonMocks() {
+  vi.mock('@citi-icg-172888/icgds-react', async () => {
+    const R = await vi.importActual<typeof import('react')>('react');
+    return {
+      El: ({ children, className, style, ...props }: any) =>
+        R.createElement('div', { className, style, ...props }, children),
+      Button: ({ children, onClick, title, disabled }: any) =>
+        R.createElement('button', { onClick, title, disabled }, children),
+      Input: ({ value, onChange, placeholder, disabled, type }: any) =>
+        R.createElement('input', { placeholder, value: value ?? '', disabled, type, onChange }),
+      Card: Object.assign(
+        ({ children, className }: any) => R.createElement('div', { className }, children),
+        { body: ({ children }: any) => R.createElement('div', null, children) }
+      ),
+      Modal: ({ visible, onCancel, onApply, title, children, applyText, cancelText }: any) =>
+        visible
+          ? R.createElement('div', { 'data-testid': 'modal' },
+              R.createElement('h2', null, title),
+              children,
+              R.createElement('button', { onClick: onCancel }, cancelText || 'Cancel'),
+              R.createElement('button', { onClick: onApply }, applyText || 'Apply')
+            )
+          : null,
+      Dropdown: Object.assign(
+        ({ value, onChange, children, disabled, placeholder }: any) =>
+          R.createElement('select', { value: value ?? '', disabled, onChange: (e: any) => onChange(e.target.value) },
+            placeholder && R.createElement('option', { value: '' }, placeholder),
+            children
+          ),
+        { Item: ({ value, children }: any) => R.createElement('option', { value }, children) }
+      ),
+      Alert: ({ children, type }: any) => R.createElement('div', { 'data-testid': `alert-${type}` }, children),
+      Loading: ({ tip }: any) => R.createElement('div', null, tip),
+      Icon: ({ type, className }: any) => R.createElement('i', { className: `icon-${type} ${className || ''}` }),
+      notification: mockNotification,
+    };
   });
+}
 
-  it('fetches tickler tasks and region refData on mount', async () => {
-    render(<TicklerTaskPage />);
 
-    await waitFor(() => {
-      expect(mockGetTasksByAssignee).toHaveBeenCalledWith('USER123');
-      expect(mockGetPendingCount).toHaveBeenCalledTimes(1);
-      expect(mockGetRefDataByType).toHaveBeenCalledWith('REGION');
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
+/// Then in your test files, import setupCommonMocks() or reference setup files in vitest.config.ts:
 
-    expect(screen.getByText(/1 pending/i)).toBeInTheDocument();
-  });
-
-  it('displays danger alert if fetching tickler tasks rejects', async () => {
-    mockGetTasksByAssignee.mockRejectedValueOnce(new Error('Network error'));
-
-    render(<TicklerTaskPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('alert-danger')).toBeInTheDocument();
-      expect(screen.getByTestId('alert-danger')).toHaveTextContent('Failed to load tasks');
-    });
-  });
-
-  it('navigates to instruction detail page when clicking instruction ID link in cell', async () => {
-    render(<TicklerTaskPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    const link = screen.getByText('#5001');
-    fireEvent.click(link);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/instructions/5001');
-  });
-
-  it('triggers validation alert if required fields are missing during task creation', async () => {
-    render(<TicklerTaskPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Create Task'));
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('Create'));
-
-    expect(mockNotification.danger).toHaveBeenCalledWith({
-      title: 'Validation',
-      content: 'Instruction ID, description, and assignee are required',
-    });
-  });
-
-  it('opens Create Task modal, populates form fields, and submits new task', async () => {
-    render(<TicklerTaskPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    fireEvent.click(screen.getByText('Create Task'));
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
-
-    const idInput = screen.getByTestId('input-number');
-    fireEvent.change(idInput, { target: { value: '9001' } });
-
-    const descInput = screen.getByPlaceholderText('Task description');
-    fireEvent.change(descInput, { target: { value: 'Annual KYC Audit' } });
-
-    const assigneeInput = screen.getByPlaceholderText('User ID');
-    fireEvent.change(assigneeInput, { target: { value: 'USER999' } });
-
-    fireEvent.click(screen.getByText('Create'));
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(mockCreateTask).toHaveBeenCalledWith(
-        expect.objectContaining({
-          instructionId: 9001,
-          taskDescription: 'Annual KYC Audit',
-          assignedTo: 'USER999',
-        })
-      );
-      expect(mockNotification.success).toHaveBeenCalledWith({
-        title: 'Created',
-        content: 'Task created successfully',
-      });
-    });
-  });
-
-  it('completes pending task via action cell button', async () => {
-    render(<TicklerTaskPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2');
-    });
-
-    const completeBtn = screen.getByText('Complete');
-    fireEvent.click(completeBtn);
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(mockCompleteTask).toHaveBeenCalledWith(101);
-      expect(mockNotification.success).toHaveBeenCalledWith({
-        title: 'Completed',
-        content: 'Task marked as complete',
-      });
-    });
-  });
-
-  it('reloads task list when Refresh button is clicked', async () => {
-    render(<TicklerTaskPage />);
-
-    await waitFor(() => {
-      expect(mockGetTasksByAssignee).toHaveBeenCalledTimes(1);
-    });
-
-    fireEvent.click(screen.getByText('Refresh'));
-
-    await waitFor(() => {
-      expect(mockGetTasksByAssignee).toHaveBeenCalledTimes(2);
-    });
-  });
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    setupFiles: ['./src/test-utils/setupMocks.ts'],
+  },
 });
