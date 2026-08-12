@@ -6,43 +6,34 @@ npx vitest run --coverage
 
 npx tsc --noEmit
 
-// Fix 1: src/api/client.test.ts
-//In client.ts, handling a 401 status code triggers a page redirect or reload (window.location.reload() or window.location.href = '/login').
-
-//Mock window.location in src/api/client.test.ts:
+// Refactored Code for SetupInstructionModal.tsx
+// 1. Add the Handler Function inside SetupInstructionModal (near your other event handlers)
 
 
-// Add this near the top of src/api/client.test.ts
+const handleRemoveRelatedInstruction = (idToRemove: number | string) => {
+  if (isRelatedInstructionsReadOnly) return;
 
-const originalLocation = window.location;
+  const newIds = (form.relatedInstructionIds ?? []).filter((x) => x !== idToRemove);
 
-beforeEach(() => {
-  vi.clearAllMocks();
+  const getRef = (nid: number | string) =>
+    adminMakerInstructions.find((i) => i.instructionId === nid)?.instructionRef;
 
-  // Mock window.location to prevent jsdom navigation error on 401
-  delete (window as any).location;
-  window.location = {
-    ...originalLocation,
-    href: 'http://localhost/',
-    reload: vi.fn(),
-    assign: vi.fn(),
-    replace: vi.fn(),
-  } as any;
-});
+  const newRefs = newIds.map(getRef).filter(Boolean).join(', ');
 
-afterEach(() => {
-  window.location = originalLocation;
-});
+  updateField('relatedInstructionIds', newIds);
+  updateField('relatedInstructions', newRefs);
+};
 
 
-//Fix 2: src/pages/emailIntake/EmailIntakeAuditPage.test.tsx
-//In EmailIntakeAuditPage.test.tsx, CSV exporting or tab navigation attempts to trigger DOM link navigation.
+//2. Simplify the JSX inside renderTaskOverview
+// Replace lines 2026–2036 with a direct call to the extracted handler:
 
-// Stub window.location for jsdom navigation safety
-delete (window as any).location;
-window.location = {
-  href: '',
-  assign: vi.fn(),
-  replace: vi.fn(),
-  reload: vi.fn(),
-} as any;
+<i
+  className="lmnicon lmnicon-close"
+  style={{
+    fontSize: 10,
+    cursor: isRelatedInstructionsReadOnly ? 'not-allowed' : 'pointer',
+    color: isRelatedInstructionsReadOnly ? '#aaa' : '#666',
+  }}
+  onClick={() => handleRemoveRelatedInstruction(id)}
+/>
