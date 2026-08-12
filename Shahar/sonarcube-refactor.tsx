@@ -6,7 +6,9 @@ npx vitest run --coverage
 
 npx tsc --noEmit
 
-// src/pages/emailIntake/EmailIntakeAuditPage.test.tsx
+// Priority 1: CallbackValidationForm.test.tsx
+
+// src/pages/callbackValidation/CallbackValidationForm.test.tsx
 
 // @vitest-environment jsdom
 
@@ -14,68 +16,65 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
-// ---- Stub DOM Blob/URL APIs for jsdom ----
-if (typeof window.URL.createObjectURL === 'undefined') {
-  Object.defineProperty(window.URL, 'createObjectURL', {
-    value: vi.fn(() => 'blob:http://localhost/mock-blob-url'),
-    writable: true,
-  });
-}
-if (typeof window.URL.revokeObjectURL === 'undefined') {
-  Object.defineProperty(window.URL, 'revokeObjectURL', {
-    value: vi.fn(),
-    writable: true,
-  });
-}
+// ---- API Mocks ----
+const mockGetInstructionAccounts = vi.fn();
+const mockGetDocuments = vi.fn();
+const mockGetComments = vi.fn();
+const mockGetRefDataByType = vi.fn();
+const mockGetCallbackValidation = vi.fn();
+const mockSubmitCallbackValidation = vi.fn();
 
-// --- API Mocks ---
-const mockGetAuditPage = vi.fn();
-const mockGetInboxPage = vi.fn();
-
-vi.mock('../../api/emailIntake', () => ({
-  getAuditPage: (...a: unknown[]) => mockGetAuditPage(...a),
-  getInboxPage: (...a: unknown[]) => mockGetInboxPage(...a),
+vi.mock('../../api/instructionAccounts', () => ({
+  getInstructionAccounts: (...a: unknown[]) => mockGetInstructionAccounts(...a),
 }));
 
-// --- Export Utility Mock ---
-const mockExportToCsv = vi.fn();
-vi.mock('../../utils/exportExcel', () => ({
-  exportToCsv: (...a: unknown[]) => mockExportToCsv(...a),
+vi.mock('../../api/documents', () => ({
+  getDocuments: (...a: unknown[]) => mockGetDocuments(...a),
+  downloadDocument: vi.fn(),
 }));
 
-// --- Format Utility Mock ---
+vi.mock('../../api/comments', () => ({
+  getComments: (...a: unknown[]) => mockGetComments(...a),
+}));
+
+vi.mock('../../api/refdata', () => ({
+  getRefDataByType: (...a: unknown[]) => mockGetRefDataByType(...a),
+}));
+
+vi.mock('../../api/callbackValidation', () => ({
+  getCallbackValidation: (...a: unknown[]) => mockGetCallbackValidation(...a),
+  submitCallbackValidation: (...a: unknown[]) => mockSubmitCallbackValidation(...a),
+}));
+
 vi.mock('../../utils/format', () => ({
   formatDate: (v: string) => v,
   formatDateTime: (v: string) => v,
 }));
 
-// --- AG-Grid Mocks ---
-vi.mock('ag-grid-community/styles/ag-grid.css', () => ({}));
-vi.mock('ag-grid-community/styles/ag-theme-quartz.css', () => ({}));
-vi.mock('ag-grid-react', () => ({
-  AgGridReact: ({ rowData }: { rowData: unknown[] }) =>
-    React.createElement('div', {
-      'data-testid': 'ag-grid',
-      'data-rowcount': rowData?.length ?? 0,
-    }),
-}));
-
-// --- Design System Mock ---
+// ---- Design System Mock ----
 vi.mock('@citi-icg-172888/icgds-react', async () => {
   const R = await vi.importActual<typeof import('react')>('react');
   return {
     El: ({ children, className, style, ...props }: any) =>
       R.createElement('div', { className, style, ...props }, children),
-    Button: ({ children, onClick, title, disabled, 'aria-label': ariaLabel }: any) =>
-      R.createElement('button', { onClick, title, disabled, 'aria-label': ariaLabel }, children),
-    Input: ({ value, onChange, placeholder, disabled, style }: any) =>
+    Button: ({ children, onClick, title, disabled, type }: any) =>
+      R.createElement('button', { onClick, title, disabled, type }, children),
+    Input: ({ value, onChange, placeholder, disabled, name }: any) =>
       R.createElement('input', {
+        name,
         placeholder,
         value: value ?? '',
         disabled,
-        style,
         onChange,
-        'data-testid': `input-${placeholder || 'default'}`,
+        'data-testid': `input-${name || placeholder || 'default'}`,
+      }),
+    TextArea: ({ value, onChange, placeholder, disabled, name }: any) =>
+      R.createElement('textarea', {
+        name,
+        placeholder,
+        value: value ?? '',
+        disabled,
+        onChange,
       }),
     Alert: ({ children, type }: any) =>
       R.createElement('div', { role: 'alert', 'data-testid': `alert-${type}` }, children),
@@ -87,6 +86,18 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
       R.createElement('div', { className, style }, children),
     Tag: ({ children, color }: any) =>
       R.createElement('span', { 'data-color': color }, children),
+    Table: ({ children }: any) => R.createElement('table', null, children),
+    Modal: ({ visible, children, title, onCancel, onApply }: any) =>
+      visible
+        ? R.createElement(
+            'div',
+            { role: 'dialog', 'data-testid': 'modal' },
+            R.createElement('h2', null, title),
+            children,
+            R.createElement('button', { type: 'button', onClick: onCancel }, 'Cancel'),
+            R.createElement('button', { type: 'button', onClick: onApply }, 'Save')
+          )
+        : null,
     Dropdown: Object.assign(
       ({ value, onChange, children, disabled, placeholder }: any) =>
         R.createElement(
@@ -102,119 +113,95 @@ vi.mock('@citi-icg-172888/icgds-react', async () => {
         ),
       { Item: ({ value, children }: any) => R.createElement('option', { value }, children) }
     ),
+    notification: {
+      success: vi.fn(),
+      danger: vi.fn(),
+      info: vi.fn(),
+      warning: vi.fn(),
+    },
   };
 });
 
-import EmailIntakeAuditPage from './EmailIntakeAuditPage';
+import CallbackValidationForm from './CallbackValidationForm';
 
-const auditData = {
-  data: {
-    content: [
-      {
-        id: 1,
-        emailSubject: 'Payment Instruction',
-        sender: 'client@example.com',
-        status: 'PROCESSED',
-        receivedAt: '2026-01-01',
-      },
-    ],
-    totalElements: 1,
-    totalPages: 1,
-  },
-};
+const instruction = { instructionId: 123, dealId: 55, region: 'NAM' };
 
-const inboxData = {
-  data: {
-    content: [
-      {
-        id: 2,
-        emailSubject: 'Urgent Wire',
-        sender: 'vendor@example.com',
-        status: 'PENDING',
-        receivedAt: '2026-01-02',
-      },
-      {
-        id: 3,
-        emailSubject: 'Statement Request',
-        sender: 'info@example.com',
-        status: 'COMPLETED',
-        receivedAt: '2026-01-03',
-      },
-    ],
-    totalElements: 2,
-    totalPages: 1,
-  },
-};
-
-describe('EmailIntakeAuditPage', () => {
+describe('CallbackValidationForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuditPage.mockResolvedValue(auditData);
-    mockGetInboxPage.mockResolvedValue(inboxData);
+    mockGetInstructionAccounts.mockResolvedValue({ data: [] });
+    mockGetDocuments.mockResolvedValue({ data: [] });
+    mockGetComments.mockResolvedValue({ data: [] });
+    mockGetRefDataByType.mockResolvedValue({ data: [] });
+    mockGetCallbackValidation.mockResolvedValue({ data: [] });
+    mockSubmitCallbackValidation.mockResolvedValue({ data: {} });
   });
 
-  it('loads audit data on mount and renders the grid with the audit rows', async () => {
-    render(<EmailIntakeAuditPage />);
-
-    expect(screen.getByTestId('loading')).toBeTruthy();
+  it('renders modal when visible and fetches initial data', async () => {
+    render(
+      <CallbackValidationForm
+        visible
+        instruction={instruction}
+        onClose={vi.fn()}
+        onComplete={vi.fn()}
+      />
+    );
 
     await waitFor(() => {
-      expect(mockGetAuditPage).toHaveBeenCalled();
-    });
-
-    const grid = await screen.findByTestId('ag-grid');
-    expect(grid.getAttribute('data-rowcount')).toBe('1');
-  });
-
-  it('switches to the inbox tab and loads inbox data', async () => {
-    render(<EmailIntakeAuditPage />);
-
-    await screen.findByTestId('ag-grid');
-
-    const inboxTab = screen.getByText(/Inbox/i);
-    fireEvent.click(inboxTab);
-
-    await waitFor(() => {
-      expect(mockGetInboxPage).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('ag-grid').getAttribute('data-rowcount')).toBe('2');
+      expect(mockGetInstructionAccounts).toHaveBeenCalledWith(123);
+      expect(mockGetDocuments).toHaveBeenCalledWith(123);
+      expect(mockGetComments).toHaveBeenCalledWith(123);
+      expect(mockGetCallbackValidation).toHaveBeenCalledWith(123);
     });
   });
 
-  it('shows an error alert when the audit fetch fails', async () => {
-    mockGetAuditPage.mockRejectedValueOnce(new Error('Failed to fetch audit data'));
+  it('does not load anything when visible is false', () => {
+    render(
+      <CallbackValidationForm
+        visible={false}
+        instruction={instruction}
+        onClose={vi.fn()}
+        onComplete={vi.fn()}
+      />
+    );
 
-    render(<EmailIntakeAuditPage />);
+    expect(mockGetInstructionAccounts).not.toHaveBeenCalled();
+  });
+});
 
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('Failed to fetch audit data');
+// src/main.test.tsx
+
+// src/main.test.tsx
+
+// @vitest-environment jsdom
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
+
+vi.mock('@citi-icg-172888/icgds-react', () => ({
+  CssProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', { 'data-testid': 'css-provider' }, children),
+}));
+
+vi.mock('./citi-overrides.css', () => ({}));
+
+vi.mock('./App', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'app-component' }, 'App Component'),
+}));
+
+describe('main.tsx entrypoint', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
   });
 
-  it('exports CSV when audit data is present', async () => {
-    render(<EmailIntakeAuditPage />);
+  it('mounts the App component inside root container', async () => {
+    const rootDiv = document.createElement('div');
+    rootDiv.id = 'root';
+    document.body.appendChild(rootDiv);
 
-    await screen.findByTestId('ag-grid');
+    await import('./main');
 
-    const exportBtn = screen.getByText(/Export CSV/i);
-    fireEvent.click(exportBtn);
-
-    expect(window.URL.createObjectURL).toHaveBeenCalled();
-  });
-
-  it('does not export when there is no audit content', async () => {
-    mockGetAuditPage.mockResolvedValueOnce({
-      data: { content: [], totalElements: 0, totalPages: 0 },
-    });
-
-    render(<EmailIntakeAuditPage />);
-
-    await screen.findByTestId('ag-grid');
-
-    const exportBtn = screen.getByText(/Export CSV/i);
-    fireEvent.click(exportBtn);
-
-    expect(window.URL.createObjectURL).not.toHaveBeenCalled();
+    expect(rootDiv.innerHTML).not.toBe('');
+    expect(rootDiv.querySelector('[data-testid="app-component"]')).not.toBeNull();
   });
 });
