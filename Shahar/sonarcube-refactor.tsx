@@ -78,3 +78,32 @@ const handleToggleRelatedInstruction = (targetId: number) => {
       );
     });
 })()}
+
+
+// Refactored JSX Block
+// Replace lines 2117 through 2138 with this clean <label> structure:
+
+
+return (
+  <label
+    key={opt.value}
+    className="lmn-d-flex lmn-align-items-center"
+    style={{
+      padding: '8px 12px',
+      cursor: 'pointer',
+      background: isSelected ? '#f0f5ff' : 'transparent',
+      borderBottom: '1px solid #f0f0f0',
+      fontSize: 12,
+      gap: 8,
+      display: 'flex',
+    }}
+  >
+    <input
+      type="checkbox"
+      checked={isSelected}
+      onChange={() => handleToggleRelatedInstruction(numId)}
+      style={{ cursor: 'pointer' }}
+    />
+    <span>{opt.label}</span>
+  </label>
+);
