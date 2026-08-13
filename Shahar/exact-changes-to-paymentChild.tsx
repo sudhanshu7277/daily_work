@@ -92,3 +92,26 @@ const dualBlind = opts.isDualBlind ?? isDualBlindKeyField(fieldName);
     // with
     type={effectiveType ?? 'text'}
 
+
+
+    // payment-flow.css
+
+    .form-field input[type="date"] {
+        -webkit-appearance: auto !important;
+        appearance: auto !important;
+        color-scheme: light;
+        min-height: 32px;
+        cursor: pointer;
+      }
+      
+      .form-field input[type="date"]::-webkit-calendar-picker-indicator {
+        display: inline-block !important;
+        opacity: 1 !important;
+        cursor: pointer;
+        filter: none;
+      }
+      
+      .form-field input[type="date"]::-webkit-inner-spin-button,
+      .form-field input[type="date"]::-webkit-clear-button {
+        display: inline-block;
+      }
