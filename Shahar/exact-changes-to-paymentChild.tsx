@@ -50,7 +50,45 @@ const dualBlind = opts.isDualBlind ?? isDualBlindKeyField(fieldName);
   { fieldName: 'painPaymentMethodType', label: 'Payment Type (CBT, BKT, DFT)', hidden: false, required: false, options: ['CBT', 'BKT', 'DFT'], placeholder: '-- Select --' },
 
 
-  
+
+  /// latest changes
 
 
+  // replace 
+  const placeholder = opts.placeholder ?? `Enter ${defaultLabel.toLowerCase()}`;
+
+  // with
+  const fieldCfg = configMap.get(fieldName);
+    const effectiveOptions = fieldCfg?.options ?? opts.options;
+    const effectiveType = fieldCfg?.type ?? opts.type;
+    const placeholder = fieldCfg?.placeholder ?? opts.placeholder ?? `Enter ${defaultLabel.toLowerCase()}`;
+
+
+// replace 
+{opts.options ? (
+
+    // with
+    {effectiveOptions ? (
+
+// replace
+
+{opts.options.map((opt) => (
+
+// with
+
+{effectiveOptions.map((opt) => (
+
+
+    // replace 
+) : opts.type === 'textarea' ? (
+
+    // with
+
+) : effectiveType === 'textarea' ? (
+
+    // replace
+    type={opts.type ?? 'text'}
+
+    // with
+    type={effectiveType ?? 'text'}
 
