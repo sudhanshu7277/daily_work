@@ -115,3 +115,33 @@ const dualBlind = opts.isDualBlind ?? isDualBlindKeyField(fieldName);
       .form-field input[type="date"]::-webkit-clear-button {
         display: inline-block;
       }
+
+
+      // In PaymentParent.tsx, onFormValidityChange should read:
+
+      const onFormValidityChange = useCallback((validFormPayload: { validForm: boolean; makerPayload: Record<string, any> }) => {
+        console.log('maker form validity and payload received in parent component: ', validFormPayload);
+        setIsFormValid(validFormPayload.validForm);
+        setParentDetailsFormValues(validFormPayload.makerPayload);
+      }, []);
+
+
+      // — i.e., no setEnableSubmitButton(true) call in this function at all.
+
+//onPaymentOutput is the only place that touches enableSubmitButton, unchanged:
+
+const onPaymentOutput = useCallback((output: PaymentComponentOutput) => {
+    payloadPreperation(output.paymentData);
+    setEnableSubmitButton(output.isValid);
+    setIsDualBlindKeyPassed(output.isDualBlindKeyPassed);
+    if (!output.isValid) {
+      console.log('Submit button disabled — payment form is not valid. Output message:', output.outputMessage || 'mandatory fields missing');
+    }
+  }, [payloadPreperation]);
+
+
+  // The button itself, unchanged, already correctly gated:
+
+  disabled={!enableSubmitButton}
+
+  
