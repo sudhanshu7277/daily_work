@@ -16,20 +16,20 @@ export interface Pain001Model {
   debtorName: string;
   debtorAccountNumber: string;
   debtorAgentBIC: string;
-  debtorAgentBank?: string;
+  debtorAgentBank: string;
   chargeBearer: string;
   chargesAmount: number;
   chargesAgentBIC: string;
 
-  debtorAddressLines?: string;
-  debtorAddressLines1?: string;
-  debtorAddressLines2?: string;
+  debtorAddressLines: string;
+  debtorAddressLines1: string;
+  debtorAddressLines2: string;
   debtorStreetName: string;
   debtorBuildingNumber: string;
   debtorPostalCode: string;
   debtorTownName: string;
   debtorCountrySubDivision: string;
-  debtorState?: string;
+  debtorState: string;
   debtorCountryCode: string;
   debtorSortCodeUK: string;
   debtorSortCodeUS: string;
@@ -57,17 +57,17 @@ export interface Pain001Model {
    * creditorAgentPostalAddress too, since payloadPreperation only reads the
    * latter. Flag if that bridging is wrong for your actual backend contract.
    */
-  creditorAgentAccountNumber?: string;
+  creditorAgentAccountNumber: string;
 
-  creditorAddressLines?: string;
-  creditorAddressLines1?: string;
-  creditorAddressLines2?: string;
+  creditorAddressLines: string;
+  creditorAddressLines1: string;
+  creditorAddressLines2: string;
   creditorStreetName: string;
   creditorBuildingNumber: string;
   creditorPostalCode: string;
   creditorTownName: string;
   creditorCountrySubDivision: string;
-  creditorState?: string;
+  creditorState: string;
   creditorCountryCode: string;
   creditorSortCodeUK: string;
   creditorSortCodeUS: string;
@@ -75,16 +75,16 @@ export interface Pain001Model {
   ustrdPaymentDetails: string;
   painPaymentMethodType: string;
 
-  firstIntermediaryBankBIC?: string;
-  firstIntermediaryBankRoutingCode?: string;
-  firstIntermediaryBankName?: string;
-  firstIntermediaryBankCountryCode?: string;
-  firstIntermediaryBankAccountId?: string;
-  secondIntermediaryBankBIC?: string;
-  secondIntermediaryBankRoutingCode?: string;
-  secondIntermediaryBankName?: string;
-  secondIntermediaryBankCountryCode?: string;
-  secondIntermediaryBankAccountId?: string;
+  firstIntermediaryBankBIC: string;
+  firstIntermediaryBankRoutingCode: string;
+  firstIntermediaryBankName: string;
+  firstIntermediaryBankCountryCode: string;
+  firstIntermediaryBankAccountId: string;
+  secondIntermediaryBankBIC: string;
+  secondIntermediaryBankRoutingCode: string;
+  secondIntermediaryBankName: string;
+  secondIntermediaryBankCountryCode: string;
+  secondIntermediaryBankAccountId: string;
 
   applicationName: string;
   applicationModule: string;
