@@ -48,6 +48,38 @@ import './payment-flow.css';
 const hardCapResponsePassedText = 'Hardcap limit check passed';
 const hardCapResponseFailedText = 'Value cannot be more than 1000000';
 
+// ============================================================================
+// ADDED (not part of the original captured source): dynamic field support.
+// PARENT_FIELD_CONFIG previously only let you override label/hidden/required
+// for the ~44 fields already hardcoded into the JSX below via renderField()
+// calls — adding a NEW fieldName to fieldConfig had zero visual effect,
+// since nothing iterated fieldConfig to produce new inputs. KNOWN_FIELDS is
+// every fieldName already covered by an explicit renderField() call (or the
+// two hand-written blocks for instructedAmount / firstIntermediaryBankBIC);
+// anything in fieldConfig NOT in this set now renders in a new "Additional
+// Fields" section at the end of the form. See dynamicFieldConfigs below.
+// ============================================================================
+const KNOWN_FIELDS = new Set<string>([
+  'requestedExecutionDate', 'instructedAmountCurrencyCode', 'instructedAmount',
+  'debtorName', 'debtorAccountNumber', 'debtorAgentBIC',
+  'debtorAddressLines1', 'debtorAddressLines2', 'debtorStreetName',
+  'debtorBuildingNumber', 'debtorTownName', 'debtorCountrySubDivision',
+  'debtorState', 'debtorCountryCode', 'debtorPostalCode',
+  'debtorSortCodeUK', 'debtorSortCodeUS',
+  'creditorName', 'creditorAccount', 'creditorAgentFinancialInstitutionBIC',
+  'creditorAgentFinancialInstitutionName', 'creditorAgentAccountNumber',
+  'creditorAddressLines1', 'creditorAddressLines2', 'creditorStreetName',
+  'creditorBuildingNumber', 'creditorTownName', 'creditorCountrySubDivision',
+  'creditorState', 'creditorCountryCode', 'creditorPostalCode',
+  'creditorSortCodeUK', 'creditorSortCodeUS',
+  'firstIntermediaryBankBIC', 'firstIntermediaryBankRoutingCode', 'firstIntermediaryBankName',
+  'firstIntermediaryBankCountryCode', 'firstIntermediaryBankAccountId',
+  'secondIntermediaryBankBIC', 'secondIntermediaryBankRoutingCode', 'secondIntermediaryBankName',
+  'secondIntermediaryBankCountryCode', 'secondIntermediaryBankAccountId',
+  'chargeBearer', 'chargesAmount', 'chargesAgentBIC',
+  'painPaymentMethodType', 'ustrdPaymentDetails',
+]);
+
 export interface SSPaymentFlowProps {
   paymentInput: PaymentComponentInput;
   fieldConfig: FormFieldConfig[];
@@ -97,6 +129,15 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
     resolvedConfig.forEach((cfg) => map.set(cfg.fieldName, cfg));
     return map;
   }, [resolvedConfig]);
+
+  // ADDED: any fieldConfig entry whose fieldName ISN'T already covered by a
+  // hardcoded renderField() call elsewhere in this file — these render in a
+  // new "Additional Fields" section at the end of the form. See KNOWN_FIELDS
+  // above for the closed set this filters against.
+  const dynamicFieldConfigs = useMemo(
+    () => resolvedConfig.filter((cfg) => !KNOWN_FIELDS.has(cfg.fieldName)),
+    [resolvedConfig],
+  );
 
   // -- form state ------------------------------------------------------------
   const buildInitialValues = useCallback((): FormValues => {
@@ -150,6 +191,7 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
     paymentDetails: false,
     beneficiaryDetails: false,
     additionalInformation: false,
+    dynamicAdditionalFields: false,
   });
 
   // -- derived mode flags ------------------------------------------------------
@@ -201,8 +243,11 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
     [isDualBlindKeyEnabled, paymentInput.dualBlindKeyFields],
   );
   const isMandatoryField = useCallback(
-    (fieldName: string) => validationResults.get(fieldName)?.required ?? PAIN001_MANDATORY_FIELDS.includes(fieldName),
-    [validationResults],
+    (fieldName: string) =>
+      validationResults.get(fieldName)?.required
+      ?? configMap.get(fieldName)?.required
+      ?? PAIN001_MANDATORY_FIELDS.includes(fieldName),
+    [validationResults, configMap],
   );
   const isFieldDynamicallyHidden = useCallback(
     (fieldName: string) => validationResults.get(fieldName)?.visible === false,
@@ -238,9 +283,20 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
 
   const getPaymentData = useCallback((): Pain001Model => buildPain001FromForm(formValues), [formValues]);
 
+  // ADDED: any field in fieldConfig with required:true that ISN'T one of the
+  // fixed PAIN001_MANDATORY_FIELDS (i.e. a new dynamic field) — folded into
+  // the same missing-fields / overall-validity checks below so a dynamic
+  // field's `required: true` actually blocks submit, same as the original 44.
+  const dynamicRequiredFields = useMemo(
+    () => resolvedConfig
+      .filter((cfg) => cfg.required && !PAIN001_MANDATORY_FIELDS.includes(cfg.fieldName))
+      .map((cfg) => cfg.fieldName),
+    [resolvedConfig],
+  );
+
   const logMissingMandatoryFields = useCallback((): string[] => {
     const missing: string[] = [];
-    PAIN001_MANDATORY_FIELDS.forEach((f) => {
+    [...PAIN001_MANDATORY_FIELDS, ...dynamicRequiredFields].forEach((f) => {
       if (!formValues[f]) missing.push(f);
     });
     validationResults.forEach((result, fieldName) => {
@@ -248,7 +304,7 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
     });
     if (missing.length > 0) console.warn('[SS-PAYMENT-FLOW] missing mandatory fields:', missing);
     return missing;
-  }, [formValues, validationResults]);
+  }, [formValues, validationResults, dynamicRequiredFields]);
 
   const showNotification = useCallback((message: string, type: 'success' | 'error') => {
     const id = Date.now();
@@ -266,7 +322,7 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
     // this port approximates it as "all mandatory fields present" — see
     // README for the gap this leaves vs. the original Validators.required /
     // Validators.min(0.01) rules per control.
-    const mandatoryOk = PAIN001_MANDATORY_FIELDS.every((f) => !isHidden(f) && formValues[f]);
+    const mandatoryOk = [...PAIN001_MANDATORY_FIELDS, ...dynamicRequiredFields].every((f) => !isHidden(f) && formValues[f]);
     let isValid = mandatoryOk;
     let outputMessage = '';
 
@@ -308,7 +364,7 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
   }, [
     getPaymentData, formValues, isHidden, isCheckerMode, isDualBlindKeyEnabled, dualBlindKeyResult,
     isMakerModeTruthy, paymentInput?.paymentMode, hardcapResponse, isDualBlindKeyPassed,
-    logMissingMandatoryFields, onPaymentOutput, onFormValidityChange,
+    logMissingMandatoryFields, onPaymentOutput, onFormValidityChange, dynamicRequiredFields,
   ]);
 
   const evaluateValidity = useCallback(() => {
@@ -736,7 +792,15 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
   const renderField = (
     fieldName: string,
     defaultLabel: string,
-    opts: { placeholder?: string; maxLength?: number; errorFallback?: string; isDualBlind?: boolean; options?: string[] } = {},
+    opts: {
+      placeholder?: string; maxLength?: number; errorFallback?: string; isDualBlind?: boolean; options?: string[];
+      // ADDED: type is only consulted for fields WITHOUT `options` set (options
+      // always means <select>, unchanged). Defaults to 'text' when omitted —
+      // every one of the original 46 renderField() calls omits this, so their
+      // rendered <input> is functionally identical to before (an explicit
+      // type="text" behaves the same as no type attribute at all).
+      type?: 'text' | 'number' | 'date' | 'textarea';
+    } = {},
   ) => {
     if (isFieldHidden(fieldName) && !configMap.has(fieldName)) return null;
     if (isHidden(fieldName)) return null;
@@ -779,8 +843,22 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
+        ) : opts.type === 'textarea' ? (
+          <textarea
+            value={value}
+            maxLength={opts.maxLength}
+            placeholder={placeholder}
+            readOnly={isFieldReadonly(fieldName)}
+            disabled={isFieldDisabledForDualBlindKey(fieldName)}
+            onChange={(e) => setField(fieldName, e.target.value)}
+            onBlur={() => {
+              setTouched((t) => ({ ...t, [fieldName]: true }));
+              if (dualBlind) validateSingleDualBlindKeyField(fieldName);
+            }}
+          />
         ) : (
         <input
+          type={opts.type ?? 'text'}
           value={value}
           maxLength={opts.maxLength}
           placeholder={placeholder}
@@ -1012,6 +1090,33 @@ export default function PaymentChild(props: SSPaymentFlowProps) {
           </div>
         </div>
       </div>
+
+      {/* ADDED: not part of the original captured source. Renders any
+          fieldConfig entry that isn't one of the fixed known fields above —
+          this is what makes fieldConfig genuinely extensible: add a new
+          { fieldName, label, required, hidden, options } entry to your
+          fieldConfig array and it shows up here automatically, reusing the
+          exact same renderField() pipeline (so hidden/required/rejected/
+          dual-blind-key/failed-field styling all work identically to the
+          fixed fields above) — no changes needed elsewhere in this file. */}
+      {dynamicFieldConfigs.length > 0 && (
+        <div className="section-main">
+          <div className="section-main-header" onClick={() => toggleSection('dynamicAdditionalFields')}>
+            <span>{pacsFormVerbiages.AdditionalFields ?? 'Additional Fields'}</span>
+            <span className="chev">{sectionCollapsed.dynamicAdditionalFields ? '\u25B4' : '\u25BE'}</span>
+          </div>
+          <div className={`section-main-body ${sectionCollapsed.dynamicAdditionalFields ? 'collapsed' : ''}`}>
+            <div className="form-row-2">
+              {dynamicFieldConfigs.map((cfg) =>
+                renderField(cfg.fieldName, cfg.label ?? cfg.fieldName, {
+                  options: cfg.options,
+                  type: cfg.type,
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* toasts */}
       <div className="toast-container">
