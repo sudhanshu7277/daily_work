@@ -144,4 +144,46 @@ const onPaymentOutput = useCallback((output: PaymentComponentOutput) => {
 
   disabled={!enableSubmitButton}
 
+
+
+  // APPLYING CUSTOM STYLE CLASS
+
+  // Clean — pure additions, nothing else touched. Here are the exact changes:
+
+  // types/models.ts
+
+//Add one field to FormFieldConfig, right after placeholder?: string;:
+
+appliedStyleClassName?: string;
+
+
+// components/PaymentChild.tsx
+
+//Change 1 — right after the placeholder resolution line, add:
+
+const appliedStyleClassName = fieldCfg?.appliedStyleClassName;
+
+
+
+//Change 2 — add className={appliedStyleClassName} as the first prop on each of the three elements:
+
+<select
+  className={appliedStyleClassName}
+  value={value}
+  ...
+
+
+  <textarea
+  className={appliedStyleClassName}
+  value={value}
+  ...
+
+  <input
+  className={appliedStyleClassName}
+  type={effectiveType ?? 'text'}
+  value={value}
+  ...
+
   
+
+
