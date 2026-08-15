@@ -1,136 +1,63 @@
-// Approach 1: Shared Service with Angular Signals (Recommended)
-//Signals provide reactive state without needing manual subscriptions or cleanup.
-// 1. Create the Shared Service
+// Solution 1: Use an RxJS Subject for Action Events (Recommended)
+1. Update internal-shared-data.service.ts
 
-// shared-data.service.ts
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
-export class SharedDataService {
-  // Writable signal holds the internal state
-  private readonly dataSignal = signal<string | null>(null);
+export class InternalSharedDataService {
+  private readonly hideBannerSubject = new Subject<void>();
+  readonly hideBanner$ = this.hideBannerSubject.asObservable();
 
-  // Read-only signal exposed to consumers
-  readonly data = this.dataSignal.asReadonly();
-
-  updateData(newData: string): void {
-    this.dataSignal.set(newData);
-  }
-
-  clearData(): void {
-    this.dataSignal.set(null);
+  triggerHideBanner(): void {
+    this.hideBannerSubject.next();
   }
 }
 
 
-// 2. Component A: Send Data
-
-// component-a.component.ts
-import { Component, inject } from '@angular/core';
-import { SharedDataService } from './shared-data.service';
-
-@Component({
-  selector: 'app-component-a',
-  standalone: true,
-  template: `
-    <button (click)="sendPayload()">Send Data to Component B</button>
-  `
-})
-export class ComponentA {
-  private readonly sharedService = inject(SharedDataService);
-
-  sendPayload(): void {
-    this.sharedService.updateData('Hello from Component A!');
-  }
-}
-
-// 3. Component B: Receive Data
-
-// component-b.component.ts
-import { Component, inject } from '@angular/core';
-import { SharedDataService } from './shared-data.service';
-
-@Component({
-  selector: 'app-component-b',
-  standalone: true,
-  template: `
-    <div>Current Data: {{ currentData() ?? 'No data received' }}</div>
-  `
-})
-export class ComponentB {
-  private readonly sharedService = inject(SharedDataService);
-
-  // Directly bind the read-only signal in the template
-  readonly currentData = this.sharedService.data;
-}
+// 2. Update legal-hold-shell.component.ts
+Subscribe to the stream in ngOnInit():
 
 
-// Method 1: Template Event Binding (focus)
-//The most common and direct approach binds (focus) directly in your template:
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
+import { Subscription } from 'rxjs';
 
-<!-- my-component.component.html -->
-<input 
-  type="text" 
-  placeholder="Enter name" 
-  (focus)="onInputFocus($event)"
-  (blur)="onInputBlur($event)" />
+export class LegalHoldShellComponent implements OnInit, OnDestroy {
+  checkInHistoryMsg: boolean = false;
+  private bannerSub?: Subscription;
 
-
-  // my-component.component.ts
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-my-component',
-  standalone: true,
-  templateUrl: './my-component.component.html'
-})
-export class MyComponent {
-  onInputFocus(event: FocusEvent): void {
-    const inputElement = event.target as HTMLInputElement;
-    console.log('Input focused:', inputElement.value);
-  }
-
-  onInputBlur(event: FocusEvent): void {
-    console.log('Input lost focus');
-  }
-}
-
-
-//////////
-
-import { Component, OnInit, ChangeDetectorRef, inject, effect } from '@angular/core';
-
-export class LegalHoldShellComponent implements OnInit {
-  checkInHistoryMsg: boolean = false; // or true by default
-  // ... other properties
-
-  private readonly azureSsoService = inject(AzureSsoService);
   private readonly internalSharedService = inject(InternalSharedDataService);
-
-  constructor(
-    private actualCustServ: ActualCustomerSearchService,
-    private readonly cdr: ChangeDetectorRef,
-    private LegalHoldDataService: LegalHoldDataService,
-    private sessionStorageService: SessionStorageService
-  ) {
-    // Angular effect reactively listens to signal changes across the entire lifecycle
-    effect(() => {
-      const data = this.internalSharedService.data();
-      if (data) {
-        this.checkInHistoryMsg = false; // Set banner visibility flag to false
-        this.hideCheckInHistoryBanner?.(); // Call hide method if defined
-        this.cdr.markForCheck();
-      }
-    });
-  }
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     sessionStorage.clear();
+
+    // Listen to every user interaction event from other components
+    this.bannerSub = this.internalSharedService.hideBanner$.subscribe(() => {
+      if (this.checkInHistoryMsg) {
+        this.hideCheckInHistoryBanner();
+        this.cdr.detectChanges(); // Force view update
+      }
+    });
   }
 
   hideCheckInHistoryBanner(): void {
     this.checkInHistoryMsg = false;
   }
+
+  ngOnDestroy(): void {
+    this.bannerSub?.unsubscribe();
+  }
 }
+
+
+// 3. Trigger it from search-customer.component.ts (or any interacting component)
+
+onUserInteraction(): void {
+    this.internalSharedService.triggerHideBanner();
+  }
+
+
+  
