@@ -96,3 +96,41 @@ export class MyComponent {
     console.log('Input lost focus');
   }
 }
+
+
+//////////
+
+import { Component, OnInit, ChangeDetectorRef, inject, effect } from '@angular/core';
+
+export class LegalHoldShellComponent implements OnInit {
+  checkInHistoryMsg: boolean = false; // or true by default
+  // ... other properties
+
+  private readonly azureSsoService = inject(AzureSsoService);
+  private readonly internalSharedService = inject(InternalSharedDataService);
+
+  constructor(
+    private actualCustServ: ActualCustomerSearchService,
+    private readonly cdr: ChangeDetectorRef,
+    private LegalHoldDataService: LegalHoldDataService,
+    private sessionStorageService: SessionStorageService
+  ) {
+    // Angular effect reactively listens to signal changes across the entire lifecycle
+    effect(() => {
+      const data = this.internalSharedService.data();
+      if (data) {
+        this.checkInHistoryMsg = false; // Set banner visibility flag to false
+        this.hideCheckInHistoryBanner?.(); // Call hide method if defined
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    sessionStorage.clear();
+  }
+
+  hideCheckInHistoryBanner(): void {
+    this.checkInHistoryMsg = false;
+  }
+}
