@@ -1,40 +1,33 @@
-1. paymentChild.tsx (Line 454): Type Mismatch on buildPain001FromForm
+//1. Critical Syntax Error at Line 454
 
-Issue: buildPain001FromForm expects a generic object with a string index signature (like Record<string, unknown> or Record<string, any>), but formValues is typed as the specific interface/class Pain001Model which lacks an index signature.
+// In TypeScript, you cannot pass a type annotation (: Pain001Model) inside a function invocation.
 
-// Fix Options:
+paymentData: buildPain001FromForm(formValues as any),
+// OR if buildPain001FromForm accepts Pain001Model:
+paymentData: buildPain001FromForm(formValues),
 
-Option A (Quick cast in paymentChild.tsx):
+// 2. Type Definition Fix in paymentUtils.ts
 
+//To eliminate all type squiggles without needing type assertions, update the f
+// unction signature in src/pages/ss-payment/utils/paymentUtils.ts:
 
-paymentData: buildPain001FromForm(formValues as unknown as Record<string, unknown>),
-
-
-
-Option B (Update function signature - Recommended if you own buildPain001FromForm):
-Change parameter type in the function definition from Record<string, ...> to accept Pain001Model | Record<string, unknown> or use a generic parameter:
-
-
-export function buildPain001FromForm(form: Pain001Model) { ... }
-
-
-
-2. PaymentParent.tsx (Line 817): AuthContextValue Assigned to string
-
-Issue: soeId is currently holding the entire AuthContextValue object (likely retrieved via useAuthContext() or useContext(AuthContext) directly into const soeId = useAuthContext()), while loggedInUser expects a string.
-
-// Fix Options:
-
-Option A (Destructure the SOEID/user property from the context):
-Check where soeId is defined near the top of PaymentParent.tsx and extract the specific string field:
-
-
-// Change this:
-const soeId = useAuthContext();
-
-// To this (replace .soeId / .user / .userId with your actual property name):
-const { soeId } = useAuthContext();
-// OR
-const auth = useAuthContext();
-const soeId = auth.soeId || auth.user?.soeId;
-
+export function buildPain001FromForm(
+    formValues: Pain001Model | Record<string, unknown> | Record<string, any>
+  ): Pain001Model {
+    const base = createEmptyPain001();
+    const result: Record<string, any> = { ...base };
+    const raw = formValues as Record<string, any>;
+  
+    Object.keys(base).forEach(key => {
+      if (raw[key] === undefined) return;
+      result[key] = NUMERIC_FIELDS.has(key as any)
+        ? (parseFloat(String(raw[key])) || 0)
+        : raw[key];
+    });
+  
+    if (raw.creditorAgentAccountNumber && !result.creditorAgentPostalAddress) {
+      result.creditorAgentPostalAddress = raw.creditorAgentAccountNumber;
+    }
+  
+    return result as Pain001Model;
+  }

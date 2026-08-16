@@ -63,7 +63,7 @@ export interface Pain001Model {
   taxPurposeCode?: string;
   regulatoryReportingCode?: string;
   invoiceReferenceNumber?: string;
-  chargeBear?: string;
+  [key: string]: unknown;
 }
 
 export const PAIN001_NUMERIC_FIELDS: (keyof Pain001Model)[] = ['chargesAmount', 'instructedAmount'];
@@ -142,7 +142,7 @@ export const PAIN001_MANDATORY_FIELDS: string[] = [
 export const ALWAYS_REQUIRED_FIELDS: string[] = PAIN001_MANDATORY_FIELDS;
 
 export function createEmptyPain001(): Pain001Model {
-  const empty: Record<string, any> = {};
+  const empty: Record<string, unknown> = {};
   PAIN001_STRING_FIELDS.forEach(f => {
     empty[f] = '';
   });
@@ -151,6 +151,7 @@ export function createEmptyPain001(): Pain001Model {
   });
   empty.applicationName = 'ADR';
   empty.applicationModule = 'ADR';
+  empty.region = '';
   return empty as Pain001Model;
 }
 

@@ -55,19 +55,22 @@ export function populatePaymentDetailsFromSource<T extends Record<string, any>>(
   return target;
 }
 
-export function buildPain001FromForm(formValues: Record<string, string | number>): Pain001Model {
+export function buildPain001FromForm(
+  formValues: Pain001Model | Record<string, unknown> | Record<string, any>
+): Pain001Model {
   const base = createEmptyPain001();
   const result: Record<string, any> = { ...base };
+  const raw = formValues as Record<string, any>;
 
   Object.keys(base).forEach(key => {
-    if (formValues[key] === undefined) return;
+    if (raw[key] === undefined) return;
     result[key] = NUMERIC_FIELDS.has(key as any)
-      ? (parseFloat(String(formValues[key])) || 0)
-      : formValues[key];
+      ? (parseFloat(String(raw[key])) || 0)
+      : raw[key];
   });
 
-  if ((formValues as any).creditorAgentAccountNumber && !result.creditorAgentPostalAddress) {
-    result.creditorAgentPostalAddress = (formValues as any).creditorAgentAccountNumber;
+  if (raw.creditorAgentAccountNumber && !result.creditorAgentPostalAddress) {
+    result.creditorAgentPostalAddress = raw.creditorAgentAccountNumber;
   }
 
   return result as Pain001Model;

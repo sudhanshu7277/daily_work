@@ -270,7 +270,7 @@ export interface ValidationCondition {
     formRuleEffects: Map<string, ValidationEffect>
   ): Map<string, ValidationEffect> {
     const merged = new Map<string, ValidationEffect>();
-    
+  
     fieldResults.forEach((val, key) => {
       merged.set(key, { ...val });
     });
