@@ -65,11 +65,13 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   onFailedFieldListChange,
   onAmountChange
 }) => {
+  // Mode Determination
   const selectedMode: PaymentMode = isCheckerMode ? 'checker' : isRepairMode ? 'repair' : 'maker';
   const isChecker = selectedMode === 'checker';
   const isRepair = selectedMode === 'repair';
   const isDualBlindEnabled = paymentInput?.dualBlindKeyFlag === 'Y' && isChecker;
 
+  // Metadata Maps & Dynamic Extension Fields
   const configMap = useMemo(() => {
     const map = new Map<string, FormFieldConfig>();
     fieldConfig.forEach(cfg => map.set(cfg.fieldName, cfg));
@@ -80,6 +82,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return fieldConfig.filter(cfg => !PAIN001_MANDATORY_FIELDS.includes(cfg.fieldName));
   }, [fieldConfig]);
 
+  // Form State Initialization
   const [formValues, setFormValues] = useState<Pain001Model>(() => {
     const empty = createEmptyPain001() as Record<string, any>;
     const init = { ...(initialData || {}), ...(paymentInput?.paymentModel || {}) } as Record<string, any>;
@@ -108,6 +111,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return { ...empty, ...values } as Pain001Model;
   });
 
+  // UI, Flagging & Dual-Blind States
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [failedFields, setFailedFields] = useState<string[]>(paymentInput?.rejectedFieldList || []);
   const [newlyModifiedFields, setNewlyModifiedFields] = useState<string[]>(repairNewlyModifyFieldList);
@@ -115,12 +119,14 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   const [isDualBlindPassed, setIsDualBlindPassed] = useState<boolean>(false);
   const [validationResults, setValidationResults] = useState<Map<string, ValidationEffect>>(new Map());
 
+  // Live Auto-derivation & Async Statuses
   const [isDebtorCountryReadonly, setIsDebtorCountryReadonly] = useState<boolean>(false);
   const [isCreditorCountryReadonly, setIsCreditorCountryReadonly] = useState<boolean>(false);
   const [hardcapChecking, setHardcapChecking] = useState<boolean>(false);
   const [hardcapError, setHardcapError] = useState<string>('');
   const [hardcapSuccessMessage, setHardcapSuccessMessage] = useState<string>('');
 
+  // Mega-Section Accordion Collapse State
   const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, boolean>>({
     paymentDetails: false,
     paymentInformation: false,
@@ -134,6 +140,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     dynamicAdditionalFields: false
   });
 
+  // Dual-Blind Storage Cache & Debouncers
   const dualBlindCache = useRef<Map<string, string>>(new Map());
   const debtorBicDebouncer = useRef<NodeJS.Timeout>();
   const creditorBicDebouncer = useRef<NodeJS.Timeout>();
@@ -145,6 +152,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     setSectionCollapsed(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
 
+  // Form State Mutator
   const setField = useCallback((fieldName: keyof Pain001Model, value: unknown, emitEvent = true) => {
     setFormValues(prev => {
       const isNumeric = PAIN001_NUMERIC_FIELDS.includes(fieldName as any);
@@ -161,6 +169,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     }
   }, [isRepair, newlyModifiedFields, onFormChange]);
 
+  // Dual-Blind Key Initialization (Mask on mount in Checker mode)
   useEffect(() => {
     if (isDualBlindEnabled && paymentInput?.paymentModel) {
       dualBlindCache.current.clear();
@@ -179,6 +188,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     }
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, paymentInput?.paymentModel]);
 
+  // Single Dual-Blind Re-Key Verification (onBlur)
   const validateSingleDualBlindKeyField = useCallback((fieldName: string) => {
     if (!isDualBlindEnabled || !paymentInput.dualBlindKeyFields?.includes(fieldName)) return;
     const original = dualBlindCache.current.get(fieldName) ?? '';
@@ -195,6 +205,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     });
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]);
 
+  // Global Dual-Blind Pass/Fail State
   useEffect(() => {
     if (!isDualBlindEnabled) {
       setIsDualBlindPassed(true);
@@ -208,6 +219,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     setIsDualBlindPassed(allMatched);
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]);
 
+  // Dynamic Rule Evaluation Pipeline
   useEffect(() => {
     const rawForm = formValues as unknown as Record<string, unknown>;
     const fieldMap = genericValidator.evaluateAllFields(rawForm);
@@ -216,6 +228,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     setValidationResults(finalMap);
   }, [formValues]);
 
+  // BIC Country Derivations (500ms Debounce)
   useEffect(() => {
     if (debtorBicDebouncer.current) clearTimeout(debtorBicDebouncer.current);
     debtorBicDebouncer.current = setTimeout(() => {
@@ -244,6 +257,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(creditorBicDebouncer.current);
   }, [formValues.creditorAgentFinancialInstitutionBIC, setField]);
 
+  // Automated Address Lookups (300ms Debounce)
   useEffect(() => {
     if (debtorAddrDebouncer.current) clearTimeout(debtorAddrDebouncer.current);
     debtorAddrDebouncer.current = setTimeout(async () => {
@@ -312,6 +326,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(creditorAddrDebouncer.current);
   }, [formValues.creditorCountryCode, formValues.creditorAgentFinancialInstitutionBIC, formValues.creditorSortCodeUS, formValues.creditorSortCodeUK]);
 
+  // Live Hardcap Threshold Integration (400ms Debounce)
   const instructedAmountChange = () => {
     if (amountDebouncer.current) clearTimeout(amountDebouncer.current);
     amountDebouncer.current = setTimeout(() => {
@@ -362,6 +377,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     }
   }, [hardcapResultReceived]);
 
+  // Readonly, Flagging, and Double-Click Handlers
   const isFieldReadonly = useCallback((fieldName: keyof Pain001Model) => {
     if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
     if (fieldName === 'debtorCountryCode') return false;
@@ -389,6 +405,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     });
   };
 
+  // Form Validity Evaluation
   const isFormValid = useMemo(() => {
     for (const [fName, rule] of validationResults.entries()) {
       if (rule.visible !== false && rule.required) {
@@ -414,6 +431,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return true;
   }, [validationResults, formValues, isChecker, isDualBlindEnabled, isDualBlindPassed, failedFields, hardcapError]);
 
+  // Synchronize Output with Parent
   useEffect(() => {
     const payload: PaymentComponentOutput = {
       paymentData: buildPain001FromForm(formValues),
@@ -430,135 +448,135 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     });
   }, [isFormValid, formValues, isDualBlindEnabled, isDualBlindPassed, onPaymentOutput, onFormValidityChange]);
 
-// --- Universal Field Template Renderer ---
-const renderField = (
-  fieldName: keyof Pain001Model,
-  defaultLabel: string,
-  opts: {
-    type?: 'text' | 'number' | 'date' | 'textarea' | string;
-    options?: readonly string[] | string[];
-    placeholder?: string;
-    maxLength?: number;
-    errorFallback?: string;
-    isDualBlind?: boolean;
-    autoUppercase?: boolean;
-  } = {}
-) => {
-  const rule = validationResults.get(fieldName as string);
-  if (rule?.visible === false) return null;
-  if (paymentInput?.hideFieldsList?.includes(fieldName as string)) return null;
+  // Universal Field Template Renderer
+  const renderField = (
+    fieldName: keyof Pain001Model,
+    defaultLabel: string,
+    opts: {
+      type?: 'text' | 'number' | 'date' | 'textarea' | string;
+      options?: readonly string[] | string[];
+      placeholder?: string;
+      maxLength?: number;
+      errorFallback?: string;
+      isDualBlind?: boolean;
+      autoUppercase?: boolean;
+    } = {}
+  ) => {
+    const rule = validationResults.get(fieldName as string);
+    if (rule?.visible === false) return null;
+    if (paymentInput?.hideFieldsList?.includes(fieldName as string)) return null;
 
-  const value = (formValues as any)[fieldName] ?? '';
-  const isRequired = Boolean(
-    rule?.required ?? 
-    configMap.get(fieldName as string)?.required ?? 
-    PAIN001_MANDATORY_FIELDS.includes(fieldName as string)
-  );
-  const isReadonly = isFieldReadonly(fieldName);
-  const hasDualBlindErr = dualBlindErrors.has(fieldName as string);
-  const isFailed = failedFields.includes(fieldName as string);
-  const isRepairHighlight = isRepair && repairReviewFieldList.includes(fieldName as string);
-  const isNewlyMod = isRepair && newlyModifiedFields.includes(fieldName as string);
+    const value = (formValues as any)[fieldName] ?? '';
+    const isRequired = Boolean(
+      rule?.required ??
+      configMap.get(fieldName as string)?.required ??
+      PAIN001_MANDATORY_FIELDS.includes(fieldName as string)
+    );
+    const isReadonly = isFieldReadonly(fieldName);
+    const hasDualBlindErr = dualBlindErrors.has(fieldName as string);
+    const isFailed = failedFields.includes(fieldName as string);
+    const isRepairHighlight = isRepair && repairReviewFieldList.includes(fieldName as string);
+    const isNewlyMod = isRepair && newlyModifiedFields.includes(fieldName as string);
 
-  // Validation calculations for borders & error copy
-  const isPatternInvalid = Boolean(
-    touched[fieldName as string] && 
-    rule?.pattern && 
-    value && 
-    !new RegExp(rule.pattern).test(String(value))
-  );
-  const isRequiredMissing = Boolean(touched[fieldName as string] && isRequired && !value);
-  const hasInputError = isPatternInvalid || isRequiredMissing || hasDualBlindErr || isFailed;
+    // Validation calculations for borders & error copy
+    const isPatternInvalid = Boolean(
+      touched[fieldName as string] &&
+      rule?.pattern &&
+      value &&
+      !new RegExp(rule.pattern).test(String(value))
+    );
+    const isRequiredMissing = Boolean(touched[fieldName as string] && isRequired && !value);
+    const hasInputError = isPatternInvalid || isRequiredMissing || hasDualBlindErr || isFailed;
 
-  // Auto-uppercase BIC and Country codes
-  const isBicOrCountry = 
-    (fieldName as string).toLowerCase().includes('bic') || 
-    (fieldName as string).toLowerCase().includes('countrycode');
+    // Auto-uppercase BIC and Country codes
+    const isBicOrCountry =
+      (fieldName as string).toLowerCase().includes('bic') ||
+      (fieldName as string).toLowerCase().includes('countrycode');
 
-  const containerClass = [
-    'form-field',
-    hasInputError && 'field-invalid',
-    isFailed && 'failed-field',
-    isRepairHighlight && 'repair-review-field',
-    isNewlyMod && 'repair-newly-modify-field'
-  ].filter(Boolean).join(' ');
+    const containerClass = [
+      'form-field',
+      hasInputError && 'field-invalid',
+      isFailed && 'failed-field',
+      isRepairHighlight && 'repair-review-field',
+      isNewlyMod && 'repair-newly-modify-field'
+    ].filter(Boolean).join(' ');
 
-  const labelClass = ['field-label', isFailed && 'rejected'].filter(Boolean).join(' ');
+    const labelClass = ['field-label', isFailed && 'rejected'].filter(Boolean).join(' ');
 
-  const handleTextChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    let val = e.target.value;
-    if (isBicOrCountry || opts.autoUppercase) {
-      val = val.toUpperCase();
-    }
-    setField(fieldName, val);
+    const handleTextChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      let val = e.target.value;
+      if (isBicOrCountry || opts.autoUppercase) {
+        val = val.toUpperCase();
+      }
+      setField(fieldName, val);
+    };
+
+    return (
+      <div
+        key={fieldName as string}
+        className={containerClass}
+        onDoubleClick={e => handleDoubleClickFailedField(fieldName as string, e)}
+      >
+        <label className={labelClass}>
+          {pacsFormVerbiages[fieldName as string] || defaultLabel}
+          {isRequired && <span className="mandatory-indicator"> *</span>}
+        </label>
+
+        {opts.options ? (
+          <select
+            value={value}
+            disabled={isReadonly}
+            className={hasInputError ? 'input-error' : ''}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setField(fieldName, e.target.value)}
+            onBlur={() => setTouched(t => ({ ...t, [fieldName]: true }))}
+          >
+            <option value="">{opts.placeholder || `-- Select ${defaultLabel} --`}</option>
+            {opts.options.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        ) : opts.type === 'textarea' ? (
+          <textarea
+            value={value}
+            rows={3}
+            readOnly={isReadonly}
+            className={hasInputError ? 'input-error' : ''}
+            maxLength={opts.maxLength || rule?.maxLength}
+            placeholder={opts.placeholder || `Enter ${defaultLabel}`}
+            onChange={handleTextChange}
+            onBlur={() => {
+              setTouched(t => ({ ...t, [fieldName]: true }));
+              validateSingleDualBlindKeyField(fieldName as string);
+            }}
+          />
+        ) : (
+          <input
+            type={opts.type || 'text'}
+            value={value}
+            readOnly={isReadonly}
+            className={hasInputError ? 'input-error' : ''}
+            maxLength={opts.maxLength || rule?.maxLength}
+            placeholder={opts.placeholder || `Enter ${defaultLabel}`}
+            onChange={handleTextChange}
+            onBlur={() => {
+              setTouched(t => ({ ...t, [fieldName]: true }));
+              validateSingleDualBlindKeyField(fieldName as string);
+            }}
+          />
+        )}
+
+        {hasDualBlindErr && (
+          <div className="field-error dual-blind-error">{dualBlindErrors.get(fieldName as string)}</div>
+        )}
+        {isRequiredMissing && (
+          <div className="field-error">{opts.errorFallback || `${defaultLabel} is required`}</div>
+        )}
+        {isPatternInvalid && (
+          <div className="field-error">{rule?.patternMessage || 'Invalid format'}</div>
+        )}
+      </div>
+    );
   };
-
-  return (
-    <div
-      key={fieldName as string}
-      className={containerClass}
-      onDoubleClick={e => handleDoubleClickFailedField(fieldName as string, e)}
-    >
-      <label className={labelClass}>
-        {pacsFormVerbiages[fieldName as string] || defaultLabel}
-        {isRequired && <span className="mandatory-indicator"> *</span>}
-      </label>
-
-      {opts.options ? (
-        <select
-          value={value}
-          disabled={isReadonly}
-          className={hasInputError ? 'input-error' : ''}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => setField(fieldName, e.target.value)}
-          onBlur={() => setTouched(t => ({ ...t, [fieldName]: true }))}
-        >
-          <option value="">{opts.placeholder || `-- Select ${defaultLabel} --`}</option>
-          {opts.options.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      ) : opts.type === 'textarea' ? (
-        <textarea
-          value={value}
-          rows={3}
-          readOnly={isReadonly}
-          className={hasInputError ? 'input-error' : ''}
-          maxLength={opts.maxLength || rule?.maxLength}
-          placeholder={opts.placeholder || `Enter ${defaultLabel}`}
-          onChange={handleTextChange}
-          onBlur={() => {
-            setTouched(t => ({ ...t, [fieldName]: true }));
-            validateSingleDualBlindKeyField(fieldName as string);
-          }}
-        />
-      ) : (
-        <input
-          type={opts.type || 'text'}
-          value={value}
-          readOnly={isReadonly}
-          className={hasInputError ? 'input-error' : ''}
-          maxLength={opts.maxLength || rule?.maxLength}
-          placeholder={opts.placeholder || `Enter ${defaultLabel}`}
-          onChange={handleTextChange}
-          onBlur={() => {
-            setTouched(t => ({ ...t, [fieldName]: true }));
-            validateSingleDualBlindKeyField(fieldName as string);
-          }}
-        />
-      )}
-
-      {hasDualBlindErr && (
-        <div className="field-error dual-blind-error">{dualBlindErrors.get(fieldName as string)}</div>
-      )}
-      {isRequiredMissing && (
-        <div className="field-error">{opts.errorFallback || `${defaultLabel} is required`}</div>
-      )}
-      {isPatternInvalid && (
-        <div className="field-error">{rule?.patternMessage || 'Invalid format'}</div>
-      )}
-    </div>
-  );
-};
 
   const showFirstIntermediaryBank = validationResults.get('firstIntermediaryBankBIC')?.visible !== false;
   const showSecondIntermediaryBank = Boolean(formValues.firstIntermediaryBankBIC) && validationResults.get('secondIntermediaryBankBIC')?.visible !== false;
@@ -769,7 +787,7 @@ const renderField = (
                         value={formValues.firstIntermediaryBankBIC ?? ''}
                         placeholder="Enter SWIFT/BIC"
                         readOnly={isFieldReadonly('firstIntermediaryBankBIC')}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setField('firstIntermediaryBankBIC', e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setField('firstIntermediaryBankBIC', e.target.value.toUpperCase())}
                         onBlur={() => setTouched(t => ({ ...t, firstIntermediaryBankBIC: true }))}
                       />
                       {touched.firstIntermediaryBankBIC && !formValues.firstIntermediaryBankBIC && (
@@ -839,7 +857,7 @@ const renderField = (
                   {dynamicFieldConfigs.map(cfg =>
                     renderField(cfg.fieldName as keyof Pain001Model, cfg.label ?? cfg.fieldName, {
                       options: cfg.options,
-                      type: cfg.type
+                      type: cfg.type as any
                     })
                   )}
                 </div>
