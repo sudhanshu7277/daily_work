@@ -434,7 +434,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     fieldName: keyof Pain001Model,
     defaultLabel: string,
     opts: {
-      type?: 'text' | 'number' | 'date' | 'textarea';
+      type?: 'text' | 'number' | 'date' | 'textarea' | string;
       options?: readonly string[] | string[];
       placeholder?: string;
       maxLength?: number;

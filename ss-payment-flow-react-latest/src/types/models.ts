@@ -182,29 +182,13 @@ export interface PaymentComponentOutput {
 /** fieldName is plain `string` here, matching actual usage (configMap keyed by string, not keyof Pain001Model) throughout PaymentChild.tsx. */
 export interface FormFieldConfig {
   fieldName: string;
-  label?: string;
+  label: string;
   hidden?: boolean;
   required?: boolean;
-  value?: any;
-  /**
-   * ADDED (not part of the original captured type): for fields rendered
-   * via the new dynamic "Additional Fields" section in PaymentChild.tsx —
-   * if present, the field renders as a <select> with these as its options,
-   * matching the same string[] shape renderField() already expects
-   * (see CHARGE_BEARER_OPTIONS/PAYMENT_TYPE_OPTIONS). Omit for a plain
-   * text input. Has no effect on any of the original 44 fixed fields.
-   */
-  options?: string[];
-  /**
-   * ADDED (not part of the original captured type): input type for
-   * dynamically-rendered fields only. Ignored if `options` is set (that
-   * always renders a <select> regardless of `type`). Defaults to 'text' —
-   * has no effect on any of the original 44 fixed fields, which never set
-   * this. Uses the SAME .form-field input/select/textarea CSS rules
-   * already in payment-flow.css (type selectors like input[type=date]
-   * aren't used there), so no styling changes needed for this to work.
-   */
-  type?: 'text' | 'number' | 'date' | 'textarea';
+  options?: readonly string[] | string[];
+  type?: 'text' | 'number' | 'date' | 'textarea' | string;
+  placeholder?: string;
+  value?: string | number;
 }
 
 export interface HardcapCheckResponse {
