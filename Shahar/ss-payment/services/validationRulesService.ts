@@ -63,28 +63,48 @@ export interface ValidationCondition {
         {
           priority: 10,
           conditions: [],
-          effect: { required: true, maxLength: 11, pattern: '^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', patternMessage: 'Must be a valid 8 or 11 character BIC/SWIFT code' }
+          effect: {
+            required: true,
+            maxLength: 11,
+            pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
+            patternMessage: 'Valid BIC format required (e.g. CITIUS33)'
+          }
         }
       ],
       creditorAgentFinancialInstitutionBIC: [
         {
           priority: 10,
           conditions: [],
-          effect: { required: true, maxLength: 11, pattern: '^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', patternMessage: 'Must be a valid 8 or 11 character BIC/SWIFT code' }
+          effect: {
+            required: true,
+            maxLength: 11,
+            pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
+            patternMessage: 'Valid BIC format required (e.g. CITIUS33)'
+          }
         }
       ],
       firstIntermediaryBankBIC: [
         {
           priority: 10,
           conditions: [],
-          effect: { required: false, maxLength: 11, pattern: '^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', patternMessage: 'Must be a valid 8 or 11 character BIC/SWIFT code' }
+          effect: {
+            required: false,
+            maxLength: 11,
+            pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
+            patternMessage: 'Valid BIC format required (e.g. CITIUS33)'
+          }
         }
       ],
       secondIntermediaryBankBIC: [
         {
           priority: 10,
           conditions: [],
-          effect: { required: false, maxLength: 11, pattern: '^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', patternMessage: 'Must be a valid 8 or 11 character BIC/SWIFT code' }
+          effect: {
+            required: false,
+            maxLength: 11,
+            pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
+            patternMessage: 'Valid BIC format required (e.g. CITIUS33)'
+          }
         }
       ],
       chargesAgentBIC: [

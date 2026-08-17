@@ -416,3 +416,20 @@
   .form-field input[type="date"]::-webkit-clear-button {
     display: inline-block;
   }
+
+  .form-field.field-invalid input,
+.form-field.field-invalid select,
+.form-field.field-invalid textarea,
+.form-field input.input-error,
+.form-field select.input-error,
+.form-field textarea.input-error {
+  border-color: #dc2626 !important;
+  outline: none;
+}
+
+.field-error {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 3px;
+  font-weight: 400;
+}
