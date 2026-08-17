@@ -16,7 +16,6 @@ import {
   FormFieldConfig,
   FormValidityPayload,
   PAIN001_MANDATORY_FIELDS,
-  PAIN001_NUMERIC_FIELDS,
   PAYMENT_TYPE_OPTIONS,
   CHARGE_BEARER_OPTIONS,
   createEmptyPain001
@@ -29,7 +28,6 @@ import { addressService } from '../services/addressService';
 import { buildPain001FromForm } from '../utils/paymentUtils';
 import './payment-flow.css';
 
-// Master set of all standard fields hardcoded in the template
 const KNOWN_FIELDS = new Set<string>([
   'painPaymentMethodType',
   'requestedExecutionDate',
@@ -119,13 +117,11 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   onFailedFieldListChange,
   onAmountChange
 }) => {
-  // Mode Determination
   const selectedMode: PaymentMode = isCheckerMode ? 'checker' : isRepairMode ? 'repair' : 'maker';
   const isChecker = selectedMode === 'checker';
   const isRepair = selectedMode === 'repair';
   const isDualBlindEnabled = paymentInput?.dualBlindKeyFlag === 'Y' && isChecker;
 
-  // Metadata Maps & Dynamic Extension Fields (Only truly custom/unrecognized fields)
   const configMap = useMemo(() => {
     const map = new Map<string, FormFieldConfig>();
     fieldConfig.forEach(cfg => map.set(cfg.fieldName, cfg));
@@ -136,7 +132,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return fieldConfig.filter(cfg => !KNOWN_FIELDS.has(cfg.fieldName));
   }, [fieldConfig]);
 
-  // Form State Initialization
   const [formValues, setFormValues] = useState<Pain001Model>(() => {
     const empty = createEmptyPain001() as Record<string, any>;
     const init = { ...(initialData || {}), ...(paymentInput?.paymentModel || {}) } as Record<string, any>;
@@ -163,7 +158,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return { ...empty, ...values } as Pain001Model;
   });
 
-  // UI, Flagging & Dual-Blind States
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [failedFields, setFailedFields] = useState<string[]>(paymentInput?.rejectedFieldList || []);
   const [newlyModifiedFields, setNewlyModifiedFields] = useState<string[]>(repairNewlyModifyFieldList);
@@ -171,14 +165,12 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   const [isDualBlindPassed, setIsDualBlindPassed] = useState<boolean>(false);
   const [validationResults, setValidationResults] = useState<Map<string, ValidationEffect>>(new Map());
 
-  // Live Auto-derivation & Async Statuses
   const [isDebtorCountryReadonly, setIsDebtorCountryReadonly] = useState<boolean>(false);
   const [isCreditorCountryReadonly, setIsCreditorCountryReadonly] = useState<boolean>(false);
   const [hardcapChecking, setHardcapChecking] = useState<boolean>(false);
   const [hardcapError, setHardcapError] = useState<string>('');
   const [hardcapSuccessMessage, setHardcapSuccessMessage] = useState<string>('');
 
-  // 3 Mega-Sections and Sub-Sections Accordion Collapse State
   const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, boolean>>({
     paymentDetails: false,
     paymentInformation: false,
@@ -206,7 +198,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     setSectionCollapsed(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
 
-  // Form State Mutator
   const setField = useCallback((fieldName: keyof Pain001Model, value: unknown, emitEvent = true) => {
     setFormValues(prev => {
       const next = { ...prev, [fieldName]: value };
@@ -221,7 +212,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     }
   }, [isRepair, newlyModifiedFields, onFormChange]);
 
-  // Dual-Blind Key Initialization
   useEffect(() => {
     if (isDualBlindEnabled && paymentInput?.paymentModel) {
       dualBlindCache.current.clear();
@@ -240,7 +230,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     }
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, paymentInput?.paymentModel]);
 
-  // Single Dual-Blind Re-Key Verification (onBlur)
   const validateSingleDualBlindKeyField = useCallback((fieldName: string) => {
     if (!isDualBlindEnabled || !paymentInput.dualBlindKeyFields?.includes(fieldName)) return;
     const original = dualBlindCache.current.get(fieldName) ?? '';
@@ -257,7 +246,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     });
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]);
 
-  // Global Dual-Blind Pass/Fail State
   useEffect(() => {
     if (!isDualBlindEnabled) {
       setIsDualBlindPassed(true);
@@ -271,7 +259,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     setIsDualBlindPassed(allMatched);
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]);
 
-  // Dynamic Rule Evaluation Pipeline
   useEffect(() => {
     const rawForm = formValues as unknown as Record<string, unknown>;
     const fieldMap = genericValidator.evaluateAllFields(rawForm);
@@ -280,7 +267,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     setValidationResults(finalMap);
   }, [formValues]);
 
-  // BIC Country Derivations (500ms Debounce)
   useEffect(() => {
     if (debtorBicDebouncer.current) clearTimeout(debtorBicDebouncer.current);
     debtorBicDebouncer.current = setTimeout(() => {
@@ -309,7 +295,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(creditorBicDebouncer.current);
   }, [formValues.creditorAgentFinancialInstitutionBIC, setField]);
 
-  // Automated Address Lookups (300ms Debounce)
   useEffect(() => {
     if (debtorAddrDebouncer.current) clearTimeout(debtorAddrDebouncer.current);
     debtorAddrDebouncer.current = setTimeout(async () => {
@@ -378,7 +363,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(creditorAddrDebouncer.current);
   }, [formValues.creditorCountryCode, formValues.creditorAgentFinancialInstitutionBIC, formValues.creditorSortCodeUS, formValues.creditorSortCodeUK]);
 
-  // Live Hardcap Threshold Integration (400ms Debounce)
   const instructedAmountChange = (rawInputVal?: string) => {
     if (amountDebouncer.current) clearTimeout(amountDebouncer.current);
     amountDebouncer.current = setTimeout(() => {
@@ -433,7 +417,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     }
   }, [hardcapResultReceived]);
 
-  // Readonly, Flagging, and Double-Click Handlers
   const isFieldReadonly = useCallback((fieldName: keyof Pain001Model) => {
     if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
     if (fieldName === 'debtorCountryCode') return false;
@@ -461,7 +444,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     });
   };
 
-  // Form Validity Evaluation
   const isFormValid = useMemo(() => {
     for (const [fName, rule] of validationResults.entries()) {
       if (rule.visible !== false && rule.required) {
@@ -487,7 +469,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     return true;
   }, [validationResults, formValues, isChecker, isDualBlindEnabled, isDualBlindPassed, failedFields, hardcapError]);
 
-  // Synchronize Output with Parent
   useEffect(() => {
     const payload: PaymentComponentOutput = {
       paymentData: buildPain001FromForm(formValues),
@@ -504,7 +485,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     });
   }, [isFormValid, formValues, isDualBlindEnabled, isDualBlindPassed, onPaymentOutput, onFormValidityChange]);
 
-  // Universal Field Template Renderer
   const renderField = (
     fieldName: keyof Pain001Model,
     defaultLabel: string,
@@ -534,7 +514,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     const isRepairHighlight = isRepair && repairReviewFieldList.includes(fieldName as string);
     const isNewlyMod = isRepair && newlyModifiedFields.includes(fieldName as string);
 
-    // Validation calculations for borders & error copy
     const isPatternInvalid = Boolean(
       touched[fieldName as string] &&
       rule?.pattern &&
@@ -544,7 +523,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     const isRequiredMissing = Boolean(touched[fieldName as string] && isRequired && !value);
     const hasInputError = isPatternInvalid || isRequiredMissing || hasDualBlindErr || isFailed;
 
-    // Auto-uppercase BIC and Country codes
     const isBicOrCountry =
       (fieldName as string).toLowerCase().includes('bic') ||
       (fieldName as string).toLowerCase().includes('countrycode');
@@ -634,15 +612,11 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     );
   };
 
-  const showFirstIntermediaryBank = validationResults.get('firstIntermediaryBankBIC')?.visible !== false;
-  const showSecondIntermediaryBank = Boolean(formValues.firstIntermediaryBankBIC) && validationResults.get('secondIntermediaryBankBIC')?.visible !== false;
   const showTaxDetails = validationResults.get('taxIdNumber')?.visible !== false;
 
   return (
     <div className="ss-payment-flow">
-      {/* ========================================================================= */}
-      {/* MEGA-SECTION 1: Payment Details (Debtor Side)                              */}
-      {/* ========================================================================= */}
+      {/* MEGA-SECTION 1: Payment Details (Debtor Side) */}
       <div className="section-main noBorders">
         <div className="section-main-header" onClick={() => toggleSection('paymentDetails')}>
           <span>{pacsFormVerbiages.PaymentDetails || 'Payment Details'}</span>
@@ -758,9 +732,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* MEGA-SECTION 2: Beneficiary Details (Creditor + Intermediary Side)        */}
-      {/* ========================================================================= */}
+      {/* MEGA-SECTION 2: Beneficiary Details (Creditor + Intermediary Side) */}
       <div className="section-main">
         <div className="section-main-header" onClick={() => toggleSection('beneficiaryDetails')}>
           <span>{pacsFormVerbiages.BeneficiaryDetails || 'Beneficiary Details'}</span>
@@ -843,52 +815,45 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             </div>
 
             <div className={`section-body ${sectionCollapsed.intermediaryBank ? 'collapsed' : ''}`}>
-              {showFirstIntermediaryBank && (
-                <>
-                  <div className="form-row-3">
-                    <div className="form-field">
-                      <label className="field-label">
-                        {pacsFormVerbiages.FirstIntermediaryBankSWIFTCode || '1st Intermediary Bank SWIFT Code'}
-                      </label>
-                      <input
-                        value={formValues.firstIntermediaryBankBIC ?? ''}
-                        placeholder="Enter SWIFT/BIC"
-                        readOnly={isFieldReadonly('firstIntermediaryBankBIC')}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setField('firstIntermediaryBankBIC', e.target.value.toUpperCase())}
-                        onBlur={() => setTouched(t => ({ ...t, firstIntermediaryBankBIC: true }))}
-                      />
-                      {touched.firstIntermediaryBankBIC && !formValues.firstIntermediaryBankBIC && (
-                        <div className="field-error">First Intermediary Bank BIC is required</div>
-                      )}
-                    </div>
-                    {renderField('firstIntermediaryBankRoutingCode', pacsFormVerbiages.FirstIntermediaryBankRoutingCode || '1st Intermediary Routing Code')}
-                    {renderField('firstIntermediaryBankName', pacsFormVerbiages.FirstIntermediaryBankName || '1st Intermediary Bank Name')}
-                  </div>
+              <div className="form-row-3">
+                {renderField('firstIntermediaryBankBIC', pacsFormVerbiages.FirstIntermediaryBankSWIFTCode || '1st Intermediary Bank SWIFT Code', {
+                  autoUppercase: true,
+                  placeholder: 'Enter SWIFT/BIC'
+                })}
+                {renderField('firstIntermediaryBankRoutingCode', pacsFormVerbiages.FirstIntermediaryBankRoutingCode || '1st Intermediary Routing Code')}
+                {renderField('firstIntermediaryBankName', pacsFormVerbiages.FirstIntermediaryBankName || '1st Intermediary Bank Name')}
+              </div>
 
-                  <div className="form-row-2">
-                    {renderField('firstIntermediaryBankCountryCode', pacsFormVerbiages.FirstIntermediaryBankCountryCode || '1st Intermediary Country Code', { maxLength: 2, autoUppercase: true })}
-                    {renderField('firstIntermediaryBankAccountNumber', pacsFormVerbiages.FirstIntermediaryAccountNumber || '1st Intermediary Account Number')}
-                  </div>
-                </>
-              )}
+              <div className="form-row-2">
+                {renderField('firstIntermediaryBankCountryCode', pacsFormVerbiages.FirstIntermediaryBankCountryCode || '1st Intermediary Country Code', {
+                  maxLength: 2,
+                  autoUppercase: true
+                })}
+                {renderField('firstIntermediaryBankAccountNumber', pacsFormVerbiages.FirstIntermediaryAccountNumber || '1st Intermediary Account Number')}
+              </div>
 
-              {showSecondIntermediaryBank && (
-                <div className="form-row-3">
-                  {renderField('secondIntermediaryBankBIC', pacsFormVerbiages.SecondIntermediaryBankSWIFTCode || '2nd Intermediary SWIFT Code', { autoUppercase: true })}
-                  {renderField('secondIntermediaryBankRoutingCode', pacsFormVerbiages.SecondIntermediaryBankRoutingCode || '2nd Intermediary Routing Code')}
-                  {renderField('secondIntermediaryBankName', pacsFormVerbiages.SecondIntermediaryBankName || '2nd Intermediary Bank Name')}
-                  {renderField('secondIntermediaryBankCountryCode', pacsFormVerbiages.SecondIntermediaryBankCountryCode || '2nd Intermediary Country Code', { maxLength: 2, autoUppercase: true })}
-                  {renderField('secondIntermediaryBankAccountNumber', pacsFormVerbiages.SecondIntermediaryAccountNumber || '2nd Intermediary Account Number')}
-                </div>
-              )}
+              <div className="form-row-3">
+                {renderField('secondIntermediaryBankBIC', pacsFormVerbiages.SecondIntermediaryBankSWIFTCode || '2nd Intermediary SWIFT Code', {
+                  autoUppercase: true,
+                  placeholder: 'Enter SWIFT/BIC'
+                })}
+                {renderField('secondIntermediaryBankRoutingCode', pacsFormVerbiages.SecondIntermediaryBankRoutingCode || '2nd Intermediary Routing Code')}
+                {renderField('secondIntermediaryBankName', pacsFormVerbiages.SecondIntermediaryBankName || '2nd Intermediary Bank Name')}
+              </div>
+
+              <div className="form-row-2">
+                {renderField('secondIntermediaryBankCountryCode', pacsFormVerbiages.SecondIntermediaryBankCountryCode || '2nd Intermediary Country Code', {
+                  maxLength: 2,
+                  autoUppercase: true
+                })}
+                {renderField('secondIntermediaryBankAccountNumber', pacsFormVerbiages.SecondIntermediaryAccountNumber || '2nd Intermediary Account Number')}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* MEGA-SECTION 3: Additional Information (Matches Angular Layout)           */}
-      {/* ========================================================================= */}
+      {/* MEGA-SECTION 3: Additional Information */}
       <div className="section-main">
         <div className="section-main-header" onClick={() => toggleSection('additionalInformation')}>
           <span>{pacsFormVerbiages.AdditionalInformation || 'Additional Information'}</span>
@@ -896,7 +861,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
         </div>
 
         <div className={`section-main-body ${sectionCollapsed.additionalInformation ? 'collapsed' : ''}`}>
-          {/* Sub-section 1: Additional Details (Remittance Info) */}
+          {/* Sub-section 1: Additional Details */}
           <div className="section">
             <div className="section-header" onClick={() => toggleSection('additionalDetails')}>
               <span>{pacsFormVerbiages.AdditionalDetails || 'Additional Details'}</span>
@@ -936,7 +901,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             </div>
           </div>
 
-          {/* Sub-section 3: Tax Details (Optional / Dynamic) */}
+          {/* Sub-section 3: Tax Details */}
           {showTaxDetails && (
             <div className="section">
               <div className="section-header" onClick={() => toggleSection('taxDetails')}>
@@ -953,7 +918,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             </div>
           )}
 
-          {/* Custom Extensibility Fields (Only truly custom/unrecognized fields) */}
+          {/* Dynamic Custom Fields */}
           {dynamicFieldConfigs.length > 0 && (
             <div className="section">
               <div className="section-header" onClick={() => toggleSection('dynamicAdditionalFields')}>

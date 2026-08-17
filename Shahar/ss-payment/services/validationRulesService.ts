@@ -36,29 +36,8 @@ export interface ValidationCondition {
   }
   
   export const DEFAULT_VALIDATION_RULES: Pain001ValidationRules = {
-    version: '2.4.0',
+    version: '2.5.0',
     fields: {
-      instructedAmount: [
-        {
-          priority: 30,
-          conditions: [
-            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ['JPY', 'KRW', 'CLP', 'VND', 'UGX', 'PYG', 'RWF', 'BIF', 'DJF', 'GNF', 'KMF', 'XAF', 'XOF', 'XPF'] }
-          ],
-          effect: { required: true, decimalPlaces: 0, pattern: '^[1-9]\\d*$', patternMessage: 'Zero decimal currency: Enter whole numbers only' }
-        },
-        {
-          priority: 30,
-          conditions: [
-            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ['BHD', 'KWD', 'OMR', 'JOD', 'TND', 'IQD', 'LYD'] }
-          ],
-          effect: { required: true, decimalPlaces: 3, pattern: '^\\d+(\\.\\d{1,3})?$', patternMessage: 'Up to 3 decimal places allowed for this currency' }
-        },
-        {
-          priority: 10,
-          conditions: [],
-          effect: { required: true, decimalPlaces: 2, pattern: '^\\d+(\\.\\d{1,2})?$', patternMessage: 'Up to 2 decimal places allowed' }
-        }
-      ],
       debtorAgentBIC: [
         {
           priority: 10,
@@ -91,7 +70,7 @@ export interface ValidationCondition {
             required: false,
             maxLength: 11,
             pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
-            patternMessage: 'Valid BIC format required (e.g. CITIUS33)'
+            patternMessage: 'Valid BIC required (8 or 11 alphanumeric characters)'
           }
         }
       ],
@@ -103,7 +82,7 @@ export interface ValidationCondition {
             required: false,
             maxLength: 11,
             pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
-            patternMessage: 'Valid BIC format required (e.g. CITIUS33)'
+            patternMessage: 'Valid BIC required (8 or 11 alphanumeric characters)'
           }
         }
       ],
@@ -111,7 +90,33 @@ export interface ValidationCondition {
         {
           priority: 10,
           conditions: [],
-          effect: { required: false, maxLength: 11, pattern: '^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', patternMessage: 'Must be a valid 8 or 11 character BIC/SWIFT code' }
+          effect: {
+            required: false,
+            maxLength: 11,
+            pattern: '^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$',
+            patternMessage: 'Valid BIC required (8 or 11 alphanumeric characters)'
+          }
+        }
+      ],
+      instructedAmount: [
+        {
+          priority: 30,
+          conditions: [
+            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ['JPY', 'KRW', 'CLP', 'VND', 'UGX', 'PYG', 'RWF', 'BIF', 'DJF', 'GNF', 'KMF', 'XAF', 'XOF', 'XPF'] }
+          ],
+          effect: { required: true, decimalPlaces: 0, pattern: '^[1-9]\\d*$', patternMessage: 'Zero decimal currency: Enter whole numbers only' }
+        },
+        {
+          priority: 30,
+          conditions: [
+            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ['BHD', 'KWD', 'OMR', 'JOD', 'TND', 'IQD', 'LYD'] }
+          ],
+          effect: { required: true, decimalPlaces: 3, pattern: '^\\d+(\\.\\d{1,3})?$', patternMessage: 'Up to 3 decimal places allowed for this currency' }
+        },
+        {
+          priority: 10,
+          conditions: [],
+          effect: { required: true, decimalPlaces: 2, pattern: '^\\d+(\\.\\d{1,2})?$', patternMessage: 'Up to 2 decimal places allowed' }
         }
       ],
       debtorAccountNumber: [
@@ -194,17 +199,17 @@ export interface ValidationCondition {
         {
           priority: 20,
           conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
-          effect: { required: true, maxLength: 10, pattern: '^\\d{5}(-\\d{4})?$', patternMessage: 'US ZIP must be 5 digits (e.g. 12345 or 12345-6789)' }
+          effect: { required: false, maxLength: 10, pattern: '^\\d{5}(-\\d{4})?$', patternMessage: 'US ZIP must be 5 digits (e.g. 12345 or 12345-6789)' }
         },
         {
           priority: 20,
           conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
-          effect: { required: true, maxLength: 8, pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$', patternMessage: 'Invalid UK Postal Code format' }
+          effect: { required: false, maxLength: 8, pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$', patternMessage: 'Invalid UK Postal Code format' }
         },
         {
           priority: 20,
           conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'CA' }],
-          effect: { required: true, maxLength: 7, pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$', patternMessage: 'Invalid Canadian Postal Code' }
+          effect: { required: false, maxLength: 7, pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$', patternMessage: 'Invalid Canadian Postal Code' }
         },
         {
           priority: 1,
@@ -216,17 +221,17 @@ export interface ValidationCondition {
         {
           priority: 20,
           conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
-          effect: { required: true, maxLength: 10, pattern: '^\\d{5}(-\\d{4})?$', patternMessage: 'US ZIP must be 5 digits' }
+          effect: { required: false, maxLength: 10, pattern: '^\\d{5}(-\\d{4})?$', patternMessage: 'US ZIP must be 5 digits' }
         },
         {
           priority: 20,
           conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
-          effect: { required: true, maxLength: 8, pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$', patternMessage: 'Invalid UK Postal Code format' }
+          effect: { required: false, maxLength: 8, pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$', patternMessage: 'Invalid UK Postal Code format' }
         },
         {
           priority: 20,
           conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'CA' }],
-          effect: { required: true, maxLength: 7, pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$', patternMessage: 'Invalid Canadian Postal Code' }
+          effect: { required: false, maxLength: 7, pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$', patternMessage: 'Invalid Canadian Postal Code' }
         },
         {
           priority: 1,
@@ -260,59 +265,11 @@ export interface ValidationCondition {
         {
           priority: 1,
           conditions: [],
-          effect: { visible: true, required: false }
-        }
-      ],
-      ustrdPaymentDetails: [
-        {
-          priority: 10,
-          conditions: [],
-          effect: { required: false, maxLength: 140, patternMessage: 'Remittance info cannot exceed 140 characters' }
-        }
-      ],
-      debtorAddressLines1: [
-        {
-          priority: 10,
-          conditions: [],
-          effect: { required: false, maxLength: 70, patternMessage: 'Address line cannot exceed 70 characters' }
-        }
-      ],
-      debtorAddressLines2: [
-        {
-          priority: 10,
-          conditions: [],
-          effect: { required: false, maxLength: 70, patternMessage: 'Address line cannot exceed 70 characters' }
-        }
-      ],
-      creditorAddressLines1: [
-        {
-          priority: 10,
-          conditions: [],
-          effect: { required: true, maxLength: 70, patternMessage: 'Address line cannot exceed 70 characters' }
-        }
-      ],
-      creditorAddressLines2: [
-        {
-          priority: 10,
-          conditions: [],
-          effect: { required: false, maxLength: 70, patternMessage: 'Address line cannot exceed 70 characters' }
+          effect: { visible: false, required: false }
         }
       ]
     },
     formRules: [
-      {
-        id: 'intermediary_bank_gate',
-        description: 'Hide and deactivate 2nd Intermediary fields when 1st Intermediary BIC is absent',
-        watchFields: ['firstIntermediaryBankBIC'],
-        conditions: [{ sourceField: 'firstIntermediaryBankBIC', operator: 'empty' }],
-        effects: {
-          secondIntermediaryBankBIC: { visible: false, required: false },
-          secondIntermediaryBankRoutingCode: { visible: false, required: false },
-          secondIntermediaryBankName: { visible: false, required: false },
-          secondIntermediaryBankCountryCode: { visible: false, required: false },
-          secondIntermediaryBankAccountNumber: { visible: false, required: false }
-        }
-      },
       {
         id: 'charges_coupling_rule',
         description: 'When charges amount is entered (>0), charges agent BIC and charge bearer are required',

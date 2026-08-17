@@ -9,7 +9,7 @@ export interface Pain001Model {
   debtorAgentBIC: string;
   debtorAgentBank?: string;
   chargeBearer: string;
-  chargesAmount: number;
+  chargesAmount: number | string;
   chargesAgentBIC: string;
   debtorAddressLines?: string;
   debtorAddressLines1: string;
@@ -23,7 +23,7 @@ export interface Pain001Model {
   debtorState: string;
   debtorSortCodeUK: string;
   debtorSortCodeUS: string;
-  instructedAmount: number;
+  instructedAmount: number | string;
   instructedAmountCurrencyCode: string;
   creditorName: string;
   creditorAccount: string;
@@ -139,15 +139,13 @@ export const PAIN001_MANDATORY_FIELDS: string[] = [
   'chargeBearer'
 ];
 
-export const ALWAYS_REQUIRED_FIELDS: string[] = PAIN001_MANDATORY_FIELDS;
-
 export function createEmptyPain001(): Pain001Model {
   const empty: Record<string, unknown> = {};
   PAIN001_STRING_FIELDS.forEach(f => {
     empty[f] = '';
   });
   PAIN001_NUMERIC_FIELDS.forEach(f => {
-    empty[f] = 0;
+    empty[f] = '';
   });
   empty.applicationName = 'ADR';
   empty.applicationModule = 'ADR';
@@ -161,12 +159,10 @@ export interface FormFieldConfig {
   hidden?: boolean;
   required?: boolean;
   options?: readonly string[] | string[];
-  type?: string;
+  type?: 'text' | 'number' | 'date' | 'textarea' | string;
   placeholder?: string;
   value?: string | number;
 }
-
-export const DEFAULT_FIELD_CONFIG: FormFieldConfig[] = [];
 
 export interface PaymentComponentInput {
   applicationName: string;
