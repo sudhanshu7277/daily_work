@@ -1,39 +1,17 @@
-export interface ValidationCondition {
-    factor?: 'country' | 'paymentType' | 'currency' | 'paymentMethod' | 'fieldValue';
-    sourceField: string;
-    derivation?: 'bicCountry';
-    operator: 'eq' | 'neq' | 'in' | 'notIn' | 'empty' | 'notEmpty' | 'regex';
-    value?: string | string[];
-  }
+import {
+    validationRulesService,
+    ValidationCondition,
+    ValidationEffect,
+    Pain001ValidationRules
+  } from './validationRulesService';
   
-  export interface ValidationEffect {
-    required?: boolean;
-    visible?: boolean;
-    pattern?: string;
-    patternMessage?: string;
-    maxLength?: number;
-    decimalPlaces?: number;
-  }
-  
-  export interface FieldValidationRule {
-    priority: number;
-    conditions: ValidationCondition[];
-    effect: ValidationEffect;
-  }
-  
-  export interface FormRule {
-    id: string;
-    description: string;
-    watchFields: string[];
-    conditions: ValidationCondition[];
-    effects: Record<string, ValidationEffect>;
-  }
-  
-  export interface Pain001ValidationRules {
-    version: string;
-    fields: Record<string, FieldValidationRule[]>;
-    formRules: FormRule[];
-  }
+  export type {
+    ValidationCondition,
+    ValidationEffect,
+    FieldValidationRule,
+    FormRule,
+    Pain001ValidationRules
+  } from './validationRulesService';
   
   export interface FieldValidationResult {
     fieldName: string;
@@ -45,118 +23,8 @@ export interface ValidationCondition {
     decimalPlaces?: number;
   }
   
-  let activeRules: Pain001ValidationRules = {
-    version: '1.0.0',
-    fields: {
-      instructedAmount: [
-        {
-          priority: 10,
-          conditions: [
-            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ['JPY', 'KRW', 'CLP', 'VND', 'UGX', 'PYG'] }
-          ],
-          effect: { required: true, decimalPlaces: 0, pattern: '^\\d+$', patternMessage: 'No decimal places allowed for this currency' }
-        },
-        {
-          priority: 10,
-          conditions: [
-            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ['BHD', 'KWD', 'OMR', 'JOD', 'TND', 'IQD'] }
-          ],
-          effect: { required: true, decimalPlaces: 3, pattern: '^\\d+(\\.\\d{1,3})?$', patternMessage: 'Up to 3 decimal places allowed' }
-        },
-        {
-          priority: 1,
-          conditions: [],
-          effect: { required: true, decimalPlaces: 2, pattern: '^\\d+(\\.\\d{1,2})?$', patternMessage: 'Up to 2 decimal places allowed' }
-        }
-      ],
-      debtorPostalCode: [
-        {
-          priority: 10,
-          conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
-          effect: { required: true, pattern: '^\\d{5}(-\\d{4})?$', patternMessage: 'US ZIP must be 5 digits (e.g. 12345 or 12345-6789)' }
-        },
-        {
-          priority: 10,
-          conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
-          effect: { required: true, pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$', patternMessage: 'Invalid UK Postal Code format' }
-        },
-        {
-          priority: 10,
-          conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'CA' }],
-          effect: { required: true, pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$', patternMessage: 'Invalid Canadian Postal Code' }
-        },
-        {
-          priority: 1,
-          conditions: [],
-          effect: { required: false, maxLength: 16 }
-        }
-      ],
-      creditorPostalCode: [
-        {
-          priority: 10,
-          conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
-          effect: { required: true, pattern: '^\\d{5}(-\\d{4})?$', patternMessage: 'US ZIP must be 5 digits' }
-        },
-        {
-          priority: 10,
-          conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
-          effect: { required: true, pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$', patternMessage: 'Invalid UK Postal Code format' }
-        },
-        {
-          priority: 1,
-          conditions: [],
-          effect: { required: false, maxLength: 16 }
-        }
-      ],
-      taxIdNumber: [
-        {
-          priority: 20,
-          conditions: [
-            { sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'PE' },
-            { sourceField: 'painPaymentMethodType', operator: 'eq', value: 'CBT' }
-          ],
-          effect: { required: true, pattern: '^(10|15|17|20)\\d{9}$', patternMessage: 'Peru RUC must be 11 digits starting with 10, 15, 17, or 20' }
-        },
-        {
-          priority: 20,
-          conditions: [
-            { sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'BR' }
-          ],
-          effect: { required: true, pattern: '^\\d{14}$|^\\d{11}$', patternMessage: 'Brazil Tax ID must be 11 (CPF) or 14 (CNPJ) digits' }
-        },
-        {
-          priority: 1,
-          conditions: [],
-          effect: { required: false, visible: true }
-        }
-      ]
-    },
-    formRules: [
-      {
-        id: 'intermediary_chain',
-        description: 'Second intermediary requires First intermediary BIC',
-        watchFields: ['firstIntermediaryBankBIC'],
-        conditions: [{ sourceField: 'firstIntermediaryBankBIC', operator: 'empty' }],
-        effects: {
-          secondIntermediaryBankBIC: { visible: false, required: false },
-          secondIntermediaryBankAccountNumber: { visible: false, required: false }
-        }
-      },
-      {
-        id: 'charge_bearer_pair',
-        description: 'Charges Agent BIC required when Charges Amount is present',
-        watchFields: ['chargesAmount'],
-        conditions: [{ sourceField: 'chargesAmount', operator: 'notEmpty' }],
-        effects: {
-          chargesAgentBIC: { required: true },
-          chargeBearer: { required: true }
-        }
-      }
-    ]
-  };
-  
   export function configureValidationRules(rules: Pain001ValidationRules): void {
-    activeRules = rules;
+    validationRulesService.setRules(rules);
   }
   
   function isValueEmpty(v: unknown): boolean {
@@ -236,7 +104,9 @@ export interface ValidationCondition {
   }
   
   export function evaluateAllFields(formValues: Record<string, unknown>): Map<string, FieldValidationResult> {
+    const activeRules = validationRulesService.getRules();
     const results = new Map<string, FieldValidationResult>();
+  
     for (const fieldName of Object.keys(activeRules.fields)) {
       const rules = activeRules.fields[fieldName];
       const sorted = [...rules].sort((a, b) => b.priority - a.priority);
@@ -253,7 +123,9 @@ export interface ValidationCondition {
   }
   
   export function evaluateFormRules(formValues: Record<string, unknown>): Map<string, ValidationEffect> {
+    const activeRules = validationRulesService.getRules();
     const effects = new Map<string, ValidationEffect>();
+  
     for (const rule of activeRules.formRules) {
       if (allConditionsMatch(rule.conditions, formValues)) {
         for (const [fieldName, effect] of Object.entries(rule.effects)) {

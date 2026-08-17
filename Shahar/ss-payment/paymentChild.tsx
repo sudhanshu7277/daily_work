@@ -53,7 +53,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   fieldConfig = [],
   initialData,
   pacsFormVerbiages = {},
-  isMakerMode,
+  isMakerMode: _isMakerMode,
   isCheckerMode,
   isRepairMode,
   repairReviewFieldList = [],
@@ -114,7 +114,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   const [dualBlindErrors, setDualBlindErrors] = useState<Map<string, string>>(new Map());
   const [isDualBlindPassed, setIsDualBlindPassed] = useState<boolean>(false);
   const [validationResults, setValidationResults] = useState<Map<string, ValidationEffect>>(new Map());
-  const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: 'success' | 'error' }>>([]);
 
   const [isDebtorCountryReadonly, setIsDebtorCountryReadonly] = useState<boolean>(false);
   const [isCreditorCountryReadonly, setIsCreditorCountryReadonly] = useState<boolean>(false);
@@ -815,15 +814,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Toast Notification Container */}
-      <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast toast-${t.type}`}>
-            {t.message}
-          </div>
-        ))}
       </div>
     </div>
   );

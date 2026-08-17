@@ -160,8 +160,8 @@ export interface FormFieldConfig {
   label: string;
   hidden?: boolean;
   required?: boolean;
-  options?: any;
-  type?: any;
+  options?: readonly string[] | string[];
+  type?: string;
   placeholder?: string;
   value?: string | number;
 }
@@ -204,18 +204,10 @@ export interface VerifyHardCapRequest {
   applicationModule: string;
 }
 
-export interface MakerSubmitResponse {
-  referenceId: string;
-  status: string;
-  message: string;
-}
-
-export const PAYMENT_METHOD_OPTIONS = ['CBT', 'BKT', 'DFT'] as const;
-export const REGION_OPTIONS = ['EMEA', 'LATAM', 'APAC', 'NAM'] as const;
-export const PAYMENT_TYPE_OPTIONS = ['CBT', 'BKT', 'DFT'] as const;
-export const CHARGE_BEARER_OPTIONS = ['DEBT', 'CRED', 'SHAR', 'SLEV'] as const;
-
 export interface FormValidityPayload {
   validForm: boolean;
   makerPayload: Record<string, unknown>;
 }
+
+export const PAYMENT_TYPE_OPTIONS = ['CBT', 'BKT', 'DFT'] as const;
+export const CHARGE_BEARER_OPTIONS = ['DEBT', 'CRED', 'SHAR', 'SLEV'] as const;
