@@ -154,3 +154,22 @@ export const PaymentParent: FC = () => {
   };
   
   export default PaymentParent;
+
+
+
+  // Solution 2: Dedicated Click Handler
+//Define a dedicated handler above the return statement in PaymentParent.tsx:
+
+const onMakerSubmitClick = () => {
+    handleMakerSubmit(false);
+  };
+
+
+  <button
+  type="button"
+  className={!makerFormValid || isMakerSubmitting ? 'lmn-btn-unclickable lmn-btn-grey' : 'lmn-btn lmn-btn-primary'}
+  disabled={!makerFormValid || isMakerSubmitting}
+  onClick={onMakerSubmitClick}
+>
+  {isMakerSubmitting ? 'Submitting...' : 'Submit Payment'}
+</button>
