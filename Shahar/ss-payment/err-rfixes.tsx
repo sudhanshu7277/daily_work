@@ -122,3 +122,60 @@ const [displaySuccessOrFailureMessage, setDisplaysSuccessOrFailureMessage] = use
       </div>
     </div>
   )}
+
+
+
+  /// handleSubmit function
+
+  const handleMakerSubmit = async (overrideDuplicate: boolean | React.MouseEvent = false) => {
+    const isOverride = typeof overrideDuplicate === 'boolean' ? overrideDuplicate : false;
+    if (!makerPayload || !makerFormValid) return;
+    setIsMakerSubmitting(true);
+  
+    const endpoint = '/shared-services/api/payment/api/payments';
+    const payload = {
+      ...makerPayload,
+      loginUser: soeId,
+      overrideDuplicateFlag: isOverride ? 'Y' : 'N'
+    };
+  
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'SOEID': soeId
+        },
+        body: JSON.stringify(payload)
+      });
+  
+      const data = await res.json().catch(() => ({}));
+  
+      if (!res.ok) {
+        if (res.status === 400 && data?.errorCode === 'DUPLICATE_PAYMENT') {
+          if (window.confirm(`Warning: Similar payment exists with ID ${data.referenceId || 'N/A'}. Do you want to override and submit anyway?`)) {
+            await handleMakerSubmit(true);
+            return;
+          }
+        }
+        throw new Error(data?.error || data?.message || `Payment creation failed (${res.status})`);
+      }
+  
+      setDisplaysSuccessOrFailureMessage({
+        referenceId: data.referenceId || data.transactionId || data.id || 'N/A',
+        status: data.status || 'SUBMITTED',
+        message: 'Payment record saved successfully !',
+        color: 'green'
+      });
+    } catch (err: any) {
+      console.error('Payment submission failed:', err);
+      setDisplaysSuccessOrFailureMessage({
+        referenceId: 'N/A',
+        status: 'FAILED',
+        message: err.message || 'Payment creation failed !',
+        color: 'red'
+      });
+    } finally {
+      setIsMakerSubmitting(false);
+    }
+  };
