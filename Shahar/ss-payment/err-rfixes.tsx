@@ -1,162 +1,124 @@
-// 1. Update createEmptyPain001 in src/pages/ss-payment/types/models.ts
-//Allow numeric fields in Pain001Model to be initialized to empty strings "" or numbers:
+// Updated handleMakerSubmit in PaymentParent.tsx
+// Replace the mock handleMakerSubmit function (lines 107–115) with the real API call:
 
+const [displaySuccessOrFailureMessage, setDisplaysSuccessOrFailureMessage] = useState<any>(null);
 
-export interface Pain001Model {
-    // ...
-    chargesAmount: number | string;
-    instructedAmount: number | string;
-    // ...
-  }
-  
-  export function createEmptyPain001(): Pain001Model {
-    const empty: Record<string, unknown> = {};
-    PAIN001_STRING_FIELDS.forEach(f => {
-      empty[f] = '';
-    });
-    PAIN001_NUMERIC_FIELDS.forEach(f => {
-      empty[f] = ''; // <-- Change from 0 to ''
-    });
-    empty.applicationName = 'ADR';
-    empty.applicationModule = 'ADR';
-    empty.region = '';
-    return empty as Pain001Model;
-  }
+  const handleMakerSubmit = async (overrideDuplicate: boolean = false) => {
+    if (!makerPayload || !makerFormValid) return;
+    setIsMakerSubmitting(true);
 
+    const endpoint = '/shared-services/api/payment/api/payments';
+    const payload = {
+      ...makerPayload,
+      loginUser: soeId,
+      overrideDuplicateFlag: overrideDuplicate ? 'Y' : 'N'
+    };
 
-  // 2. Update Form Initialization in PaymentChild.tsx
-// Ensure the state initialization honors empty strings instead of coercing empty values into 0:
-
-  // Form State Initialization
-  const [formValues, setFormValues] = useState<Pain001Model>(() => {
-    const empty = createEmptyPain001() as Record<string, any>;
-    const init = { ...(initialData || {}), ...(paymentInput?.paymentModel || {}) } as Record<string, any>;
-    const values: Record<string, any> = {};
-
-    fieldConfig.forEach(cfg => {
-      const rawVal = cfg.value ?? init[cfg.fieldName] ?? empty[cfg.fieldName] ?? '';
-      values[cfg.fieldName] = rawVal;
-    });
-
-    [
-      'debtorAddressLines1',
-      'debtorAddressLines2',
-      'creditorAddressLines1',
-      'creditorAddressLines2',
-      'debtorState',
-      'creditorState'
-    ].forEach(f => {
-      if (!(f in values)) {
-        values[f] = String(init[f] ?? '');
-      }
-    });
-
-    return { ...empty, ...values } as Pain001Model;
-  });
-
-
-  // 3. Update Amount Handlers in PaymentChild.tsx
-// Parse the string value to a number only when calling onAmountChange 
-// for the hardcap verification API:
-
-
-// Form State Mutator
-const setField = useCallback((fieldName: keyof Pain001Model, value: unknown, emitEvent = true) => {
-    setFormValues(prev => {
-      const next = { ...prev, [fieldName]: value };
-      if (emitEvent) {
-        onFormChange?.(next as unknown as Record<string, unknown>);
-      }
-      return next;
-    });
-
-    if (isRepair && !newlyModifiedFields.includes(fieldName as string)) {
-      setNewlyModifiedFields(prev => [...prev, fieldName as string]);
-    }
-  }, [isRepair, newlyModifiedFields, onFormChange]);
-
-  // Live Hardcap Threshold Integration (400ms Debounce)
-  const instructedAmountChange = (rawInputVal?: string) => {
-    if (amountDebouncer.current) clearTimeout(amountDebouncer.current);
-    amountDebouncer.current = setTimeout(() => {
-      const valToParse = rawInputVal !== undefined ? rawInputVal : String(formValues.instructedAmount ?? '');
-      const parsedAmount = parseFloat(valToParse);
-
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        setHardcapChecking(false);
-        setHardcapError('');
-        setHardcapSuccessMessage('');
-        return;
-      }
-
-      setHardcapChecking(true);
-      onAmountChange?.({
-        instructedAmountCurrencyCode: formValues.instructedAmountCurrencyCode || 'USD',
-        instructedAmount: parsedAmount // <-- Converted string to number
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'SOEID': soeId
+        },
+        body: JSON.stringify(payload)
       });
-    }, 400);
-  };
 
-  const onAmountBlur = () => {
-    const parsedAmount = parseFloat(String(formValues.instructedAmount ?? ''));
-    if (!isNaN(parsedAmount) && parsedAmount > 0) {
-      onAmountChange?.({
-        instructedAmountCurrencyCode: formValues.instructedAmountCurrencyCode || 'USD',
-        instructedAmount: parsedAmount
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // Handle duplicate payment alert if backend flags it
+        if (res.status === 400 && data?.errorCode === 'DUPLICATE_PAYMENT') {
+          if (window.confirm(`Warning: Similar payment exists with ID ${data.referenceId || 'N/A'}. Do you want to override and submit anyway?`)) {
+            await handleMakerSubmit(true);
+            return;
+          }
+        }
+        throw new Error(data?.error || data?.message || `Payment creation failed (${res.status})`);
+      }
+
+      setDisplaysSuccessOrFailureMessage({
+        referenceId: data.referenceId || data.transactionId || data.id || 'N/A',
+        status: data.status || 'SUBMITTED',
+        message: 'Payment record saved successfully !',
+        color: 'green'
       });
+    } catch (err: any) {
+      console.error('Payment submission failed:', err);
+      setDisplaysSuccessOrFailureMessage({
+        referenceId: 'N/A',
+        status: 'FAILED',
+        message: err.message || 'Payment creation failed !',
+        color: 'red'
+      });
+    } finally {
+      setIsMakerSubmitting(false);
     }
   };
 
+  const closeModelPopUp = () => {
+    setDisplaysSuccessOrFailureMessage(null);
+  };
 
-  // 4. Update the JSX for Transaction Amount in PaymentChild.tsx
-// Ensure the input renders empty and pipes its event value directly:
 
+  // Add the Success/Failure Modal in PaymentParent.tsx (Before Closing </div>)
+ // Add this JSX right before the last closing </div> 
+ // in PaymentParent.tsx to render the pop-up when the response returns:
 
-<div className="form-field">
-                <label className="field-label">
-                  {pacsFormVerbiages.TransactionAmount || 'Transaction Amount'}
-                  <span className="mandatory-indicator"> *</span>
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter Transaction Amount"
-                  value={formValues.instructedAmount === 0 ? '' : (formValues.instructedAmount ?? '')}
-                  readOnly={isFieldReadonly('instructedAmount')}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    const rawVal = e.target.value;
-                    setField('instructedAmount', rawVal);
-                    instructedAmountChange(rawVal);
-                  }}
-                  onBlur={() => {
-                    validateSingleDualBlindKeyField('instructedAmount');
-                    onAmountBlur();
-                  }}
-                />
-                {hardcapChecking && <div className="hint">{pacsFormVerbiages.ValidatingHardcapLimit || 'Validating hardcap limit...'}</div>}
-                {hardcapError && <div className="field-error">{hardcapError}</div>}
-                {hardcapSuccessMessage && <div className="success-message">{hardcapSuccessMessage}</div>}
+ {/* Success / Error Response Modal */}
+ {displaySuccessOrFailureMessage && (
+    <div id="myModal" className="modal">
+      <div className="modal-backdrop">
+        <div className="modal-container">
+          <header className="modal-header">
+            <h3>
+              {displaySuccessOrFailureMessage.message === 'Payment record saved successfully !'
+                ? 'MAKER RECORD SAVED'
+                : 'MAKER RECORD NOT CREATED'}
+            </h3>
+            <button
+              type="button"
+              className="close-btn"
+              aria-label="Close"
+              onClick={closeModelPopUp}
+            >
+              &times;
+            </button>
+          </header>
+          <div className="modal-body">
+            <div className="details-card">
+              <div className="detail-row">
+                <span className="label">Sender Reference ID:</span>
+                <span className="value"><strong>{displaySuccessOrFailureMessage.referenceId}</strong></span>
               </div>
-
-
-// 5. Ensure buildPain001FromForm in src/pages/ss-payment/utils/paymentUtils.ts Converts to Numbers on Final Output
-
-export function buildPain001FromForm(
-    formValues: Pain001Model | Record<string, unknown> | Record<string, any>
-  ): Pain001Model {
-    const base = createEmptyPain001();
-    const result: Record<string, any> = { ...base };
-    const raw = formValues as Record<string, any>;
-  
-    Object.keys(base).forEach(key => {
-      if (raw[key] === undefined) return;
-      result[key] = NUMERIC_FIELDS.has(key as any)
-        ? (parseFloat(String(raw[key])) || 0) // <-- Converts string state back to number for backend payload
-        : raw[key];
-    });
-  
-    if (raw.creditorAgentAccountNumber && !result.creditorAgentPostalAddress) {
-      result.creditorAgentPostalAddress = raw.creditorAgentAccountNumber;
-    }
-  
-    return result as Pain001Model;
-  }
+              <div className="detail-row">
+                <span className="label">Amount:</span>
+                <span className="value">
+                  {makerPayload?.instructedAmountCurrencyCode} {makerPayload?.instructedAmount}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span className="label">Status:</span>
+                <span className={`value status-${displaySuccessOrFailureMessage.status?.toLowerCase()}`} style={{ color: displaySuccessOrFailureMessage.color }}>
+                  {displaySuccessOrFailureMessage.status}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span className="label">Message:</span>
+                <span className="value">{displaySuccessOrFailureMessage.message}</span>
+              </div>
+            </div>
+          </div>
+          <footer className="modal-footer">
+            <button
+              type="button"
+              className="lmn-btn lmn-btn-primary"
+              onClick={closeModelPopUp}
+            >
+              OK
+            </button>
+          </footer>
+        </div>
+      </div>
+    </div>
+  )}
