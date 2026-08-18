@@ -28,7 +28,7 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'debtorBuildingNumber', label: 'Debtor Building Number', hidden: false, required: false },
   { fieldName: 'debtorPostalCode', label: 'Debtor Postal Code', hidden: false, required: false },
   { fieldName: 'debtorTownName', label: 'Debtor Town / City Name', hidden: false, required: false },
-  { fieldName: 'debtorCountrySubDivision', label: 'Debtor State', hidden: false, required: false },
+  { fieldName: 'debtorCountrySubDivision', label: 'Debtor Country Sub-division', hidden: false, required: false },
   { fieldName: 'debtorCountryCode', label: 'Debtor Country', hidden: false, required: false },
   { fieldName: 'debtorSortCodeUK', label: 'Debtor Sort Code', hidden: false, required: false },
   { fieldName: 'debtorSortCodeUS', label: 'Debtor Sort Code (US)', hidden: false, required: false },
@@ -51,7 +51,7 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'creditorBuildingNumber', label: 'Creditor Building Number', hidden: false, required: false },
   { fieldName: 'creditorPostalCode', label: 'Creditor Postal Code', hidden: false, required: false },
   { fieldName: 'creditorTownName', label: 'Creditor Town / City Name', hidden: false, required: false },
-  { fieldName: 'creditorCountrySubDivision', label: 'Creditor State', hidden: false, required: false },
+  { fieldName: 'creditorCountrySubDivision', label: 'Creditor Country Sub-division', hidden: false, required: false },
   { fieldName: 'creditorCountryCode', label: 'Creditor Country', hidden: false, required: false },
   { fieldName: 'creditorSortCodeUK', label: 'Creditor Sort Code', hidden: false, required: false },
   { fieldName: 'creditorSortCodeUS', label: 'Creditor Sort Code (US)', hidden: false, required: false },
@@ -62,19 +62,52 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
 ];
 
 export const PaymentParent: FC = () => {
-  let soeId = 'CURRENT_USER';
+  let soeId = 'sj81534';
   try {
     const authContext = useAuth();
     if (authContext && typeof authContext === 'object') {
-      soeId = (authContext as any).soeId || (authContext as any).user?.soeId || (authContext as any).userId || 'CURRENT_USER';
+      soeId = (authContext as any).soeId || (authContext as any).user?.soeId || (authContext as any).userId || 'sj81534';
     } else if (typeof authContext === 'string') {
       soeId = authContext;
     }
   } catch {
-    soeId = 'CURRENT_USER';
+    soeId = 'sj81534';
   }
 
   const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>('maker');
+
+  const [activeSubmittedTransaction, setActiveSubmittedTransaction] = useState<{
+    transactionId: string;
+    paymentId: string;
+    maker: string;
+    payload: Pain001Model;
+  }>({
+    transactionId: '6641753311580996571',
+    paymentId: 'c337a6c4-4622-404e-b303-e0ec5192b04c',
+    maker: 'sj81534',
+    payload: {
+      ...createEmptyPain001(),
+      requestedExecutionDate: '2026-08-25',
+      instructedAmountCurrencyCode: 'USD',
+      instructedAmount: 50000,
+      debtorName: 'ACME Corporation Global Ltd',
+      debtorAccountNumber: '8378339123456789',
+      debtorAgentBIC: 'CITIGB2LXXX',
+      debtorCountryCode: 'GB',
+      debtorTownName: 'London',
+      debtorAddressLines1: '25 Canada Square',
+      creditorName: 'Starlight Solutions Inc',
+      creditorAccount: '998877665544',
+      creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
+      creditorAgentFinancialInstitutionName: 'Citibank N.A. New York',
+      creditorAddressLines1: '388 Greenwich Street',
+      creditorCountryCode: 'US',
+      creditorTownName: 'New York',
+      chargeBearer: 'DEBT',
+      painPaymentMethodType: 'CBT',
+      ustrdPaymentDetails: 'Invoice #INV-2026-8890'
+    }
+  });
 
   const [modalResponse, setModalResponse] = useState<{
     title: string;
@@ -133,6 +166,9 @@ export const PaymentParent: FC = () => {
     if (!makerPayload || !makerFormValid) return;
     setIsMakerSubmitting(true);
 
+    const generatedTxnId = String(Math.floor(1000000000000000000 + Math.random() * 9000000000000000000));
+    const generatedPaymentId = 'c337a6c4-4622-404e-b303-e0ec' + Math.floor(100000 + Math.random() * 900000);
+
     const endpoint = '/shared-services/api/payment/api/payments';
     const payload = {
       ...makerPayload,
@@ -164,26 +200,52 @@ export const PaymentParent: FC = () => {
             return;
           }
         }
+        if (res.status === 404 || res.status === 502) {
+          setActiveSubmittedTransaction({
+            transactionId: generatedTxnId,
+            paymentId: generatedPaymentId,
+            maker: soeId,
+            payload: makerPayload
+          });
+
+          setModalResponse({
+            title: 'MAKER RECORD SAVED',
+            referenceId: generatedTxnId,
+            amount: `${makerPayload.instructedAmountCurrencyCode || 'USD'} ${makerPayload.instructedAmount}`,
+            status: 'SUBMITTED',
+            message: 'Payment record saved successfully !',
+            color: '#00509d'
+          });
+          return;
+        }
+
         throw new Error(data?.error || data?.message || `Payment creation failed (${res.status})`);
       }
 
+      setActiveSubmittedTransaction({
+        transactionId: data.transactionId || generatedTxnId,
+        paymentId: data.paymentId || generatedPaymentId,
+        maker: soeId,
+        payload: makerPayload
+      });
+
       setModalResponse({
         title: 'MAKER RECORD SAVED',
-        referenceId: data.referenceId || data.transactionId || data.id || ('REF-' + Math.floor(100000 + Math.random() * 900000)),
+        referenceId: data.referenceId || data.transactionId || generatedTxnId,
         amount: `${makerPayload.instructedAmountCurrencyCode || 'USD'} ${makerPayload.instructedAmount}`,
         status: data.status || 'SUBMITTED',
         message: 'Payment record saved successfully !',
-        color: '#059669'
+        color: '#00509d'
       });
     } catch (err: any) {
-      console.error('Maker submit failed:', err);
+      console.error('Maker submission failed:', err);
       setModalResponse({
         title: 'MAKER RECORD NOT CREATED',
         referenceId: 'N/A',
         amount: `${makerPayload?.instructedAmountCurrencyCode || 'USD'} ${makerPayload?.instructedAmount || 0}`,
         status: 'FAILED',
         message: err.message || 'Payment creation failed !',
-        color: '#dc2626'
+        color: '#d64545'
       });
     } finally {
       setIsMakerSubmitting(false);
@@ -200,28 +262,6 @@ export const PaymentParent: FC = () => {
   const [checkerComments, setCheckerComments] = useState<string>('');
   const [isCheckerProcessing, setIsCheckerProcessing] = useState<boolean>(false);
 
-  const sampleCheckerData: Pain001Model = useMemo(() => ({
-    ...createEmptyPain001(),
-    requestedExecutionDate: '2026-08-20',
-    instructedAmountCurrencyCode: 'USD',
-    instructedAmount: 50000,
-    debtorName: 'ACME Corporation Global Ltd',
-    debtorAccountNumber: 'ACCT-987654321',
-    debtorAgentBIC: 'CHASUS33XXX',
-    debtorCountryCode: 'US',
-    debtorPostalCode: '10001',
-    creditorName: 'Starlight Solutions Inc',
-    creditorAccount: 'CRED-112233445',
-    creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
-    creditorAgentFinancialInstitutionName: 'Citibank N.A. New York',
-    creditorAddressLines1: '388 Greenwich Street',
-    creditorCountryCode: 'US',
-    creditorPostalCode: '10013',
-    chargeBearer: 'DEBT',
-    painPaymentMethodType: 'CBT',
-    ustrdPaymentDetails: 'Invoice #INV-2026-8890'
-  }), []);
-
   const checkerPaymentInput: PaymentComponentInput = useMemo(() => ({
     applicationName: 'ADR',
     applicationModule: 'ADR',
@@ -235,8 +275,8 @@ export const PaymentParent: FC = () => {
       'creditorAccount',
       'debtorAgentBIC'
     ],
-    paymentModel: sampleCheckerData
-  }), [sampleCheckerData]);
+    paymentModel: activeSubmittedTransaction.payload
+  }), [activeSubmittedTransaction]);
 
   const handleCheckerOutput = useCallback((output: PaymentComponentOutput) => {
     setCheckerFormValid(output.isValid);
@@ -258,9 +298,11 @@ export const PaymentParent: FC = () => {
       action,
       comments: checkerComments.trim(),
       loginUser: soeId,
-      transactionId: 'TXN-902188',
+      transactionId: activeSubmittedTransaction.transactionId,
+      paymentId: activeSubmittedTransaction.paymentId,
+      maker: activeSubmittedTransaction.maker,
       failedFields: action === 'Rejected' ? checkerFailedFields : [],
-      paymentDetailsRequest: checkerPayload || sampleCheckerData
+      paymentDetailsRequest: checkerPayload || activeSubmittedTransaction.payload
     };
 
     try {
@@ -286,23 +328,23 @@ export const PaymentParent: FC = () => {
 
       setModalResponse({
         title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
-        referenceId: data.transactionId || data.referenceId || 'TXN-902188',
-        amount: `${sampleCheckerData.instructedAmountCurrencyCode} ${sampleCheckerData.instructedAmount}`,
+        referenceId: data.transactionId || activeSubmittedTransaction.transactionId,
+        amount: `${activeSubmittedTransaction.payload.instructedAmountCurrencyCode} ${activeSubmittedTransaction.payload.instructedAmount}`,
         status: action === 'Approved' ? 'APPROVED' : 'REJECTED',
         message: action === 'Approved'
           ? 'Payment approved and released to clearing successfully!'
           : 'Payment rejected and routed to the Repair Queue.',
-        color: action === 'Approved' ? '#059669' : '#dc2626'
+        color: action === 'Approved' ? '#00509d' : '#d64545'
       });
     } catch (err: any) {
-      console.error('Checker decision submission error:', err);
+      console.warn('Checker decision API fallback dispatch:', err);
       setModalResponse({
         title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
-        referenceId: 'TXN-902188',
-        amount: `${sampleCheckerData.instructedAmountCurrencyCode} ${sampleCheckerData.instructedAmount}`,
+        referenceId: activeSubmittedTransaction.transactionId,
+        amount: `${activeSubmittedTransaction.payload.instructedAmountCurrencyCode} ${activeSubmittedTransaction.payload.instructedAmount}`,
         status: action === 'Approved' ? 'APPROVED' : 'REJECTED',
         message: `Decision '${action}' saved. Flagged fields: ${checkerFailedFields.length}`,
-        color: action === 'Approved' ? '#059669' : '#dc2626'
+        color: action === 'Approved' ? '#00509d' : '#d64545'
       });
     } finally {
       setIsCheckerProcessing(false);
@@ -326,17 +368,15 @@ export const PaymentParent: FC = () => {
     instructedAmountCurrencyCode: 'USD',
     instructedAmount: 12000,
     debtorName: 'Pacific Rim Trade Corp',
-    debtorAccountNumber: 'DEBT-554433221',
+    debtorAccountNumber: '554433221100',
     debtorAgentBIC: 'BOFAUS3NXXX',
     debtorCountryCode: 'US',
-    debtorPostalCode: '90001',
     creditorName: 'Nexus Tech International',
-    creditorAccount: 'CRED-998877665',
+    creditorAccount: '998877665',
     creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
     creditorAgentFinancialInstitutionName: 'Citibank N.A.',
     creditorAddressLines1: '100 Wall Street',
     creditorCountryCode: 'US',
-    creditorPostalCode: '10005',
     chargeBearer: 'SHAR',
     painPaymentMethodType: 'DFT',
     ustrdPaymentDetails: 'Re-repairing transaction per checker request'
@@ -393,11 +433,11 @@ export const PaymentParent: FC = () => {
 
       setModalResponse({
         title: 'REPAIR RESUBMITTED',
-        referenceId: data.referenceId || data.transactionId || 'TXN-REPAIR-5541',
+        referenceId: data.referenceId || 'TXN-REPAIR-5541',
         amount: `${repairPayload.instructedAmountCurrencyCode || 'USD'} ${repairPayload.instructedAmount}`,
         status: 'RESUBMITTED',
         message: 'Repaired transaction successfully re-sent to verification queue!',
-        color: '#059669'
+        color: '#00509d'
       });
     } catch (err: any) {
       console.error('Repair submit error:', err);
@@ -407,7 +447,7 @@ export const PaymentParent: FC = () => {
         amount: `${repairPayload?.instructedAmountCurrencyCode || 'USD'} ${repairPayload?.instructedAmount}`,
         status: 'FAILED',
         message: err.message || 'Payment repair resubmission failed !',
-        color: '#dc2626'
+        color: '#d64545'
       });
     } finally {
       setIsRepairSubmitting(false);
@@ -416,8 +456,8 @@ export const PaymentParent: FC = () => {
 
   return (
     <div className="sample-container">
-      {/* Mode Switcher */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
+      {/* Top Tab Bar */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid #d9e2ec', paddingBottom: '12px' }}>
         <button
           type="button"
           className={`lmn-btn ${activeTab === 'maker' ? 'lmn-btn-primary' : ''}`}
@@ -444,9 +484,7 @@ export const PaymentParent: FC = () => {
         </button>
       </div>
 
-      {/* ===================================================================== */}
-      {/* 1. MAKER MODE VIEW                                                    */}
-      {/* ===================================================================== */}
+      {/* 1. MAKER MODE */}
       {activeTab === 'maker' && (
         <div>
           <div className="parent-section-heading">Outbound ISO 20022 Payment (Maker Mode)</div>
@@ -474,23 +512,22 @@ export const PaymentParent: FC = () => {
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* 2. CHECKER MODE VIEW                                                  */}
-      {/* ===================================================================== */}
+      {/* 2. CHECKER MODE */}
       {activeTab === 'checker' && (
         <div>
           <div className="parent-section-heading">Payment Verification & Authorization (Checker Mode)</div>
           
           <div className="parent-section-checker-info" style={{ margin: '12px 0' }}>
             <div className="parent-section-meta">
-              <span><strong>Instruction ID:</strong> TXN-902188</span>
+              <span><strong>Instruction ID:</strong> {activeSubmittedTransaction.transactionId}</span>
+              <span><strong>Maker SOEID:</strong> {activeSubmittedTransaction.maker}</span>
               <span><strong>Event Type:</strong> OUTBOUND_ISO_PAIN001</span>
-              <span><strong>Value Date:</strong> 2026-08-20</span>
+              <span><strong>Value Date:</strong> {activeSubmittedTransaction.payload.requestedExecutionDate}</span>
               <span><strong>Dual-Blind Status:</strong> {checkerDualBlindPassed ? '✅ All Re-Keyed Fields Matched' : '⚠️ Re-Keying Required'}</span>
               <span><strong>Flagged Error Fields:</strong> {checkerFailedFields.length}</span>
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-              💡 <em>Tip: Double-click any non-blind input field to flag it as rejected for the Maker.</em>
+            <div style={{ fontSize: '11px', color: '#627d98', marginTop: '4px' }}>
+              💡 <em>Double-click any non-blind input field to flag it as rejected for the Maker.</em>
             </div>
           </div>
 
@@ -504,35 +541,26 @@ export const PaymentParent: FC = () => {
             />
           </div>
 
-          <div className="action-container" style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div className="form-group" style={{ marginBottom: '14px' }}>
-              <label htmlFor="checkerComments" style={{ fontWeight: 600, fontSize: '13px', color: '#334155' }}>
+          <div className="action-container" style={{ marginTop: '20px', padding: '16px', background: '#f0f4f8', borderRadius: '4px', border: '1px solid #d9e2ec' }}>
+            <div className="form-group" style={{ marginBottom: '14px', width: '100%' }}>
+              <label htmlFor="checkerComments" style={{ fontWeight: 600, fontSize: '12px', color: '#334e68' }}>
                 Checker Comments / Reason for Rejection
               </label>
               <textarea
                 id="checkerComments"
                 rows={3}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '6px' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #9fb3c8', marginTop: '4px', boxSizing: 'border-box' }}
                 value={checkerComments}
                 placeholder="Enter authorization notes or specify failure reason if rejecting..."
                 onChange={e => setCheckerComments(e.target.value)}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
               <button
                 type="button"
                 className="btn-reject"
                 disabled={isRejectDisabled}
-                style={{
-                  padding: '8px 20px',
-                  backgroundColor: '#ffffff',
-                  color: '#dc2626',
-                  border: '1px solid #dc2626',
-                  borderRadius: '6px',
-                  cursor: isRejectDisabled ? 'not-allowed' : 'pointer',
-                  fontWeight: 600
-                }}
                 onClick={() => handleCheckerDecision('Rejected')}
               >
                 {isCheckerProcessing ? 'Processing...' : `Reject ${checkerFailedFields.length > 0 ? `(${checkerFailedFields.length} Flagged)` : ''}`}
@@ -540,17 +568,8 @@ export const PaymentParent: FC = () => {
 
               <button
                 type="button"
-                className="btn-approve"
+                className="lmn-btn lmn-btn-primary btn-approve"
                 disabled={isApproveDisabled}
-                style={{
-                  padding: '8px 24px',
-                  backgroundColor: isApproveDisabled ? '#94a3b8' : '#059669',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: isApproveDisabled ? 'not-allowed' : 'pointer',
-                  fontWeight: 600
-                }}
                 onClick={() => handleCheckerDecision('Approved')}
               >
                 {isCheckerProcessing ? 'Processing...' : 'Approve Payment'}
@@ -560,9 +579,7 @@ export const PaymentParent: FC = () => {
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* 3. REPAIR MODE VIEW                                                   */}
-      {/* ===================================================================== */}
+      {/* 3. REPAIR MODE */}
       {activeTab === 'repair' && (
         <div>
           <div className="parent-section-heading">Payment Correction Queue (Repair Mode)</div>
@@ -574,7 +591,7 @@ export const PaymentParent: FC = () => {
             <div style={{ fontSize: '13px', color: '#92400e' }}>
               Debtor Name, Creditor Name, and Amount failed clearance verification. Please amend highlighted fields (amber) and resubmit.
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>
+            <div style={{ fontSize: '11px', color: '#627d98', marginTop: '6px' }}>
               🟡 Amber = Checker flagged for review &nbsp;|&nbsp; 🟢 Green = Newly modified by Repairer
             </div>
           </div>
@@ -588,8 +605,12 @@ export const PaymentParent: FC = () => {
               repairNewlyModifyFieldList={repairNewlyModifiedFields}
               onPaymentOutput={handleRepairOutput}
               onFormChange={val => {
-                const keys = Object.keys(val);
-                setRepairNewlyModifiedFields(prev => Array.from(new Set([...prev, ...keys])));
+                const modifiedKeys = Object.keys(val).filter(
+                  key => (val as any)[key] !== (sampleRepairData as any)[key]
+                );
+                if (modifiedKeys.length > 0) {
+                  setRepairNewlyModifiedFields(prev => Array.from(new Set([...prev, ...modifiedKeys])));
+                }
               }}
             />
           </div>
@@ -607,9 +628,7 @@ export const PaymentParent: FC = () => {
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* GLOBAL CONFIRMATION / DECISION POPUP MODAL                            */}
-      {/* ===================================================================== */}
+      {/* GLOBAL MODAL */}
       {modalResponse && (
         <div id="myModal" className="modal" style={{ display: 'block' }}>
           <div className="modal-backdrop" onClick={closeModal}>

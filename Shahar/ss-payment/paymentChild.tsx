@@ -26,60 +26,8 @@ import {
 } from '../services/genericValidator';
 import { addressService } from '../services/addressService';
 import { buildPain001FromForm } from '../utils/paymentUtils';
+import { LATAM_COUNTRIES } from '../services/validationRulesService';
 import './payment-flow.css';
-
-const KNOWN_FIELDS = new Set<string>([
-  'painPaymentMethodType',
-  'requestedExecutionDate',
-  'instructedAmountCurrencyCode',
-  'instructedAmount',
-  'debtorName',
-  'debtorAccountNumber',
-  'debtorAgentBIC',
-  'debtorAddressLines1',
-  'debtorAddressLines2',
-  'debtorStreetName',
-  'debtorBuildingNumber',
-  'debtorTownName',
-  'debtorCountrySubDivision',
-  'debtorState',
-  'debtorCountryCode',
-  'debtorPostalCode',
-  'debtorSortCodeUK',
-  'debtorSortCodeUS',
-  'creditorName',
-  'creditorAccount',
-  'creditorAgentFinancialInstitutionBIC',
-  'creditorAgentFinancialInstitutionName',
-  'creditorAgentPostalAddress',
-  'creditorAddressLines1',
-  'creditorAddressLines2',
-  'creditorStreetName',
-  'creditorBuildingNumber',
-  'creditorTownName',
-  'creditorCountrySubDivision',
-  'creditorState',
-  'creditorCountryCode',
-  'creditorPostalCode',
-  'creditorSortCodeUK',
-  'creditorSortCodeUS',
-  'firstIntermediaryBankBIC',
-  'firstIntermediaryBankRoutingCode',
-  'firstIntermediaryBankName',
-  'firstIntermediaryBankCountryCode',
-  'firstIntermediaryBankAccountNumber',
-  'secondIntermediaryBankBIC',
-  'secondIntermediaryBankRoutingCode',
-  'secondIntermediaryBankName',
-  'secondIntermediaryBankCountryCode',
-  'secondIntermediaryBankAccountNumber',
-  'chargeBearer',
-  'chargesAmount',
-  'chargesAgentBIC',
-  'ustrdPaymentDetails',
-  'taxIdNumber',
-  'taxIdType'
-]);
 
 export interface SSPaymentFlowProps {
   paymentInput: PaymentComponentInput;
@@ -122,14 +70,12 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   const isRepair = selectedMode === 'repair';
   const isDualBlindEnabled = paymentInput?.dualBlindKeyFlag === 'Y' && isChecker;
 
+  const todayDateString = useMemo(() => new Date().toISOString().split('T')[0], []);
+
   const configMap = useMemo(() => {
     const map = new Map<string, FormFieldConfig>();
     fieldConfig.forEach(cfg => map.set(cfg.fieldName, cfg));
     return map;
-  }, [fieldConfig]);
-
-  const dynamicFieldConfigs = useMemo(() => {
-    return fieldConfig.filter(cfg => !KNOWN_FIELDS.has(cfg.fieldName));
   }, [fieldConfig]);
 
   const [formValues, setFormValues] = useState<Pain001Model>(() => {
@@ -138,8 +84,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     const values: Record<string, any> = {};
 
     fieldConfig.forEach(cfg => {
-      const rawVal = cfg.value ?? init[cfg.fieldName] ?? empty[cfg.fieldName] ?? '';
-      values[cfg.fieldName] = rawVal;
+      values[cfg.fieldName] = cfg.value ?? init[cfg.fieldName] ?? empty[cfg.fieldName] ?? '';
     });
 
     [
@@ -167,6 +112,8 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
 
   const [isDebtorCountryReadonly, setIsDebtorCountryReadonly] = useState<boolean>(false);
   const [isCreditorCountryReadonly, setIsCreditorCountryReadonly] = useState<boolean>(false);
+  const [showSecondIntermediary, setShowSecondIntermediary] = useState<boolean>(false);
+
   const [hardcapChecking, setHardcapChecking] = useState<boolean>(false);
   const [hardcapError, setHardcapError] = useState<string>('');
   const [hardcapSuccessMessage, setHardcapSuccessMessage] = useState<string>('');
@@ -183,8 +130,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     additionalInformation: false,
     additionalDetails: false,
     chargeDetails: false,
-    taxDetails: false,
-    dynamicAdditionalFields: false
+    taxDetails: false
   });
 
   const dualBlindCache = useRef<Map<string, string>>(new Map());
@@ -200,17 +146,23 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
 
   const setField = useCallback((fieldName: keyof Pain001Model, value: unknown, emitEvent = true) => {
     setFormValues(prev => {
-      const next = { ...prev, [fieldName]: value };
-      if (emitEvent) {
-        onFormChange?.(next as unknown as Record<string, unknown>);
-      }
-      return next;
+      if ((prev as any)[fieldName] === value) return prev;
+      return { ...prev, [fieldName]: value };
     });
 
-    if (isRepair && !newlyModifiedFields.includes(fieldName as string)) {
-      setNewlyModifiedFields(prev => [...prev, fieldName as string]);
+    if (isRepair) {
+      setNewlyModifiedFields(prev => (prev.includes(fieldName as string) ? prev : [...prev, fieldName as string]));
     }
-  }, [isRepair, newlyModifiedFields, onFormChange]);
+
+    if (emitEvent) {
+      queueMicrotask(() => {
+        setFormValues(latest => {
+          onFormChange?.(latest as unknown as Record<string, unknown>);
+          return latest;
+        });
+      });
+    }
+  }, [isRepair, onFormChange]);
 
   useEffect(() => {
     if (isDualBlindEnabled && paymentInput?.paymentModel) {
@@ -277,7 +229,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
       } else {
         setIsDebtorCountryReadonly(false);
       }
-    }, 500);
+    }, 400);
     return () => clearTimeout(debtorBicDebouncer.current);
   }, [formValues.debtorAgentBIC, setField]);
 
@@ -291,77 +243,105 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
       } else {
         setIsCreditorCountryReadonly(false);
       }
-    }, 500);
+    }, 400);
     return () => clearTimeout(creditorBicDebouncer.current);
   }, [formValues.creditorAgentFinancialInstitutionBIC, setField]);
 
   useEffect(() => {
+    if (isChecker) return;
     if (debtorAddrDebouncer.current) clearTimeout(debtorAddrDebouncer.current);
     debtorAddrDebouncer.current = setTimeout(async () => {
       const { debtorAccountNumber, debtorAgentBIC, debtorCountryCode } = formValues;
       if (!debtorAccountNumber || !/^[A-Z]{2}$/.test(debtorCountryCode || '')) return;
 
       try {
-        const res = await addressService.lookupDebtorAddresss('/shared-services/api/payment/api/payments', {
-          account: debtorAccountNumber,
-          bic: debtorAgentBIC,
-          countryCode: debtorCountryCode
-        });
+        const lookupFn = (addressService as any).lookupDebtorAddress || (addressService as any).lookupDebtorAddresss;
+        if (typeof lookupFn === 'function') {
+          const res = await lookupFn.call(addressService, '/shared-services/api/payment/api/payments', {
+            account: debtorAccountNumber,
+            bic: debtorAgentBIC,
+            countryCode: debtorCountryCode
+          });
 
-        setFormValues(prev => ({
-          ...prev,
-          debtorAddressLines1: res.addressLine?.[0] || prev.debtorAddressLines1,
-          debtorAddressLines2: res.addressLine?.[1] || prev.debtorAddressLines2,
-          debtorStreetName: res.streetName || prev.debtorStreetName,
-          debtorBuildingNumber: res.buildingNumber || prev.debtorBuildingNumber,
-          debtorPostalCode: res.postalCode || prev.debtorPostalCode,
-          debtorTownName: res.townName || prev.debtorTownName,
-          debtorCountrySubDivision: res.countrySubDivision || prev.debtorCountrySubDivision,
-          debtorState: res.state || prev.debtorState,
-          debtorCountryCode: res.countryCode || prev.debtorCountryCode
-        }));
+          if (res) {
+            setFormValues(prev => ({
+              ...prev,
+              debtorAddressLines1: res.addressLine?.[0] || prev.debtorAddressLines1,
+              debtorAddressLines2: res.addressLine?.[1] || prev.debtorAddressLines2,
+              debtorStreetName: res.streetName || prev.debtorStreetName,
+              debtorBuildingNumber: res.buildingNumber || prev.debtorBuildingNumber,
+              debtorPostalCode: res.postalCode || prev.debtorPostalCode,
+              debtorTownName: res.townName || prev.debtorTownName,
+              debtorCountrySubDivision: res.countrySubDivision || prev.debtorCountrySubDivision,
+              debtorState: res.state || prev.debtorState,
+              debtorCountryCode: res.countryCode || prev.debtorCountryCode
+            }));
+          }
+        }
       } catch (err) {
-        console.error('Debtor address lookup failed:', err);
+        console.warn('Debtor address lookup failed:', err);
       }
     }, 300);
     return () => clearTimeout(debtorAddrDebouncer.current);
-  }, [formValues.debtorAccountNumber, formValues.debtorAgentBIC, formValues.debtorCountryCode]);
+  }, [formValues.debtorAccountNumber, formValues.debtorAgentBIC, formValues.debtorCountryCode, isChecker]);
 
   useEffect(() => {
+    if (isChecker) return;
     if (creditorAddrDebouncer.current) clearTimeout(creditorAddrDebouncer.current);
     creditorAddrDebouncer.current = setTimeout(async () => {
-      const { creditorCountryCode, creditorAgentFinancialInstitutionBIC, creditorSortCodeUS, creditorSortCodeUK } = formValues;
-      if (!/^[A-Z]{2}$/.test(creditorCountryCode || '')) return;
+      const {
+        creditorAccount,
+        creditorCountryCode,
+        creditorAgentFinancialInstitutionBIC,
+        creditorSortCodeUS,
+        creditorSortCodeUK
+      } = formValues;
+
+      if (!creditorAccount || !/^[A-Z]{2}$/.test(creditorCountryCode || '')) return;
 
       let shortCode = '';
-      if (creditorCountryCode === 'US') shortCode = creditorSortCodeUS;
-      else if (creditorCountryCode === 'GB') shortCode = creditorSortCodeUK;
+      if (creditorCountryCode === 'US') shortCode = creditorSortCodeUS || '';
+      else if (creditorCountryCode === 'GB') shortCode = creditorSortCodeUK || '';
 
       try {
-        const res = await addressService.lookupCreditorAddesss('/shared-services/api/payment/api/payments', {
-          bic: creditorAgentFinancialInstitutionBIC,
-          countryCode: creditorCountryCode,
-          shortCode
-        });
+        const lookupFn = (addressService as any).lookupCreditorAddress || (addressService as any).lookupCreditorAddesss;
+        if (typeof lookupFn === 'function') {
+          const res = await lookupFn.call(addressService, '/shared-services/api/payment/api/payments', {
+            account: creditorAccount,
+            bic: creditorAgentFinancialInstitutionBIC || '',
+            countryCode: creditorCountryCode || '',
+            shortCode
+          });
 
-        setFormValues(prev => ({
-          ...prev,
-          creditorAddressLines1: res.addressLine?.[0] || prev.creditorAddressLines1,
-          creditorAddressLines2: res.addressLine?.[1] || prev.creditorAddressLines2,
-          creditorStreetName: res.streetName || prev.creditorStreetName,
-          creditorBuildingNumber: res.buildingNumber || prev.creditorBuildingNumber,
-          creditorPostalCode: res.postalCode || prev.creditorPostalCode,
-          creditorTownName: res.townName || prev.creditorTownName,
-          creditorCountrySubDivision: res.countrySubDivision || prev.creditorCountrySubDivision,
-          creditorState: res.state || prev.creditorState,
-          creditorCountryCode: res.countryCode || prev.creditorCountryCode
-        }));
+          if (res) {
+            setFormValues(prev => ({
+              ...prev,
+              creditorAddressLines1: res.addressLine?.[0] || prev.creditorAddressLines1,
+              creditorAddressLines2: res.addressLine?.[1] || prev.creditorAddressLines2,
+              creditorStreetName: res.streetName || prev.creditorStreetName,
+              creditorBuildingNumber: res.buildingNumber || prev.creditorBuildingNumber,
+              creditorPostalCode: res.postalCode || prev.creditorPostalCode,
+              creditorTownName: res.townName || prev.creditorTownName,
+              creditorCountrySubDivision: res.countrySubDivision || prev.creditorCountrySubDivision,
+              creditorState: res.state || prev.creditorState,
+              creditorCountryCode: res.countryCode || prev.creditorCountryCode
+            }));
+          }
+        }
       } catch (err) {
-        console.error('Creditor address lookup failed:', err);
+        console.warn('Creditor address lookup failed:', err);
       }
     }, 300);
+
     return () => clearTimeout(creditorAddrDebouncer.current);
-  }, [formValues.creditorCountryCode, formValues.creditorAgentFinancialInstitutionBIC, formValues.creditorSortCodeUS, formValues.creditorSortCodeUK]);
+  }, [
+    formValues.creditorAccount,
+    formValues.creditorCountryCode,
+    formValues.creditorAgentFinancialInstitutionBIC,
+    formValues.creditorSortCodeUS,
+    formValues.creditorSortCodeUK,
+    isChecker
+  ]);
 
   const instructedAmountChange = (rawInputVal?: string) => {
     if (amountDebouncer.current) clearTimeout(amountDebouncer.current);
@@ -418,17 +398,21 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
   }, [hardcapResultReceived]);
 
   const isFieldReadonly = useCallback((fieldName: keyof Pain001Model) => {
+    if (isChecker) {
+      if (fieldName === 'debtorCountryCode') return true;
+      if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
+        return false;
+      }
+      return true;
+    }
+
     if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
     if (fieldName === 'debtorCountryCode') return false;
     if (fieldName === 'creditorCountryCode' && isCreditorCountryReadonly) return true;
     if (fieldName === 'creditorCountryCode') return false;
 
-    if (!isChecker) return false;
-    if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
-      return false;
-    }
-    return true;
-  }, [isDebtorCountryReadonly, isCreditorCountryReadonly, isChecker, isDualBlindEnabled, paymentInput?.dualBlindKeyFields]);
+    return false;
+  }, [isChecker, isDualBlindEnabled, paymentInput?.dualBlindKeyFields, isDebtorCountryReadonly, isCreditorCountryReadonly]);
 
   const handleDoubleClickFailedField = (fieldName: string, e: MouseEvent) => {
     e.stopPropagation();
@@ -478,10 +462,12 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
       isDualBlindKeyPassed: isDualBlindPassed
     };
 
-    onPaymentOutput?.(payload);
-    onFormValidityChange?.({
-      validForm: isFormValid,
-      makerPayload: formValues as unknown as Record<string, unknown>
+    queueMicrotask(() => {
+      onPaymentOutput?.(payload);
+      onFormValidityChange?.({
+        validForm: isFormValid,
+        makerPayload: formValues as unknown as Record<string, unknown>
+      });
     });
   }, [isFormValid, formValues, isDualBlindEnabled, isDualBlindPassed, onPaymentOutput, onFormValidityChange]);
 
@@ -493,9 +479,10 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
       options?: readonly string[] | string[];
       placeholder?: string;
       maxLength?: number;
+      minDate?: string;
       errorFallback?: string;
-      isDualBlind?: boolean;
       autoUppercase?: boolean;
+      numericOnly?: boolean;
     } = {}
   ) => {
     const rule = validationResults.get(fieldName as string);
@@ -509,6 +496,8 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
       PAIN001_MANDATORY_FIELDS.includes(fieldName as string)
     );
     const isReadonly = isFieldReadonly(fieldName);
+    const showMandatoryIndicator = isChecker ? (!isReadonly && isRequired) : isRequired;
+
     const hasDualBlindErr = dualBlindErrors.has(fieldName as string);
     const isFailed = failedFields.includes(fieldName as string);
     const isRepairHighlight = isRepair && repairReviewFieldList.includes(fieldName as string);
@@ -523,10 +512,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     const isRequiredMissing = Boolean(touched[fieldName as string] && isRequired && !value);
     const hasInputError = isPatternInvalid || isRequiredMissing || hasDualBlindErr || isFailed;
 
-    const isBicOrCountry =
-      (fieldName as string).toLowerCase().includes('bic') ||
-      (fieldName as string).toLowerCase().includes('countrycode');
-
     const containerClass = [
       'form-field',
       hasInputError && 'field-invalid',
@@ -539,7 +524,10 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
 
     const handleTextChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       let val = e.target.value;
-      if (isBicOrCountry || opts.autoUppercase) {
+      if (opts.numericOnly) {
+        val = val.replace(/\D/g, '');
+      }
+      if (opts.autoUppercase) {
         val = val.toUpperCase();
       }
       setField(fieldName, val);
@@ -553,7 +541,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
       >
         <label className={labelClass}>
           {pacsFormVerbiages[fieldName as string] || defaultLabel}
-          {isRequired && <span className="mandatory-indicator"> *</span>}
+          {showMandatoryIndicator && <span className="mandatory-indicator"> *</span>}
         </label>
 
         {opts.options ? (
@@ -588,6 +576,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             type={opts.type || 'text'}
             value={value}
             readOnly={isReadonly}
+            min={opts.minDate}
             className={hasInputError ? 'input-error' : ''}
             maxLength={opts.maxLength || rule?.maxLength}
             placeholder={opts.placeholder || `Enter ${defaultLabel}`}
@@ -612,7 +601,9 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     );
   };
 
-  const showTaxDetails = validationResults.get('taxIdNumber')?.visible !== false;
+  const isIntermediaryVisible = formValues.painPaymentMethodType !== 'BKT';
+  const debtorBicCountry = (formValues.debtorAgentBIC || '').substring(4, 6).toUpperCase();
+  const showTaxDetails = LATAM_COUNTRIES.includes(debtorBicCountry);
 
   return (
     <div className="ss-payment-flow">
@@ -635,22 +626,26 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
               <div className="form-row-3">
                 {renderField('painPaymentMethodType', pacsFormVerbiages.PaymentType || 'Payment Type', {
                   options: PAYMENT_TYPE_OPTIONS,
-                  errorFallback: pacsFormVerbiages.PaymentTypeIsRequired || 'Payment Type is required'
+                  errorFallback: 'Payment Type is required'
                 })}
                 {renderField('requestedExecutionDate', pacsFormVerbiages.ValueDate || 'Value Date', {
                   type: 'date',
-                  errorFallback: pacsFormVerbiages.ValueDateIsRequired || 'Value Date is required'
+                  minDate: todayDateString,
+                  errorFallback: 'Value Date is required'
                 })}
                 {renderField('instructedAmountCurrencyCode', pacsFormVerbiages.Currency || 'Currency', {
-                  errorFallback: pacsFormVerbiages.CurrencyIsRequired || 'Currency is required',
-                  autoUppercase: true
+                  maxLength: 3,
+                  autoUppercase: true,
+                  errorFallback: 'Currency is required'
                 })}
               </div>
 
               <div className="form-field">
                 <label className="field-label">
                   {pacsFormVerbiages.TransactionAmount || 'Transaction Amount'}
-                  <span className="mandatory-indicator"> *</span>
+                  {(!isChecker || (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes('instructedAmount'))) && (
+                    <span className="mandatory-indicator"> *</span>
+                  )}
                 </label>
                 <input
                   type="number"
@@ -684,14 +679,15 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             <div className={`section-body ${sectionCollapsed.debtorInformation ? 'collapsed' : ''}`}>
               <div className="form-row-3">
                 {renderField('debtorName', pacsFormVerbiages.DebtorName || 'Debtor Name', {
-                  errorFallback: pacsFormVerbiages.DebtorNameIsRequired || 'Debtor Name is required'
+                  errorFallback: 'Debtor Name is required'
                 })}
                 {renderField('debtorAccountNumber', pacsFormVerbiages.DebtorAccountNumber || 'Debtor Account Number', {
-                  errorFallback: pacsFormVerbiages.DebtorAccountNumberIsRequired || 'Debtor Account Number is required'
+                  numericOnly: true,
+                  errorFallback: 'Debtor Account Number is required'
                 })}
                 {renderField('debtorAgentBIC', pacsFormVerbiages.DebtorAgentBIC || 'Debtor Agent BIC', {
-                  errorFallback: pacsFormVerbiages.DebtorAgentBicIsRequired || 'Debtor Agent BIC is required',
-                  autoUppercase: true
+                  autoUppercase: true,
+                  errorFallback: 'Debtor Agent BIC is required'
                 })}
               </div>
             </div>
@@ -711,13 +707,13 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
               </div>
 
               <div className="form-row-3">
-                {renderField('debtorStreetName', pacsFormVerbiages.DebtorStreet || 'Debtor Street', { errorFallback: 'Debtor Street is required' })}
-                {renderField('debtorBuildingNumber', pacsFormVerbiages.DebtorBuildingNumber || 'Debtor Building Number', { isDualBlind: false })}
+                {renderField('debtorStreetName', pacsFormVerbiages.DebtorStreet || 'Debtor Street')}
+                {renderField('debtorBuildingNumber', pacsFormVerbiages.DebtorBuildingNumber || 'Debtor Building Number')}
                 {renderField('debtorTownName', pacsFormVerbiages.DebtorTownOrCityName || 'Debtor Town / City Name')}
               </div>
 
               <div className="form-row-3">
-                {renderField('debtorCountrySubDivision', pacsFormVerbiages.DebtorCountrySubDivisionLabel || 'Debtor State')}
+                {renderField('debtorCountrySubDivision', pacsFormVerbiages.DebtorCountrySubDivisionLabel || 'Debtor Country Sub-division')}
                 {renderField('debtorState', pacsFormVerbiages.DebtorState || 'Debtor State')}
                 {renderField('debtorCountryCode', pacsFormVerbiages.DebtorCountry || 'Debtor Country', { maxLength: 2, autoUppercase: true })}
               </div>
@@ -725,14 +721,14 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
               <div className="form-row-3">
                 {renderField('debtorPostalCode', pacsFormVerbiages.DebtorPostalCode || 'Debtor Postal Code')}
                 {renderField('debtorSortCodeUK', pacsFormVerbiages.DebtorSortCode || 'Debtor Sort Code (UK)')}
-                {renderField('debtorSortCodeUS', pacsFormVerbiages.DebtorSortCode || 'Debtor Sort Code (US)')}
+                {renderField('debtorSortCodeUS', pacsFormVerbiages.DebtorSortCode || 'Debtor Sort Code (US)', { numericOnly: true, maxLength: 9 })}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* MEGA-SECTION 2: Beneficiary Details (Creditor + Intermediary Side) */}
+      {/* MEGA-SECTION 2: Beneficiary Details (Creditor Side) */}
       <div className="section-main">
         <div className="section-main-header" onClick={() => toggleSection('beneficiaryDetails')}>
           <span>{pacsFormVerbiages.BeneficiaryDetails || 'Beneficiary Details'}</span>
@@ -750,24 +746,22 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             <div className={`section-body ${sectionCollapsed.creditorInformation ? 'collapsed' : ''}`}>
               <div className="form-row-3">
                 {renderField('creditorName', pacsFormVerbiages.CreditorName || 'Creditor Name', {
-                  errorFallback: pacsFormVerbiages.CreditorNameIsRequired || 'Creditor Name is required'
+                  errorFallback: 'Creditor Name is required'
                 })}
                 {renderField('creditorAccount', pacsFormVerbiages.CreditorAccountNumber || 'Creditor Account Number', {
-                  errorFallback: pacsFormVerbiages.CreditorAccountNumberIsRequired || 'Creditor Account Number is required'
+                  errorFallback: 'Creditor Account Number is required'
                 })}
                 {renderField('creditorAgentFinancialInstitutionBIC', pacsFormVerbiages.CreditorAgentBIC || 'Creditor Agent BIC', {
-                  errorFallback: pacsFormVerbiages.Required || 'Required',
-                  autoUppercase: true
+                  autoUppercase: true,
+                  errorFallback: 'Required'
                 })}
               </div>
 
               <div className="form-row-3">
                 {renderField('creditorAgentFinancialInstitutionName', pacsFormVerbiages.CreditorAgentBankName || 'Creditor Agent Bank Name', {
-                  errorFallback: pacsFormVerbiages.Required || 'Required'
+                  errorFallback: 'Required'
                 })}
-                {renderField('creditorAgentPostalAddress', 'Creditor Agent Account Number', {
-                  errorFallback: pacsFormVerbiages.Required || 'Required'
-                })}
+                {renderField('creditorAgentPostalAddress', 'Creditor Agent Account Number')}
               </div>
             </div>
           </div>
@@ -789,12 +783,12 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
 
               <div className="form-row-3">
                 {renderField('creditorStreetName', pacsFormVerbiages.CreditorStreet || 'Creditor Street')}
-                {renderField('creditorBuildingNumber', pacsFormVerbiages.CreditorBuildingNumber || 'Creditor Building Number', { isDualBlind: false })}
+                {renderField('creditorBuildingNumber', pacsFormVerbiages.CreditorBuildingNumber || 'Creditor Building Number')}
                 {renderField('creditorTownName', pacsFormVerbiages.CreditorTownOrCityName || 'Creditor Town / City Name')}
               </div>
 
               <div className="form-row-3">
-                {renderField('creditorCountrySubDivision', pacsFormVerbiages.CreditorCountrySubDivisionLabel || 'Creditor State')}
+                {renderField('creditorCountrySubDivision', pacsFormVerbiages.CreditorCountrySubDivisionLabel || 'Creditor Country Sub-division')}
                 {renderField('creditorState', pacsFormVerbiages.CreditorState || 'Creditor State')}
                 {renderField('creditorCountryCode', pacsFormVerbiages.CreditorCountry || 'Creditor Country', { maxLength: 2, autoUppercase: true })}
               </div>
@@ -802,54 +796,73 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
               <div className="form-row-3">
                 {renderField('creditorPostalCode', pacsFormVerbiages.CreditorPostalCode || 'Creditor Postal Code')}
                 {renderField('creditorSortCodeUK', pacsFormVerbiages.CreditorSortCode || 'Creditor Sort Code (UK)')}
-                {renderField('creditorSortCodeUS', pacsFormVerbiages.CreditorSortCode || 'Creditor Sort Code (US)')}
+                {renderField('creditorSortCodeUS', pacsFormVerbiages.CreditorSortCode || 'Creditor Sort Code (US)', { numericOnly: true, maxLength: 9 })}
               </div>
             </div>
           </div>
 
           {/* Section 4: Intermediary Bank Routing */}
-          <div className="section">
-            <div className="section-header" onClick={() => toggleSection('intermediaryBank')}>
-              <span>{pacsFormVerbiages.IntermediaryBankDetails || 'Intermediary Bank Details'}</span>
-              <span className="chev">{sectionCollapsed.intermediaryBank ? '\u25B4' : '\u25BE'}</span>
+          {isIntermediaryVisible && (
+            <div className="section">
+              <div className="section-header" onClick={() => toggleSection('intermediaryBank')}>
+                <span>{pacsFormVerbiages.IntermediaryBankDetails || 'Intermediary Bank Details'}</span>
+                <span className="chev">{sectionCollapsed.intermediaryBank ? '\u25B4' : '\u25BE'}</span>
+              </div>
+
+              <div className={`section-body ${sectionCollapsed.intermediaryBank ? 'collapsed' : ''}`}>
+                <div className="form-row-3">
+                  {renderField('firstIntermediaryBankBIC', pacsFormVerbiages.FirstIntermediaryBankSWIFTCode || '1st Intermediary Bank SWIFT Code', {
+                    autoUppercase: true,
+                    placeholder: 'Enter SWIFT/BIC'
+                  })}
+                  {renderField('firstIntermediaryBankRoutingCode', pacsFormVerbiages.FirstIntermediaryBankRoutingCode || '1st Intermediary Routing Code')}
+                  {renderField('firstIntermediaryBankName', pacsFormVerbiages.FirstIntermediaryBankName || '1st Intermediary Bank Name')}
+                </div>
+
+                <div className="form-row-2">
+                  {renderField('firstIntermediaryBankCountryCode', pacsFormVerbiages.FirstIntermediaryBankCountryCode || '1st Intermediary Country Code', {
+                    maxLength: 2,
+                    autoUppercase: true
+                  })}
+                  {renderField('firstIntermediaryBankAccountNumber', pacsFormVerbiages.FirstIntermediaryAccountNumber || '1st Intermediary Account Number')}
+                </div>
+
+                {!showSecondIntermediary && !formValues.secondIntermediaryBankBIC && !isChecker && (
+                  <div style={{ marginTop: '8px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      className="lmn-btn"
+                      style={{ fontSize: '12px', height: '30px' }}
+                      onClick={() => setShowSecondIntermediary(true)}
+                    >
+                      + Add 2nd Intermediary Bank
+                    </button>
+                  </div>
+                )}
+
+                {(showSecondIntermediary || Boolean(formValues.secondIntermediaryBankBIC) || isChecker) && (
+                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #d9e2ec' }}>
+                    <div className="form-row-3">
+                      {renderField('secondIntermediaryBankBIC', pacsFormVerbiages.SecondIntermediaryBankSWIFTCode || '2nd Intermediary SWIFT Code', {
+                        autoUppercase: true,
+                        placeholder: 'Enter SWIFT/BIC'
+                      })}
+                      {renderField('secondIntermediaryBankRoutingCode', pacsFormVerbiages.SecondIntermediaryBankRoutingCode || '2nd Intermediary Routing Code')}
+                      {renderField('secondIntermediaryBankName', pacsFormVerbiages.SecondIntermediaryBankName || '2nd Intermediary Bank Name')}
+                    </div>
+
+                    <div className="form-row-2">
+                      {renderField('secondIntermediaryBankCountryCode', pacsFormVerbiages.SecondIntermediaryBankCountryCode || '2nd Intermediary Country Code', {
+                        maxLength: 2,
+                        autoUppercase: true
+                      })}
+                      {renderField('secondIntermediaryBankAccountNumber', pacsFormVerbiages.SecondIntermediaryAccountNumber || '2nd Intermediary Account Number')}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-
-            <div className={`section-body ${sectionCollapsed.intermediaryBank ? 'collapsed' : ''}`}>
-              <div className="form-row-3">
-                {renderField('firstIntermediaryBankBIC', pacsFormVerbiages.FirstIntermediaryBankSWIFTCode || '1st Intermediary Bank SWIFT Code', {
-                  autoUppercase: true,
-                  placeholder: 'Enter SWIFT/BIC'
-                })}
-                {renderField('firstIntermediaryBankRoutingCode', pacsFormVerbiages.FirstIntermediaryBankRoutingCode || '1st Intermediary Routing Code')}
-                {renderField('firstIntermediaryBankName', pacsFormVerbiages.FirstIntermediaryBankName || '1st Intermediary Bank Name')}
-              </div>
-
-              <div className="form-row-2">
-                {renderField('firstIntermediaryBankCountryCode', pacsFormVerbiages.FirstIntermediaryBankCountryCode || '1st Intermediary Country Code', {
-                  maxLength: 2,
-                  autoUppercase: true
-                })}
-                {renderField('firstIntermediaryBankAccountNumber', pacsFormVerbiages.FirstIntermediaryAccountNumber || '1st Intermediary Account Number')}
-              </div>
-
-              <div className="form-row-3">
-                {renderField('secondIntermediaryBankBIC', pacsFormVerbiages.SecondIntermediaryBankSWIFTCode || '2nd Intermediary SWIFT Code', {
-                  autoUppercase: true,
-                  placeholder: 'Enter SWIFT/BIC'
-                })}
-                {renderField('secondIntermediaryBankRoutingCode', pacsFormVerbiages.SecondIntermediaryBankRoutingCode || '2nd Intermediary Routing Code')}
-                {renderField('secondIntermediaryBankName', pacsFormVerbiages.SecondIntermediaryBankName || '2nd Intermediary Bank Name')}
-              </div>
-
-              <div className="form-row-2">
-                {renderField('secondIntermediaryBankCountryCode', pacsFormVerbiages.SecondIntermediaryBankCountryCode || '2nd Intermediary Country Code', {
-                  maxLength: 2,
-                  autoUppercase: true
-                })}
-                {renderField('secondIntermediaryBankAccountNumber', pacsFormVerbiages.SecondIntermediaryAccountNumber || '2nd Intermediary Account Number')}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -887,7 +900,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
               <div className="form-row-3">
                 {renderField('chargeBearer', pacsFormVerbiages.ChargeInformation || 'Charge Information', {
                   options: CHARGE_BEARER_OPTIONS,
-                  errorFallback: pacsFormVerbiages.Required || 'Required'
+                  errorFallback: 'Required'
                 })}
                 {renderField('chargesAmount', pacsFormVerbiages.ChargesAmount || 'Charges Amount', {
                   type: 'number',
@@ -905,7 +918,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
           {showTaxDetails && (
             <div className="section">
               <div className="section-header" onClick={() => toggleSection('taxDetails')}>
-                <span>{pacsFormVerbiages.TaxDetails || 'Tax Details'}</span>
+                <span>{pacsFormVerbiages.TaxDetails || 'Tax Details (LATAM Region)'}</span>
                 <span className="chev">{sectionCollapsed.taxDetails ? '\u25B4' : '\u25BE'}</span>
               </div>
 
@@ -913,27 +926,6 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
                 <div className="form-row-2">
                   {renderField('taxIdNumber', pacsFormVerbiages.TaxIdNumber || 'Tax ID Number')}
                   {renderField('taxIdType', pacsFormVerbiages.TaxIdType || 'Tax ID Type')}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Dynamic Custom Fields */}
-          {dynamicFieldConfigs.length > 0 && (
-            <div className="section">
-              <div className="section-header" onClick={() => toggleSection('dynamicAdditionalFields')}>
-                <span>{pacsFormVerbiages.AdditionalFields || 'Additional Fields'}</span>
-                <span className="chev">{sectionCollapsed.dynamicAdditionalFields ? '\u25B4' : '\u25BE'}</span>
-              </div>
-
-              <div className={`section-body ${sectionCollapsed.dynamicAdditionalFields ? 'collapsed' : ''}`}>
-                <div className="form-row-2">
-                  {dynamicFieldConfigs.map(cfg =>
-                    renderField(cfg.fieldName as keyof Pain001Model, cfg.label ?? cfg.fieldName, {
-                      options: cfg.options,
-                      type: cfg.type as any
-                    })
-                  )}
                 </div>
               </div>
             </div>
