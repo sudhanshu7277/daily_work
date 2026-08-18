@@ -1,24 +1,34 @@
-// validationRulesService.ts
+// src/pages/ss-payment/services/validationRulesService.ts
+
+
+// ============================================================================
+// ISO 20022 PAIN.001 / PACS DYNAMIC VALIDATION RULES SERVICE
+// ============================================================================
 
 export interface ValidationCondition {
     factor?: 'country' | 'paymentType' | 'currency' | 'paymentMethod' | 'fieldValue';
     sourceField: string;
-    derivation?: 'bicCountry';
-    operator: 'eq' | 'neq' | 'in' | 'notIn' | 'empty' | 'notEmpty' | 'regex';
-    value?: string | string[];
+    derivation?: 'bicCountry' | 'length' | 'numericOnly';
+    operator: 'eq' | 'neq' | 'in' | 'notIn' | 'empty' | 'notEmpty' | 'regex' | 'gte' | 'lte';
+    value?: string | string[] | number | boolean;
   }
   
   export interface ValidationEffect {
     required?: boolean;
     visible?: boolean;
+    readonly?: boolean;
     pattern?: string;
     patternMessage?: string;
     maxLength?: number;
+    minLength?: number;
     decimalPlaces?: number;
+    minDate?: string;
+    placeholder?: string;
   }
   
   export interface FieldValidationRule {
     priority: number;
+    description?: string;
     conditions: ValidationCondition[];
     effect: ValidationEffect;
   }
@@ -33,40 +43,146 @@ export interface ValidationCondition {
   
   export interface Pain001ValidationRules {
     version: string;
+    lastUpdated?: string;
     fields: Record<string, FieldValidationRule[]>;
     formRules: FormRule[];
   }
   
-  export const EMEA_COUNTRIES = ['GB', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'CH', 'AT', 'SE', 'NO', 'DK', 'PL', 'IE', 'PT', 'FI'];
-  export const LATAM_COUNTRIES = ['BR', 'PE', 'CO', 'AR'];
+  // ----------------------------------------------------------------------------
+  // COUNTRY & REGIONAL CONSTANTS
+  // ----------------------------------------------------------------------------
+  export const EMEA_COUNTRIES: string[] = [
+    'GB', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'CH', 'AT',
+    'SE', 'NO', 'DK', 'PL', 'IE', 'PT', 'FI', 'GR', 'CZ',
+    'HU', 'RO', 'BG', 'HR', 'SK', 'SI', 'LU', 'EE', 'LV', 'LT'
+  ];
   
+  export const LATAM_COUNTRIES: string[] = [
+    'BR', 'PE', 'CO', 'AR', 'CL', 'MX', 'UY', 'PY', 'BO', 'EC', 'VE'
+  ];
+  
+  export const ZERO_DECIMAL_CURRENCIES: string[] = [
+    'JPY', 'KRW', 'CLP', 'VND', 'UGX', 'PYG', 'RWF', 'BIF',
+    'DJF', 'GNF', 'KMF', 'XAF', 'XOF', 'XPF'
+  ];
+  
+  export const THREE_DECIMAL_CURRENCIES: string[] = [
+    'BHD', 'KWD', 'OMR', 'JOD', 'TND', 'IQD', 'LYD'
+  ];
+  
+  // ----------------------------------------------------------------------------
+  // DEFAULT COMPREHENSIVE VALIDATION RULES SPECIFICATION
+  // ----------------------------------------------------------------------------
   export const DEFAULT_VALIDATION_RULES: Pain001ValidationRules = {
-    version: '3.0.0',
+    version: '3.1.0',
+    lastUpdated: '2026-08-18',
     fields: {
-      requestedExecutionDate: [
+      // -------------------------------------------------------------------------
+      // PAYMENT DETAILS & HEADER
+      // -------------------------------------------------------------------------
+      painPaymentMethodType: [
         {
           priority: 10,
+          description: 'Payment type options CBT, BKT, DFT',
           conditions: [],
           effect: {
-            required: true
+            required: false,
+            visible: true
           }
         }
       ],
-      instructedAmountCurrencyCode: [
+  
+      requestedExecutionDate: [
         {
           priority: 10,
+          description: 'Value date is mandatory and must not allow past dates (BA Point 1)',
           conditions: [],
           effect: {
             required: true,
+            visible: true
+          }
+        }
+      ],
+  
+      instructedAmountCurrencyCode: [
+        {
+          priority: 10,
+          description: 'Currency code must be exactly 3 uppercase letters (BA Point 2)',
+          conditions: [],
+          effect: {
+            required: true,
+            visible: true,
             maxLength: 3,
             pattern: '^[A-Za-z]{3}$',
             patternMessage: 'Currency must be exactly 3 alphabetical characters'
           }
         }
       ],
-      debtorAccountNumber: [
+  
+      instructedAmount: [
+        // 1. Zero decimal currencies (JPY, KRW, CLP, etc.)
         {
           priority: 30,
+          description: 'Zero decimal currencies must be whole numbers only',
+          conditions: [
+            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: ZERO_DECIMAL_CURRENCIES }
+          ],
+          effect: {
+            required: true,
+            decimalPlaces: 0,
+            pattern: '^[1-9]\\d*$',
+            patternMessage: 'Zero decimal currency: Enter whole numbers only'
+          }
+        },
+        // 2. Three decimal currencies (BHD, KWD, OMR, etc.)
+        {
+          priority: 30,
+          description: '3 decimal currencies allow up to 3 fractional places',
+          conditions: [
+            { sourceField: 'instructedAmountCurrencyCode', operator: 'in', value: THREE_DECIMAL_CURRENCIES }
+          ],
+          effect: {
+            required: true,
+            decimalPlaces: 3,
+            pattern: '^\\d+(\\.\\d{1,3})?$',
+            patternMessage: 'Up to 3 decimal places allowed for this currency'
+          }
+        },
+        // 3. Standard currencies (USD, EUR, GBP, CAD, AUD, etc.)
+        {
+          priority: 10,
+          description: 'Standard currencies allow up to 2 decimal places',
+          conditions: [],
+          effect: {
+            required: true,
+            decimalPlaces: 2,
+            pattern: '^\\d+(\\.\\d{1,2})?$',
+            patternMessage: 'Up to 2 decimal places allowed'
+          }
+        }
+      ],
+  
+      // -------------------------------------------------------------------------
+      // DEBTOR INFORMATION
+      // -------------------------------------------------------------------------
+      debtorName: [
+        {
+          priority: 10,
+          description: 'Debtor Name is mandatory',
+          conditions: [],
+          effect: {
+            required: true,
+            visible: true,
+            maxLength: 140
+          }
+        }
+      ],
+  
+      debtorAccountNumber: [
+        // UK and EMEA require exactly 16 digits (BA Point 3)
+        {
+          priority: 30,
+          description: 'UK and EMEA countries require exactly 16 numeric digits',
           conditions: [
             { sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'in', value: EMEA_COUNTRIES }
           ],
@@ -77,19 +193,24 @@ export interface ValidationCondition {
             patternMessage: 'Debtor Account Number must be exactly 16 numeric digits for UK/EMEA'
           }
         },
+        // General Debtor Account Number (Numeric only, BA Point 3)
         {
           priority: 10,
+          description: 'Debtor Account Number must be strictly numeric',
           conditions: [],
           effect: {
             required: true,
+            maxLength: 34,
             pattern: '^\\d+$',
             patternMessage: 'Debtor Account Number must be numeric only'
           }
         }
       ],
+  
       debtorAgentBIC: [
         {
           priority: 10,
+          description: 'Debtor Agent BIC must be 8 or 11 alphanumeric characters (BA Point 4)',
           conditions: [],
           effect: {
             required: true,
@@ -99,9 +220,26 @@ export interface ValidationCondition {
           }
         }
       ],
+  
+      // -------------------------------------------------------------------------
+      // DEBTOR ADDRESS & NATIONAL SORT CODES
+      // -------------------------------------------------------------------------
+      debtorCountryCode: [
+        {
+          priority: 10,
+          conditions: [],
+          effect: {
+            maxLength: 2,
+            pattern: '^[A-Za-z]{2}$',
+            patternMessage: 'Country code must be 2 letters'
+          }
+        }
+      ],
+  
       debtorSortCodeUS: [
         {
           priority: 20,
+          description: 'US ABA Routing number must be exactly 9 numeric digits (BA Point 8)',
           conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
           effect: {
             visible: true,
@@ -117,9 +255,11 @@ export interface ValidationCondition {
           effect: { visible: false, required: false }
         }
       ],
+  
       debtorSortCodeUK: [
         {
           priority: 20,
+          description: 'UK Sort Code must be 6 digits (e.g. 12-34-56 or 123456)',
           conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
           effect: {
             visible: true,
@@ -135,9 +275,95 @@ export interface ValidationCondition {
           effect: { visible: false, required: false }
         }
       ],
+  
+      debtorPostalCode: [
+        {
+          priority: 20,
+          description: 'US ZIP code format',
+          conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
+          effect: {
+            required: false,
+            maxLength: 10,
+            pattern: '^\\d{5}(-\\d{4})?$',
+            patternMessage: 'US ZIP must be 5 digits (e.g. 12345 or 12345-6789)'
+          }
+        },
+        {
+          priority: 20,
+          description: 'UK Postal code format',
+          conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
+          effect: {
+            required: false,
+            maxLength: 8,
+            pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$',
+            patternMessage: 'Invalid UK Postal Code format'
+          }
+        },
+        {
+          priority: 20,
+          description: 'Canadian Postal code format',
+          conditions: [{ sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'eq', value: 'CA' }],
+          effect: {
+            required: false,
+            maxLength: 7,
+            pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$',
+            patternMessage: 'Invalid Canadian Postal Code'
+          }
+        },
+        {
+          priority: 1,
+          conditions: [],
+          effect: { required: false, maxLength: 16 }
+        }
+      ],
+  
+      // -------------------------------------------------------------------------
+      // CREDITOR INFORMATION
+      // -------------------------------------------------------------------------
+      creditorName: [
+        {
+          priority: 10,
+          description: 'Creditor Name is mandatory',
+          conditions: [],
+          effect: {
+            required: true,
+            visible: true,
+            maxLength: 140
+          }
+        }
+      ],
+  
+      creditorAccount: [
+        {
+          priority: 20,
+          description: 'SEPA / European country accounts require valid IBAN pattern',
+          conditions: [
+            { sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'in', value: EMEA_COUNTRIES }
+          ],
+          effect: {
+            required: true,
+            maxLength: 34,
+            pattern: '^[A-Z]{2}\\d{2}[A-Z0-9]{1,30}$',
+            patternMessage: 'Must be a valid IBAN format for SEPA/European countries'
+          }
+        },
+        {
+          priority: 10,
+          description: 'Standard creditor account number',
+          conditions: [],
+          effect: {
+            required: true,
+            maxLength: 34,
+            pattern: '^[A-Za-z0-9/\\-\\?:().,\'+ ]+$',
+            patternMessage: 'Invalid account number format'
+          }
+        }
+      ],
+  
       creditorAgentFinancialInstitutionBIC: [
         {
           priority: 10,
+          description: 'Creditor Agent BIC must be 8 or 11 alphanumeric characters',
           conditions: [],
           effect: {
             required: true,
@@ -147,9 +373,50 @@ export interface ValidationCondition {
           }
         }
       ],
+  
+      creditorAgentFinancialInstitutionName: [
+        {
+          priority: 10,
+          conditions: [],
+          effect: {
+            required: true,
+            maxLength: 140
+          }
+        }
+      ],
+  
+      // -------------------------------------------------------------------------
+      // CREDITOR ADDRESS & NATIONAL SORT CODES
+      // -------------------------------------------------------------------------
+      creditorAddressLines1: [
+        {
+          priority: 10,
+          description: 'Creditor Address Line 1 is mandatory (BA Point 9)',
+          conditions: [],
+          effect: {
+            required: true,
+            visible: true,
+            maxLength: 70
+          }
+        }
+      ],
+  
+      creditorCountryCode: [
+        {
+          priority: 10,
+          conditions: [],
+          effect: {
+            maxLength: 2,
+            pattern: '^[A-Za-z]{2}$',
+            patternMessage: 'Country code must be 2 letters'
+          }
+        }
+      ],
+  
       creditorSortCodeUS: [
         {
           priority: 20,
+          description: 'Creditor US ABA Routing number is optional and numeric (BA Point 9)',
           conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
           effect: {
             visible: true,
@@ -165,6 +432,67 @@ export interface ValidationCondition {
           effect: { visible: false, required: false }
         }
       ],
+  
+      creditorSortCodeUK: [
+        {
+          priority: 20,
+          conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
+          effect: {
+            visible: true,
+            required: false,
+            maxLength: 8,
+            pattern: '^(\\d{2}-\\d{2}-\\d{2}|\\d{6})$',
+            patternMessage: 'UK Sort Code must be 6 digits'
+          }
+        },
+        {
+          priority: 1,
+          conditions: [],
+          effect: { visible: false, required: false }
+        }
+      ],
+  
+      creditorPostalCode: [
+        {
+          priority: 20,
+          conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'US' }],
+          effect: {
+            required: false,
+            maxLength: 10,
+            pattern: '^\\d{5}(-\\d{4})?$',
+            patternMessage: 'US ZIP must be 5 digits'
+          }
+        },
+        {
+          priority: 20,
+          conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'GB' }],
+          effect: {
+            required: false,
+            maxLength: 8,
+            pattern: '^[A-Z]{1,2}\\d[A-Z\\d]? ?\\d[A-Z]{2}$',
+            patternMessage: 'Invalid UK Postal Code format'
+          }
+        },
+        {
+          priority: 20,
+          conditions: [{ sourceField: 'creditorAgentFinancialInstitutionBIC', derivation: 'bicCountry', operator: 'eq', value: 'CA' }],
+          effect: {
+            required: false,
+            maxLength: 7,
+            pattern: '^[A-CEGHJ-NPR-TV-Z]\\d[A-CEGHJ-NPR-TV-Z] ?\\d[A-CEGHJ-NPR-TV-Z]\\d$',
+            patternMessage: 'Invalid Canadian Postal Code'
+          }
+        },
+        {
+          priority: 1,
+          conditions: [],
+          effect: { required: false, maxLength: 16 }
+        }
+      ],
+  
+      // -------------------------------------------------------------------------
+      // INTERMEDIARY BANK ROUTING
+      // -------------------------------------------------------------------------
       firstIntermediaryBankBIC: [
         {
           priority: 10,
@@ -177,6 +505,7 @@ export interface ValidationCondition {
           }
         }
       ],
+  
       secondIntermediaryBankBIC: [
         {
           priority: 10,
@@ -189,6 +518,21 @@ export interface ValidationCondition {
           }
         }
       ],
+  
+      // -------------------------------------------------------------------------
+      // CHARGES & TAX IDENTIFIERS
+      // -------------------------------------------------------------------------
+      chargeBearer: [
+        {
+          priority: 10,
+          conditions: [],
+          effect: {
+            required: true,
+            visible: true
+          }
+        }
+      ],
+  
       chargesAgentBIC: [
         {
           priority: 10,
@@ -201,13 +545,19 @@ export interface ValidationCondition {
           }
         }
       ],
+  
       taxIdNumber: [
         {
           priority: 30,
+          description: 'Mandatory for LATAM region (Brazil, Peru, Colombia, Argentina) per BA Point 15',
           conditions: [
             { sourceField: 'debtorAgentBIC', derivation: 'bicCountry', operator: 'in', value: LATAM_COUNTRIES }
           ],
-          effect: { visible: true, required: true, patternMessage: 'Tax ID Number is required for LATAM region' }
+          effect: {
+            visible: true,
+            required: true,
+            patternMessage: 'Tax ID Number is required for LATAM region'
+          }
         },
         {
           priority: 1,
@@ -216,10 +566,14 @@ export interface ValidationCondition {
         }
       ]
     },
+  
+    // ---------------------------------------------------------------------------
+    // CROSS-FIELD FORM RULES & DEPENDENCIES
+    // ---------------------------------------------------------------------------
     formRules: [
       {
         id: 'debtor_address_cascade_rule',
-        description: 'When debtorAddressLines1 is entered, debtorTownName and debtorCountryCode become mandatory',
+        description: 'When debtorAddressLines1 is entered, debtorTownName and debtorCountryCode become mandatory (BA Point 6)',
         watchFields: ['debtorAddressLines1'],
         conditions: [{ sourceField: 'debtorAddressLines1', operator: 'notEmpty' }],
         effects: {
@@ -229,7 +583,7 @@ export interface ValidationCondition {
       },
       {
         id: 'creditor_address_cascade_rule',
-        description: 'When creditorAddressLines1 is entered, creditorTownName and creditorCountryCode become mandatory',
+        description: 'When creditorAddressLines1 is entered, creditorTownName and creditorCountryCode become mandatory (BA Point 10)',
         watchFields: ['creditorAddressLines1'],
         conditions: [{ sourceField: 'creditorAddressLines1', operator: 'notEmpty' }],
         effects: {
@@ -239,7 +593,7 @@ export interface ValidationCondition {
       },
       {
         id: 'first_intermediary_account_coupling',
-        description: 'When 1st Intermediary SWIFT is entered, 1st Intermediary Account Number becomes mandatory',
+        description: 'When 1st Intermediary SWIFT is entered, 1st Intermediary Account Number becomes mandatory (BA Point 13)',
         watchFields: ['firstIntermediaryBankBIC'],
         conditions: [{ sourceField: 'firstIntermediaryBankBIC', operator: 'notEmpty' }],
         effects: {
@@ -257,7 +611,7 @@ export interface ValidationCondition {
       },
       {
         id: 'charges_coupling_rule',
-        description: 'When charges amount is entered, charges agent BIC and charge bearer are required',
+        description: 'When charges amount is entered (>0), charges agent BIC and charge bearer are required',
         watchFields: ['chargesAmount'],
         conditions: [{ sourceField: 'chargesAmount', operator: 'notEmpty' }],
         effects: {
@@ -268,6 +622,9 @@ export interface ValidationCondition {
     ]
   };
   
+  // ----------------------------------------------------------------------------
+  // VALIDATION RULES SERVICE CLASS
+  // ----------------------------------------------------------------------------
   class ValidationRulesService {
     private currentRules: Pain001ValidationRules = { ...DEFAULT_VALIDATION_RULES };
   
@@ -282,13 +639,85 @@ export interface ValidationCondition {
     public getFormRules(): FormRule[] {
       return this.currentRules.formRules || [];
     }
+  
+    public setRules(rules: Pain001ValidationRules): void {
+      this.currentRules = rules;
+    }
+  
+    public resetToDefaults(): void {
+      this.currentRules = { ...DEFAULT_VALIDATION_RULES };
+    }
+  
+    public async loadRemoteRules(endpoint = '/shared-services/api/payment/rules/pain001'): Promise<Pain001ValidationRules> {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          const remoteRules: Pain001ValidationRules = await res.json();
+          this.setRules(remoteRules);
+          return remoteRules;
+        }
+      } catch (err) {
+        console.warn('[ValidationRulesService] Remote rule fetch failed, using defaults:', err);
+      }
+      return this.currentRules;
+    }
+  
+    public deriveValue(formValues: Record<string, any>, sourceField: string, derivation?: string): string {
+      const raw = formValues[sourceField];
+      if (!raw) return '';
+      const str = String(raw).trim();
+  
+      if (derivation === 'bicCountry' && str.length >= 6) {
+        return str.substring(4, 6).toUpperCase();
+      }
+      if (derivation === 'length') {
+        return String(str.length);
+      }
+      return str;
+    }
+  
+    public evaluateCondition(condition: ValidationCondition, formValues: Record<string, any>): boolean {
+      const value = this.deriveValue(formValues, condition.sourceField, condition.derivation);
+  
+      switch (condition.operator) {
+        case 'eq':
+          return value === String(condition.value ?? '');
+        case 'neq':
+          return value !== String(condition.value ?? '');
+        case 'in':
+          if (Array.isArray(condition.value)) {
+            return condition.value.includes(value);
+          }
+          return false;
+        case 'notIn':
+          if (Array.isArray(condition.value)) {
+            return !condition.value.includes(value);
+          }
+          return true;
+        case 'empty':
+          return value === '' || value === undefined || value === null;
+        case 'notEmpty':
+          return value !== '' && value !== undefined && value !== null && value !== '0';
+        case 'regex':
+          if (typeof condition.value === 'string') {
+            return new RegExp(condition.value).test(value);
+          }
+          return false;
+        default:
+          return true;
+      }
+    }
   }
   
   export const validationRulesService = new ValidationRulesService();
 
 
 
-  // PaymentChild.tsx
+  // src/pages/ss-payment/components/PaymentChild.tsx
+
 
   import React, {
     FC,
@@ -318,7 +747,7 @@ export interface ValidationCondition {
   } from '../services/genericValidator';
   import { addressService } from '../services/addressService';
   import { buildPain001FromForm } from '../utils/paymentUtils';
-  import { LATAM_COUNTRIES } from '../services/validationRulesService';
+  import { validationRulesService, LATAM_COUNTRIES } from '../services/validationRulesService';
   import './payment-flow.css';
   
   export interface SSPaymentFlowProps {
@@ -362,7 +791,7 @@ export interface ValidationCondition {
     const isRepair = selectedMode === 'repair';
     const isDualBlindEnabled = paymentInput?.dualBlindKeyFlag === 'Y' && isChecker;
   
-    // Minimum date allowed is today for the Value Date field (Point 1)
+    // Minimum date allowed is today for the Value Date field (BA Point 1)
     const todayDateString = useMemo(() => new Date().toISOString().split('T')[0], []);
   
     const configMap = useMemo(() => {
@@ -505,7 +934,7 @@ export interface ValidationCondition {
       setIsDualBlindPassed(allMatched);
     }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]);
   
-    // Dynamic Rule Evaluation
+    // Evaluate All Validation Rules
     useEffect(() => {
       const rawForm = formValues as unknown as Record<string, unknown>;
       const fieldMap = genericValidator.evaluateAllFields(rawForm);
@@ -546,7 +975,7 @@ export interface ValidationCondition {
   
     // Debtor Address Lookup (Bypassed in Checker Mode)
     useEffect(() => {
-      if (isChecker) return; // Point 1 Checker Mode
+      if (isChecker) return;
       if (debtorAddrDebouncer.current) clearTimeout(debtorAddrDebouncer.current);
       debtorAddrDebouncer.current = setTimeout(async () => {
         const { debtorAccountNumber, debtorAgentBIC, debtorCountryCode } = formValues;
@@ -583,9 +1012,9 @@ export interface ValidationCondition {
       return () => clearTimeout(debtorAddrDebouncer.current);
     }, [formValues.debtorAccountNumber, formValues.debtorAgentBIC, formValues.debtorCountryCode, isChecker]);
   
-    // Creditor Address Lookup (Point 9 - Bypassed in Checker Mode)
+    // Creditor Address Lookup (Bypassed in Checker Mode)
     useEffect(() => {
-      if (isChecker) return; // Point 1 Checker Mode
+      if (isChecker) return;
       if (creditorAddrDebouncer.current) clearTimeout(creditorAddrDebouncer.current);
       creditorAddrDebouncer.current = setTimeout(async () => {
         const {
@@ -698,12 +1127,11 @@ export interface ValidationCondition {
   
     const isFieldReadonly = useCallback((fieldName: keyof Pain001Model) => {
       if (isChecker) {
-        // In Checker mode, Debtor Country is explicitly disabled (Point 3)
         if (fieldName === 'debtorCountryCode') return true;
         if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
           return false;
         }
-        return true; // All non-dual-blind fields are disabled in Checker mode
+        return true;
       }
   
       if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
@@ -795,7 +1223,7 @@ export interface ValidationCondition {
       );
       const isReadonly = isFieldReadonly(fieldName);
       
-      // In Checker mode, remove mandatory asterisks from read-only/disabled fields (Point 4)
+      // Remove mandatory asterisks on read-only fields in Checker Mode (BA Point 4)
       const showMandatoryIndicator = isChecker ? (!isReadonly && isRequired) : isRequired;
   
       const hasDualBlindErr = dualBlindErrors.has(fieldName as string);
@@ -901,10 +1329,10 @@ export interface ValidationCondition {
       );
     };
   
-    // Intermediary details hidden if payment type is BKT (Point 12)
+    // Gating Intermediary details on Payment Type
     const isIntermediaryVisible = formValues.painPaymentMethodType !== 'BKT';
     
-    // Tax Details rendered conditionally for LATAM region (Point 15)
+    // Tax Details rendered conditionally for LATAM region
     const debtorBicCountry = (formValues.debtorAgentBIC || '').substring(4, 6).toUpperCase();
     const showTaxDetails = LATAM_COUNTRIES.includes(debtorBicCountry);
   
@@ -933,11 +1361,11 @@ export interface ValidationCondition {
                   })}
                   {renderField('requestedExecutionDate', pacsFormVerbiages.ValueDate || 'Value Date', {
                     type: 'date',
-                    minDate: todayDateString, // Point 1
+                    minDate: todayDateString,
                     errorFallback: 'Value Date is required'
                   })}
                   {renderField('instructedAmountCurrencyCode', pacsFormVerbiages.Currency || 'Currency', {
-                    maxLength: 3, // Point 2
+                    maxLength: 3,
                     autoUppercase: true,
                     errorFallback: 'Currency is required'
                   })}
@@ -985,11 +1413,11 @@ export interface ValidationCondition {
                     errorFallback: 'Debtor Name is required'
                   })}
                   {renderField('debtorAccountNumber', pacsFormVerbiages.DebtorAccountNumber || 'Debtor Account Number', {
-                    numericOnly: true, // Point 3
+                    numericOnly: true,
                     errorFallback: 'Debtor Account Number is required'
                   })}
                   {renderField('debtorAgentBIC', pacsFormVerbiages.DebtorAgentBIC || 'Debtor Agent BIC', {
-                    autoUppercase: true, // Point 4
+                    autoUppercase: true,
                     errorFallback: 'Debtor Agent BIC is required'
                   })}
                 </div>
@@ -1016,7 +1444,6 @@ export interface ValidationCondition {
                 </div>
   
                 <div className="form-row-3">
-                  {/* Point 7: Debtor Country Sub-Division positioned first */}
                   {renderField('debtorCountrySubDivision', pacsFormVerbiages.DebtorCountrySubDivisionLabel || 'Debtor Country Sub-division')}
                   {renderField('debtorState', pacsFormVerbiages.DebtorState || 'Debtor State')}
                   {renderField('debtorCountryCode', pacsFormVerbiages.DebtorCountry || 'Debtor Country', { maxLength: 2, autoUppercase: true })}
@@ -1079,7 +1506,6 @@ export interface ValidationCondition {
   
               <div className={`section-body ${sectionCollapsed.creditorAddress ? 'collapsed' : ''}`}>
                 <div className="form-row-2">
-                  {/* Point 9: Creditor Address Line 1 mandatory */}
                   {renderField('creditorAddressLines1', pacsFormVerbiages.CreditorAddressLine1 || 'Creditor Address Line 1', {
                     errorFallback: 'Creditor Address Line 1 is required'
                   })}
@@ -1093,7 +1519,6 @@ export interface ValidationCondition {
                 </div>
   
                 <div className="form-row-3">
-                  {/* Point 11: Creditor Country Sub-Division positioned first */}
                   {renderField('creditorCountrySubDivision', pacsFormVerbiages.CreditorCountrySubDivisionLabel || 'Creditor Country Sub-division')}
                   {renderField('creditorState', pacsFormVerbiages.CreditorState || 'Creditor State')}
                   {renderField('creditorCountryCode', pacsFormVerbiages.CreditorCountry || 'Creditor Country', { maxLength: 2, autoUppercase: true })}
@@ -1102,13 +1527,12 @@ export interface ValidationCondition {
                 <div className="form-row-3">
                   {renderField('creditorPostalCode', pacsFormVerbiages.CreditorPostalCode || 'Creditor Postal Code')}
                   {renderField('creditorSortCodeUK', pacsFormVerbiages.CreditorSortCode || 'Creditor Sort Code (UK)')}
-                  {/* Point 9: Creditor Sort Code (US) is optional */}
                   {renderField('creditorSortCodeUS', pacsFormVerbiages.CreditorSortCode || 'Creditor Sort Code (US)', { numericOnly: true, maxLength: 9 })}
                 </div>
               </div>
             </div>
   
-            {/* Section 4: Intermediary Bank Routing (Hidden for BKT per Point 12) */}
+            {/* Section 4: Intermediary Bank Routing */}
             {isIntermediaryVisible && (
               <div className="section">
                 <div className="section-header" onClick={() => toggleSection('intermediaryBank')}>
@@ -1135,7 +1559,7 @@ export interface ValidationCondition {
                     {renderField('firstIntermediaryBankAccountNumber', pacsFormVerbiages.FirstIntermediaryAccountNumber || '1st Intermediary Account Number')}
                   </div>
   
-                  {/* Point 13: 2nd Intermediary Bank Trigger & Form */}
+                  {/* 2nd Intermediary Bank Dynamic Inclusion */}
                   {!showSecondIntermediary && !formValues.secondIntermediaryBankBIC && !isChecker && (
                     <div style={{ marginTop: '8px', marginBottom: '8px' }}>
                       <button
@@ -1223,7 +1647,7 @@ export interface ValidationCondition {
               </div>
             </div>
   
-            {/* Sub-section 3: Tax Details (Rendered for LATAM per Point 15) */}
+            {/* Sub-section 3: Tax Details */}
             {showTaxDetails && (
               <div className="section">
                 <div className="section-header" onClick={() => toggleSection('taxDetails')}>
@@ -1248,7 +1672,9 @@ export interface ValidationCondition {
   export default PaymentChild;
 
 
-  // PaymentParent.tsx
+
+  // src/pages/ss-payment/components/PaymentParent.tsx
+
 
   import React, {
     FC,
@@ -1328,7 +1754,7 @@ export interface ValidationCondition {
   
     const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>('maker');
   
-    // Shared active transaction data transferred from Maker to Checker (Final note)
+    // Maker-to-Checker persistent data pipeline
     const [activeSubmittedTransaction, setActiveSubmittedTransaction] = useState<{
       transactionId: string;
       paymentId: string;
@@ -1453,7 +1879,7 @@ export interface ValidationCondition {
               return;
             }
           }
-          // Local Fallback simulation if backend endpoint is unavailable
+          // Local simulation fallback
           if (res.status === 404 || res.status === 502) {
             setActiveSubmittedTransaction({
               transactionId: generatedTxnId,
@@ -1476,7 +1902,7 @@ export interface ValidationCondition {
           throw new Error(data?.error || data?.message || `Payment creation failed (${res.status})`);
         }
   
-        // Success from live API
+        // Success from live backend
         setActiveSubmittedTransaction({
           transactionId: data.transactionId || generatedTxnId,
           paymentId: data.paymentId || generatedPaymentId,
@@ -1517,7 +1943,6 @@ export interface ValidationCondition {
     const [checkerComments, setCheckerComments] = useState<string>('');
     const [isCheckerProcessing, setIsCheckerProcessing] = useState<boolean>(false);
   
-    // Checker input hydrating directly from the Maker's submitted transaction
     const checkerPaymentInput: PaymentComponentInput = useMemo(() => ({
       applicationName: 'ADR',
       applicationModule: 'ADR',
@@ -1712,7 +2137,7 @@ export interface ValidationCondition {
   
     return (
       <div className="sample-container">
-        {/* GAB Top Navigation Tab Bar */}
+        {/* Top Tab Bar */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid #d9e2ec', paddingBottom: '12px' }}>
           <button
             type="button"
@@ -1884,7 +2309,7 @@ export interface ValidationCondition {
           </div>
         )}
   
-        {/* MODAL POPUP */}
+        {/* GLOBAL MODAL */}
         {modalResponse && (
           <div id="myModal" className="modal" style={{ display: 'block' }}>
             <div className="modal-backdrop" onClick={closeModal}>
