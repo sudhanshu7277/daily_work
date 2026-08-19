@@ -41,3 +41,48 @@ Execute in your Git Bash terminal:
 
 
 ROLLUP_NO_NATIVE=true npx vite build
+
+
+// Step 1: Update types in tsconfig.json
+//Add "react", "react-dom", and "node" to the "types" array on line 21:
+
+"types": [
+  "vitest/globals",
+  "@testing-library/jest-dom",
+  "react",
+  "react-dom",
+  "node"
+]
+
+
+
+// Step 2: Update SSPaymentFlow.tsx
+//In SSPaymentFlow.tsx (around line 35), drop : FC<SSPaymentFlowProps> and type the destructured props argument directly:
+
+
+export const SSPaymentFlow = ({
+  paymentInput,
+  fieldConfig = [],
+  initialData,
+  pacsFormVerbiages = {},
+  isMakerMode,
+  isCheckerMode,
+  isRepairMode,
+  repairReviewFieldList = [],
+  repairNewlyModifyFieldList = [],
+  hardcapResultReceived,
+  onPaymentOutput,
+  onFormChange,
+  onFormValidityChange,
+  onFailedFieldListChange,
+  onAmountChange
+}: SSPaymentFlowProps) => {
+  // component body...
+
+
+  // Step 3: Run the Build
+// In your terminal:
+
+
+ROLLUP_NO_NATIVE=true npm run build
+
