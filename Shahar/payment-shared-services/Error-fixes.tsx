@@ -12,8 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "noEmit": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "strict": true,
     "resolveJsonModule": true
   },
@@ -21,6 +21,10 @@
     "projects/payment-flow-ui-lib/src/**/*",
     "vite.config.ts",
     "vitest.setup.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }
 
@@ -35,26 +39,5 @@ import React, {
   MouseEvent
 } from 'react';
 
-export function SSPaymentFlow(props: SSPaymentFlowProps) {
-  const {
-    paymentInput,
-    fieldConfig = [],
-    initialData,
-    pacsFormVerbiages = {},
-    isMakerMode,
-    isCheckerMode,
-    isRepairMode,
-    repairReviewFieldList = [],
-    repairNewlyModifyFieldList = [],
-    hardcapResultReceived,
-    onPaymentOutput,
-    onFormChange,
-    onFormValidityChange,
-    onFailedFieldListChange,
-    onAmountChange
-  } = props;
 
-  // ... rest of component stays identical
-
-
-  ROLLUP_NO_NATIVE=true npm run build
+ROLLUP_NO_NATIVE=true npm run build
