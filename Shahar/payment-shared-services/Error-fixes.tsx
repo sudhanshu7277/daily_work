@@ -1,12 +1,5 @@
-// 1. Create projects/payment-flow-ui-lib/src/vite-env.d.ts
-
-/// <reference types="vite/client" />
-/// <reference types="react" />
-/// <reference types="react-dom" />
-
-
-//2. Verify tsconfig.json
-Open tsconfig.json and ensure "jsx": "react-jsx" and the include glob are configured without syntax errors:
+// Step 1: Fix tsconfig.json
+Open tsconfig.json and update the "include" array to target projects/payment-flow-ui-lib/**/* without the src/ path:
 
 {
   "compilerOptions": {
@@ -26,7 +19,7 @@ Open tsconfig.json and ensure "jsx": "react-jsx" and the include glob are config
     "resolveJsonModule": true
   },
   "include": [
-    "projects/payment-flow-ui-lib/src/**/*",
+    "projects/payment-flow-ui-lib/**/*",
     "vite.config.ts",
     "vitest.setup.ts"
   ],
@@ -36,22 +29,37 @@ Open tsconfig.json and ensure "jsx": "react-jsx" and the include glob are config
   ]
 }
 
+//Step 2: Component Definition in SSPaymentFlow.tsx
+In projects/payment-flow-ui-lib/components/ss-payment-flow/SSPaymentFlow.tsx (around line 35):
 
+export const SSPaymentFlow = ({
+  paymentInput,
+  fieldConfig = [],
+  initialData,
+  pacsFormVerbiages = {},
+  isMakerMode,
+  isCheckerMode,
+  isRepairMode,
+  repairReviewFieldList = [],
+  repairNewlyModifyFieldList = [],
+  hardcapResultReceived,
+  onPaymentOutput,
+  onFormChange,
+  onFormValidityChange,
+  onFailedFieldListChange,
+  onAmountChange
+}: SSPaymentFlowProps) => {
 
+  // Step 3: Restart VS Code TS Server
+//In VS Code, press Ctrl + Shift + P (or Cmd + Shift + P).
 
-//3. Switch VS Code to Use Workspace TypeScript Version
-Open SSPaymentFlow.tsx.
+//Type TypeScript: Restart TS Server and press Enter.
 
-Press Ctrl + Shift + P (or Cmd + Shift + P).
+//TypeScript will now bind directly to projects/payment-flow-ui-lib/components/ 
+///and all JSX errors (<div>, <label>, <select>, <option>) will clear.
 
-Type: TypeScript: Select TypeScript Version... and press Enter.
-
-Choose Use Workspace Version (pointing to node_modules/typescript).
-
-Press Ctrl + Shift + P again -> type TypeScript: Restart TS Server -> press Enter.
-
-
-// 4. Verify Local Build
-Run the library build:
+//Step 4: Run the Build
 
 ROLLUP_NO_NATIVE=true npm run build
+  
+  
