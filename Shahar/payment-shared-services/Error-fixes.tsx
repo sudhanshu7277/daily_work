@@ -119,3 +119,31 @@ export const SSPaymentFlow = ({
 
 
   ROLLUP_NO_NATIVE=true npm run build
+
+
+
+  {
+    "compilerOptions": {
+      "target": "ES2020",
+      "lib": ["dom", "dom.iterable", "esnext"],
+      "module": "esnext",
+      "moduleResolution": "bundler",
+      "jsx": "react-jsx",
+      "declaration": true,
+      "skipLibCheck": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,
+      "forceConsistentCasingInFileNames": true,
+      "isolatedModules": true,
+      "noEmit": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "strict": true,
+      "resolveJsonModule": true
+    },
+    "include": [
+      "projects/payment-flow-ui-lib/src/**/*",
+      "vite.config.ts",
+      "vitest.setup.ts"
+    ]
+  }
