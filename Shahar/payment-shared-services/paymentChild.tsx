@@ -914,18 +914,43 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
             </div>
           </div>
 
-          {/* Sub-section 3: Tax Details */}
+          {/* Sub-section 3: Tax Details (Exact 6 Fields from Image 18) */}
           {showTaxDetails && (
             <div className="section">
               <div className="section-header" onClick={() => toggleSection('taxDetails')}>
-                <span>{pacsFormVerbiages.TaxDetails || 'Tax Details (LATAM Region)'}</span>
+                <span>{pacsFormVerbiages.TaxDetails || 'Tax Details'}</span>
                 <span className="chev">{sectionCollapsed.taxDetails ? '\u25B4' : '\u25BE'}</span>
               </div>
 
               <div className={`section-body ${sectionCollapsed.taxDetails ? 'collapsed' : ''}`}>
-                <div className="form-row-2">
-                  {renderField('taxIdNumber', pacsFormVerbiages.TaxIdNumber || 'Tax ID Number')}
-                  {renderField('taxIdType', pacsFormVerbiages.TaxIdType || 'Tax ID Type')}
+                <div className="form-row-3">
+                  {renderField('taxIdNumber', pacsFormVerbiages.TaxIdNumber || 'Tax ID Number', {
+                    placeholder: 'Enter Tax ID Number',
+                    errorFallback: 'Tax ID Number is required'
+                  })}
+                  {renderField('taxIdType', pacsFormVerbiages.TaxIdType || 'Tax ID Type', {
+                    placeholder: 'Enter Tax ID Type',
+                    errorFallback: 'Tax ID Type is required'
+                  })}
+                  {renderField('purposeOfPayment', pacsFormVerbiages.PurposeOfPayment || 'Purpose of Payment', {
+                    placeholder: 'Enter Purpose of Payment',
+                    errorFallback: 'Purpose of Payment is required'
+                  })}
+                </div>
+
+                <div className="form-row-3">
+                  {renderField('taxPurposeCode', pacsFormVerbiages.TaxPurposeCode || 'Tax Purpose Code', {
+                    placeholder: 'Enter Tax Purpose Code',
+                    errorFallback: 'Tax Purpose Code is required'
+                  })}
+                  {renderField('regulatoryReportingCode', pacsFormVerbiages.RegulatoryReportingCode || 'Regulatory Reporting Code', {
+                    placeholder: 'Enter Regulatory Reporting Code',
+                    errorFallback: 'Regulatory Reporting Code is required'
+                  })}
+                  {renderField('invoiceReferenceNumber', pacsFormVerbiages.InvoiceReferenceNumber || 'Invoice / Reference Number', {
+                    placeholder: 'Enter Invoice / Reference Number',
+                    errorFallback: 'Invoice / Reference Number is required'
+                  })}
                 </div>
               </div>
             </div>

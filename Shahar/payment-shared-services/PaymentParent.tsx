@@ -58,7 +58,14 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'ustrdPaymentDetails', label: 'Remittance Information', hidden: false, required: false },
   { fieldName: 'chargeBearer', label: 'Charge Information', hidden: false, required: true },
   { fieldName: 'chargesAmount', label: 'Charges Amount', hidden: false, required: false },
-  { fieldName: 'chargesAgentBIC', label: 'Charges Agent BIC', hidden: false, required: false }
+  { fieldName: 'chargesAgentBIC', label: 'Charges Agent BIC', hidden: false, required: false },
+  // Tax Details Config
+  { fieldName: 'taxIdNumber', label: 'Tax ID Number', hidden: false, required: false },
+  { fieldName: 'taxIdType', label: 'Tax ID Type', hidden: false, required: false },
+  { fieldName: 'purposeOfPayment', label: 'Purpose of Payment', hidden: false, required: false },
+  { fieldName: 'taxPurposeCode', label: 'Tax Purpose Code', hidden: false, required: false },
+  { fieldName: 'regulatoryReportingCode', label: 'Regulatory Reporting Code', hidden: false, required: false },
+  { fieldName: 'invoiceReferenceNumber', label: 'Invoice / Reference Number', hidden: false, required: false }
 ];
 
 export const PaymentParent: FC = () => {
@@ -76,6 +83,7 @@ export const PaymentParent: FC = () => {
 
   const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>('maker');
 
+  // Shared active transaction data transferred from Maker to Checker
   const [activeSubmittedTransaction, setActiveSubmittedTransaction] = useState<{
     transactionId: string;
     paymentId: string;
@@ -105,7 +113,13 @@ export const PaymentParent: FC = () => {
       creditorTownName: 'New York',
       chargeBearer: 'DEBT',
       painPaymentMethodType: 'CBT',
-      ustrdPaymentDetails: 'Invoice #INV-2026-8890'
+      ustrdPaymentDetails: 'Invoice #INV-2026-8890',
+      taxIdNumber: '',
+      taxIdType: '',
+      purposeOfPayment: '',
+      taxPurposeCode: '',
+      regulatoryReportingCode: '',
+      invoiceReferenceNumber: ''
     }
   });
 
@@ -166,9 +180,6 @@ export const PaymentParent: FC = () => {
     if (!makerPayload || !makerFormValid) return;
     setIsMakerSubmitting(true);
 
-    const generatedTxnId = String(Math.floor(1000000000000000000 + Math.random() * 9000000000000000000));
-    const generatedPaymentId = 'c337a6c4-4622-404e-b303-e0ec' + Math.floor(100000 + Math.random() * 900000);
-
     const endpoint = '/shared-services/api/payment/api/payments';
     const payload = {
       ...makerPayload,
@@ -193,6 +204,9 @@ export const PaymentParent: FC = () => {
         data = {};
       }
 
+      // -------------------------------------------------------------
+      // 1. STRICT FAILURE HANDLING (HTTP 4xx / 5xx)
+      // -------------------------------------------------------------
       if (!res.ok) {
         if (res.status === 400 && data?.errorCode === 'DUPLICATE_PAYMENT') {
           if (window.confirm(`Warning: Similar payment exists with ID ${data.referenceId || 'N/A'}. Do you want to override and submit anyway?`)) {
@@ -200,51 +214,52 @@ export const PaymentParent: FC = () => {
             return;
           }
         }
-        if (res.status === 404 || res.status === 502) {
-          setActiveSubmittedTransaction({
-            transactionId: generatedTxnId,
-            paymentId: generatedPaymentId,
-            maker: soeId,
-            payload: makerPayload
-          });
 
-          setModalResponse({
-            title: 'MAKER RECORD SAVED',
-            referenceId: generatedTxnId,
-            amount: `${makerPayload.instructedAmountCurrencyCode || 'USD'} ${makerPayload.instructedAmount}`,
-            status: 'SUBMITTED',
-            message: 'Payment record saved successfully !',
-            color: '#00509d'
-          });
-          return;
-        }
+        const errorMessage =
+          data?.error ||
+          data?.message ||
+          `Payment submission failed on server (HTTP ${res.status}: ${res.statusText || 'Error'})`;
 
-        throw new Error(data?.error || data?.message || `Payment creation failed (${res.status})`);
+        setModalResponse({
+          title: 'MAKER RECORD NOT CREATED',
+          referenceId: data?.referenceId || data?.transactionId || 'N/A',
+          amount: `${makerPayload.instructedAmountCurrencyCode || 'USD'} ${makerPayload.instructedAmount}`,
+          status: 'FAILED',
+          message: errorMessage,
+          color: '#d64545'
+        });
+        return;
       }
 
+      // -------------------------------------------------------------
+      // 2. STRICT SUCCESS HANDLING (HTTP 200 / 201 ONLY)
+      // -------------------------------------------------------------
+      const txnId = data.transactionId || data.referenceId || data.id || 'TXN-CONFIRMED';
+      const pmtId = data.paymentId || 'PMT-CONFIRMED';
+
       setActiveSubmittedTransaction({
-        transactionId: data.transactionId || generatedTxnId,
-        paymentId: data.paymentId || generatedPaymentId,
+        transactionId: txnId,
+        paymentId: pmtId,
         maker: soeId,
         payload: makerPayload
       });
 
       setModalResponse({
         title: 'MAKER RECORD SAVED',
-        referenceId: data.referenceId || data.transactionId || generatedTxnId,
+        referenceId: txnId,
         amount: `${makerPayload.instructedAmountCurrencyCode || 'USD'} ${makerPayload.instructedAmount}`,
         status: data.status || 'SUBMITTED',
         message: 'Payment record saved successfully !',
         color: '#00509d'
       });
     } catch (err: any) {
-      console.error('Maker submission failed:', err);
+      console.error('Maker submission network/client error:', err);
       setModalResponse({
         title: 'MAKER RECORD NOT CREATED',
         referenceId: 'N/A',
         amount: `${makerPayload?.instructedAmountCurrencyCode || 'USD'} ${makerPayload?.instructedAmount || 0}`,
         status: 'FAILED',
-        message: err.message || 'Payment creation failed !',
+        message: err?.message || 'Network error: Unable to connect to payment services API.',
         color: '#d64545'
       });
     } finally {
@@ -337,7 +352,7 @@ export const PaymentParent: FC = () => {
         color: action === 'Approved' ? '#00509d' : '#d64545'
       });
     } catch (err: any) {
-      console.warn('Checker decision API fallback dispatch:', err);
+      console.warn('Checker decision API dispatch error:', err);
       setModalResponse({
         title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
         referenceId: activeSubmittedTransaction.transactionId,
@@ -379,7 +394,13 @@ export const PaymentParent: FC = () => {
     creditorCountryCode: 'US',
     chargeBearer: 'SHAR',
     painPaymentMethodType: 'DFT',
-    ustrdPaymentDetails: 'Re-repairing transaction per checker request'
+    ustrdPaymentDetails: 'Re-repairing transaction per checker request',
+    taxIdNumber: '',
+    taxIdType: '',
+    purposeOfPayment: '',
+    taxPurposeCode: '',
+    regulatoryReportingCode: '',
+    invoiceReferenceNumber: ''
   }), []);
 
   const repairReviewFieldList = useMemo(() => ['debtorName', 'creditorName', 'instructedAmount'], []);

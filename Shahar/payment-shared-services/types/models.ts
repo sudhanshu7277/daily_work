@@ -57,12 +57,13 @@ export interface Pain001Model {
   applicationName?: string;
   applicationModule?: string;
   region?: string;
-  taxIdNumber?: string;
-  taxIdType?: string;
-  purposeOfPayment?: string;
-  taxPurposeCode?: string;
-  regulatoryReportingCode?: string;
-  invoiceReferenceNumber?: string;
+  // 6 Tax Details Fields
+  taxIdNumber: string;
+  taxIdType: string;
+  purposeOfPayment: string;
+  taxPurposeCode: string;
+  regulatoryReportingCode: string;
+  invoiceReferenceNumber: string;
   [key: string]: unknown;
 }
 
@@ -121,7 +122,13 @@ export const PAIN001_STRING_FIELDS: (keyof Pain001Model)[] = [
   'secondIntermediaryBankAccountNumber',
   'applicationName',
   'applicationModule',
-  'region'
+  'region',
+  'taxIdNumber',
+  'taxIdType',
+  'purposeOfPayment',
+  'taxPurposeCode',
+  'regulatoryReportingCode',
+  'invoiceReferenceNumber'
 ];
 
 export const PAIN001_MANDATORY_FIELDS: string[] = [
