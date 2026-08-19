@@ -44,9 +44,10 @@ ROLLUP_NO_NATIVE=true npx vite build
 
 
 
-// 1. Update tsconfig.json (Remove test types from main compiler config)
-//Remove the "types" property completely from compilerOptions. Without it, TypeScript automatically discovers 
-//@types/react, @types/react-dom, and @types/node from node_modules.//
+
+// Step 1: Update tsconfig.json
+//Add "jsxImportSource": "react" under compilerOptions, and add /**/* 
+// to the include path so TypeScript recursively binds all types across components:
 
 {
   "compilerOptions": {
@@ -55,48 +56,31 @@ ROLLUP_NO_NATIVE=true npx vite build
     "module": "esnext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "declaration": true,
-    "declarationDir": "./dist",
-    "emitDeclarationOnly": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "noEmit": false,
+    "noEmit": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strict": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "src/**/__tests__/*"
+  "include": [
+    "projects/payment-flow-ui-lib/src/**/*",
+    "vite.config.ts",
+    "vitest.setup.ts"
   ]
 }
 
 
-// 2. Configure Test Types in vitest.setup.ts
-//To provide types for jest-dom matchers and Vitest without 
-// polluting the library compilation, add type references 
-// directly at the very top of vitest.setup.ts:
+// Step 2: Verify import React from 'react' at the top of SSPaymentFlow.tsx
+//Ensure the top of SSPaymentFlow.tsx imports React and declares the component 
+// signature with props typing:
 
-
-/// <reference types="vitest/globals" />
-/// <reference types="@testing-library/jest-dom" />
-
-import '@testing-library/jest-dom';
-
-
-// 3. Update SSPaymentFlow.tsx Component Signature
-//Avoid React.FC for library components. Type the props 
-// interface directly on the component parameters. 
-// This ensures accurate .d.ts generation and eliminates ReactNode /
-//  Element assignment mismatch:
 
 import React, {
   useState,
@@ -107,26 +91,13 @@ import React, {
   ChangeEvent,
   MouseEvent
 } from 'react';
-import { FormFieldConfig, PaymentComponentInput, PaymentComponentOutput, FormValidityPayload } from '../models/models';
-
-export interface SSPaymentFlowProps {
-  paymentInput: PaymentComponentInput;
-  fieldConfig?: FormFieldConfig[];
-  initialData?: Record<string, unknown>;
-  pacsFormVerbiages?: Record<string, string>;
-  loggedInUser?: string;
-  isMakerMode?: boolean;
-  isCheckerMode?: boolean;
-  isRepairMode?: boolean;
-  repairReviewFieldList?: string[];
-  repairNewlyModifyFieldList?: string[];
-  hardcapResultReceived?: { amountWithinLimit: boolean; hardCapValue: number } | string | null;
-  onPaymentOutput?: (output: PaymentComponentOutput) => void;
-  onFormChange?: (val: Record<string, unknown>) => void;
-  onFormValidityChange?: (val: FormValidityPayload) => void;
-  onFailedFieldListChange?: (fields: string[]) => void;
-  onAmountChange?: (val: { instructedAmountCurrencyCode: string; instructedAmount: number }) => void;
-}
+import {
+  Pain001Model,
+  PaymentComponentInput,
+  PaymentComponentOutput,
+  FormFieldConfig,
+  FormValidityPayload
+} from '../models/models';
 
 export const SSPaymentFlow = ({
   paymentInput,
@@ -145,9 +116,6 @@ export const SSPaymentFlow = ({
   onFailedFieldListChange,
   onAmountChange
 }: SSPaymentFlowProps) => {
-  // Component implementation...
 
-  // 4. Build the Package
-//Run your build command in the terminal:
 
-ROLLUP_NO_NATIVE=true npm run build
+  ROLLUP_NO_NATIVE=true npm run build
