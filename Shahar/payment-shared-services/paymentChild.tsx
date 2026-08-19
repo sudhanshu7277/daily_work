@@ -489,6 +489,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
     if (rule?.visible === false) return null;
     if (paymentInput?.hideFieldsList?.includes(fieldName as string)) return null;
 
+    const fieldId = `field-${fieldName as string}`;
     const value = (formValues as any)[fieldName] ?? '';
     const isRequired = Boolean(
       rule?.required ??
@@ -539,13 +540,14 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
         className={containerClass}
         onDoubleClick={e => handleDoubleClickFailedField(fieldName as string, e)}
       >
-        <label className={labelClass}>
+        <label htmlFor={fieldId} className={labelClass}>
           {pacsFormVerbiages[fieldName as string] || defaultLabel}
           {showMandatoryIndicator && <span className="mandatory-indicator"> *</span>}
         </label>
 
         {opts.options ? (
           <select
+            id={fieldId}
             value={value}
             disabled={isReadonly}
             className={hasInputError ? 'input-error' : ''}
@@ -559,6 +561,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
           </select>
         ) : opts.type === 'textarea' ? (
           <textarea
+            id={fieldId}
             value={value}
             rows={3}
             readOnly={isReadonly}
@@ -573,6 +576,7 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
           />
         ) : (
           <input
+            id={fieldId}
             type={opts.type || 'text'}
             value={value}
             readOnly={isReadonly}
@@ -641,13 +645,14 @@ export const PaymentChild: FC<SSPaymentFlowProps> = ({
               </div>
 
               <div className="form-field">
-                <label className="field-label">
+                <label htmlFor="field-instructedAmount" className="field-label">
                   {pacsFormVerbiages.TransactionAmount || 'Transaction Amount'}
                   {(!isChecker || (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes('instructedAmount'))) && (
                     <span className="mandatory-indicator"> *</span>
                   )}
                 </label>
                 <input
+                  id="field-instructedAmount"
                   type="number"
                   placeholder="Enter Transaction Amount"
                   value={formValues.instructedAmount === 0 ? '' : (formValues.instructedAmount ?? '')}

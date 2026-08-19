@@ -3,6 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PaymentParent } from '../PaymentParent';
 
+// Mock AuthContext to prevent provider dependency failures
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    soeId: 'sj81534',
+    user: { soeId: 'sj81534', name: 'Sudhanshu Jain' }
+  })
+}));
+
 describe('PaymentParent Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -30,14 +38,13 @@ describe('PaymentParent Component', () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
+      statusText: 'Internal Server Error',
       json: async () => ({ error: 'Database constraint violation' })
     } as any);
 
     render(<PaymentParent />);
 
-    // Fill minimum fields to enable submit
     const submitBtn = screen.getByRole('button', { name: /Submit Payment/i });
-    // Force click
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -53,11 +60,9 @@ describe('PaymentParent Component', () => {
 
     render(<PaymentParent />);
 
-    // Switch to Checker mode
     fireEvent.click(screen.getByRole('button', { name: /2\. Checker Mode/i }));
 
     const approveBtn = screen.getByRole('button', { name: /Approve Payment/i });
-    // Simulate approval click
     fireEvent.click(approveBtn);
 
     await waitFor(() => {
