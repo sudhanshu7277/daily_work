@@ -87,3 +87,68 @@ export interface PaymentParentProps {
       ))}
     </tr>
   ))}
+
+
+
+
+
+
+
+
+  // Step 1: Update the Component Destructuring in SplitPaymentMakerModal.tsx
+//At the top of your SplitPaymentMakerModal component definition (around lines 25–40), 
+// ensure onPaymentSuccess is added to the interface and destructured:
+
+export interface SplitPaymentMakerModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    document: GabInstructionDocument | null;
+    documents?: GabInstructionDocument[];
+    onSelectDocument?: (doc: GabInstructionDocument) => Promise<void> | void;
+    previewUrl: string | null;
+    previewLoading?: boolean;
+    fieldConfig?: FormFieldConfig[];
+    initialData?: Partial<Pain001Model> | null;
+    /** Add onPaymentSuccess here if not already present */
+    onPaymentSuccess?: (referenceId: string, payload: Pain001Model) => void;
+  }
+  
+  export const SplitPaymentMakerModal: React.FC<SplitPaymentMakerModalProps> = ({
+    isOpen,
+    onClose,
+    document: doc,
+    documents = [],
+    onSelectDocument,
+    previewUrl,
+    previewLoading = false,
+    fieldConfig,
+    initialData,
+    onPaymentSuccess // <-- ADD THIS DESTRUCTURED PROP HERE
+  }) => {
+
+
+    // Step 2: Clean up the <PaymentParent/> JSX Block (Lines 209–225)
+//With onPaymentSuccess destructured, update the JSX block on the right panel:
+
+{/* Right Panel: 50% PaymentParent */}
+<div className="split-maker-panel right-panel">
+  <div className="split-form-scroll-pane">
+    <PaymentParent
+      mode="maker"
+      initialData={initialData}
+      customFieldConfig={fieldConfig}
+      hideTabs={true}
+      onPaymentChange={(output: any) => setOutputPayload(output)}
+      onValidityChange={(isValid: boolean) => setIsFormValid(isValid)}
+      onPaymentSuccess={(refId: string, payload: any) => {
+        if (onPaymentSuccess) {
+          onPaymentSuccess(refId, payload);
+        }
+        onClose();
+      }}
+    />
+  </div>
+</div>
+
+
+
