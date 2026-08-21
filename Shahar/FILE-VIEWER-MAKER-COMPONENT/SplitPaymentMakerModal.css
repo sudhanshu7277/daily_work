@@ -1,0 +1,257 @@
+.split-maker-modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: flex;
+    overflow: hidden;
+  }
+  
+  .split-maker-modal-window {
+    width: 100vw;
+    height: 100vh;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .split-maker-header {
+    height: 52px;
+    min-height: 52px;
+    background-color: #002d72;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+  
+  .split-maker-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .split-maker-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+  }
+  
+  .split-maker-badge {
+    font-size: 12px;
+    background-color: #004b99;
+    padding: 4px 10px;
+    border-radius: 4px;
+    max-width: 320px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #ffffff;
+  }
+  
+  .split-maker-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .split-maker-btn-submit {
+    background-color: #0284c7;
+    color: #ffffff;
+    border: none;
+    padding: 6px 18px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .split-maker-btn-submit:hover:not(:disabled) {
+    background-color: #0369a1;
+  }
+  
+  .split-maker-btn-submit:disabled {
+    background-color: #64748b;
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .split-maker-btn-close {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  
+  .split-maker-btn-close:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .split-maker-body {
+    flex: 1;
+    display: flex;
+    width: 100vw;
+    height: calc(100vh - 52px);
+    overflow: hidden;
+  }
+  
+  .split-maker-panel {
+    flex: 1 1 50%;
+    width: 50%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .split-maker-panel.left-panel {
+    background-color: #f1f5f9;
+    border-right: 3px solid #cbd5e1;
+  }
+  
+  .split-maker-panel.right-panel {
+    background-color: #ffffff;
+  }
+  
+  .split-form-scroll-pane {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  
+  .split-doc-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  .split-image-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .split-doc-img {
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+  
+  .split-text-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 20px;
+    background-color: #ffffff;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  
+  .split-text-container pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  
+  .split-excel-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .split-excel-tabs {
+    display: flex;
+    background-color: #e2e8f0;
+    border-bottom: 1px solid #cbd5e1;
+    overflow-x: auto;
+  }
+  
+  .split-excel-tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #475569;
+  }
+  
+  .split-excel-tab-btn.active {
+    background-color: #ffffff;
+    color: #002d72;
+    border-bottom: 2px solid #002d72;
+  }
+  
+  .split-excel-table-scroll {
+    flex: 1;
+    overflow: auto;
+    background-color: #ffffff;
+  }
+  
+  .split-excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: monospace;
+  }
+  
+  .split-excel-table td {
+    border: 1px solid #e2e8f0;
+    padding: 5px 8px;
+    white-space: nowrap;
+  }
+  
+  .split-excel-row-num {
+    background-color: #f8fafc;
+    font-weight: bold;
+    text-align: center;
+    color: #64748b;
+    width: 36px;
+  }
+  
+  .split-maker-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748b;
+    gap: 12px;
+  }
+  
+  .split-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #cbd5e1;
+    border-top-color: #002d72;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
