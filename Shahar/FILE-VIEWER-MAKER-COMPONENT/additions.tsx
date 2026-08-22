@@ -2,7 +2,6 @@
 
 //1. src/pages/instructions/SplitPaymentMakerModal.css
 
-
 /* ==========================================================================
    Split Payment Maker Modal (50% : 50% Viewport)
    ========================================================================== */
@@ -28,7 +27,10 @@
     overflow: hidden;
   }
   
-  /* Header Bar */
+  /* ==========================================================================
+     Top Header Bar
+     ========================================================================== */
+  
   .split-maker-header {
     height: 50px;
     min-height: 50px;
@@ -38,7 +40,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     z-index: 10;
   }
   
@@ -69,6 +71,29 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
+  .split-doc-dropdown {
+    background-color: #004b99;
+    color: #ffffff;
+    border: 1px solid #0284c7;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    max-width: 350px;
+    cursor: pointer;
+    outline: none;
+  }
+  
+  .split-doc-dropdown:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  }
+  
+  .split-maker-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
   .split-maker-btn-close {
     background: transparent;
     border: none;
@@ -85,7 +110,10 @@
     background-color: rgba(255, 255, 255, 0.2);
   }
   
-  /* Main 50/50 Body */
+  /* ==========================================================================
+     50% / 50% Body Layout
+     ========================================================================== */
+  
   .split-maker-body {
     flex: 1;
     display: flex;
@@ -94,7 +122,7 @@
     overflow: hidden;
   }
   
-  /* Left Panel: Document Preview (50%) */
+  /* Left Panel: Document Viewer (50%) */
   .split-maker-panel.left-panel {
     flex: 0 0 50%;
     width: 50%;
@@ -103,6 +131,8 @@
     border-right: 3px solid #cbd5e1;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   
   .split-doc-iframe {
@@ -112,13 +142,15 @@
     background-color: #2b2b2b;
   }
   
-  /* Right Panel: ISO Maker Form (50%) */
+  /* Right Panel: Payment Form (50%) */
   .split-maker-panel.right-panel {
     flex: 0 0 50%;
     width: 50%;
     height: 100%;
     background-color: #f8fafc;
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
   
   .split-form-scroll-pane {
@@ -129,7 +161,117 @@
     box-sizing: border-box;
   }
   
-  /* Document Loading State */
+  /* ==========================================================================
+     Non-PDF File Viewers (Images, Plain Text, Excel)
+     ========================================================================== */
+  
+  /* Images */
+  .split-image-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1e293b;
+    box-sizing: border-box;
+  }
+  
+  .split-doc-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+  
+  /* Plain Text & Logs */
+  .split-text-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 20px;
+    background-color: #ffffff;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #1e293b;
+    box-sizing: border-box;
+  }
+  
+  .split-text-container pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  
+  /* Excel Sheet Viewer */
+  .split-excel-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .split-excel-tabs {
+    display: flex;
+    background-color: #e2e8f0;
+    border-bottom: 1px solid #cbd5e1;
+    overflow-x: auto;
+  }
+  
+  .split-excel-tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #475569;
+    white-space: nowrap;
+  }
+  
+  .split-excel-tab-btn.active {
+    background-color: #ffffff;
+    color: #002d72;
+    border-bottom: 2px solid #002d72;
+  }
+  
+  .split-excel-table-scroll {
+    flex: 1;
+    overflow: auto;
+    background-color: #ffffff;
+  }
+  
+  .split-excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: monospace;
+  }
+  
+  .split-excel-table td {
+    border: 1px solid #e2e8f0;
+    padding: 5px 8px;
+    white-space: nowrap;
+    color: #1e293b;
+  }
+  
+  .split-excel-row-num {
+    background-color: #f8fafc;
+    font-weight: bold;
+    text-align: center;
+    color: #64748b;
+    width: 36px;
+    border-right: 2px solid #cbd5e1 !important;
+    user-select: none;
+  }
+  
+  /* ==========================================================================
+     Loading & Fallback States
+     ========================================================================== */
+  
   .split-maker-loading {
     display: flex;
     flex-direction: column;
@@ -138,6 +280,9 @@
     height: 100%;
     color: #94a3b8;
     gap: 12px;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
   }
   
   .split-spinner {
@@ -154,6 +299,42 @@
       transform: rotate(360deg);
     }
   }
+  
+  /* ==========================================================================
+     Custom Scrollbar
+     ========================================================================== */
+  
+  .split-form-scroll-pane::-webkit-scrollbar,
+  .split-excel-table-scroll::-webkit-scrollbar,
+  .split-text-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .split-form-scroll-pane::-webkit-scrollbar-track,
+  .split-excel-table-scroll::-webkit-scrollbar-track,
+  .split-text-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  .split-form-scroll-pane::-webkit-scrollbar-thumb,
+  .split-excel-table-scroll::-webkit-scrollbar-thumb,
+  .split-text-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .split-form-scroll-pane::-webkit-scrollbar-thumb:hover,
+  .split-excel-table-scroll::-webkit-scrollbar-thumb:hover,
+  .split-text-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+
+
+
+
+
 
 
   // 2. src/pages/ss-payment/payment-flow.css
