@@ -342,7 +342,39 @@ const handlePreviewDocument = async (doc: GabInstructionDocument) => {
   );
 
 
-
   
+
+  // The Single Fix in InstructionDetailPage.tsx
+
+
+  const handleEditPaymentAccount = async (row: InstructionAccountResponse) => {
+    setSelectedRowData(row);
+    setShowSplitMakerModal(true);
+  
+    // 1. Get documents array from state or from instruction details
+    let docsList = Array.isArray(documents) && documents.length > 0
+      ? documents
+      : (instruction as any)?.documents || [];
+  
+    // 2. Fallback: if documents list is empty, fetch it immediately
+    if (docsList.length === 0 && instruction?.instructionId) {
+      try {
+        const res = await getDocuments(instruction.instructionId);
+        if (Array.isArray(res) && res.length > 0) {
+          docsList = res;
+          setDocuments(res);
+        }
+      } catch (e) {
+        console.warn('Could not fetch documents list:', e);
+      }
+    }
+  
+    // 3. Pick the document (first available) and trigger your existing handlePreviewDocument
+    const targetDoc = selectedDocument || (docsList.length > 0 ? docsList[0] : null);
+  
+    if (targetDoc && typeof handlePreviewDocument === 'function') {
+      await handlePreviewDocument(targetDoc);
+    }
+  };
 
 
