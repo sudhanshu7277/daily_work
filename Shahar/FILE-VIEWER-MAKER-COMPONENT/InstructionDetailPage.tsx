@@ -347,34 +347,49 @@ const handlePreviewDocument = async (doc: GabInstructionDocument) => {
   // The Single Fix in InstructionDetailPage.tsx
 
 
-  const handleEditPaymentAccount = async (row: InstructionAccountResponse) => {
-    setSelectedRowData(row);
-    setShowSplitMakerModal(true);
+  const handleEditPaymentAccount = useCallback(
+    async (row: InstructionAccountResponse) => {
+      // 1. Capture the selected row data for form hydration (Debit Account, Currency, Amount)
+      setSelectedRowData(row);
   
-    // 1. Get documents array from state or from instruction details
-    let docsList = Array.isArray(documents) && documents.length > 0
-      ? documents
-      : (instruction as any)?.documents || [];
+      // 2. Open the modal immediately for responsive UI
+      setShowSplitMakerModal(true);
   
-    // 2. Fallback: if documents list is empty, fetch it immediately
-    if (docsList.length === 0 && instruction?.instructionId) {
       try {
-        const res = await getDocuments(instruction.instructionId);
-        if (Array.isArray(res) && res.length > 0) {
-          docsList = res;
-          setDocuments(res);
+        // 3. Resolve the documents list from state or instruction payload
+        let docsList: GabInstructionDocument[] =
+          Array.isArray(documents) && documents.length > 0
+            ? documents
+            : (instruction as any)?.documents || [];
+  
+        // 4. Fallback: if documents list is not yet loaded in state, fetch dynamically via API
+        if (docsList.length === 0 && instruction?.instructionId) {
+          try {
+            const fetchedDocs = await getDocuments(instruction.instructionId);
+            if (Array.isArray(fetchedDocs) && fetchedDocs.length > 0) {
+              docsList = fetchedDocs;
+              setDocuments(fetchedDocs);
+            }
+          } catch (fetchErr) {
+            console.warn('Could not auto-fetch documents list:', fetchErr);
+          }
         }
-      } catch (e) {
-        console.warn('Could not fetch documents list:', e);
+  
+        // 5. Select target document (selected document, or payment instruction type, or first available)
+        const targetDoc =
+          selectedDocument ||
+          docsList.find((d) => d.documentType === 'PAYMENT_INSTRUCTION') ||
+          (docsList.length > 0 ? docsList[0] : null);
+  
+        // 6. Trigger the dynamic document preview stream
+        if (targetDoc && typeof handlePreviewDocument === 'function') {
+          await handlePreviewDocument(targetDoc);
+        }
+      } catch (err) {
+        console.error('Error handling edit payment account document fetch:', err);
       }
-    }
-  
-    // 3. Pick the document (first available) and trigger your existing handlePreviewDocument
-    const targetDoc = selectedDocument || (docsList.length > 0 ? docsList[0] : null);
-  
-    if (targetDoc && typeof handlePreviewDocument === 'function') {
-      await handlePreviewDocument(targetDoc);
-    }
-  };
+    },
+    [documents, selectedDocument, handlePreviewDocument, instruction, getDocuments]
+  );
 
 
