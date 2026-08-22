@@ -1,36 +1,59 @@
-// Step 1: Restore Original handlePreviewDocument in InstructionDetailPage.tsx
-//Navigate to lines 1200–1250 of InstructionDetailPage.tsx 
-// and ensure handlePreviewDocument uses your application's actual document service:
+// 1. Update handlePreviewDocument (Lines 1349–1385 in InstructionDetailPage.tsx)
 
-const handlePreviewDocument = async (doc: GabInstructionDocument) => {
-    if (!doc?.documentId) return;
-    try {
-      setPreviewLoading(true);
-      setSelectedDocument(doc);
-  
-      // Call your existing service method that was working in Maker mode
-      const instId = doc.instructionId || instruction?.instructionId;
-      const blob = await getDocumentPreviewBlob(instId, doc.documentId);
-      
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setPreviewUrl(url);
-      } else {
-        setPreviewUrl(null);
-      }
-    } catch (err) {
-      console.error('Error previewing document:', err);
+const handlePreviewDocument = async (doc: GabInstructionDocument, force: boolean = false) => {
+    // If clicking the same doc in the tab grid, toggle off (only if not forced by modal)
+    if (!force && selectedDocument?.documentId === doc.documentId && previewUrl) {
       setPreviewUrl(null);
+      setSelectedDocument(null);
+      return;
+    }
+  
+    setSelectedDocument(doc);
+    setPreviewUrl(null);
+    setPreviewError('');
+  
+    if (typeof isPreviewable === 'function' && !isPreviewable(doc)) {
+      setPreviewError('Preview is not available for this file type. Please download the document instead.');
+      return;
+    }
+  
+    setPreviewLoading(true);
+  
+    try {
+      const PREVIEWABLE_TYPES = [
+        'application/pdf',
+        'image/png',
+        'image/jpeg',
+        'image/gif',
+        'text/plain',
+        'text/html'
+      ];
+  
+      if (doc.contentType && !PREVIEWABLE_TYPES.includes(doc.contentType)) {
+        // If content-type isn't standard MIME, let it proceed if filename ends in a previewable extension
+        const fileNameLower = String(doc.fileName || '').toLowerCase();
+        const hasPreviewableExt = /\.(pdf|png|jpe?g|gif|txt|html)$/i.test(fileNameLower);
+        
+        if (!hasPreviewableExt) {
+          setPreviewError('Preview is not available for this file type.');
+          setPreviewLoading(false);
+          return;
+        }
+      }
+  
+      const instId = doc.instructionId || instructionId;
+      const url = await getDocumentPreviewBlob(instId, doc.documentId);
+      setPreviewUrl(url);
+    } catch (err) {
+      setPreviewError(err instanceof Error ? err.message : 'Failed to load preview');
     } finally {
       setPreviewLoading(false);
     }
   };
 
 
-
-  // Step 2: Clean handleEditPaymentAccount in InstructionDetailPage.tsx
-//Inside handleEditPaymentAccount, simply pass the d
-// ocument to the restored handlePreviewDocument:
+  // 2. Update handleEditPaymentAccount (Around Line 1402 in InstructionDetailPage.tsx)
+// Pass true for the force argument when calling handlePreviewDocument:
 
 
 const handleEditPaymentAccount = useCallback(
@@ -50,7 +73,8 @@ const handleEditPaymentAccount = useCallback(
           (docsList.length > 0 ? docsList[0] : null);
   
         if (targetDoc && typeof handlePreviewDocument === 'function') {
-          await handlePreviewDocument(targetDoc);
+          // Pass force = true so toggle-off logic is bypassed
+          await handlePreviewDocument(targetDoc, true);
         }
       } catch (err) {
         console.warn('Error fetching document preview on Edit click:', err);
@@ -58,37 +82,3 @@ const handleEditPaymentAccount = useCallback(
     },
     [documents, selectedDocument, handlePreviewDocument, instruction]
   );
-
-
-  // Step 3: Ensure SplitPaymentMakerModal.tsx Renders Immediately
-//In SplitPaymentMakerModal.tsx, ensure the Left Panel condition 
-// displays the iframe whenever previewUrl is available:
-
-
-{/* Left Panel: 50% Document Viewer */}
-<div className="split-maker-panel left-panel">
-  {previewLoading ? (
-    <div className="split-maker-loading">
-      <div className="split-spinner"></div>
-      <span>Loading document stream...</span>
-    </div>
-  ) : !previewUrl ? (
-    <div className="split-maker-loading">
-      <p style={{ color: '#94a3b8', fontSize: 13 }}>
-        📄 No preview stream available for {fileName || 'this instruction'}.
-      </p>
-    </div>
-  ) : isPdf ? (
-    <iframe
-      src={`${previewUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-      title={fileName || 'Document Preview'}
-      className="split-doc-iframe"
-    />
-  ) : isImage ? (
-    <div className="split-image-container">
-      <img src={previewUrl} alt={fileName} className="split-doc-img" />
-    </div>
-  ) : (
-    <iframe src={previewUrl} title={fileName || 'Document'} className="split-doc-iframe" />
-  )}
-</div>
