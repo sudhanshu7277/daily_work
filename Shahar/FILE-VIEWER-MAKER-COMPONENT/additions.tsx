@@ -711,3 +711,25 @@
     display: flex;
     justify-content: flex-end;
   }
+
+
+
+
+
+
+
+  //Step 1: Hide the PDF Thumbnail Sidebar and Maximize Document View
+//In SplitPaymentMakerModal.tsx, update the PDF iframe src to collapse 
+// the navigation pane (navpanes=0) and auto-fit the page width (view=FitH):
+
+
+{/* In SplitPaymentMakerModal.tsx */}
+{isPdf ? (
+    <iframe
+      src={`${previewUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+      title={fileName || 'Document Preview'}
+      className="split-doc-iframe"
+    />
+  ) : (
+    // ... other renderers
+  )}
