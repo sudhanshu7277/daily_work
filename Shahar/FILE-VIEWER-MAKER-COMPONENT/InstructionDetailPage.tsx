@@ -253,4 +253,51 @@ export default function InstructionDetailPage() {
 />
 
 
+// Solution
+//Move handleEditPaymentAccount below line 1392 
+// (right after handlePreviewDocument is defined), 
+// or place it together in proper declaration order:
+
+
+// 1. Keep handlePreviewDocument where it is (around line 1392)
+const handlePreviewDocument = async (doc: GabInstructionDocument) => {
+    if (!doc?.documentId) return;
+    try {
+      setPreviewLoading(true);
+      setSelectedDocument(doc);
+      const response = await fetch(`/api/instructions/${doc.instructionId}/documents/${doc.documentId}/preview`);
+      if (!response.ok) throw new Error('Document preview fetch failed');
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setPreviewUrl(objectUrl);
+    } catch (err) {
+      console.warn('Failed to fetch document blob:', err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+  
+  // 2. Place handleEditPaymentAccount DIRECTLY AFTER handlePreviewDocument
+  const handleEditPaymentAccount = useCallback(
+    async (row: InstructionAccountResponse) => {
+      setSelectedRowData(row);
+      setShowSplitMakerModal(true);
+  
+      try {
+        const docsList = Array.isArray(documents) ? documents : [];
+        const targetDoc =
+          selectedDocument ||
+          docsList.find((d) => d.documentType === 'PAYMENT_INSTRUCTION') ||
+          (docsList.length > 0 ? docsList[0] : null);
+  
+        if (targetDoc && typeof handlePreviewDocument === 'function') {
+          await handlePreviewDocument(targetDoc);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch document blob on Edit click:', err);
+      }
+    },
+    [documents, selectedDocument, handlePreviewDocument]
+  );
+
 
