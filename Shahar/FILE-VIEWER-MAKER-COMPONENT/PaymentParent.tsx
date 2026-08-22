@@ -1,8 +1,12 @@
+// 3. PaymentParent.tsx
+
+
 import React, {
     FC,
     useState,
     useMemo,
-    useCallback
+    useCallback,
+    useEffect
   } from 'react';
   import { PaymentChild } from './PaymentChild';
   import {
@@ -19,6 +23,7 @@ import React, {
   export interface PaymentParentProps {
     mode?: 'maker' | 'checker' | 'repair';
     initialData?: Partial<Pain001Model> | null;
+    makerPersistedModel?: Partial<Pain001Model> | null;
     hideTabs?: boolean;
     onPaymentSuccess?: (referenceId: string, payload: Pain001Model) => void;
   }
@@ -75,16 +80,17 @@ import React, {
   ];
   
   export const PaymentParent: FC<PaymentParentProps> = ({
-    mode: initialMode = 'maker',
+    mode: controlledMode = 'maker',
     initialData,
+    makerPersistedModel,
     hideTabs = false,
     onPaymentSuccess
   }) => {
     let soeId = 'sj81534';
     try {
-      const authContext = useAuth();
+      const authContext: any = useAuth?.();
       if (authContext && typeof authContext === 'object') {
-        soeId = (authContext as any).soeId || (authContext as any).user?.soeId || (authContext as any).userId || 'sj81534';
+        soeId = authContext.soeId || authContext.user?.soeId || authContext.userId || 'sj81534';
       } else if (typeof authContext === 'string') {
         soeId = authContext;
       }
@@ -92,47 +98,11 @@ import React, {
       soeId = 'sj81534';
     }
   
-    const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>(initialMode);
+    const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>(controlledMode);
   
-    const [activeSubmittedTransaction, setActiveSubmittedTransaction] = useState<{
-      transactionId: string;
-      paymentId: string;
-      maker: string;
-      payload: Pain001Model;
-    }>({
-      transactionId: '6641753311580996571',
-      paymentId: 'c337a6c4-4622-404e-b303-e0ec5192b04c',
-      maker: 'sj81534',
-      payload: {
-        ...createEmptyPain001(),
-        requestedExecutionDate: '2026-08-25',
-        instructedAmountCurrencyCode: 'USD',
-        instructedAmount: 50000,
-        debtorName: 'ACME Corporation Global Ltd',
-        debtorAccountNumber: '8378339123456789',
-        debtorAgentBIC: 'CITIGB2LXXX',
-        debtorCountryCode: 'GB',
-        debtorTownName: 'London',
-        debtorAddressLines1: '25 Canada Square',
-        creditorName: 'Starlight Solutions Inc',
-        creditorAccount: '998877665544',
-        creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
-        creditorAgentFinancialInstitutionName: 'Citibank N.A. New York',
-        creditorAddressLines1: '388 Greenwich Street',
-        creditorCountryCode: 'US',
-        creditorTownName: 'New York',
-        chargeBearer: 'DEBT',
-        painPaymentMethodType: 'CBT',
-        ustrdPaymentDetails: 'Invoice #INV-2026-8890',
-        taxIdNumber: '',
-        taxIdType: '',
-        purposeOfPayment: '',
-        taxPurposeCode: '',
-        regulatoryReportingCode: '',
-        invoiceReferenceNumber: '',
-        ...(initialData || {})
-      }
-    });
+    useEffect(() => {
+      setActiveTab(controlledMode);
+    }, [controlledMode]);
   
     const [modalResponse, setModalResponse] = useState<{
       title: string;
@@ -143,42 +113,68 @@ import React, {
       color: string;
     } | null>(null);
   
-    const closeModal = () => {
-      setModalResponse(null);
-    };
+    const closeModal = () => setModalResponse(null);
   
+    // =========================================================================
     // 1. MAKER MODE
+    // =========================================================================
     const [makerFormValid, setMakerFormValid] = useState<boolean>(false);
     const [makerPayload, setMakerPayload] = useState<Pain001Model | null>(null);
     const [makerHardcapResult, setMakerHardcapResult] = useState<any>(null);
     const [isMakerSubmitting, setIsMakerSubmitting] = useState<boolean>(false);
   
-    const makerPaymentInput: PaymentComponentInput = useMemo(() => ({
-      applicationName: 'ADR',
-      applicationModule: 'ADR',
-      currency: initialData?.instructedAmountCurrencyCode || 'USD',
-      paymentMode: 'maker',
-      dualBlindKeyFlag: 'N',
-      paymentModel: initialData ? { ...createEmptyPain001(), ...initialData } : null
-    }), [initialData]);
+    const makerPaymentInput: PaymentComponentInput = useMemo(() => {
+      const baseModel = createEmptyPain001();
+      const mergedModel = initialData ? { ...baseModel, ...initialData } : null;
   
-    const handleMakerAmountChange = useCallback(async ({ instructedAmountCurrencyCode, instructedAmount }: { instructedAmountCurrencyCode: string; instructedAmount: number }) => {
-      if (!instructedAmount || instructedAmount <= 0) {
-        setMakerHardcapResult(null);
-        return;
+      return {
+        applicationName: 'ADR',
+        applicationModule: 'ADR',
+        currency: initialData?.instructedAmountCurrencyCode || 'USD',
+        paymentMode: 'maker',
+        dualBlindKeyFlag: 'N',
+        paymentModel: mergedModel
+      };
+    }, [initialData]);
+  
+    const handleMakerAmountChange = useCallback(
+      async ({
+        instructedAmountCurrencyCode,
+        instructedAmount
+      }: {
+        instructedAmountCurrencyCode: string;
+        instructedAmount: number;
+      }) => {
+        if (!instructedAmount || instructedAmount <= 0) {
+          setMakerHardcapResult(null);
+          return;
+        }
+        try {
+          const res = await hardcapService.verifyHardCap('/shared-services/api/payment', {
+            currency: instructedAmountCurrencyCode || 'USD',
+            paymentAmount: instructedAmount,
+            applicationName: 'ADR',
+            applicationModule: 'ADR'
+          });
+          setMakerHardcapResult(res);
+        } catch {
+          setMakerHardcapResult({ amountWithinLimit: true, hardCapValue: 999999999 });
+        }
+      },
+      []
+    );
+  
+    useEffect(() => {
+      if (initialData?.instructedAmount && initialData?.instructedAmountCurrencyCode) {
+        const numAmount = Number(initialData.instructedAmount);
+        if (!isNaN(numAmount) && numAmount > 0) {
+          handleMakerAmountChange({
+            instructedAmountCurrencyCode: initialData.instructedAmountCurrencyCode,
+            instructedAmount: numAmount
+          });
+        }
       }
-      try {
-        const res = await hardcapService.verifyHardCap('/shared-services/api/payment', {
-          currency: instructedAmountCurrencyCode || 'USD',
-          paymentAmount: instructedAmount,
-          applicationName: 'ADR',
-          applicationModule: 'ADR'
-        });
-        setMakerHardcapResult(res);
-      } catch {
-        setMakerHardcapResult({ amountWithinLimit: true, hardCapValue: 999999999 });
-      }
-    }, []);
+    }, [initialData, handleMakerAmountChange]);
   
     const handleMakerOutput = useCallback((output: PaymentComponentOutput) => {
       setMakerFormValid(output.isValid);
@@ -221,11 +217,7 @@ import React, {
             }
           }
   
-          const errorMessage =
-            data?.error ||
-            data?.message ||
-            `Payment submission failed on server (HTTP ${res.status}: ${res.statusText || 'Error'})`;
-  
+          const errorMessage = data?.error || data?.message || `Payment submission failed on server (HTTP ${res.status})`;
           setModalResponse({
             title: 'MAKER RECORD NOT CREATED',
             referenceId: data?.referenceId || data?.transactionId || 'N/A',
@@ -238,15 +230,6 @@ import React, {
         }
   
         const txnId = data.transactionId || data.referenceId || data.id || 'TXN-CONFIRMED';
-        const pmtId = data.paymentId || 'PMT-CONFIRMED';
-  
-        setActiveSubmittedTransaction({
-          transactionId: txnId,
-          paymentId: pmtId,
-          maker: soeId,
-          payload: makerPayload
-        });
-  
         setModalResponse({
           title: 'MAKER RECORD SAVED',
           referenceId: txnId,
@@ -260,7 +243,6 @@ import React, {
           onPaymentSuccess(txnId, makerPayload);
         }
       } catch (err: any) {
-        console.error('Maker submission network/client error:', err);
         setModalResponse({
           title: 'MAKER RECORD NOT CREATED',
           referenceId: 'N/A',
@@ -274,13 +256,39 @@ import React, {
       }
     };
   
+    // =========================================================================
     // 2. CHECKER MODE
+    // =========================================================================
     const [checkerFormValid, setCheckerFormValid] = useState<boolean>(false);
     const [checkerDualBlindPassed, setCheckerDualBlindPassed] = useState<boolean>(false);
     const [checkerPayload, setCheckerPayload] = useState<Pain001Model | null>(null);
     const [checkerFailedFields, setCheckerFailedFields] = useState<string[]>([]);
     const [checkerComments, setCheckerComments] = useState<string>('');
     const [isCheckerProcessing, setIsCheckerProcessing] = useState<boolean>(false);
+  
+    // Checker Model hydrated from Maker persisted model + selected row values
+    const checkerPersistedData: Pain001Model = useMemo(() => {
+      const baseModel = createEmptyPain001();
+      return {
+        ...baseModel,
+        requestedExecutionDate: '2026-08-25',
+        instructedAmountCurrencyCode: 'USD',
+        instructedAmount: 50000,
+        debtorName: 'ACME Corporation Global Ltd',
+        debtorAccountNumber: '8378339123456789',
+        debtorAgentBIC: 'CITIGB2LXXX',
+        creditorName: 'Starlight Solutions Inc',
+        creditorAccount: '998877665544',
+        creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
+        creditorAgentFinancialInstitutionName: 'Citibank N.A. New York',
+        creditorAddressLines1: '388 Greenwich Street',
+        creditorCountryCode: 'US',
+        chargeBearer: 'DEBT',
+        painPaymentMethodType: 'CBT',
+        ...(makerPersistedModel || {}),
+        ...(initialData || {})
+      };
+    }, [makerPersistedModel, initialData]);
   
     const checkerPaymentInput: PaymentComponentInput = useMemo(() => ({
       applicationName: 'ADR',
@@ -295,8 +303,8 @@ import React, {
         'creditorAccount',
         'debtorAgentBIC'
       ],
-      paymentModel: activeSubmittedTransaction.payload
-    }), [activeSubmittedTransaction]);
+      paymentModel: checkerPersistedData
+    }), [checkerPersistedData]);
   
     const handleCheckerOutput = useCallback((output: PaymentComponentOutput) => {
       setCheckerFormValid(output.isValid);
@@ -318,11 +326,11 @@ import React, {
         action,
         comments: checkerComments.trim(),
         loginUser: soeId,
-        transactionId: activeSubmittedTransaction.transactionId,
-        paymentId: activeSubmittedTransaction.paymentId,
-        maker: activeSubmittedTransaction.maker,
+        transactionId: 'TXN-CHECKER-9912',
+        paymentId: 'PMT-CHECKER-9912',
+        maker: 'sj81534',
         failedFields: action === 'Rejected' ? checkerFailedFields : [],
-        paymentDetailsRequest: checkerPayload || activeSubmittedTransaction.payload
+        paymentDetailsRequest: checkerPayload || checkerPersistedData
       };
   
       try {
@@ -348,20 +356,23 @@ import React, {
   
         setModalResponse({
           title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
-          referenceId: data.transactionId || activeSubmittedTransaction.transactionId,
-          amount: `${activeSubmittedTransaction.payload.instructedAmountCurrencyCode} ${activeSubmittedTransaction.payload.instructedAmount}`,
+          referenceId: data.transactionId || 'TXN-CHECKER-9912',
+          amount: `${checkerPersistedData.instructedAmountCurrencyCode} ${checkerPersistedData.instructedAmount}`,
           status: action === 'Approved' ? 'APPROVED' : 'REJECTED',
           message: action === 'Approved'
             ? 'Payment approved and released to clearing successfully!'
             : 'Payment rejected and routed to the Repair Queue.',
           color: action === 'Approved' ? '#00509d' : '#d64545'
         });
+  
+        if (onPaymentSuccess) {
+          onPaymentSuccess(data.transactionId || 'TXN-CHECKER-9912', checkerPayload || checkerPersistedData);
+        }
       } catch (err: any) {
-        console.warn('Checker decision API dispatch error:', err);
         setModalResponse({
           title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
-          referenceId: activeSubmittedTransaction.transactionId,
-          amount: `${activeSubmittedTransaction.payload.instructedAmountCurrencyCode} ${activeSubmittedTransaction.payload.instructedAmount}`,
+          referenceId: 'TXN-CHECKER-9912',
+          amount: `${checkerPersistedData.instructedAmountCurrencyCode} ${checkerPersistedData.instructedAmount}`,
           status: action === 'Approved' ? 'APPROVED' : 'REJECTED',
           message: `Decision '${action}' saved. Flagged fields: ${checkerFailedFields.length}`,
           color: action === 'Approved' ? '#00509d' : '#d64545'
@@ -371,16 +382,16 @@ import React, {
       }
     };
   
-    const isApproveDisabled = isCheckerProcessing || !checkerFormValid || !checkerDualBlindPassed || checkerFailedFields.length > 0;
-    const isRejectDisabled = isCheckerProcessing;
-  
+    // =========================================================================
     // 3. REPAIR MODE
+    // =========================================================================
     const [repairFormValid, setRepairFormValid] = useState<boolean>(false);
     const [repairPayload, setRepairPayload] = useState<Pain001Model | null>(null);
     const [isRepairSubmitting, setIsRepairSubmitting] = useState<boolean>(false);
     const [repairNewlyModifiedFields, setRepairNewlyModifiedFields] = useState<string[]>([]);
   
-    const sampleRepairData: Pain001Model = useMemo(() => ({
+    // Base repair model hydrated from selected row initialData
+    const repairInitialModel: Pain001Model = useMemo(() => ({
       ...createEmptyPain001(),
       requestedExecutionDate: '2026-08-25',
       instructedAmountCurrencyCode: 'USD',
@@ -398,13 +409,8 @@ import React, {
       chargeBearer: 'SHAR',
       painPaymentMethodType: 'DFT',
       ustrdPaymentDetails: 'Re-repairing transaction per checker request',
-      taxIdNumber: '',
-      taxIdType: '',
-      purposeOfPayment: '',
-      taxPurposeCode: '',
-      regulatoryReportingCode: '',
-      invoiceReferenceNumber: ''
-    }), []);
+      ...(initialData || {})
+    }), [initialData]);
   
     const repairReviewFieldList = useMemo(() => ['debtorName', 'creditorName', 'instructedAmount'], []);
   
@@ -414,8 +420,8 @@ import React, {
       paymentMode: 'repair',
       dualBlindKeyFlag: 'N',
       rejectedFieldList: repairReviewFieldList,
-      paymentModel: sampleRepairData
-    }), [sampleRepairData, repairReviewFieldList]);
+      paymentModel: repairInitialModel
+    }), [repairInitialModel, repairReviewFieldList]);
   
     const handleRepairOutput = useCallback((output: PaymentComponentOutput) => {
       setRepairFormValid(output.isValid);
@@ -463,14 +469,17 @@ import React, {
           message: 'Repaired transaction successfully re-sent to verification queue!',
           color: '#00509d'
         });
+  
+        if (onPaymentSuccess) {
+          onPaymentSuccess(data.referenceId || 'TXN-REPAIR-5541', repairPayload);
+        }
       } catch (err: any) {
-        console.error('Repair submit error:', err);
         setModalResponse({
           title: 'REPAIR RESUBMISSION FAILED',
           referenceId: 'TXN-REPAIR-5541',
           amount: `${repairPayload?.instructedAmountCurrencyCode || 'USD'} ${repairPayload?.instructedAmount}`,
           status: 'FAILED',
-          message: err.message || 'Payment repair resubmission failed !',
+          message: err?.message || 'Payment repair resubmission failed !',
           color: '#d64545'
         });
       } finally {
@@ -482,30 +491,9 @@ import React, {
       <div className="sample-container">
         {!hideTabs && (
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid #d9e2ec', paddingBottom: '12px' }}>
-            <button
-              type="button"
-              className={`lmn-btn ${activeTab === 'maker' ? 'lmn-btn-primary' : ''}`}
-              style={{ fontWeight: 600 }}
-              onClick={() => setActiveTab('maker')}
-            >
-              1. Maker Mode
-            </button>
-            <button
-              type="button"
-              className={`lmn-btn ${activeTab === 'checker' ? 'lmn-btn-primary' : ''}`}
-              style={{ fontWeight: 600 }}
-              onClick={() => setActiveTab('checker')}
-            >
-              2. Checker Mode
-            </button>
-            <button
-              type="button"
-              className={`lmn-btn ${activeTab === 'repair' ? 'lmn-btn-primary' : ''}`}
-              style={{ fontWeight: 600 }}
-              onClick={() => setActiveTab('repair')}
-            >
-              3. Repair Mode
-            </button>
+            <button type="button" className={`lmn-btn ${activeTab === 'maker' ? 'lmn-btn-primary' : ''}`} onClick={() => setActiveTab('maker')}>1. Maker Mode</button>
+            <button type="button" className={`lmn-btn ${activeTab === 'checker' ? 'lmn-btn-primary' : ''}`} onClick={() => setActiveTab('checker')}>2. Checker Mode</button>
+            <button type="button" className={`lmn-btn ${activeTab === 'repair' ? 'lmn-btn-primary' : ''}`} onClick={() => setActiveTab('repair')}>3. Repair Mode</button>
           </div>
         )}
   
@@ -544,10 +532,9 @@ import React, {
             
             <div className="parent-section-checker-info" style={{ margin: '12px 0' }}>
               <div className="parent-section-meta">
-                <span><strong>Instruction ID:</strong> {activeSubmittedTransaction.transactionId}</span>
-                <span><strong>Maker SOEID:</strong> {activeSubmittedTransaction.maker}</span>
-                <span><strong>Event Type:</strong> OUTBOUND_ISO_PAIN001</span>
-                <span><strong>Value Date:</strong> {activeSubmittedTransaction.payload.requestedExecutionDate}</span>
+                <span><strong>Instruction Status:</strong> PAYMENT_CHECKER</span>
+                <span><strong>Checker SOEID:</strong> {soeId}</span>
+                <span><strong>Value Date:</strong> {checkerPersistedData.requestedExecutionDate}</span>
                 <span><strong>Dual-Blind Status:</strong> {checkerDualBlindPassed ? '✅ All Re-Keyed Fields Matched' : '⚠️ Re-Keying Required'}</span>
                 <span><strong>Flagged Error Fields:</strong> {checkerFailedFields.length}</span>
               </div>
@@ -577,7 +564,7 @@ import React, {
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #9fb3c8', marginTop: '4px', boxSizing: 'border-box' }}
                   value={checkerComments}
                   placeholder="Enter authorization notes or specify failure reason if rejecting..."
-                  onChange={e => setCheckerComments(e.target.value)}
+                  onChange={(e) => setCheckerComments(e.target.value)}
                 />
               </div>
   
@@ -585,7 +572,7 @@ import React, {
                 <button
                   type="button"
                   className="btn-reject"
-                  disabled={isRejectDisabled}
+                  disabled={isCheckerProcessing}
                   onClick={() => handleCheckerDecision('Rejected')}
                 >
                   {isCheckerProcessing ? 'Processing...' : `Reject ${checkerFailedFields.length > 0 ? `(${checkerFailedFields.length} Flagged)` : ''}`}
@@ -594,7 +581,7 @@ import React, {
                 <button
                   type="button"
                   className="lmn-btn lmn-btn-primary btn-approve"
-                  disabled={isApproveDisabled}
+                  disabled={isCheckerProcessing || !checkerFormValid || !checkerDualBlindPassed || checkerFailedFields.length > 0}
                   onClick={() => handleCheckerDecision('Approved')}
                 >
                   {isCheckerProcessing ? 'Processing...' : 'Approve Payment'}
@@ -629,12 +616,12 @@ import React, {
                 repairReviewFieldList={repairReviewFieldList}
                 repairNewlyModifyFieldList={repairNewlyModifiedFields}
                 onPaymentOutput={handleRepairOutput}
-                onFormChange={val => {
+                onFormChange={(val) => {
                   const modifiedKeys = Object.keys(val).filter(
-                    key => (val as any)[key] !== (sampleRepairData as any)[key]
+                    (key) => (val as any)[key] !== (repairInitialModel as any)[key]
                   );
                   if (modifiedKeys.length > 0) {
-                    setRepairNewlyModifiedFields(prev => Array.from(new Set([...prev, ...modifiedKeys])));
+                    setRepairNewlyModifiedFields((prev) => Array.from(new Set([...prev, ...modifiedKeys])));
                   }
                 }}
               />
@@ -653,61 +640,25 @@ import React, {
           </div>
         )}
   
-        {/* MODAL */}
+        {/* Global Status Modal */}
         {modalResponse && (
           <div id="myModal" className="modal" style={{ display: 'block' }}>
             <div className="modal-backdrop" onClick={closeModal}>
-              <div className="modal-container" onClick={e => e.stopPropagation()}>
+              <div className="modal-container" onClick={(e) => e.stopPropagation()}>
                 <header className="modal-header">
                   <h3>{modalResponse.title}</h3>
-                  <button
-                    type="button"
-                    className="close-btn"
-                    aria-label="Close"
-                    onClick={closeModal}
-                  >
-                    &times;
-                  </button>
+                  <button type="button" className="close-btn" onClick={closeModal}>&times;</button>
                 </header>
-  
                 <div className="modal-body">
                   <div className="details-card">
-                    <div className="detail-row">
-                      <span className="label">Reference ID:</span>
-                      <span className="value">
-                        <strong>{modalResponse.referenceId}</strong>
-                      </span>
-                    </div>
-                    {modalResponse.amount && (
-                      <div className="detail-row">
-                        <span className="label">Amount:</span>
-                        <span className="value">{modalResponse.amount}</span>
-                      </div>
-                    )}
-                    <div className="detail-row">
-                      <span className="label">Status:</span>
-                      <span
-                        className="value"
-                        style={{ color: modalResponse.color, fontWeight: 600 }}
-                      >
-                        {modalResponse.status}
-                      </span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="label">Message:</span>
-                      <span className="value">{modalResponse.message}</span>
-                    </div>
+                    <div className="detail-row"><span className="label">Reference ID:</span><span className="value"><strong>{modalResponse.referenceId}</strong></span></div>
+                    {modalResponse.amount && <div className="detail-row"><span className="label">Amount:</span><span className="value">{modalResponse.amount}</span></div>}
+                    <div className="detail-row"><span className="label">Status:</span><span className="value" style={{ color: modalResponse.color, fontWeight: 600 }}>{modalResponse.status}</span></div>
+                    <div className="detail-row"><span className="label">Message:</span><span className="value">{modalResponse.message}</span></div>
                   </div>
                 </div>
-  
                 <footer className="modal-footer">
-                  <button
-                    type="button"
-                    className="lmn-btn lmn-btn-primary"
-                    onClick={closeModal}
-                  >
-                    OK
-                  </button>
+                  <button type="button" className="lmn-btn lmn-btn-primary" onClick={closeModal}>OK</button>
                 </footer>
               </div>
             </div>
