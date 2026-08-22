@@ -301,3 +301,48 @@ const handlePreviewDocument = async (doc: GabInstructionDocument) => {
   );
 
 
+
+
+
+  // The Dynamic Implementation in InstructionDetailPage.tsx
+
+  const handleEditPaymentAccount = useCallback(
+    async (row: InstructionAccountResponse) => {
+      // 1. Capture dynamic row values for Maker / Checker / Repair form
+      setSelectedRowData(row);
+      setShowSplitMakerModal(true);
+  
+      try {
+        const docsList = Array.isArray(documents) ? documents : [];
+  
+        // 2. Dynamically pick the target document for this specific instruction
+        let targetDoc = selectedDocument || (docsList.length > 0 ? docsList[0] : null);
+  
+        // 3. Fallback: if documents array has not loaded yet in state, fetch dynamically
+        if (!targetDoc && instruction?.instructionId) {
+          const res = await fetch(`/api/instructions/${instruction.instructionId}/documents`);
+          if (res.ok) {
+            const fetchedDocs = await res.json();
+            if (Array.isArray(fetchedDocs) && fetchedDocs.length > 0) {
+              setDocuments(fetchedDocs);
+              targetDoc = fetchedDocs[0];
+            }
+          }
+        }
+  
+        // 4. Dynamically stream the preview blob for the resolved document
+        if (targetDoc && typeof handlePreviewDocument === 'function') {
+          await handlePreviewDocument(targetDoc);
+        }
+      } catch (err) {
+        console.warn('Dynamic document preview fetch error:', err);
+      }
+    },
+    [documents, selectedDocument, handlePreviewDocument, instruction?.instructionId]
+  );
+
+
+
+  
+
+

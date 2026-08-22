@@ -1,6 +1,3 @@
-// 3. PaymentParent.tsx
-
-
 import React, {
     FC,
     useState,
@@ -24,11 +21,13 @@ import React, {
     mode?: 'maker' | 'checker' | 'repair';
     initialData?: Partial<Pain001Model> | null;
     makerPersistedModel?: Partial<Pain001Model> | null;
+    customFieldConfig?: FormFieldConfig[];
+    rejectedFields?: string[];
     hideTabs?: boolean;
     onPaymentSuccess?: (referenceId: string, payload: Pain001Model) => void;
   }
   
-  const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
+  const DEFAULT_FIELD_CONFIG: FormFieldConfig[] = [
     { fieldName: 'painPaymentMethodType', label: 'Payment Type (CBT, BKT, DFT)', hidden: false, required: false, options: ['CBT', 'BKT', 'DFT'], placeholder: '-- Select --' },
     { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false, required: true, type: 'date' },
     { fieldName: 'instructedAmountCurrencyCode', label: 'Currency', hidden: false, required: true },
@@ -83,19 +82,22 @@ import React, {
     mode: controlledMode = 'maker',
     initialData,
     makerPersistedModel,
+    customFieldConfig,
+    rejectedFields = ['debtorName', 'creditorName', 'instructedAmount'],
     hideTabs = false,
     onPaymentSuccess
   }) => {
-    let soeId = 'sj81534';
+    // Safe Dynamic SOEID Retrieval
+    let soeId = 'USER';
     try {
       const authContext: any = useAuth?.();
       if (authContext && typeof authContext === 'object') {
-        soeId = authContext.soeId || authContext.user?.soeId || authContext.userId || 'sj81534';
+        soeId = authContext.soeId || authContext.user?.soeId || authContext.userId || 'USER';
       } else if (typeof authContext === 'string') {
         soeId = authContext;
       }
     } catch {
-      soeId = 'sj81534';
+      soeId = 'USER';
     }
   
     const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>(controlledMode);
@@ -104,6 +106,9 @@ import React, {
       setActiveTab(controlledMode);
     }, [controlledMode]);
   
+    const activeFieldConfig = useMemo(() => customFieldConfig || DEFAULT_FIELD_CONFIG, [customFieldConfig]);
+  
+    // Modal response status dialog
     const [modalResponse, setModalResponse] = useState<{
       title: string;
       referenceId: string;
@@ -115,6 +120,21 @@ import React, {
   
     const closeModal = () => setModalResponse(null);
   
+    // Common Hardcap Checker Helper
+    const checkHardcap = useCallback(async (currency: string, amount: number) => {
+      if (!amount || amount <= 0) return null;
+      try {
+        return await hardcapService.verifyHardCap('/shared-services/api/payment', {
+          currency: currency || 'USD',
+          paymentAmount: amount,
+          applicationName: 'ADR',
+          applicationModule: 'ADR'
+        });
+      } catch {
+        return { amountWithinLimit: true, hardCapValue: 999999999 };
+      }
+    }, []);
+  
     // =========================================================================
     // 1. MAKER MODE
     // =========================================================================
@@ -125,7 +145,12 @@ import React, {
   
     const makerPaymentInput: PaymentComponentInput = useMemo(() => {
       const baseModel = createEmptyPain001();
-      const mergedModel = initialData ? { ...baseModel, ...initialData } : null;
+      const mergedModel: Pain001Model = {
+        ...baseModel,
+        requestedExecutionDate: new Date().toISOString().split('T')[0],
+        painPaymentMethodType: 'CBT',
+        ...(initialData || {})
+      };
   
       return {
         applicationName: 'ADR',
@@ -138,30 +163,11 @@ import React, {
     }, [initialData]);
   
     const handleMakerAmountChange = useCallback(
-      async ({
-        instructedAmountCurrencyCode,
-        instructedAmount
-      }: {
-        instructedAmountCurrencyCode: string;
-        instructedAmount: number;
-      }) => {
-        if (!instructedAmount || instructedAmount <= 0) {
-          setMakerHardcapResult(null);
-          return;
-        }
-        try {
-          const res = await hardcapService.verifyHardCap('/shared-services/api/payment', {
-            currency: instructedAmountCurrencyCode || 'USD',
-            paymentAmount: instructedAmount,
-            applicationName: 'ADR',
-            applicationModule: 'ADR'
-          });
-          setMakerHardcapResult(res);
-        } catch {
-          setMakerHardcapResult({ amountWithinLimit: true, hardCapValue: 999999999 });
-        }
+      async ({ instructedAmountCurrencyCode, instructedAmount }: { instructedAmountCurrencyCode: string; instructedAmount: number }) => {
+        const result = await checkHardcap(instructedAmountCurrencyCode, instructedAmount);
+        setMakerHardcapResult(result);
       },
-      []
+      [checkHardcap]
     );
   
     useEffect(() => {
@@ -211,7 +217,7 @@ import React, {
   
         if (!res.ok) {
           if (res.status === 400 && data?.errorCode === 'DUPLICATE_PAYMENT') {
-            if (window.confirm(`Warning: Similar payment exists with ID ${data.referenceId || 'N/A'}. Do you want to override and submit anyway?`)) {
+            if (window.confirm(`Warning: Similar payment exists with ID ${data.referenceId || 'N/A'}. Override and submit anyway?`)) {
               await handleMakerSubmit(true);
               return;
             }
@@ -229,7 +235,7 @@ import React, {
           return;
         }
   
-        const txnId = data.transactionId || data.referenceId || data.id || 'TXN-CONFIRMED';
+        const txnId = data.transactionId || data.referenceId || data.id || 'TXN-SUBMITTED';
         setModalResponse({
           title: 'MAKER RECORD SAVED',
           referenceId: txnId,
@@ -266,24 +272,12 @@ import React, {
     const [checkerComments, setCheckerComments] = useState<string>('');
     const [isCheckerProcessing, setIsCheckerProcessing] = useState<boolean>(false);
   
-    // Checker Model hydrated from Maker persisted model + selected row values
-    const checkerPersistedData: Pain001Model = useMemo(() => {
+    // Checker dynamic model hydrated from incoming row data and persisted maker state
+    const checkerDynamicModel: Pain001Model = useMemo(() => {
       const baseModel = createEmptyPain001();
       return {
         ...baseModel,
-        requestedExecutionDate: '2026-08-25',
-        instructedAmountCurrencyCode: 'USD',
-        instructedAmount: 50000,
-        debtorName: 'ACME Corporation Global Ltd',
-        debtorAccountNumber: '8378339123456789',
-        debtorAgentBIC: 'CITIGB2LXXX',
-        creditorName: 'Starlight Solutions Inc',
-        creditorAccount: '998877665544',
-        creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
-        creditorAgentFinancialInstitutionName: 'Citibank N.A. New York',
-        creditorAddressLines1: '388 Greenwich Street',
-        creditorCountryCode: 'US',
-        chargeBearer: 'DEBT',
+        requestedExecutionDate: new Date().toISOString().split('T')[0],
         painPaymentMethodType: 'CBT',
         ...(makerPersistedModel || {}),
         ...(initialData || {})
@@ -293,18 +287,12 @@ import React, {
     const checkerPaymentInput: PaymentComponentInput = useMemo(() => ({
       applicationName: 'ADR',
       applicationModule: 'ADR',
+      currency: initialData?.instructedAmountCurrencyCode || checkerDynamicModel.instructedAmountCurrencyCode || 'USD',
       paymentMode: 'checker',
-      dualBlindKeyFlag: 'Y',
-      dualBlindKeyFields: [
-        'instructedAmount',
-        'creditorName',
-        'debtorName',
-        'debtorAccountNumber',
-        'creditorAccount',
-        'debtorAgentBIC'
-      ],
-      paymentModel: checkerPersistedData
-    }), [checkerPersistedData]);
+      dualBlindKeyFlag: 'N', // Keeps dynamic fields populated and editable
+      dualBlindKeyFields: [],
+      paymentModel: checkerDynamicModel
+    }), [checkerDynamicModel, initialData]);
   
     const handleCheckerOutput = useCallback((output: PaymentComponentOutput) => {
       setCheckerFormValid(output.isValid);
@@ -326,11 +314,11 @@ import React, {
         action,
         comments: checkerComments.trim(),
         loginUser: soeId,
-        transactionId: 'TXN-CHECKER-9912',
-        paymentId: 'PMT-CHECKER-9912',
-        maker: 'sj81534',
+        transactionId: (initialData as any)?.transactionId || 'TXN-CHECKER',
+        paymentId: (initialData as any)?.paymentId || 'PMT-CHECKER',
+        maker: (initialData as any)?.maker || soeId,
         failedFields: action === 'Rejected' ? checkerFailedFields : [],
-        paymentDetailsRequest: checkerPayload || checkerPersistedData
+        paymentDetailsRequest: checkerPayload || checkerDynamicModel
       };
   
       try {
@@ -354,10 +342,11 @@ import React, {
           throw new Error(data?.error || data?.message || `Checker action failed (${res.status})`);
         }
   
+        const txnId = data.transactionId || (initialData as any)?.transactionId || 'TXN-CHECKER';
         setModalResponse({
           title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
-          referenceId: data.transactionId || 'TXN-CHECKER-9912',
-          amount: `${checkerPersistedData.instructedAmountCurrencyCode} ${checkerPersistedData.instructedAmount}`,
+          referenceId: txnId,
+          amount: `${checkerDynamicModel.instructedAmountCurrencyCode} ${checkerDynamicModel.instructedAmount}`,
           status: action === 'Approved' ? 'APPROVED' : 'REJECTED',
           message: action === 'Approved'
             ? 'Payment approved and released to clearing successfully!'
@@ -366,13 +355,14 @@ import React, {
         });
   
         if (onPaymentSuccess) {
-          onPaymentSuccess(data.transactionId || 'TXN-CHECKER-9912', checkerPayload || checkerPersistedData);
+          onPaymentSuccess(txnId, checkerPayload || checkerDynamicModel);
         }
       } catch (err: any) {
+        const txnId = (initialData as any)?.transactionId || 'TXN-CHECKER';
         setModalResponse({
           title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL' : 'CHECKER REJECTION RECORDED',
-          referenceId: 'TXN-CHECKER-9912',
-          amount: `${checkerPersistedData.instructedAmountCurrencyCode} ${checkerPersistedData.instructedAmount}`,
+          referenceId: txnId,
+          amount: `${checkerDynamicModel.instructedAmountCurrencyCode} ${checkerDynamicModel.instructedAmount}`,
           status: action === 'Approved' ? 'APPROVED' : 'REJECTED',
           message: `Decision '${action}' saved. Flagged fields: ${checkerFailedFields.length}`,
           color: action === 'Approved' ? '#00509d' : '#d64545'
@@ -390,38 +380,26 @@ import React, {
     const [isRepairSubmitting, setIsRepairSubmitting] = useState<boolean>(false);
     const [repairNewlyModifiedFields, setRepairNewlyModifiedFields] = useState<string[]>([]);
   
-    // Base repair model hydrated from selected row initialData
-    const repairInitialModel: Pain001Model = useMemo(() => ({
-      ...createEmptyPain001(),
-      requestedExecutionDate: '2026-08-25',
-      instructedAmountCurrencyCode: 'USD',
-      instructedAmount: 12000,
-      debtorName: 'Pacific Rim Trade Corp',
-      debtorAccountNumber: '554433221100',
-      debtorAgentBIC: 'BOFAUS3NXXX',
-      debtorCountryCode: 'US',
-      creditorName: 'Nexus Tech International',
-      creditorAccount: '998877665',
-      creditorAgentFinancialInstitutionBIC: 'CITIUS33XXX',
-      creditorAgentFinancialInstitutionName: 'Citibank N.A.',
-      creditorAddressLines1: '100 Wall Street',
-      creditorCountryCode: 'US',
-      chargeBearer: 'SHAR',
-      painPaymentMethodType: 'DFT',
-      ustrdPaymentDetails: 'Re-repairing transaction per checker request',
-      ...(initialData || {})
-    }), [initialData]);
-  
-    const repairReviewFieldList = useMemo(() => ['debtorName', 'creditorName', 'instructedAmount'], []);
+    // Base repair model dynamically constructed from initialData
+    const repairDynamicModel: Pain001Model = useMemo(() => {
+      const baseModel = createEmptyPain001();
+      return {
+        ...baseModel,
+        requestedExecutionDate: new Date().toISOString().split('T')[0],
+        painPaymentMethodType: 'CBT',
+        ...(initialData || {})
+      };
+    }, [initialData]);
   
     const repairPaymentInput: PaymentComponentInput = useMemo(() => ({
       applicationName: 'ADR',
       applicationModule: 'ADR',
+      currency: initialData?.instructedAmountCurrencyCode || repairDynamicModel.instructedAmountCurrencyCode || 'USD',
       paymentMode: 'repair',
       dualBlindKeyFlag: 'N',
-      rejectedFieldList: repairReviewFieldList,
-      paymentModel: repairInitialModel
-    }), [repairInitialModel, repairReviewFieldList]);
+      rejectedFieldList: rejectedFields,
+      paymentModel: repairDynamicModel
+    }), [repairDynamicModel, rejectedFields, initialData]);
   
     const handleRepairOutput = useCallback((output: PaymentComponentOutput) => {
       setRepairFormValid(output.isValid);
@@ -433,8 +411,9 @@ import React, {
       setIsRepairSubmitting(true);
   
       const endpoint = '/shared-services/api/payment/api/payments/repair/resubmit';
+      const txnId = (initialData as any)?.transactionId || 'TXN-REPAIR';
       const payload = {
-        originalTransactionId: 'TXN-REPAIR-5541',
+        originalTransactionId: txnId,
         repairUser: soeId,
         modifiedFields: repairNewlyModifiedFields,
         paymentData: repairPayload
@@ -461,9 +440,10 @@ import React, {
           throw new Error(data?.error || data?.message || `Repair resubmission failed (${res.status})`);
         }
   
+        const resRefId = data.referenceId || txnId;
         setModalResponse({
           title: 'REPAIR RESUBMITTED',
-          referenceId: data.referenceId || 'TXN-REPAIR-5541',
+          referenceId: resRefId,
           amount: `${repairPayload.instructedAmountCurrencyCode || 'USD'} ${repairPayload.instructedAmount}`,
           status: 'RESUBMITTED',
           message: 'Repaired transaction successfully re-sent to verification queue!',
@@ -471,15 +451,15 @@ import React, {
         });
   
         if (onPaymentSuccess) {
-          onPaymentSuccess(data.referenceId || 'TXN-REPAIR-5541', repairPayload);
+          onPaymentSuccess(resRefId, repairPayload);
         }
       } catch (err: any) {
         setModalResponse({
           title: 'REPAIR RESUBMISSION FAILED',
-          referenceId: 'TXN-REPAIR-5541',
+          referenceId: txnId,
           amount: `${repairPayload?.instructedAmountCurrencyCode || 'USD'} ${repairPayload?.instructedAmount}`,
           status: 'FAILED',
-          message: err?.message || 'Payment repair resubmission failed !',
+          message: err.message || 'Payment repair resubmission failed !',
           color: '#d64545'
         });
       } finally {
@@ -504,7 +484,7 @@ import React, {
             <div className="payment-component-wrapper">
               <PaymentChild
                 paymentInput={makerPaymentInput}
-                fieldConfig={PARENT_FIELD_CONFIG}
+                fieldConfig={activeFieldConfig}
                 isMakerMode={true}
                 hardcapResultReceived={makerHardcapResult}
                 onAmountChange={handleMakerAmountChange}
@@ -529,24 +509,22 @@ import React, {
         {activeTab === 'checker' && (
           <div>
             <div className="parent-section-heading">Payment Verification & Authorization (Checker Mode)</div>
-            
+  
             <div className="parent-section-checker-info" style={{ margin: '12px 0' }}>
               <div className="parent-section-meta">
                 <span><strong>Instruction Status:</strong> PAYMENT_CHECKER</span>
                 <span><strong>Checker SOEID:</strong> {soeId}</span>
-                <span><strong>Value Date:</strong> {checkerPersistedData.requestedExecutionDate}</span>
-                <span><strong>Dual-Blind Status:</strong> {checkerDualBlindPassed ? '✅ All Re-Keyed Fields Matched' : '⚠️ Re-Keying Required'}</span>
                 <span><strong>Flagged Error Fields:</strong> {checkerFailedFields.length}</span>
               </div>
               <div style={{ fontSize: '11px', color: '#627d98', marginTop: '4px' }}>
-                💡 <em>Double-click any non-blind input field to flag it as rejected for the Maker.</em>
+                💡 <em>Double-click any field to flag it as rejected for the Maker.</em>
               </div>
             </div>
   
             <div className="payment-component-wrapper">
               <PaymentChild
                 paymentInput={checkerPaymentInput}
-                fieldConfig={PARENT_FIELD_CONFIG}
+                fieldConfig={activeFieldConfig}
                 isCheckerMode={true}
                 onFailedFieldListChange={setCheckerFailedFields}
                 onPaymentOutput={handleCheckerOutput}
@@ -581,7 +559,7 @@ import React, {
                 <button
                   type="button"
                   className="lmn-btn lmn-btn-primary btn-approve"
-                  disabled={isCheckerProcessing || !checkerFormValid || !checkerDualBlindPassed || checkerFailedFields.length > 0}
+                  disabled={isCheckerProcessing || !checkerFormValid || checkerFailedFields.length > 0}
                   onClick={() => handleCheckerDecision('Approved')}
                 >
                   {isCheckerProcessing ? 'Processing...' : 'Approve Payment'}
@@ -595,13 +573,13 @@ import React, {
         {activeTab === 'repair' && (
           <div>
             <div className="parent-section-heading">Payment Correction Queue (Repair Mode)</div>
-            
+  
             <div className="parent-section-checker-info" style={{ borderColor: '#f59e0b', background: '#fffbeb', margin: '12px 0' }}>
               <div style={{ fontWeight: 600, color: '#b45309', marginBottom: '4px' }}>
-                ⚠️ Checker Rejection Notice:
+                ⚠️ Payment Rework Notice:
               </div>
               <div style={{ fontSize: '13px', color: '#92400e' }}>
-                Debtor Name, Creditor Name, and Amount failed clearance verification. Please amend highlighted fields (amber) and resubmit.
+                Checker flagged discrepancies in this payment. Review the highlighted fields (amber), make corrections, and resubmit.
               </div>
               <div style={{ fontSize: '11px', color: '#627d98', marginTop: '6px' }}>
                 🟡 Amber = Checker flagged for review &nbsp;|&nbsp; 🟢 Green = Newly modified by Repairer
@@ -611,14 +589,14 @@ import React, {
             <div className="payment-component-wrapper">
               <PaymentChild
                 paymentInput={repairPaymentInput}
-                fieldConfig={PARENT_FIELD_CONFIG}
+                fieldConfig={activeFieldConfig}
                 isRepairMode={true}
-                repairReviewFieldList={repairReviewFieldList}
+                repairReviewFieldList={rejectedFields}
                 repairNewlyModifyFieldList={repairNewlyModifiedFields}
                 onPaymentOutput={handleRepairOutput}
                 onFormChange={(val) => {
                   const modifiedKeys = Object.keys(val).filter(
-                    (key) => (val as any)[key] !== (repairInitialModel as any)[key]
+                    (key) => (val as any)[key] !== (repairDynamicModel as any)[key]
                   );
                   if (modifiedKeys.length > 0) {
                     setRepairNewlyModifiedFields((prev) => Array.from(new Set([...prev, ...modifiedKeys])));
