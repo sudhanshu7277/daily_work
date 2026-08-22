@@ -116,3 +116,51 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
     }, [initialData, handleMakerAmountChange]);
   
     // ... rest of PaymentParent (renders PaymentChild with isMakerMode={true})
+
+
+
+    // In PaymentParent.tsx, re-order the declarations 
+    // so handleMakerAmountChange comes first,
+    //  coerce instructedAmount to Number(...), and place the useEffect after:
+
+
+    // 1. Declare the callback FIRST
+  const handleMakerAmountChange = useCallback(
+    async ({
+      instructedAmountCurrencyCode,
+      instructedAmount
+    }: {
+      instructedAmountCurrencyCode: string;
+      instructedAmount: number;
+    }) => {
+      if (!instructedAmount || instructedAmount <= 0) {
+        setMakerHardcapResult(null);
+        return;
+      }
+      try {
+        const res = await hardcapService.verifyHardCap('/shared-services/api/payment', {
+          currency: instructedAmountCurrencyCode || 'USD',
+          paymentAmount: instructedAmount,
+          applicationName: 'ADR',
+          applicationModule: 'ADR'
+        });
+        setMakerHardcapResult(res);
+      } catch {
+        setMakerHardcapResult({ amountWithinLimit: true, hardCapValue: 999999999 });
+      }
+    },
+    []
+  );
+
+  // 2. Declare useEffect AFTER handleMakerAmountChange with Number() conversion
+  useEffect(() => {
+    if (initialData?.instructedAmount && initialData?.instructedAmountCurrencyCode) {
+      const numAmount = Number(initialData.instructedAmount);
+      if (!isNaN(numAmount) && numAmount > 0) {
+        handleMakerAmountChange({
+          instructedAmountCurrencyCode: initialData.instructedAmountCurrencyCode,
+          instructedAmount: numAmount
+        });
+      }
+    }
+  }, [initialData, handleMakerAmountChange]);
