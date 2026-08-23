@@ -25,11 +25,8 @@ import React, {
     onPaymentSuccess?: (referenceId: string, payload: Pain001Model) => void;
   }
   
-  // =========================================================================
-  // Base Field Configurations
-  // =========================================================================
-  
-  const MAKER_FIELD_CONFIG: FormFieldConfig[] = [
+  // Master Configuration: Enable Payment Information, Debtor Information, and all Debtor Address Details
+  const MASTER_FIELD_CONFIG: FormFieldConfig[] = [
     {
       fieldName: 'painPaymentMethodType',
       label: 'Payment Type',
@@ -40,22 +37,31 @@ import React, {
         { label: 'BKT', value: 'BKT' },
         { label: 'DFT', value: 'DFT' }
       ] as any,
-      placeholder: '-- Select Payment Type --'
+      placeholder: '-- Select Payment Type --',
+      disabled: false
     },
-    { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false, required: true, type: 'date' },
-    { fieldName: 'instructedAmountCurrencyCode', label: 'Currency', hidden: false, required: true },
-    { fieldName: 'instructedAmount', label: 'Transaction Amount', hidden: false, required: true },
-    { fieldName: 'debtorName', label: 'Debtor Name', hidden: false, required: true },
-    { fieldName: 'debtorAccountNumber', label: 'Debtor Account Number', hidden: false, required: true },
-    { fieldName: 'debtorAgentBIC', label: 'Debtor Agent BIC', hidden: false, required: true },
-    { fieldName: 'debtorStreetName', label: 'Debtor Street', hidden: false, required: false },
-    { fieldName: 'debtorBuildingNumber', label: 'Debtor Building Number', hidden: false, required: false },
-    { fieldName: 'debtorPostalCode', label: 'Debtor Postal Code', hidden: false, required: false },
-    { fieldName: 'debtorTownName', label: 'Debtor Town / City Name', hidden: false, required: false },
-    { fieldName: 'debtorCountrySubDivision', label: 'Debtor Country Sub-division', hidden: false, required: false },
-    { fieldName: 'debtorCountryCode', label: 'Debtor Country', hidden: false, required: false },
-    { fieldName: 'debtorSortCodeUK', label: 'Debtor Sort Code', hidden: false, required: false },
-    { fieldName: 'debtorSortCodeUS', label: 'Debtor Sort Code (US)', hidden: false, required: false },
+    { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false, required: true, type: 'date', disabled: false },
+    { fieldName: 'instructedAmountCurrencyCode', label: 'Currency', hidden: false, required: true, disabled: false },
+    { fieldName: 'instructedAmount', label: 'Transaction Amount', hidden: false, required: true, disabled: false },
+  
+    // Debtor Information Section
+    { fieldName: 'debtorName', label: 'Debtor Name', hidden: false, required: true, disabled: false },
+    { fieldName: 'debtorAccountNumber', label: 'Debtor Account Number', hidden: false, required: true, disabled: false },
+    { fieldName: 'debtorAgentBIC', label: 'Debtor Agent BIC', hidden: false, required: true, disabled: false },
+  
+    // Debtor Address Details Section (Fully Enabled)
+    { fieldName: 'debtorAddressLines1', label: 'Debtor Address Line 1', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorAddressLines2', label: 'Debtor Address Line 2', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorStreetName', label: 'Debtor Street', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorBuildingNumber', label: 'Debtor Building Number', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorPostalCode', label: 'Debtor Postal Code', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorTownName', label: 'Debtor Town / City Name', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorCountrySubDivision', label: 'Debtor Country Sub-division', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorCountryCode', label: 'Debtor Country', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorSortCodeUK', label: 'Debtor Sort Code', hidden: false, required: false, disabled: false },
+    { fieldName: 'debtorSortCodeUS', label: 'Debtor Sort Code (US)', hidden: false, required: false, disabled: false },
+  
+    // Intermediary Bank Details
     { fieldName: 'firstIntermediaryBankBIC', label: '1st Intermediary Bank SWIFT Code', hidden: false, required: false },
     { fieldName: 'firstIntermediaryBankRoutingCode', label: '1st Intermediary Bank Routing Code', hidden: false, required: false },
     { fieldName: 'firstIntermediaryBankName', label: '1st Intermediary Bank Name', hidden: false, required: false },
@@ -66,6 +72,8 @@ import React, {
     { fieldName: 'secondIntermediaryBankName', label: '2nd Intermediary Bank Name', hidden: false, required: false },
     { fieldName: 'secondIntermediaryBankCountryCode', label: '2nd Intermediary Bank Country Code', hidden: false, required: false },
     { fieldName: 'secondIntermediaryBankAccountNumber', label: '2nd Intermediary Account Number', hidden: false, required: false },
+  
+    // Creditor Information Section
     { fieldName: 'creditorName', label: 'Creditor Name', hidden: false, required: true },
     { fieldName: 'creditorAccount', label: 'Creditor Account Number', hidden: false, required: true },
     { fieldName: 'creditorAgentFinancialInstitutionBIC', label: 'Creditor Agent BIC', hidden: false, required: true },
@@ -79,6 +87,8 @@ import React, {
     { fieldName: 'creditorCountryCode', label: 'Creditor Country', hidden: false, required: false },
     { fieldName: 'creditorSortCodeUK', label: 'Creditor Sort Code', hidden: false, required: false },
     { fieldName: 'creditorSortCodeUS', label: 'Creditor Sort Code (US)', hidden: false, required: false },
+  
+    // Charges & Regulatory
     { fieldName: 'ustrdPaymentDetails', label: 'Remittance Information', hidden: false, required: false },
     { fieldName: 'chargeBearer', label: 'Charge Information', hidden: false, required: true },
     { fieldName: 'chargesAmount', label: 'Charges Amount', hidden: false, required: false },
@@ -90,22 +100,6 @@ import React, {
     { fieldName: 'regulatoryReportingCode', label: 'Regulatory Reporting Code', hidden: false, required: false },
     { fieldName: 'invoiceReferenceNumber', label: 'Invoice / Reference Number', hidden: false, required: false }
   ];
-  
-  // Checker / Repair Config: Payment Type, Amount, Debtor Name & Account remain enabled
-  const CHECKER_REPAIR_FIELD_CONFIG: FormFieldConfig[] = MAKER_FIELD_CONFIG.map((field) => {
-    const isEnabledField = [
-      'painPaymentMethodType',
-      'paymentMethod',
-      'instructedAmount',
-      'debtorName',
-      'debtorAccountNumber'
-    ].includes(field.fieldName);
-  
-    return {
-      ...field,
-      disabled: !isEnabledField
-    };
-  });
   
   export const PaymentParent: FC<PaymentParentProps> = ({
     mode: controlledMode = 'maker',
@@ -176,12 +170,26 @@ import React, {
         paymentMethodType: selectedType,
         paymentType: selectedType,
         requestedExecutionDate: initialData?.requestedExecutionDate ? initialData.requestedExecutionDate : new Date().toISOString().split('T')[0],
+        instructedAmountCurrencyCode: initialData?.instructedAmountCurrencyCode ? initialData.instructedAmountCurrencyCode : 'USD',
         debtorAgentBIC: initialData?.debtorAgentBIC ? initialData.debtorAgentBIC : 'CITIUS33XXX',
+        
+        // Debtor Address Defaults
+        debtorAddressLines1: (initialData as any)?.debtorAddressLines1 ? (initialData as any).debtorAddressLines1 : 'Avenida Del Libertador 498',
+        debtorAddressLines2: (initialData as any)?.debtorAddressLines2 ? (initialData as any).debtorAddressLines2 : 'Piso 26 Torre Corporativa',
+        debtorStreetName: initialData?.debtorStreetName ? initialData.debtorStreetName : 'Avenida Del Libertador',
+        debtorBuildingNumber: initialData?.debtorBuildingNumber ? initialData.debtorBuildingNumber : '498',
+        debtorTownName: initialData?.debtorTownName ? initialData.debtorTownName : 'Buenos Aires',
+        debtorPostalCode: initialData?.debtorPostalCode ? initialData.debtorPostalCode : 'C1001ABR',
+        debtorCountrySubDivision: initialData?.debtorCountrySubDivision ? initialData.debtorCountrySubDivision : 'CABA',
+        debtorCountryCode: initialData?.debtorCountryCode ? initialData.debtorCountryCode : 'AR',
+  
+        // Creditor Defaults
+        creditorName: initialData?.creditorName ? initialData.creditorName : 'GLOBAL CLEARING CORP',
+        creditorAccount: initialData?.creditorAccount ? initialData.creditorAccount : '883920192837',
         creditorAgentFinancialInstitutionBIC: initialData?.creditorAgentFinancialInstitutionBIC ? initialData.creditorAgentFinancialInstitutionBIC : 'CITIUS33XXX',
-        creditorAgentFinancialInstitutionName: initialData?.creditorAgentFinancialInstitutionName ? initialData.creditorAgentFinancialInstitutionName : 'Citibank N.A.',
+        creditorAgentFinancialInstitutionName: initialData?.creditorAgentFinancialInstitutionName ? initialData.creditorAgentFinancialInstitutionName : 'Citibank N.A. New York',
         creditorAddressLines1: initialData?.creditorAddressLines1 ? initialData.creditorAddressLines1 : '388 Greenwich Street',
         creditorCountryCode: initialData?.creditorCountryCode ? initialData.creditorCountryCode : 'US',
-        debtorCountryCode: initialData?.debtorCountryCode ? initialData.debtorCountryCode : 'US',
         chargeBearer: initialData?.chargeBearer ? initialData.chargeBearer : 'SHAR',
         ...(initialData || {})
       };
@@ -297,7 +305,7 @@ import React, {
     };
   
     // =========================================================================
-    // 2. CHECKER MODE
+    // 2. CHECKER MODE (With All Key Fields & Debtor Address Fully Hydrated)
     // =========================================================================
     const [checkerFormValid, setCheckerFormValid] = useState<boolean>(false);
     const [checkerPayload, setCheckerPayload] = useState<Pain001Model | null>(null);
@@ -317,11 +325,22 @@ import React, {
         paymentType: selectedType,
         requestedExecutionDate: initialData?.requestedExecutionDate ? initialData.requestedExecutionDate : new Date().toISOString().split('T')[0],
         instructedAmountCurrencyCode: initialData?.instructedAmountCurrencyCode ? initialData.instructedAmountCurrencyCode : 'USD',
-        instructedAmount: typeof initialData?.instructedAmount === 'number' ? initialData.instructedAmount : 1234567,
+        instructedAmount: typeof initialData?.instructedAmount === 'number' ? initialData.instructedAmount : 12345,
         debtorName: initialData?.debtorName ? initialData.debtorName : 'AEROPUERTOS ARGENTINA 2000 SA',
         debtorAccountNumber: initialData?.debtorAccountNumber ? initialData.debtorAccountNumber : '2/907099/019',
         debtorAgentBIC: initialData?.debtorAgentBIC ? initialData.debtorAgentBIC : 'CITIUS33XXX',
-        debtorCountryCode: initialData?.debtorCountryCode ? initialData.debtorCountryCode : 'US',
+        
+        // Debtor Address Details Section Defaults
+        debtorAddressLines1: (initialData as any)?.debtorAddressLines1 ? (initialData as any).debtorAddressLines1 : 'Avenida Del Libertador 498',
+        debtorAddressLines2: (initialData as any)?.debtorAddressLines2 ? (initialData as any).debtorAddressLines2 : 'Piso 26 Torre Corporativa',
+        debtorStreetName: initialData?.debtorStreetName ? initialData.debtorStreetName : 'Avenida Del Libertador',
+        debtorBuildingNumber: initialData?.debtorBuildingNumber ? initialData.debtorBuildingNumber : '498',
+        debtorTownName: initialData?.debtorTownName ? initialData.debtorTownName : 'Buenos Aires',
+        debtorPostalCode: initialData?.debtorPostalCode ? initialData.debtorPostalCode : 'C1001ABR',
+        debtorCountrySubDivision: initialData?.debtorCountrySubDivision ? initialData.debtorCountrySubDivision : 'CABA',
+        debtorCountryCode: initialData?.debtorCountryCode ? initialData.debtorCountryCode : 'AR',
+  
+        // Creditor Defaults
         creditorName: initialData?.creditorName ? initialData.creditorName : 'GLOBAL CLEARING CORP',
         creditorAccount: initialData?.creditorAccount ? initialData.creditorAccount : '883920192837',
         creditorAgentFinancialInstitutionBIC: initialData?.creditorAgentFinancialInstitutionBIC ? initialData.creditorAgentFinancialInstitutionBIC : 'CITIUS33XXX',
@@ -438,7 +457,7 @@ import React, {
     const [repairPayload, setRepairPayload] = useState<Pain001Model | null>(null);
     const [isRepairSubmitting, setIsRepairSubmitting] = useState<boolean>(false);
     const [repairNewlyModifiedFields, setRepairNewlyModifiedFields] = useState<string[]>([]);
-    const repairReviewFields = useMemo(() => ['debtorName', 'creditorName', 'instructedAmount'], []);
+    const repairReviewFields = useMemo(() => ['debtorName', 'creditorName', 'instructedAmount', 'debtorTownName', 'debtorStreetName'], []);
   
     const repairDynamicModel: any = useMemo(() => {
       const baseModel = createEmptyPain001();
@@ -452,11 +471,22 @@ import React, {
         paymentType: selectedType,
         requestedExecutionDate: initialData?.requestedExecutionDate ? initialData.requestedExecutionDate : new Date().toISOString().split('T')[0],
         instructedAmountCurrencyCode: initialData?.instructedAmountCurrencyCode ? initialData.instructedAmountCurrencyCode : 'USD',
-        instructedAmount: typeof initialData?.instructedAmount === 'number' ? initialData.instructedAmount : 12000,
+        instructedAmount: typeof initialData?.instructedAmount === 'number' ? initialData.instructedAmount : 12345,
         debtorName: initialData?.debtorName ? initialData.debtorName : 'AEROPUERTOS ARGENTINA 2000 SA',
         debtorAccountNumber: initialData?.debtorAccountNumber ? initialData.debtorAccountNumber : '2/907099/019',
         debtorAgentBIC: initialData?.debtorAgentBIC ? initialData.debtorAgentBIC : 'CITIUS33XXX',
-        debtorCountryCode: initialData?.debtorCountryCode ? initialData.debtorCountryCode : 'US',
+        
+        // Debtor Address Details Section Defaults
+        debtorAddressLines1: (initialData as any)?.debtorAddressLines1 ? (initialData as any).debtorAddressLines1 : 'Avenida Del Libertador 498',
+        debtorAddressLines2: (initialData as any)?.debtorAddressLines2 ? (initialData as any).debtorAddressLines2 : 'Piso 26 Torre Corporativa',
+        debtorStreetName: initialData?.debtorStreetName ? initialData.debtorStreetName : 'Avenida Del Libertador',
+        debtorBuildingNumber: initialData?.debtorBuildingNumber ? initialData.debtorBuildingNumber : '498',
+        debtorTownName: initialData?.debtorTownName ? initialData.debtorTownName : 'Buenos Aires',
+        debtorPostalCode: initialData?.debtorPostalCode ? initialData.debtorPostalCode : 'C1001ABR',
+        debtorCountrySubDivision: initialData?.debtorCountrySubDivision ? initialData.debtorCountrySubDivision : 'CABA',
+        debtorCountryCode: initialData?.debtorCountryCode ? initialData.debtorCountryCode : 'AR',
+  
+        // Creditor Defaults
         creditorName: initialData?.creditorName ? initialData.creditorName : 'GLOBAL CLEARING CORP',
         creditorAccount: initialData?.creditorAccount ? initialData.creditorAccount : '883920192837',
         creditorAgentFinancialInstitutionBIC: initialData?.creditorAgentFinancialInstitutionBIC ? initialData.creditorAgentFinancialInstitutionBIC : 'CITIUS33XXX',
@@ -569,7 +599,7 @@ import React, {
             <div className="payment-component-wrapper">
               <PaymentChild
                 paymentInput={makerPaymentInput}
-                fieldConfig={MAKER_FIELD_CONFIG}
+                fieldConfig={MASTER_FIELD_CONFIG}
                 isMakerMode={true}
                 hardcapResultReceived={makerHardcapResult}
                 onAmountChange={handleMakerAmountChange}
@@ -602,14 +632,14 @@ import React, {
                 <span><strong>Flagged Error Fields:</strong> {checkerFailedFields.length}</span>
               </div>
               <div style={{ fontSize: '11px', color: '#627d98', marginTop: '4px' }}>
-                💡 <em>Review highlighted values (Payment Type, Amount, Debtor Name, Debtor Account). Other required fields are locked to verified defaults.</em>
+                💡 <em>Double-click any field to flag it as rejected for the Maker.</em>
               </div>
             </div>
   
             <div className="payment-component-wrapper">
               <PaymentChild
                 paymentInput={checkerPaymentInput}
-                fieldConfig={CHECKER_REPAIR_FIELD_CONFIG}
+                fieldConfig={MASTER_FIELD_CONFIG}
                 isCheckerMode={true}
                 onFailedFieldListChange={setCheckerFailedFields}
                 onPaymentOutput={handleCheckerOutput}
@@ -664,7 +694,7 @@ import React, {
                 ⚠️ Payment Rework Notice:
               </div>
               <div style={{ fontSize: '13px', color: '#92400e' }}>
-                Checker flagged discrepancies in this payment. Amend the editable fields (Payment Type, Amount, Debtor Name, Debtor Account) and resubmit.
+                Checker flagged discrepancies in this payment. Amend the editable fields and resubmit.
               </div>
               <div style={{ fontSize: '11px', color: '#627d98', marginTop: '6px' }}>
                 🟡 Amber = Checker flagged for review &nbsp;|&nbsp; 🟢 Green = Newly modified by Repairer
@@ -674,7 +704,7 @@ import React, {
             <div className="payment-component-wrapper">
               <PaymentChild
                 paymentInput={repairPaymentInput}
-                fieldConfig={CHECKER_REPAIR_FIELD_CONFIG}
+                fieldConfig={MASTER_FIELD_CONFIG}
                 isRepairMode={true}
                 repairReviewFieldList={repairReviewFields}
                 repairNewlyModifyFieldList={repairNewlyModifiedFields}
