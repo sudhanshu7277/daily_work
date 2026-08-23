@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SSPaymentFlow & PaymentChild Comprehensive Design System & Layout Rules
+   SSPaymentFlow & PaymentChild Component Styles
    ========================================================================== */
 
 /* Outer Form Wrapper */
@@ -197,7 +197,9 @@ select.sspf-control {
   display: block;
 }
 
-/* Responsive Breakpoints */
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
 @media (max-width: 992px) {
   .sspf-grid-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));

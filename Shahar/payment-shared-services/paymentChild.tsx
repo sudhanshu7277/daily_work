@@ -10,6 +10,7 @@ import {
   Pain001Model,
   PaymentComponentInput,
   PaymentComponentOutput,
+  FormValidityPayload,
   DualBlindKeyResult,
   FormFieldConfig,
   createEmptyPain001
@@ -19,16 +20,20 @@ import './PaymentChild.css';
 export interface SSPaymentFlowProps {
   paymentInput?: PaymentComponentInput;
   fieldConfig?: FormFieldConfig[];
+  initialData?: Partial<Pain001Model>;
+  pacsFormVerbiages?: Record<string, string>;
+  loggedInUser?: string;
   isMakerMode?: boolean;
   isCheckerMode?: boolean;
   isRepairMode?: boolean;
-  hardcapResultReceived?: { amountWithinLimit?: boolean; hardCapValue?: number } | null;
   repairReviewFieldList?: string[];
   repairNewlyModifyFieldList?: string[];
-  onAmountChange?: (data: { instructedAmountCurrencyCode: string; instructedAmount: number }) => void;
-  onFailedFieldListChange?: (failedFields: string[]) => void;
+  hardcapResultReceived?: { amountWithinLimit: boolean; hardCapValue: number } | string | null;
   onPaymentOutput?: (output: PaymentComponentOutput) => void;
-  onFormChange?: (formData: Pain001Model) => void;
+  onFormChange?: (val: Record<string, unknown> | Pain001Model) => void;
+  onFormValidityChange?: (val: FormValidityPayload) => void;
+  onFailedFieldListChange?: (fields: string[]) => void;
+  onAmountChange?: (val: { instructedAmountCurrencyCode: string; instructedAmount: number }) => void;
 }
 
 export type PaymentChildProps = SSPaymentFlowProps;
@@ -36,18 +41,22 @@ export type PaymentChildProps = SSPaymentFlowProps;
 export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   paymentInput,
   fieldConfig = [],
+  initialData,
+  pacsFormVerbiages = {},
+  loggedInUser = 'USER',
   isMakerMode = false,
   isCheckerMode = false,
   isRepairMode = false,
   hardcapResultReceived,
   repairReviewFieldList = [],
   repairNewlyModifyFieldList = [],
-  onAmountChange,
-  onFailedFieldListChange,
   onPaymentOutput,
-  onFormChange
+  onFormChange,
+  onFormValidityChange,
+  onFailedFieldListChange,
+  onAmountChange
 }) => {
-  // 1. Resolve initial value for payment type
+  // 1. Resolve Initial Payment Method Alias
   const resolvePaymentMethod = (model?: any): string => {
     if (!model) return 'CBT';
     return (
@@ -62,7 +71,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   // 2. Initialize Internal Form State
   const [formData, setFormData] = useState<Pain001Model>(() => {
     const base = createEmptyPain001();
-    const incoming = paymentInput?.paymentModel || {};
+    const incoming = paymentInput?.paymentModel || initialData || {};
     const method = resolvePaymentMethod(incoming);
     return {
       ...base,
@@ -74,13 +83,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     } as any;
   });
 
-  // 3. Checker Mode Flagged Fields State
+  // 3. Checker Flagged Fields State
   const [flaggedFields, setFlaggedFields] = useState<string[]>([]);
 
-  // 4. Synchronize with incoming paymentInput changes
+  // 4. Synchronize on input/initialData changes
   useEffect(() => {
-    if (paymentInput?.paymentModel) {
-      const incoming = paymentInput.paymentModel;
+    const incoming = paymentInput?.paymentModel || initialData;
+    if (incoming) {
       const method = resolvePaymentMethod(incoming);
       setFormData((prev) => ({
         ...prev,
@@ -91,9 +100,9 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         paymentType: method
       }));
     }
-  }, [paymentInput]);
+  }, [paymentInput, initialData]);
 
-  // 5. Dynamic Config Map for Fast Lookup
+  // 5. Dynamic Field Configuration Helpers
   const configMap = useMemo(() => {
     const map = new Map<string, FormFieldConfig>();
     fieldConfig.forEach((fc) => map.set(fc.fieldName, fc));
@@ -129,10 +138,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
 
   const getFieldLabel = useCallback(
     (fieldName: string, defaultLabel: string) => {
+      if (pacsFormVerbiages && pacsFormVerbiages[fieldName]) {
+        return pacsFormVerbiages[fieldName];
+      }
       const conf = configMap.get(fieldName);
       return conf?.label || defaultLabel;
     },
-    [configMap]
+    [configMap, pacsFormVerbiages]
   );
 
   const getFieldPlaceholder = useCallback(
@@ -173,7 +185,11 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     const amt = Number(formData.instructedAmount);
     if (isNaN(amt) || amt <= 0) return false;
 
-    if (hardcapResultReceived && hardcapResultReceived.amountWithinLimit === false) {
+    if (
+      hardcapResultReceived &&
+      typeof hardcapResultReceived === 'object' &&
+      hardcapResultReceived.amountWithinLimit === false
+    ) {
       return false;
     }
 
@@ -184,24 +200,30 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return true;
   }, [formData, fieldConfig, hardcapResultReceived, isDualBlindKeyPassed]);
 
-  // 8. Emit Output to Parent (Full Interface Contract)
- // 8. Emit Output to Parent (Full Interface Contract)
-useEffect(() => {
-  if (onPaymentOutput) {
-    onPaymentOutput({
-      isValid: isFormValid,
-      isDualBlindKeyPassed,
-      paymentData: formData,
-      outputMessage: isFormValid
-        ? 'Payment data validated successfully'
-        : 'Please review all mandatory fields and format criteria',
-      dualBlindKeyResult: {
+  // 8. Emit Output & Form Validity to Parent
+  useEffect(() => {
+    if (onPaymentOutput) {
+      onPaymentOutput({
+        isValid: isFormValid,
         isDualBlindKeyPassed,
-        status: isDualBlindKeyPassed ? 'PASSED' : 'FAILED'
-      } as unknown as DualBlindKeyResult
-    });
-  }
-}, [formData, isFormValid, isDualBlindKeyPassed, onPaymentOutput]);
+        paymentData: formData,
+        outputMessage: isFormValid
+          ? 'Payment data validated successfully'
+          : 'Please review all mandatory fields and format criteria',
+        dualBlindKeyResult: {
+          isDualBlindKeyPassed,
+          status: isDualBlindKeyPassed ? 'PASSED' : 'FAILED'
+        } as unknown as DualBlindKeyResult
+      });
+    }
+
+    if (onFormValidityChange) {
+      onFormValidityChange({
+        isValid: isFormValid,
+        validationErrors: isFormValid ? [] : ['Mandatory ISO fields are missing or amount is invalid.']
+      } as unknown as FormValidityPayload);
+    }
+  }, [formData, isFormValid, isDualBlindKeyPassed, onPaymentOutput, onFormValidityChange]);
 
   // 9. Input Change Handler
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -280,6 +302,22 @@ useEffect(() => {
   };
 
   const selectedPaymentType = resolvePaymentMethod(formData);
+
+  const hardcapLimitPassed = useMemo(() => {
+    if (!hardcapResultReceived) return null;
+    if (typeof hardcapResultReceived === 'object') {
+      return hardcapResultReceived.amountWithinLimit;
+    }
+    return true;
+  }, [hardcapResultReceived]);
+
+  const hardcapThreshold = useMemo(() => {
+    if (!hardcapResultReceived) return null;
+    if (typeof hardcapResultReceived === 'object') {
+      return hardcapResultReceived.hardCapValue;
+    }
+    return null;
+  }, [hardcapResultReceived]);
 
   return (
     <div className="sspf-wrapper">
@@ -363,14 +401,14 @@ useEffect(() => {
                   disabled={isFieldDisabled('instructedAmount')}
                   onChange={handleInputChange}
                 />
-                {hardcapResultReceived && (
+                {hardcapLimitPassed !== null && (
                   <span
                     className="sspf-helper-msg"
-                    style={{ color: hardcapResultReceived.amountWithinLimit ? '#2e7d32' : '#d32f2f' }}
+                    style={{ color: hardcapLimitPassed ? '#2e7d32' : '#d32f2f' }}
                   >
-                    {hardcapResultReceived.amountWithinLimit
+                    {hardcapLimitPassed
                       ? '✓ Hardcap limit check passed'
-                      : `⚠️ Exceeds hardcap threshold (${hardcapResultReceived.hardCapValue})`}
+                      : `⚠️ Exceeds hardcap threshold (${hardcapThreshold || 'N/A'})`}
                   </span>
                 )}
               </div>
@@ -1172,4 +1210,5 @@ useEffect(() => {
   );
 };
 
+export const PaymentChild = SSPaymentFlow;
 export default SSPaymentFlow;
