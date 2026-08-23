@@ -10,6 +10,7 @@ import {
   Pain001Model,
   PaymentComponentInput,
   PaymentComponentOutput,
+  DualBlindKeyResult,
   FormFieldConfig,
   createEmptyPain001
 } from '../types/models';
@@ -184,21 +185,23 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   }, [formData, fieldConfig, hardcapResultReceived, isDualBlindKeyPassed]);
 
   // 8. Emit Output to Parent (Full Interface Contract)
-  useEffect(() => {
-    if (onPaymentOutput) {
-      onPaymentOutput({
-        isValid: isFormValid,
+ // 8. Emit Output to Parent (Full Interface Contract)
+useEffect(() => {
+  if (onPaymentOutput) {
+    onPaymentOutput({
+      isValid: isFormValid,
+      isDualBlindKeyPassed,
+      paymentData: formData,
+      outputMessage: isFormValid
+        ? 'Payment data validated successfully'
+        : 'Please review all mandatory fields and format criteria',
+      dualBlindKeyResult: {
         isDualBlindKeyPassed,
-        paymentData: formData,
-        outputMessage: isFormValid
-          ? 'Payment data validated successfully'
-          : 'Please review all mandatory fields and format criteria',
-        dualBlindKeyResult: isDualBlindKeyPassed
-          ? { status: 'PASSED', errorCount: 0 }
-          : { status: 'FAILED', errorCount: 1 }
-      });
-    }
-  }, [formData, isFormValid, isDualBlindKeyPassed, onPaymentOutput]);
+        status: isDualBlindKeyPassed ? 'PASSED' : 'FAILED'
+      } as unknown as DualBlindKeyResult
+    });
+  }
+}, [formData, isFormValid, isDualBlindKeyPassed, onPaymentOutput]);
 
   // 9. Input Change Handler
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
