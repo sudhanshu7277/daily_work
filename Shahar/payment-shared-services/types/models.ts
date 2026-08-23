@@ -165,10 +165,12 @@ export interface FormFieldConfig {
   label: string;
   hidden?: boolean;
   required?: boolean;
-  options?: readonly string[] | string[];
+  disabled?: boolean;
+  options?: readonly string[] | string[] | Array<{ label: string; value: string }>;
   type?: 'text' | 'number' | 'date' | 'textarea' | string;
   placeholder?: string;
   value?: string | number;
+  [key: string]: unknown;
 }
 
 export interface PaymentComponentInput {
@@ -179,12 +181,14 @@ export interface PaymentComponentInput {
   dualBlindKeyFields?: string[];
   dualBlindKeyFlag?: DualBlindKeyFlag;
   paymentModel?: Partial<Pain001Model> | null;
+  sourcePaymentModel?: Partial<Pain001Model> | null;
   rejectedFieldList?: string[];
   paymentMode: PaymentMode;
   hardcapLimitCheckBaseUrl?: string;
   makerSubmitUrl?: string;
   region?: string;
   useMockApi?: boolean;
+  [key: string]: unknown;
 }
 
 export interface PaymentComponentOutput {

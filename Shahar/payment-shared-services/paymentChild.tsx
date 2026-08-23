@@ -11,8 +11,11 @@ import {
   PaymentComponentInput,
   PaymentComponentOutput,
   FormValidityPayload,
-  DualBlindKeyResult,
   FormFieldConfig,
+  DualBlindKeyResult,
+  PAYMENT_TYPE_OPTIONS,
+  CHARGE_BEARER_OPTIONS,
+  PAIN001_MANDATORY_FIELDS,
   createEmptyPain001
 } from '../types/models';
 import './PaymentChild.css';
@@ -56,53 +59,61 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   onFailedFieldListChange,
   onAmountChange
 }) => {
-  // 1. Resolve Initial Payment Method Alias
-  const resolvePaymentMethod = (model?: any): string => {
-    if (!model) return 'CBT';
-    return (
-      model.painPaymentMethodType ||
-      model.paymentMethod ||
-      model.paymentMethodType ||
-      model.paymentType ||
-      'CBT'
-    );
-  };
+  // 1. Resolve Active Mode
+  const effectiveMode = useMemo(() => {
+    if (isMakerMode) return 'maker';
+    if (isCheckerMode) return 'checker';
+    if (isRepairMode) return 'repair';
+    return paymentInput?.paymentMode || 'maker';
+  }, [isMakerMode, isCheckerMode, isRepairMode, paymentInput]);
 
-  // 2. Initialize Internal Form State
+  // 2. Initialize Form State
   const [formData, setFormData] = useState<Pain001Model>(() => {
     const base = createEmptyPain001();
     const incoming = paymentInput?.paymentModel || initialData || {};
-    const method = resolvePaymentMethod(incoming);
+    const method =
+      (incoming as any).painPaymentMethodType ||
+      (incoming as any).paymentMethod ||
+      (incoming as any).paymentMethodType ||
+      (incoming as any).paymentType ||
+      'CBT';
+
     return {
       ...base,
       ...incoming,
       painPaymentMethodType: method,
-      paymentMethod: method,
-      paymentMethodType: method,
-      paymentType: method
-    } as any;
+      instructedAmountCurrencyCode:
+        incoming.instructedAmountCurrencyCode || paymentInput?.currency || 'USD'
+    };
   });
 
-  // 3. Checker Flagged Fields State
-  const [flaggedFields, setFlaggedFields] = useState<string[]>([]);
+  // 3. Checker Flagged List
+  const [flaggedFields, setFlaggedFields] = useState<string[]>(
+    () => paymentInput?.rejectedFieldList || []
+  );
 
-  // 4. Synchronize on input/initialData changes
+  // 4. Synchronize on input changes
   useEffect(() => {
     const incoming = paymentInput?.paymentModel || initialData;
     if (incoming) {
-      const method = resolvePaymentMethod(incoming);
+      const method =
+        (incoming as any).painPaymentMethodType ||
+        (incoming as any).paymentMethod ||
+        (incoming as any).paymentMethodType ||
+        (incoming as any).paymentType ||
+        'CBT';
+
       setFormData((prev) => ({
         ...prev,
         ...incoming,
         painPaymentMethodType: method,
-        paymentMethod: method,
-        paymentMethodType: method,
-        paymentType: method
+        instructedAmountCurrencyCode:
+          incoming.instructedAmountCurrencyCode || paymentInput?.currency || prev.instructedAmountCurrencyCode || 'USD'
       }));
     }
   }, [paymentInput, initialData]);
 
-  // 5. Dynamic Field Configuration Helpers
+  // 5. Dynamic Field Helpers & Fast Map
   const configMap = useMemo(() => {
     const map = new Map<string, FormFieldConfig>();
     fieldConfig.forEach((fc) => map.set(fc.fieldName, fc));
@@ -110,69 +121,79 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   }, [fieldConfig]);
 
   const isFieldHidden = useCallback(
-    (fieldName: string) => {
-      const conf = configMap.get(fieldName);
-      return conf ? !!conf.hidden : false;
+    (fieldName: string): boolean => {
+      if (paymentInput?.hideFieldsList?.includes(fieldName)) return true;
+      return !!configMap.get(fieldName)?.hidden;
     },
-    [configMap]
+    [configMap, paymentInput]
   );
 
   const isFieldDisabled = useCallback(
-    (fieldName: string) => {
-      const conf = configMap.get(fieldName);
-      if (conf && typeof (conf as any).disabled === 'boolean') {
-        return (conf as any).disabled;
-      }
-      return false;
+    (fieldName: string): boolean => {
+      return !!configMap.get(fieldName)?.disabled;
     },
     [configMap]
   );
 
   const isFieldRequired = useCallback(
-    (fieldName: string) => {
-      const conf = configMap.get(fieldName);
-      return conf ? !!conf.required : false;
+    (fieldName: string): boolean => {
+      if (PAIN001_MANDATORY_FIELDS.includes(fieldName)) return true;
+      return !!configMap.get(fieldName)?.required;
     },
     [configMap]
   );
 
   const getFieldLabel = useCallback(
-    (fieldName: string, defaultLabel: string) => {
+    (fieldName: string, defaultLabel: string): string => {
       if (pacsFormVerbiages && pacsFormVerbiages[fieldName]) {
         return pacsFormVerbiages[fieldName];
       }
-      const conf = configMap.get(fieldName);
-      return conf?.label || defaultLabel;
+      return configMap.get(fieldName)?.label || defaultLabel;
     },
     [configMap, pacsFormVerbiages]
   );
 
   const getFieldPlaceholder = useCallback(
-    (fieldName: string, defaultPlaceholder: string = '') => {
-      const conf = configMap.get(fieldName);
-      return conf?.placeholder || defaultPlaceholder;
+    (fieldName: string, defaultPlaceholder: string = ''): string => {
+      return configMap.get(fieldName)?.placeholder || defaultPlaceholder;
     },
     [configMap]
   );
 
-  // 6. Dual-Blind Key Validation Engine
-  const isDualBlindKeyPassed = useMemo(() => {
-    if (paymentInput?.dualBlindKeyFlag !== 'Y' || !isCheckerMode) return true;
-    const blindFields = paymentInput.dualBlindKeyFields || [];
-    const sourceModel = (paymentInput as any).sourcePaymentModel || {};
+  // 6. Dual-Blind Key Validation Logic
+  const isDualBlindKeyPassed = useMemo((): boolean => {
+    if (paymentInput?.dualBlindKeyFlag !== 'Y' || effectiveMode !== 'checker') {
+      return true;
+    }
+    const blindFields = paymentInput?.dualBlindKeyFields || [];
+    const sourceModel = paymentInput?.sourcePaymentModel || {};
 
     for (const field of blindFields) {
-      const enteredVal = String((formData as any)[field] || '').trim();
-      const expectedVal = String(sourceModel[field] || '').trim();
-      if (!enteredVal || enteredVal !== expectedVal) {
+      const entered = String((formData as any)[field] || '').trim();
+      const expected = String((sourceModel as any)[field] || '').trim();
+      if (!entered || entered !== expected) {
         return false;
       }
     }
     return true;
-  }, [paymentInput, isCheckerMode, formData]);
+  }, [paymentInput, effectiveMode, formData]);
+
+  const dualBlindKeyResultValue = useMemo((): DualBlindKeyResult => {
+    if (paymentInput?.dualBlindKeyFlag !== 'Y') return null;
+    return isDualBlindKeyPassed ? 'passed' : 'failed';
+  }, [paymentInput, isDualBlindKeyPassed]);
 
   // 7. Overall Form Validation Rule Engine
-  const isFormValid = useMemo(() => {
+  const isFormValid = useMemo((): boolean => {
+    for (const mandatoryField of PAIN001_MANDATORY_FIELDS) {
+      if (!isFieldHidden(mandatoryField)) {
+        const val = (formData as any)[mandatoryField];
+        if (val === undefined || val === null || String(val).trim() === '') {
+          return false;
+        }
+      }
+    }
+
     for (const conf of fieldConfig) {
       if (conf.required && !conf.hidden) {
         const val = (formData as any)[conf.fieldName];
@@ -198,34 +219,31 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     }
 
     return true;
-  }, [formData, fieldConfig, hardcapResultReceived, isDualBlindKeyPassed]);
+  }, [formData, fieldConfig, isFieldHidden, hardcapResultReceived, isDualBlindKeyPassed]);
 
-  // 8. Emit Output & Form Validity to Parent
+  // 8. Output Emission
   useEffect(() => {
     if (onPaymentOutput) {
       onPaymentOutput({
-        isValid: isFormValid,
-        isDualBlindKeyPassed,
         paymentData: formData,
+        isValid: isFormValid,
         outputMessage: isFormValid
-          ? 'Payment data validated successfully'
-          : 'Please review all mandatory fields and format criteria',
-        dualBlindKeyResult: {
-          isDualBlindKeyPassed,
-          status: isDualBlindKeyPassed ? 'PASSED' : 'FAILED'
-        } as unknown as DualBlindKeyResult
+          ? 'Payment instruction validated successfully.'
+          : 'Please complete all required ISO 20022 fields.',
+        dualBlindKeyResult: dualBlindKeyResultValue,
+        isDualBlindKeyPassed
       });
     }
 
     if (onFormValidityChange) {
       onFormValidityChange({
-        isValid: isFormValid,
-        validationErrors: isFormValid ? [] : ['Mandatory ISO fields are missing or amount is invalid.']
-      } as unknown as FormValidityPayload);
+        validForm: isFormValid,
+        makerPayload: formData as unknown as Record<string, unknown>
+      });
     }
-  }, [formData, isFormValid, isDualBlindKeyPassed, onPaymentOutput, onFormValidityChange]);
+  }, [formData, isFormValid, isDualBlindKeyPassed, dualBlindKeyResultValue, onPaymentOutput, onFormValidityChange]);
 
-  // 9. Input Change Handler
+  // 9. Change Handler
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
@@ -257,9 +275,9 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     }
   };
 
-  // 10. Checker Mode Double-Click Flagging
+  // 10. Checker Double-Click Flagging
   const handleFieldDoubleClick = (fieldName: string) => {
-    if (!isCheckerMode) return;
+    if (effectiveMode !== 'checker') return;
     setFlaggedFields((prev) => {
       const next = prev.includes(fieldName)
         ? prev.filter((f) => f !== fieldName)
@@ -281,7 +299,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
       classes.push('sspf-disabled');
     }
 
-    if (isCheckerMode) {
+    if (effectiveMode === 'checker') {
       if (flaggedFields.includes(fieldName)) {
         classes.push('sspf-flagged-error');
       } else {
@@ -289,7 +307,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
       }
     }
 
-    if (isRepairMode) {
+    if (effectiveMode === 'repair') {
       if (repairReviewFieldList.includes(fieldName)) {
         classes.push('sspf-review-amber');
       }
@@ -300,8 +318,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
 
     return classes.join(' ');
   };
-
-  const selectedPaymentType = resolvePaymentMethod(formData);
 
   const hardcapLimitPassed = useMemo(() => {
     if (!hardcapResultReceived) return null;
@@ -337,13 +353,15 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
                   id="painPaymentMethodType"
                   name="painPaymentMethodType"
                   className={getFieldClassName('painPaymentMethodType')}
-                  value={selectedPaymentType}
+                  value={formData.painPaymentMethodType || 'CBT'}
                   disabled={isFieldDisabled('painPaymentMethodType')}
                   onChange={handleInputChange}
                 >
-                  <option value="CBT">CBT</option>
-                  <option value="BKT">BKT</option>
-                  <option value="DFT">DFT</option>
+                  {PAYMENT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
@@ -474,6 +492,25 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
               </div>
             )}
           </div>
+
+          {!isFieldHidden('debtorAgentBank') && (
+            <div className="sspf-grid sspf-grid-1" style={{ marginTop: '12px' }}>
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('debtorAgentBank')}>
+                <label className="sspf-label" htmlFor="debtorAgentBank">
+                  {getFieldLabel('debtorAgentBank', 'Debtor Agent Bank')}
+                </label>
+                <input
+                  id="debtorAgentBank"
+                  name="debtorAgentBank"
+                  type="text"
+                  className={getFieldClassName('debtorAgentBank')}
+                  value={formData.debtorAgentBank || ''}
+                  disabled={isFieldDisabled('debtorAgentBank')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 3. Debtor Address Details */}
@@ -491,7 +528,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
                   type="text"
                   placeholder={getFieldPlaceholder('debtorAddressLines1', 'Address line 1')}
                   className={getFieldClassName('debtorAddressLines1')}
-                  value={(formData as any).debtorAddressLines1 || ''}
+                  value={formData.debtorAddressLines1 || ''}
                   disabled={isFieldDisabled('debtorAddressLines1')}
                   onChange={handleInputChange}
                 />
@@ -509,7 +546,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
                   type="text"
                   placeholder={getFieldPlaceholder('debtorAddressLines2', 'Address line 2')}
                   className={getFieldClassName('debtorAddressLines2')}
-                  value={(formData as any).debtorAddressLines2 || ''}
+                  value={formData.debtorAddressLines2 || ''}
                   disabled={isFieldDisabled('debtorAddressLines2')}
                   onChange={handleInputChange}
                 />
@@ -612,39 +649,52 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
             )}
           </div>
 
-          {(!isFieldHidden('debtorSortCodeUK') || !isFieldHidden('debtorSortCodeUS')) && (
-            <div className="sspf-grid sspf-grid-2" style={{ marginTop: '12px' }}>
-              {!isFieldHidden('debtorSortCodeUK') && (
-                <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('debtorSortCodeUK')}>
-                  <label className="sspf-label" htmlFor="debtorSortCodeUK">{getFieldLabel('debtorSortCodeUK', 'Debtor Sort Code (UK)')}</label>
-                  <input
-                    id="debtorSortCodeUK"
-                    name="debtorSortCodeUK"
-                    type="text"
-                    className={getFieldClassName('debtorSortCodeUK')}
-                    value={formData.debtorSortCodeUK || ''}
-                    disabled={isFieldDisabled('debtorSortCodeUK')}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
+          <div className="sspf-grid sspf-grid-3" style={{ marginTop: '12px' }}>
+            {!isFieldHidden('debtorState') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('debtorState')}>
+                <label className="sspf-label" htmlFor="debtorState">{getFieldLabel('debtorState', 'State')}</label>
+                <input
+                  id="debtorState"
+                  name="debtorState"
+                  type="text"
+                  className={getFieldClassName('debtorState')}
+                  value={formData.debtorState || ''}
+                  disabled={isFieldDisabled('debtorState')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
 
-              {!isFieldHidden('debtorSortCodeUS') && (
-                <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('debtorSortCodeUS')}>
-                  <label className="sspf-label" htmlFor="debtorSortCodeUS">{getFieldLabel('debtorSortCodeUS', 'Debtor Sort Code (US)')}</label>
-                  <input
-                    id="debtorSortCodeUS"
-                    name="debtorSortCodeUS"
-                    type="text"
-                    className={getFieldClassName('debtorSortCodeUS')}
-                    value={formData.debtorSortCodeUS || ''}
-                    disabled={isFieldDisabled('debtorSortCodeUS')}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+            {!isFieldHidden('debtorSortCodeUK') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('debtorSortCodeUK')}>
+                <label className="sspf-label" htmlFor="debtorSortCodeUK">{getFieldLabel('debtorSortCodeUK', 'Sort Code (UK)')}</label>
+                <input
+                  id="debtorSortCodeUK"
+                  name="debtorSortCodeUK"
+                  type="text"
+                  className={getFieldClassName('debtorSortCodeUK')}
+                  value={formData.debtorSortCodeUK || ''}
+                  disabled={isFieldDisabled('debtorSortCodeUK')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+
+            {!isFieldHidden('debtorSortCodeUS') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('debtorSortCodeUS')}>
+                <label className="sspf-label" htmlFor="debtorSortCodeUS">{getFieldLabel('debtorSortCodeUS', 'Sort Code (US)')}</label>
+                <input
+                  id="debtorSortCodeUS"
+                  name="debtorSortCodeUS"
+                  type="text"
+                  className={getFieldClassName('debtorSortCodeUS')}
+                  value={formData.debtorSortCodeUS || ''}
+                  disabled={isFieldDisabled('debtorSortCodeUS')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 4. Intermediary Bank Details */}
@@ -880,6 +930,25 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
             )}
           </div>
 
+          {!isFieldHidden('creditorAgentPostalAddress') && (
+            <div className="sspf-grid sspf-grid-1" style={{ marginTop: '12px' }}>
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorAgentPostalAddress')}>
+                <label className="sspf-label" htmlFor="creditorAgentPostalAddress">
+                  {getFieldLabel('creditorAgentPostalAddress', 'Creditor Agent Postal Address')}
+                </label>
+                <input
+                  id="creditorAgentPostalAddress"
+                  name="creditorAgentPostalAddress"
+                  type="text"
+                  className={getFieldClassName('creditorAgentPostalAddress')}
+                  value={formData.creditorAgentPostalAddress || ''}
+                  disabled={isFieldDisabled('creditorAgentPostalAddress')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+          )}
+
           {!isFieldHidden('creditorAddressLines1') && (
             <div className="sspf-grid sspf-grid-1" style={{ marginTop: '12px' }}>
               <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorAddressLines1')}>
@@ -993,39 +1062,52 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
             )}
           </div>
 
-          {(!isFieldHidden('creditorSortCodeUK') || !isFieldHidden('creditorSortCodeUS')) && (
-            <div className="sspf-grid sspf-grid-2" style={{ marginTop: '12px' }}>
-              {!isFieldHidden('creditorSortCodeUK') && (
-                <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorSortCodeUK')}>
-                  <label className="sspf-label" htmlFor="creditorSortCodeUK">{getFieldLabel('creditorSortCodeUK', 'Creditor Sort Code (UK)')}</label>
-                  <input
-                    id="creditorSortCodeUK"
-                    name="creditorSortCodeUK"
-                    type="text"
-                    className={getFieldClassName('creditorSortCodeUK')}
-                    value={formData.creditorSortCodeUK || ''}
-                    disabled={isFieldDisabled('creditorSortCodeUK')}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
+          <div className="sspf-grid sspf-grid-3" style={{ marginTop: '12px' }}>
+            {!isFieldHidden('creditorState') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorState')}>
+                <label className="sspf-label" htmlFor="creditorState">{getFieldLabel('creditorState', 'Creditor State')}</label>
+                <input
+                  id="creditorState"
+                  name="creditorState"
+                  type="text"
+                  className={getFieldClassName('creditorState')}
+                  value={formData.creditorState || ''}
+                  disabled={isFieldDisabled('creditorState')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
 
-              {!isFieldHidden('creditorSortCodeUS') && (
-                <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorSortCodeUS')}>
-                  <label className="sspf-label" htmlFor="creditorSortCodeUS">{getFieldLabel('creditorSortCodeUS', 'Creditor Sort Code (US)')}</label>
-                  <input
-                    id="creditorSortCodeUS"
-                    name="creditorSortCodeUS"
-                    type="text"
-                    className={getFieldClassName('creditorSortCodeUS')}
-                    value={formData.creditorSortCodeUS || ''}
-                    disabled={isFieldDisabled('creditorSortCodeUS')}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+            {!isFieldHidden('creditorSortCodeUK') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorSortCodeUK')}>
+                <label className="sspf-label" htmlFor="creditorSortCodeUK">{getFieldLabel('creditorSortCodeUK', 'Sort Code (UK)')}</label>
+                <input
+                  id="creditorSortCodeUK"
+                  name="creditorSortCodeUK"
+                  type="text"
+                  className={getFieldClassName('creditorSortCodeUK')}
+                  value={formData.creditorSortCodeUK || ''}
+                  disabled={isFieldDisabled('creditorSortCodeUK')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+
+            {!isFieldHidden('creditorSortCodeUS') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorSortCodeUS')}>
+                <label className="sspf-label" htmlFor="creditorSortCodeUS">{getFieldLabel('creditorSortCodeUS', 'Sort Code (US)')}</label>
+                <input
+                  id="creditorSortCodeUS"
+                  name="creditorSortCodeUS"
+                  type="text"
+                  className={getFieldClassName('creditorSortCodeUS')}
+                  value={formData.creditorSortCodeUS || ''}
+                  disabled={isFieldDisabled('creditorSortCodeUS')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 6. Remittance & Charges */}
@@ -1045,10 +1127,11 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
                   disabled={isFieldDisabled('chargeBearer')}
                   onChange={handleInputChange}
                 >
-                  <option value="SHAR">Shared (SHAR)</option>
-                  <option value="DEBT">Debtor (DEBT)</option>
-                  <option value="CRED">Creditor (CRED)</option>
-                  <option value="SLEV">Service Level (SLEV)</option>
+                  {CHARGE_BEARER_OPTIONS.map((cb) => (
+                    <option key={cb} value={cb}>
+                      {cb}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
@@ -1070,40 +1153,38 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
             )}
           </div>
 
-          {(!isFieldHidden('chargesAmount') || !isFieldHidden('chargesAgentBIC')) && (
-            <div className="sspf-grid sspf-grid-2" style={{ marginTop: '12px' }}>
-              {!isFieldHidden('chargesAmount') && (
-                <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('chargesAmount')}>
-                  <label className="sspf-label" htmlFor="chargesAmount">{getFieldLabel('chargesAmount', 'Charges Amount')}</label>
-                  <input
-                    id="chargesAmount"
-                    name="chargesAmount"
-                    type="number"
-                    step="any"
-                    className={getFieldClassName('chargesAmount')}
-                    value={formData.chargesAmount || ''}
-                    disabled={isFieldDisabled('chargesAmount')}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
+          <div className="sspf-grid sspf-grid-2" style={{ marginTop: '12px' }}>
+            {!isFieldHidden('chargesAmount') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('chargesAmount')}>
+                <label className="sspf-label" htmlFor="chargesAmount">{getFieldLabel('chargesAmount', 'Charges Amount')}</label>
+                <input
+                  id="chargesAmount"
+                  name="chargesAmount"
+                  type="number"
+                  step="any"
+                  className={getFieldClassName('chargesAmount')}
+                  value={formData.chargesAmount || ''}
+                  disabled={isFieldDisabled('chargesAmount')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
 
-              {!isFieldHidden('chargesAgentBIC') && (
-                <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('chargesAgentBIC')}>
-                  <label className="sspf-label" htmlFor="chargesAgentBIC">{getFieldLabel('chargesAgentBIC', 'Charges Agent BIC')}</label>
-                  <input
-                    id="chargesAgentBIC"
-                    name="chargesAgentBIC"
-                    type="text"
-                    className={getFieldClassName('chargesAgentBIC')}
-                    value={formData.chargesAgentBIC || ''}
-                    disabled={isFieldDisabled('chargesAgentBIC')}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+            {!isFieldHidden('chargesAgentBIC') && (
+              <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('chargesAgentBIC')}>
+                <label className="sspf-label" htmlFor="chargesAgentBIC">{getFieldLabel('chargesAgentBIC', 'Charges Agent BIC')}</label>
+                <input
+                  id="chargesAgentBIC"
+                  name="chargesAgentBIC"
+                  type="text"
+                  className={getFieldClassName('chargesAgentBIC')}
+                  value={formData.chargesAgentBIC || ''}
+                  disabled={isFieldDisabled('chargesAgentBIC')}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 7. Tax & Regulatory Reporting */}

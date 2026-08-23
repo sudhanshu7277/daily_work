@@ -1,8 +1,8 @@
 /* ==========================================================================
-   SSPaymentFlow & PaymentChild Component Styles
+   SSPaymentFlow & PaymentChild Styles
    ========================================================================== */
 
-/* Outer Form Wrapper */
+/* Form Wrapper & Global Box Sizing */
 .sspf-wrapper {
   width: 100%;
   box-sizing: border-box;
@@ -10,7 +10,6 @@
   color: #1e293b;
 }
 
-/* Master Form Card */
 .sspf-card {
   background: #ffffff;
   border-radius: 6px;
@@ -18,7 +17,7 @@
   width: 100%;
 }
 
-/* Form Top Section Header */
+/* Master Form Title */
 .sspf-main-title {
   font-size: 15px;
   font-weight: 700;
@@ -28,7 +27,7 @@
   border-bottom: 1.5px solid #e2e8f0;
 }
 
-/* Nested Subsection Cards */
+/* Subsection Cards */
 .sspf-subcard {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -47,7 +46,7 @@
 }
 
 /* ==========================================================================
-   Grid System & Structural Gutters
+   Grid System & Structural Layout
    ========================================================================== */
 .sspf-grid {
   display: grid;
@@ -70,7 +69,7 @@
 }
 
 /* ==========================================================================
-   Input Group, Labels & Required Indicator
+   Input Group & Labels
    ========================================================================== */
 .sspf-group {
   display: flex;
@@ -98,7 +97,7 @@
 }
 
 /* ==========================================================================
-   Form Input Controls (Inputs, Selects, Textareas)
+   Form Input Controls
    ========================================================================== */
 .sspf-control {
   width: 100%;
@@ -125,13 +124,16 @@
   font-size: 12px;
 }
 
-/* Select Control Overrides */
 select.sspf-control {
   appearance: auto;
   cursor: pointer;
 }
 
-/* Readonly / Disabled Field State */
+/* ==========================================================================
+   Workflow State Classes
+   ========================================================================== */
+
+/* Disabled / Readonly Field */
 .sspf-disabled {
   background-color: #f1f5f9 !important;
   color: #64748b !important;
@@ -140,11 +142,7 @@ select.sspf-control {
   user-select: none;
 }
 
-/* ==========================================================================
-   Checker & Repair Workflow Styles
-   ========================================================================== */
-
-/* Checker Interactive Hover Indicator */
+/* Checker Interactive Hover */
 .sspf-interactive {
   cursor: pointer;
 }
@@ -153,7 +151,7 @@ select.sspf-control {
   border-color: #94a3b8;
 }
 
-/* Checker Rejection Flagging (Red Outline & Background) */
+/* Checker Flagged Discrepancy (Red) */
 .sspf-flagged-error {
   border: 2px solid #ef4444 !important;
   background-color: #fef2f2 !important;
@@ -165,7 +163,7 @@ select.sspf-control {
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
 }
 
-/* Repair Review Flagged Field (Amber Outline) */
+/* Repair Review Field (Amber) */
 .sspf-review-amber {
   border: 2px solid #f59e0b !important;
   background-color: #fffbeb !important;
@@ -176,7 +174,7 @@ select.sspf-control {
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
 }
 
-/* Repair Newly Modified Field (Green Outline) */
+/* Repair Newly Modified Field (Green) */
 .sspf-modified-green {
   border: 2px solid #10b981 !important;
   background-color: #ecfdf5 !important;
@@ -188,7 +186,7 @@ select.sspf-control {
 }
 
 /* ==========================================================================
-   Helper Text & Hardcap Validation Banners
+   Helper Text & Hardcap Validation Messages
    ========================================================================== */
 .sspf-helper-msg {
   font-size: 11px;
