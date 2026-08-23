@@ -1,601 +1,212 @@
 /* ==========================================================================
-   SSPaymentFlow & PaymentChild Form Layout Styles
+   SSPaymentFlow & PaymentChild Comprehensive Design System & Layout Rules
    ========================================================================== */
 
-   .sspf-wrapper {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #1e293b;
-  }
-  
-  .sspf-card {
-    background: #ffffff;
-    border-radius: 6px;
-    box-sizing: border-box;
-  }
-  
-  .sspf-main-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 1.5px solid #e2e8f0;
-  }
-  
-  .sspf-subcard {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-  }
-  
-  .sspf-subcard-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 10px;
-  }
-  
-  /* Grids */
-  .sspf-grid {
-    display: grid;
-    gap: 12px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .sspf-grid-1 {
-    grid-template-columns: 1fr;
-  }
-  
-  .sspf-grid-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  
-  .sspf-grid-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  
-  /* Form Group & Label */
-  .sspf-group {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .sspf-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: #475569;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
-  
-  .sspf-req {
-    color: #ef4444;
-    font-weight: 700;
-  }
-  
-  /* Form Controls */
-  .sspf-control {
-    width: 100%;
-    height: 34px;
-    padding: 6px 10px;
-    font-size: 12.5px;
-    color: #0f172a;
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    box-sizing: border-box;
-    outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-  
-  .sspf-control:focus {
-    border-color: #0284c7;
-    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
-  }
-  
-  /* Select Control */
-  select.sspf-control {
-    appearance: auto;
-    cursor: pointer;
-  }
-  
-  /* Disabled State */
-  .sspf-disabled {
-    background-color: #f1f5f9 !important;
-    color: #64748b !important;
-    border-color: #e2e8f0 !important;
-    cursor: not-allowed;
-  }
-  
-  /* Checker Interactive & Flagged Status */
-  .sspf-interactive {
-    cursor: pointer;
-  }
-  
-  .sspf-flagged-error {
-    border: 2px solid #ef4444 !important;
-    background-color: #fef2f2 !important;
-    color: #991b1b !important;
-    font-weight: 600;
-  }
-  
-  /* Repair Review (Amber) & Modified (Green) */
-  .sspf-review-amber {
-    border: 2px solid #f59e0b !important;
-    background-color: #fffbeb !important;
-    color: #92400e !important;
-  }
-  
-  .sspf-modified-green {
-    border: 2px solid #10b981 !important;
-    background-color: #ecfdf5 !important;
-    color: #065f46 !important;
-  }
-  
-  /* Helpers */
-  .sspf-helper-msg {
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 4px;
-  }
-  
-  @media (max-width: 900px) {
-    .sspf-grid-2,
-    .sspf-grid-3 {
-      grid-template-columns: 1fr;
-    }
-  }
-
-
-
-
-
-
-
-
-
-
-/* .ss-payment-flow {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    background: #ffffff;
-    color: #1e293b;
-  }
-  
-  .section-main {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    overflow: hidden;
-    margin: 5px;
-  }
-  
-  .section-main-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: #f8fafc;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 15px;
-  }
-  
-  .noBorders {
-    border: 1.5px solid white;
-  }
-  
-  .section-main-body {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .section-main-body.collapsed {
-    display: none;
-  }
-  
-  .section {
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 13px;
-  }
-  
-  .section-body {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: #ffffff;
-  }
-  
-  .section-body.collapsed {
-    display: none;
-  }
-  
-  .chev {
-    color: #64748b;
-    font-size: 12px;
-  }
-  
-  .form-row-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  
-  .form-row-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-  }
-  
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .form-field.rejected {
-    background: #fef2f2;
-    padding: 6px;
-    border-radius: 4px;
-  }
-  
-  .form-field.failed-field input,
-  .form-field.failed-field select {
-    border-color: #dc2626 !important;
-  }
-  
-  .form-field.repair-review-field {
-    background: #fffbeb;
-    padding: 6px;
-    border-radius: 4px;
-  }
-  
-  .form-field.repair-newly-modify-field {
-    background: #ecfdf5;
-    padding: 6px;
-    border-radius: 4px;
-  }
-  
-  .field-label {
-    font-size: 12px;
-    color: #475569;
-  }
-  
-  .field-label.rejected {
-    color: #dc2626;
-    font-weight: 600;
-  }
-  
-  .mandatory-indicator {
-    color: #dc2626;
-  }
-  
-  .form-field input,
-  .form-field select,
-  .form-field textarea {
-    width: 100%;
-    font-size: 13px;
-    padding: 6px 8px;
-    background-color: #ffffff;
-    border: 1px solid #6689ab !important;
-    border-radius: 6px;
-    color: #1e293b;
-    box-sizing: border-box;
-    height: 40px !important;
-  }
-  
-  .form-field textarea {
-    height: auto !important;
-  }
-  
-  .form-field input:focus,
-  .form-field select:focus,
-  .form-field textarea:focus {
-    border-color: #d1d5db;
-    outline: none;
-    box-shadow: none;
-  }
-  
-  .form-field input[readonly],
-  .form-field input:disabled,
-  .form-field select:disabled {
-    background-color: #f8fafc;
-    color: #64748b;
-  }
-  
-  .field-error {
-    font-size: 11px;
-    color: #dc2626;
-  }
-  
-  .field-error.dual-blind-error {
-    font-weight: 600;
-  }
-  
-  .hint {
-    font-size: 11px;
-    color: #64748b;
-  }
-  
-  .success-message {
-    font-size: 11px;
-    color: #059669;
-  }
-  
-  .toast-container {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 1000;
-  }
-  
-  .toast {
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-  
-  .toast-success {
-    background: #ecfdf5;
-    border: 1px solid #059669;
-    color: #059669;
-  }
-  
-  .toast-error {
-    background: #fef2f2;
-    border: 1px solid #dc2626;
-    color: #dc2626;
-  }
-  
-  .sample-container {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .parent-section-heading {
-    font-size: 16px;
-    font-weight: 600;
-  }
-  
-  .parent-section-checker-info {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 14px;
-    background: #f0f9ff;
-    border: 1px solid #87ceeb;
-    border-radius: 6px;
-  }
-  
-  .parent-section-meta {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 12px;
-    color: #475569;
-  }
-  
-  .payment-component-wrapper {
-    background: #ffffff;
-  }
-  
-  .action-bar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 12px 0;
-  }
-  
-  .action-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px 0;
-  }
-  
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .lmn-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-    border-radius: 6px;
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #1e293b;
-    cursor: pointer;
-  }
-  
-  .lmn-btn-unclickable {
-    padding: 8px 16px;
-    font-size: 13px;
-    border-radius: 6px;
-    border: 1px solid #d1d5db;
-    background: lightgrey;
-    color: #1e293b;
-    cursor: not-allowed;
-  }
-  
-  .lmn-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  
-  .lmn-btn-grey {
-    background: lightgrey;
-    color: #000000;
-    border: none;
-  }
-  
-  .lmn-btn-primary {
-    background: #056dae;
-    color: #ffffff;
-    border: none;
-  }
-  
-  .btn-reject {
-    padding: 8px 16px;
-    font-size: 13px;
-    border-radius: 6px;
-    border: 1px solid #dc2626;
-    background: #ffffff;
-    color: #dc2626;
-    cursor: pointer;
-    align-self: flex-start;
-  }
-  
-  .btn-approve {
-    padding: 8px 16px;
-    font-size: 13px;
-    border-radius: 6px;
-    border: none;
-    background: #059669;
-    color: #ffffff;
-    cursor: pointer;
-    align-self: flex-start;
-  }
-  
-  .btn-reject:disabled,
-  .btn-approve:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  
-  .modal {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-  }
-  
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .modal-container {
-    width: 420px;
-    background: #ffffff;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: #64748b;
-  }
-  
-  .modal-body {
-    padding: 16px 20px;
-  }
-  
-  .details-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-  }
-  
-  .detail-row .label {
-    color: #64748b;
-  }
-  
-  .detail-row .value.status-pending {
-    color: #92400e;
-    font-weight: 600;
-  }
-  
-  .modal-footer {
-    padding: 12px 20px;
-    border-top: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: flex-end;
-  }
-  
-  .form-field input[type="date"] {
-    -webkit-appearance: auto !important;
-    appearance: auto !important;
-    color-scheme: light;
-    min-height: 32px;
-    cursor: pointer;
-  }
-  
-  .form-field input[type="date"]::-webkit-calendar-picker-indicator {
-    display: inline-block !important;
-    opacity: 1 !important;
-    cursor: pointer;
-    filter: none;
-  }
-  
-  .form-field input[type="date"]::-webkit-inner-spin-button,
-  .form-field input[type="date"]::-webkit-clear-button {
-    display: inline-block;
-  }
-
-  .form-field.field-invalid input,
-.form-field.field-invalid select,
-.form-field.field-invalid textarea,
-.form-field input.input-error,
-.form-field select.input-error,
-.form-field textarea.input-error {
-  border-color: #dc2626 !important;
-  outline: none;
+/* Outer Form Wrapper */
+.sspf-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1e293b;
 }
 
-.field-error {
+/* Master Form Card */
+.sspf-card {
+  background: #ffffff;
+  border-radius: 6px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Form Top Section Header */
+.sspf-main-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+
+/* Nested Subsection Cards */
+.sspf-subcard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+}
+
+.sspf-subcard-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   Grid System & Structural Gutters
+   ========================================================================== */
+.sspf-grid {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: flex-start;
+}
+
+.sspf-grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.sspf-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sspf-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ==========================================================================
+   Input Group, Labels & Required Indicator
+   ========================================================================== */
+.sspf-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.sspf-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  user-select: none;
+}
+
+.sspf-req {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   Form Input Controls (Inputs, Selects, Textareas)
+   ========================================================================== */
+.sspf-control {
+  width: 100%;
+  height: 34px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.sspf-control:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.18);
+  background-color: #ffffff;
+}
+
+.sspf-control::placeholder {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* Select Control Overrides */
+select.sspf-control {
+  appearance: auto;
+  cursor: pointer;
+}
+
+/* Readonly / Disabled Field State */
+.sspf-disabled {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Checker & Repair Workflow Styles
+   ========================================================================== */
+
+/* Checker Interactive Hover Indicator */
+.sspf-interactive {
+  cursor: pointer;
+}
+
+.sspf-interactive:hover {
+  border-color: #94a3b8;
+}
+
+/* Checker Rejection Flagging (Red Outline & Background) */
+.sspf-flagged-error {
+  border: 2px solid #ef4444 !important;
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+  font-weight: 600;
+}
+
+.sspf-flagged-error:focus {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Repair Review Flagged Field (Amber Outline) */
+.sspf-review-amber {
+  border: 2px solid #f59e0b !important;
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+}
+
+.sspf-review-amber:focus {
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Repair Newly Modified Field (Green Outline) */
+.sspf-modified-green {
+  border: 2px solid #10b981 !important;
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+
+.sspf-modified-green:focus {
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* ==========================================================================
+   Helper Text & Hardcap Validation Banners
+   ========================================================================== */
+.sspf-helper-msg {
   font-size: 11px;
-  color: #dc2626;
-  margin-top: 3px;
-  font-weight: 400;
-} */
+  font-weight: 600;
+  margin-top: 5px;
+  display: block;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 992px) {
+  .sspf-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sspf-grid-2,
+  .sspf-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
