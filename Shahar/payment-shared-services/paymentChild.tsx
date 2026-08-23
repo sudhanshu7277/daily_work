@@ -30,6 +30,8 @@ export interface SSPaymentFlowProps {
   onFormChange?: (formData: Pain001Model) => void;
 }
 
+export type PaymentChildProps = SSPaymentFlowProps;
+
 export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   paymentInput,
   fieldConfig = [],
@@ -44,7 +46,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
   onPaymentOutput,
   onFormChange
 }) => {
-  // 1. Resolve Initial Payment Method Alias
+  // 1. Resolve initial value for payment type
   const resolvePaymentMethod = (model?: any): string => {
     if (!model) return 'CBT';
     return (
@@ -56,7 +58,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     );
   };
 
-  // 2. Form State Hydration
+  // 2. Initialize Internal Form State
   const [formData, setFormData] = useState<Pain001Model>(() => {
     const base = createEmptyPain001();
     const incoming = paymentInput?.paymentModel || {};
@@ -71,10 +73,10 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     } as any;
   });
 
-  // 3. Checker Flagged Fields State
+  // 3. Checker Mode Flagged Fields State
   const [flaggedFields, setFlaggedFields] = useState<string[]>([]);
 
-  // 4. Synchronize when paymentInput Updates
+  // 4. Synchronize with incoming paymentInput changes
   useEffect(() => {
     if (paymentInput?.paymentModel) {
       const incoming = paymentInput.paymentModel;
@@ -90,7 +92,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     }
   }, [paymentInput]);
 
-  // 5. Dynamic Field Configuration Helpers
+  // 5. Dynamic Config Map for Fast Lookup
   const configMap = useMemo(() => {
     const map = new Map<string, FormFieldConfig>();
     fieldConfig.forEach((fc) => map.set(fc.fieldName, fc));
@@ -140,7 +142,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     [configMap]
   );
 
-  // 6. Dual-Blind Key Validation
+  // 6. Dual-Blind Key Validation Engine
   const isDualBlindKeyPassed = useMemo(() => {
     if (paymentInput?.dualBlindKeyFlag !== 'Y' || !isCheckerMode) return true;
     const blindFields = paymentInput.dualBlindKeyFields || [];
@@ -158,7 +160,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
 
   // 7. Overall Form Validation Rule Engine
   const isFormValid = useMemo(() => {
-    // Check mandatory fields defined in fieldConfig
     for (const conf of fieldConfig) {
       if (conf.required && !conf.hidden) {
         const val = (formData as any)[conf.fieldName];
@@ -168,16 +169,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
       }
     }
 
-    // Amount must be a valid positive number
     const amt = Number(formData.instructedAmount);
     if (isNaN(amt) || amt <= 0) return false;
 
-    // Hardcap check if provided
     if (hardcapResultReceived && hardcapResultReceived.amountWithinLimit === false) {
       return false;
     }
 
-    // Dual blind validation
     if (!isDualBlindKeyPassed) {
       return false;
     }
@@ -185,18 +183,24 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return true;
   }, [formData, fieldConfig, hardcapResultReceived, isDualBlindKeyPassed]);
 
-  // 8. Emit Output to Parent
+  // 8. Emit Output to Parent (Full Interface Contract)
   useEffect(() => {
     if (onPaymentOutput) {
       onPaymentOutput({
         isValid: isFormValid,
         isDualBlindKeyPassed,
-        paymentData: formData
+        paymentData: formData,
+        outputMessage: isFormValid
+          ? 'Payment data validated successfully'
+          : 'Please review all mandatory fields and format criteria',
+        dualBlindKeyResult: isDualBlindKeyPassed
+          ? { status: 'PASSED', errorCount: 0 }
+          : { status: 'FAILED', errorCount: 1 }
       });
     }
   }, [formData, isFormValid, isDualBlindKeyPassed, onPaymentOutput]);
 
-  // 9. Change Handler
+  // 9. Input Change Handler
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
@@ -228,7 +232,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     }
   };
 
-  // 10. Checker Mode Double Click Flagging
+  // 10. Checker Mode Double-Click Flagging
   const handleFieldDoubleClick = (fieldName: string) => {
     if (!isCheckerMode) return;
     setFlaggedFields((prev) => {
@@ -279,9 +283,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
       <div className="sspf-card">
         <div className="sspf-main-title">Payment Details</div>
 
-        {/* ========================================================================= */}
-        {/* 1. PAYMENT INFORMATION                                                    */}
-        {/* ========================================================================= */}
+        {/* 1. Payment Information */}
         <div className="sspf-subcard">
           <div className="sspf-subcard-title">Payment Information</div>
           <div className="sspf-grid sspf-grid-3">
@@ -373,9 +375,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           </div>
         </div>
 
-        {/* ========================================================================= */}
-        {/* 2. DEBTOR INFORMATION & ADDRESS DETAILS                                   */}
-        {/* ========================================================================= */}
+        {/* 2. Debtor Information */}
         <div className="sspf-subcard">
           <div className="sspf-subcard-title">Debtor Information</div>
           <div className="sspf-grid sspf-grid-3">
@@ -435,7 +435,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           </div>
         </div>
 
-        {/* Debtor Address Details */}
+        {/* 3. Debtor Address Details */}
         <div className="sspf-subcard">
           <div className="sspf-subcard-title">Debtor Address Details</div>
           <div className="sspf-grid sspf-grid-2">
@@ -606,14 +606,11 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           )}
         </div>
 
-        {/* ========================================================================= */}
-        {/* 3. INTERMEDIARY BANK DETAILS                                              */}
-        {/* ========================================================================= */}
+        {/* 4. Intermediary Bank Details */}
         {(!isFieldHidden('firstIntermediaryBankBIC') || !isFieldHidden('secondIntermediaryBankBIC')) && (
           <div className="sspf-subcard">
             <div className="sspf-subcard-title">Intermediary Bank Details</div>
             
-            {/* 1st Intermediary */}
             {!isFieldHidden('firstIntermediaryBankBIC') && (
               <>
                 <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>1st Intermediary Bank</div>
@@ -688,7 +685,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
               </>
             )}
 
-            {/* 2nd Intermediary */}
             {!isFieldHidden('secondIntermediaryBankBIC') && (
               <>
                 <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', marginBottom: '8px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>2nd Intermediary Bank</div>
@@ -765,9 +761,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* 4. CREDITOR INFORMATION & ADDRESS DETAILS                                 */}
-        {/* ========================================================================= */}
+        {/* 5. Creditor Information */}
         <div className="sspf-subcard">
           <div className="sspf-subcard-title">Creditor Information</div>
           <div className="sspf-grid sspf-grid-2">
@@ -845,7 +839,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
             )}
           </div>
 
-          {/* Creditor Address Fields */}
           {!isFieldHidden('creditorAddressLines1') && (
             <div className="sspf-grid sspf-grid-1" style={{ marginTop: '12px' }}>
               <div className="sspf-group" onDoubleClick={() => handleFieldDoubleClick('creditorAddressLines1')}>
@@ -994,9 +987,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           )}
         </div>
 
-        {/* ========================================================================= */}
-        {/* 5. REMITTANCE & CHARGES                                                   */}
-        {/* ========================================================================= */}
+        {/* 6. Remittance & Charges */}
         <div className="sspf-subcard">
           <div className="sspf-subcard-title">Remittance & Charges</div>
           <div className="sspf-grid sspf-grid-2">
@@ -1074,9 +1065,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           )}
         </div>
 
-        {/* ========================================================================= */}
-        {/* 6. TAX & REGULATORY REPORTING                                             */}
-        {/* ========================================================================= */}
+        {/* 7. Tax & Regulatory Reporting */}
         {(!isFieldHidden('taxIdNumber') || !isFieldHidden('purposeOfPayment') || !isFieldHidden('invoiceReferenceNumber')) && (
           <div className="sspf-subcard">
             <div className="sspf-subcard-title">Tax & Regulatory Reporting</div>
