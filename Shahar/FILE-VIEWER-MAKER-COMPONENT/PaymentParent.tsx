@@ -25,9 +25,23 @@ import React, {
     onPaymentSuccess?: (referenceId: string, payload: Pain001Model) => void;
   }
   
-  // Base Maker Field Config (All standard fields enabled)
+  // =========================================================================
+  // Base Field Configurations
+  // =========================================================================
+  
   const MAKER_FIELD_CONFIG: FormFieldConfig[] = [
-    { fieldName: 'painPaymentMethodType', label: 'Payment Type (CBT, BKT, DFT)', hidden: false, required: false, options: ['CBT', 'BKT', 'DFT'], placeholder: '-- Select --' },
+    {
+      fieldName: 'painPaymentMethodType',
+      label: 'Payment Type',
+      hidden: false,
+      required: false,
+      options: [
+        { label: 'CBT', value: 'CBT' },
+        { label: 'BKT', value: 'BKT' },
+        { label: 'DFT', value: 'DFT' }
+      ] as any,
+      placeholder: '-- Select Payment Type --'
+    },
     { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false, required: true, type: 'date' },
     { fieldName: 'instructedAmountCurrencyCode', label: 'Currency', hidden: false, required: true },
     { fieldName: 'instructedAmount', label: 'Transaction Amount', hidden: false, required: true },
@@ -77,9 +91,16 @@ import React, {
     { fieldName: 'invoiceReferenceNumber', label: 'Invoice / Reference Number', hidden: false, required: false }
   ];
   
-  // Checker / Repair Config: Amount, Debtor Name, and Debtor Account remain enabled; remaining locked
+  // Checker / Repair Config: Payment Type, Amount, Debtor Name & Account remain enabled
   const CHECKER_REPAIR_FIELD_CONFIG: FormFieldConfig[] = MAKER_FIELD_CONFIG.map((field) => {
-    const isEnabledField = ['instructedAmount', 'debtorName', 'debtorAccountNumber'].includes(field.fieldName);
+    const isEnabledField = [
+      'painPaymentMethodType',
+      'paymentMethod',
+      'instructedAmount',
+      'debtorName',
+      'debtorAccountNumber'
+    ].includes(field.fieldName);
+  
     return {
       ...field,
       disabled: !isEnabledField
@@ -152,6 +173,8 @@ import React, {
         ...baseModel,
         painPaymentMethodType: selectedType,
         paymentMethod: selectedType,
+        paymentMethodType: selectedType,
+        paymentType: selectedType,
         requestedExecutionDate: initialData?.requestedExecutionDate ? initialData.requestedExecutionDate : new Date().toISOString().split('T')[0],
         debtorAgentBIC: initialData?.debtorAgentBIC ? initialData.debtorAgentBIC : 'CITIUS33XXX',
         creditorAgentFinancialInstitutionBIC: initialData?.creditorAgentFinancialInstitutionBIC ? initialData.creditorAgentFinancialInstitutionBIC : 'CITIUS33XXX',
@@ -290,6 +313,8 @@ import React, {
         ...baseModel,
         painPaymentMethodType: selectedType,
         paymentMethod: selectedType,
+        paymentMethodType: selectedType,
+        paymentType: selectedType,
         requestedExecutionDate: initialData?.requestedExecutionDate ? initialData.requestedExecutionDate : new Date().toISOString().split('T')[0],
         instructedAmountCurrencyCode: initialData?.instructedAmountCurrencyCode ? initialData.instructedAmountCurrencyCode : 'USD',
         instructedAmount: typeof initialData?.instructedAmount === 'number' ? initialData.instructedAmount : 1234567,
@@ -386,7 +411,6 @@ import React, {
           onPaymentSuccess(confirmedTxnId, finalPayload);
         }
       } catch {
-        // Placeholder Fallback: Unblocks UI when backend API endpoint is not yet deployed
         const confirmedTxnId = txnId;
         setModalResponse({
           title: action === 'Approved' ? 'CHECKER APPROVAL SUCCESSFUL (MOCK)' : 'CHECKER REJECTION RECORDED (MOCK)',
@@ -424,6 +448,8 @@ import React, {
         ...baseModel,
         painPaymentMethodType: selectedType,
         paymentMethod: selectedType,
+        paymentMethodType: selectedType,
+        paymentType: selectedType,
         requestedExecutionDate: initialData?.requestedExecutionDate ? initialData.requestedExecutionDate : new Date().toISOString().split('T')[0],
         instructedAmountCurrencyCode: initialData?.instructedAmountCurrencyCode ? initialData.instructedAmountCurrencyCode : 'USD',
         instructedAmount: typeof initialData?.instructedAmount === 'number' ? initialData.instructedAmount : 12000,
@@ -508,7 +534,6 @@ import React, {
           onPaymentSuccess(confirmedRefId, finalPayload);
         }
       } catch {
-        // Placeholder Fallback: Unblocks UI when backend API endpoint is not yet deployed
         const confirmedRefId = txnId;
         setModalResponse({
           title: 'REPAIR RESUBMITTED (MOCK)',
@@ -577,7 +602,7 @@ import React, {
                 <span><strong>Flagged Error Fields:</strong> {checkerFailedFields.length}</span>
               </div>
               <div style={{ fontSize: '11px', color: '#627d98', marginTop: '4px' }}>
-                💡 <em>Review highlighted values (Amount, Debtor Name, Debtor Account). Other required fields are locked to verified defaults.</em>
+                💡 <em>Review highlighted values (Payment Type, Amount, Debtor Name, Debtor Account). Other required fields are locked to verified defaults.</em>
               </div>
             </div>
   
@@ -639,7 +664,7 @@ import React, {
                 ⚠️ Payment Rework Notice:
               </div>
               <div style={{ fontSize: '13px', color: '#92400e' }}>
-                Checker flagged discrepancies in this payment. Amend the editable fields (Amount, Debtor Name, Debtor Account) and resubmit.
+                Checker flagged discrepancies in this payment. Amend the editable fields (Payment Type, Amount, Debtor Name, Debtor Account) and resubmit.
               </div>
               <div style={{ fontSize: '11px', color: '#627d98', marginTop: '6px' }}>
                 🟡 Amber = Checker flagged for review &nbsp;|&nbsp; 🟢 Green = Newly modified by Repairer
