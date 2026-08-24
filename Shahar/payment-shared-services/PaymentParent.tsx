@@ -2,7 +2,8 @@ import React, {
   FC,
   useState,
   useMemo,
-  useCallback
+  useCallback,
+  useEffect
 } from 'react';
 import { PaymentChild } from './SSPaymentFlow';
 import {
@@ -15,6 +16,14 @@ import {
 import * as hardcapService from '../services/hardcapService';
 import { useAuth } from '@/context/AuthContext';
 import './payment-flow.css';
+
+export interface PaymentParentProps {
+  mode?: 'maker' | 'checker' | 'repair';
+  initialData?: Partial<Pain001Model> | null;
+  hideTabs?: boolean;
+  onPaymentSuccess?: (refId: string, payload: any) => void;
+  onClose?: () => void;
+}
 
 const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
   // 1. Core Payment Information
@@ -88,7 +97,13 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'invoiceReferenceNumber', label: 'Invoice / Reference Number', hidden: false, required: false }
 ];
 
-export const PaymentParent: FC = () => {
+export const PaymentParent: FC<PaymentParentProps> = ({
+  mode = 'maker',
+  initialData = null,
+  hideTabs = false,
+  onPaymentSuccess,
+  onClose
+}) => {
   let soeId = 'sj81534';
   try {
     const authContext = useAuth();
@@ -101,7 +116,13 @@ export const PaymentParent: FC = () => {
     soeId = 'sj81534';
   }
 
-  const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>('maker');
+  const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>(mode);
+
+  useEffect(() => {
+    if (mode) {
+      setActiveTab(mode);
+    }
+  }, [mode]);
 
   // Shared active transaction data transferred from Maker to Checker
   const [activeSubmittedTransaction, setActiveSubmittedTransaction] = useState<{
@@ -154,6 +175,7 @@ export const PaymentParent: FC = () => {
 
   const closeModal = () => {
     setModalResponse(null);
+    if (onClose) onClose();
   };
 
   // =========================================================================
@@ -167,11 +189,11 @@ export const PaymentParent: FC = () => {
   const makerPaymentInput: PaymentComponentInput = useMemo(() => ({
     applicationName: 'ADR',
     applicationModule: 'ADR',
-    currency: 'USD',
+    currency: initialData?.instructedAmountCurrencyCode || 'USD',
     paymentMode: 'maker',
     dualBlindKeyFlag: 'N',
-    paymentModel: null
-  }), []);
+    paymentModel: initialData ? { ...createEmptyPain001(), ...initialData } : null
+  }), [initialData]);
 
   const handleMakerAmountChange = useCallback(async ({ instructedAmountCurrencyCode, instructedAmount }: { instructedAmountCurrencyCode: string; instructedAmount: number }) => {
     if (!instructedAmount || instructedAmount <= 0) {
@@ -259,6 +281,10 @@ export const PaymentParent: FC = () => {
         maker: soeId,
         payload: makerPayload
       });
+
+      if (onPaymentSuccess) {
+        onPaymentSuccess(txnId, makerPayload);
+      }
 
       setModalResponse({
         title: 'MAKER RECORD SAVED',
@@ -498,32 +524,34 @@ export const PaymentParent: FC = () => {
   return (
     <div className="sample-container">
       {/* Top Tab Bar */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid #d9e2ec', paddingBottom: '12px' }}>
-        <button
-          type="button"
-          className={`lmn-btn ${activeTab === 'maker' ? 'lmn-btn-primary' : ''}`}
-          style={{ fontWeight: 600 }}
-          onClick={() => setActiveTab('maker')}
-        >
-          1. Maker Mode
-        </button>
-        <button
-          type="button"
-          className={`lmn-btn ${activeTab === 'checker' ? 'lmn-btn-primary' : ''}`}
-          style={{ fontWeight: 600 }}
-          onClick={() => setActiveTab('checker')}
-        >
-          2. Checker Mode
-        </button>
-        <button
-          type="button"
-          className={`lmn-btn ${activeTab === 'repair' ? 'lmn-btn-primary' : ''}`}
-          style={{ fontWeight: 600 }}
-          onClick={() => setActiveTab('repair')}
-        >
-          3. Repair Mode
-        </button>
-      </div>
+      {!hideTabs && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid #d9e2ec', paddingBottom: '12px' }}>
+          <button
+            type="button"
+            className={`lmn-btn ${activeTab === 'maker' ? 'lmn-btn-primary' : ''}`}
+            style={{ fontWeight: 600 }}
+            onClick={() => setActiveTab('maker')}
+          >
+            1. Maker Mode
+          </button>
+          <button
+            type="button"
+            className={`lmn-btn ${activeTab === 'checker' ? 'lmn-btn-primary' : ''}`}
+            style={{ fontWeight: 600 }}
+            onClick={() => setActiveTab('checker')}
+          >
+            2. Checker Mode
+          </button>
+          <button
+            type="button"
+            className={`lmn-btn ${activeTab === 'repair' ? 'lmn-btn-primary' : ''}`}
+            style={{ fontWeight: 600 }}
+            onClick={() => setActiveTab('repair')}
+          >
+            3. Repair Mode
+          </button>
+        </div>
+      )}
 
       {/* 1. MAKER MODE */}
       {activeTab === 'maker' && (
