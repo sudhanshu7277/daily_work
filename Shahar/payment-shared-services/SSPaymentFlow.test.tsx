@@ -183,7 +183,7 @@ describe('SSPaymentFlow Component', () => {
       }
     };
 
-    const { rerender } = render(
+    render(
       <SSPaymentFlow
         paymentInput={dualBlindInput}
         isCheckerMode={true}
@@ -191,6 +191,7 @@ describe('SSPaymentFlow Component', () => {
       />
     );
 
+    // Initial mount: Re-key does NOT match -> Output must be failed & invalid
     expect(onPaymentOutput).toHaveBeenLastCalledWith(
       expect.objectContaining({
         isValid: false,
@@ -199,26 +200,13 @@ describe('SSPaymentFlow Component', () => {
       })
     );
 
-    // Re-key correctly
+    // Simulate checker typing the correct matching value
     const acctInput = screen.getByLabelText(/Debtor Account Number/i);
     fireEvent.change(acctInput, {
       target: { name: 'debtorAccountNumber', value: 'EXPECTED-ACCT-999' }
     });
 
-    rerender(
-      <SSPaymentFlow
-        paymentInput={{
-          ...dualBlindInput,
-          paymentModel: {
-            ...dualBlindInput.paymentModel,
-            debtorAccountNumber: 'EXPECTED-ACCT-999'
-          }
-        }}
-        isCheckerMode={true}
-        onPaymentOutput={onPaymentOutput}
-      />
-    );
-
+    // After typing matching value: Output updates to passed & valid
     expect(onPaymentOutput).toHaveBeenLastCalledWith(
       expect.objectContaining({
         isValid: true,
