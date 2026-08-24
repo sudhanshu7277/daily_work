@@ -4,7 +4,7 @@ import React, {
   useMemo,
   useCallback
 } from 'react';
-import { PaymentChild } from './PaymentChild';
+import { PaymentChild } from './SSPaymentFlow';
 import {
   Pain001Model,
   PaymentComponentInput,
@@ -17,21 +17,31 @@ import { useAuth } from '@/context/AuthContext';
 import './payment-flow.css';
 
 const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
+  // 1. Core Payment Information
   { fieldName: 'painPaymentMethodType', label: 'Payment Type (CBT, BKT, DFT)', hidden: false, required: false, options: ['CBT', 'BKT', 'DFT'], placeholder: '-- Select --' },
   { fieldName: 'requestedExecutionDate', label: 'Value Date', hidden: false, required: true, type: 'date' },
   { fieldName: 'instructedAmountCurrencyCode', label: 'Currency', hidden: false, required: true },
   { fieldName: 'instructedAmount', label: 'Transaction Amount', hidden: false, required: true },
+
+  // 2. Debtor Details (Strict Mandatory)
   { fieldName: 'debtorName', label: 'Debtor Name', hidden: false, required: true },
   { fieldName: 'debtorAccountNumber', label: 'Debtor Account Number', hidden: false, required: true },
   { fieldName: 'debtorAgentBIC', label: 'Debtor Agent BIC', hidden: false, required: true },
+
+  // 3. Debtor Address Details (Optional)
+  { fieldName: 'debtorAddressLines1', label: 'Debtor Address Line 1', hidden: false, required: false },
+  { fieldName: 'debtorAddressLines2', label: 'Debtor Address Line 2', hidden: false, required: false },
   { fieldName: 'debtorStreetName', label: 'Debtor Street', hidden: false, required: false },
   { fieldName: 'debtorBuildingNumber', label: 'Debtor Building Number', hidden: false, required: false },
   { fieldName: 'debtorPostalCode', label: 'Debtor Postal Code', hidden: false, required: false },
   { fieldName: 'debtorTownName', label: 'Debtor Town / City Name', hidden: false, required: false },
   { fieldName: 'debtorCountrySubDivision', label: 'Debtor Country Sub-division', hidden: false, required: false },
+  { fieldName: 'debtorState', label: 'Debtor State', hidden: false, required: false },
   { fieldName: 'debtorCountryCode', label: 'Debtor Country', hidden: false, required: false },
   { fieldName: 'debtorSortCodeUK', label: 'Debtor Sort Code', hidden: false, required: false },
   { fieldName: 'debtorSortCodeUS', label: 'Debtor Sort Code (US)', hidden: false, required: false },
+
+  // 4. Intermediary Bank Details (Optional)
   { fieldName: 'firstIntermediaryBankBIC', label: '1st Intermediary Bank SWIFT Code', hidden: false, required: false },
   { fieldName: 'firstIntermediaryBankRoutingCode', label: '1st Intermediary Bank Routing Code', hidden: false, required: false },
   { fieldName: 'firstIntermediaryBankName', label: '1st Intermediary Bank Name', hidden: false, required: false },
@@ -42,24 +52,34 @@ const PARENT_FIELD_CONFIG: FormFieldConfig[] = [
   { fieldName: 'secondIntermediaryBankName', label: '2nd Intermediary Bank Name', hidden: false, required: false },
   { fieldName: 'secondIntermediaryBankCountryCode', label: '2nd Intermediary Bank Country Code', hidden: false, required: false },
   { fieldName: 'secondIntermediaryBankAccountNumber', label: '2nd Intermediary Account Number', hidden: false, required: false },
+
+  // 5. Creditor Details (Strict Mandatory)
   { fieldName: 'creditorName', label: 'Creditor Name', hidden: false, required: true },
   { fieldName: 'creditorAccount', label: 'Creditor Account Number', hidden: false, required: true },
   { fieldName: 'creditorAgentFinancialInstitutionBIC', label: 'Creditor Agent BIC', hidden: false, required: true },
-  { fieldName: 'creditorAgentFinancialInstitutionName', label: 'Creditor Agent Bank Name', hidden: false, required: true },
-  { fieldName: 'creditorAddressLines1', label: 'Creditor Address Line 1', hidden: false, required: true },
+  { fieldName: 'creditorAgentFinancialInstitutionName', label: 'Creditor Agent Bank Name', hidden: false, required: false },
+  { fieldName: 'creditorAgentAccount', label: 'Creditor Agent Account Number', hidden: false, required: false },
+
+  // 6. Creditor Address Details (Optional)
+  { fieldName: 'creditorAddressLines1', label: 'Creditor Address Line 1', hidden: false, required: false },
+  { fieldName: 'creditorAddressLines2', label: 'Creditor Address Line 2', hidden: false, required: false },
   { fieldName: 'creditorStreetName', label: 'Creditor Street', hidden: false, required: false },
   { fieldName: 'creditorBuildingNumber', label: 'Creditor Building Number', hidden: false, required: false },
   { fieldName: 'creditorPostalCode', label: 'Creditor Postal Code', hidden: false, required: false },
   { fieldName: 'creditorTownName', label: 'Creditor Town / City Name', hidden: false, required: false },
   { fieldName: 'creditorCountrySubDivision', label: 'Creditor Country Sub-division', hidden: false, required: false },
+  { fieldName: 'creditorState', label: 'Creditor State', hidden: false, required: false },
   { fieldName: 'creditorCountryCode', label: 'Creditor Country', hidden: false, required: false },
   { fieldName: 'creditorSortCodeUK', label: 'Creditor Sort Code', hidden: false, required: false },
   { fieldName: 'creditorSortCodeUS', label: 'Creditor Sort Code (US)', hidden: false, required: false },
+
+  // 7. Remittance & Charges
   { fieldName: 'ustrdPaymentDetails', label: 'Remittance Information', hidden: false, required: false },
   { fieldName: 'chargeBearer', label: 'Charge Information', hidden: false, required: true },
   { fieldName: 'chargesAmount', label: 'Charges Amount', hidden: false, required: false },
   { fieldName: 'chargesAgentBIC', label: 'Charges Agent BIC', hidden: false, required: false },
-  // Tax Details Config
+
+  // 8. Tax / Regulatory Details (Optional)
   { fieldName: 'taxIdNumber', label: 'Tax ID Number', hidden: false, required: false },
   { fieldName: 'taxIdType', label: 'Tax ID Type', hidden: false, required: false },
   { fieldName: 'purposeOfPayment', label: 'Purpose of Payment', hidden: false, required: false },
@@ -172,8 +192,10 @@ export const PaymentParent: FC = () => {
   }, []);
 
   const handleMakerOutput = useCallback((output: PaymentComponentOutput) => {
-    setMakerFormValid(output.isValid);
-    setMakerPayload(output.paymentData);
+    setMakerFormValid(Boolean(output?.isValid));
+    if (output?.paymentData) {
+      setMakerPayload(output.paymentData);
+    }
   }, []);
 
   const handleMakerSubmit = async (overrideDuplicate = false) => {
@@ -204,9 +226,6 @@ export const PaymentParent: FC = () => {
         data = {};
       }
 
-      // -------------------------------------------------------------
-      // 1. STRICT FAILURE HANDLING (HTTP 4xx / 5xx)
-      // -------------------------------------------------------------
       if (!res.ok) {
         if (res.status === 400 && data?.errorCode === 'DUPLICATE_PAYMENT') {
           if (window.confirm(`Warning: Similar payment exists with ID ${data.referenceId || 'N/A'}. Do you want to override and submit anyway?`)) {
@@ -231,9 +250,6 @@ export const PaymentParent: FC = () => {
         return;
       }
 
-      // -------------------------------------------------------------
-      // 2. STRICT SUCCESS HANDLING (HTTP 200 / 201 ONLY)
-      // -------------------------------------------------------------
       const txnId = data.transactionId || data.referenceId || data.id || 'TXN-CONFIRMED';
       const pmtId = data.paymentId || 'PMT-CONFIRMED';
 
@@ -294,9 +310,11 @@ export const PaymentParent: FC = () => {
   }), [activeSubmittedTransaction]);
 
   const handleCheckerOutput = useCallback((output: PaymentComponentOutput) => {
-    setCheckerFormValid(output.isValid);
-    setCheckerDualBlindPassed(output.isDualBlindKeyPassed);
-    setCheckerPayload(output.paymentData);
+    setCheckerFormValid(Boolean(output?.isValid));
+    setCheckerDualBlindPassed(Boolean(output?.isDualBlindKeyPassed));
+    if (output?.paymentData) {
+      setCheckerPayload(output.paymentData);
+    }
   }, []);
 
   const handleCheckerDecision = async (action: 'Approved' | 'Rejected') => {
@@ -415,8 +433,10 @@ export const PaymentParent: FC = () => {
   }), [sampleRepairData, repairReviewFieldList]);
 
   const handleRepairOutput = useCallback((output: PaymentComponentOutput) => {
-    setRepairFormValid(output.isValid);
-    setRepairPayload(output.paymentData);
+    setRepairFormValid(Boolean(output?.isValid));
+    if (output?.paymentData) {
+      setRepairPayload(output.paymentData);
+    }
   }, []);
 
   const handleRepairResubmit = async () => {
