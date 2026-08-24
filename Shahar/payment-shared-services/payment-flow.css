@@ -1,34 +1,26 @@
 /* ==========================================================================
-   SSPaymentFlow & PaymentChild Styles
+   Payment Flow UI Stylesheet - Final Production Build
    ========================================================================== */
 
-/* Form Wrapper & Global Box Sizing */
-.sspf-wrapper {
+/* Main Container & Base Layout */
+.payment-flow-container,
+.payment-child-container,
+.card-container {
   width: 100%;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #1e293b;
-}
-
-.sspf-card {
   background: #ffffff;
-  border-radius: 6px;
+}
+
+.payment-flow-container *,
+.payment-flow-container *::before,
+.payment-flow-container *::after {
   box-sizing: border-box;
-  width: 100%;
 }
 
-/* Master Form Title */
-.sspf-main-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 1.5px solid #e2e8f0;
-}
-
-/* Subsection Cards */
-.sspf-subcard {
+/* Accordion Section Cards */
+.section {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -37,176 +29,214 @@
   box-sizing: border-box;
 }
 
-.sspf-subcard-title {
-  font-size: 13px;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
   font-weight: 600;
   color: #334155;
+  cursor: pointer;
+  user-select: none;
   margin-bottom: 12px;
-  letter-spacing: -0.01em;
 }
 
-/* ==========================================================================
-   Grid System & Structural Layout
-   ========================================================================== */
-.sspf-grid {
-  display: grid;
-  gap: 12px;
-  width: 100%;
-  box-sizing: border-box;
-  align-items: flex-start;
-}
-
-.sspf-grid-1 {
-  grid-template-columns: 1fr;
-}
-
-.sspf-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.sspf-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-/* ==========================================================================
-   Input Group & Labels
-   ========================================================================== */
-.sspf-group {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.sspf-label {
-  font-size: 11.5px;
+.section-title {
+  font-size: 13px;
   font-weight: 600;
   color: #475569;
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.toggle-icon {
+  font-size: 11px;
+  color: #64748b;
   user-select: none;
 }
 
-.sspf-req {
-  color: #ef4444;
-  font-weight: 700;
-  font-size: 12px;
+/* Grid Layout Rows */
+.form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 16px;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
-/* ==========================================================================
-   Form Input Controls
-   ========================================================================== */
-.sspf-control {
+.form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.form-row-1,
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px 16px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Form Groups & Labels */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+}
+
+.form-group label,
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.required-star,
+.mandatory-indicator {
+  color: #dc2626;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+/* Form Inputs, Selects, and Textareas */
+.form-control,
+input[type="text"],
+input[type="date"],
+input[type="number"],
+select.form-control,
+textarea.form-control {
   width: 100%;
   height: 34px;
   padding: 6px 10px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: #0f172a;
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
-  box-sizing: border-box;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.sspf-control:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.18);
-  background-color: #ffffff;
+textarea.form-control {
+  height: auto;
+  min-height: 60px;
+  resize: vertical;
 }
 
-.sspf-control::placeholder {
-  color: #94a3b8;
-  font-size: 12px;
+.form-control:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #00509d;
+  box-shadow: 0 0 0 2px rgba(0, 80, 157, 0.15);
 }
 
-select.sspf-control {
-  appearance: auto;
-  cursor: pointer;
-}
-
-/* ==========================================================================
-   Workflow State Classes
-   ========================================================================== */
-
-/* Disabled / Readonly Field */
-.sspf-disabled {
+/* Readonly & Disabled State */
+.form-control:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+.disabled-field {
   background-color: #f1f5f9 !important;
   color: #64748b !important;
   border-color: #e2e8f0 !important;
   cursor: not-allowed;
-  user-select: none;
 }
 
-/* Checker Interactive Hover */
-.sspf-interactive {
-  cursor: pointer;
-}
-
-.sspf-interactive:hover {
-  border-color: #94a3b8;
-}
-
-/* Checker Flagged Discrepancy (Red) */
-.sspf-flagged-error {
-  border: 2px solid #ef4444 !important;
-  background-color: #fef2f2 !important;
-  color: #991b1b !important;
-  font-weight: 600;
-}
-
-.sspf-flagged-error:focus {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
-}
-
-/* Repair Review Field (Amber) */
-.sspf-review-amber {
-  border: 2px solid #f59e0b !important;
-  background-color: #fffbeb !important;
-  color: #92400e !important;
-}
-
-.sspf-review-amber:focus {
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
-}
-
-/* Repair Newly Modified Field (Green) */
-.sspf-modified-green {
-  border: 2px solid #10b981 !important;
-  background-color: #ecfdf5 !important;
-  color: #065f46 !important;
-}
-
-.sspf-modified-green:focus {
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
-}
-
-/* ==========================================================================
-   Helper Text & Hardcap Validation Messages
-   ========================================================================== */
-.sspf-helper-msg {
+/* Hardcap Notes */
+.hardcap-passed,
+.text-success {
   font-size: 11px;
-  font-weight: 600;
-  margin-top: 5px;
-  display: block;
+  color: #16a34a;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.hardcap-failed,
+.text-danger {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 4px;
+  font-weight: 500;
 }
 
 /* ==========================================================================
-   Responsive Breakpoints
+   Checker & Repair State Styles
    ========================================================================== */
+
+/* Checker Mode: Flagged Error (Double Clicked) */
+.flagged-error,
+.field-error,
+.flagged-error input,
+.flagged-error select,
+.flagged-error textarea {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 1.5px #dc2626 !important;
+}
+
+/* Repair Mode: Amber Review State */
+.review-amber,
+.review-amber input,
+.review-amber select,
+.review-amber textarea {
+  border-color: #f59e0b !important;
+  background-color: #fffbeb !important;
+  box-shadow: 0 0 0 1.5px #f59e0b !important;
+}
+
+/* Repair Mode: Green Modified State */
+.modified-green,
+.modified-green input,
+.modified-green select,
+.modified-green textarea {
+  border-color: #10b981 !important;
+  background-color: #ecfdf5 !important;
+  box-shadow: 0 0 0 1.5px #10b981 !important;
+}
+
+/* Action Links & Add Bank Button */
+.btn-add-intermediary,
+.btn-link {
+  background: none;
+  border: 1px dashed #cbd5e1;
+  background-color: #ffffff;
+  color: #00509d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-add-intermediary:hover,
+.btn-link:hover {
+  background-color: #f8fafc;
+  border-color: #00509d;
+}
+
+/* Responsive Grid Breakpoints */
 @media (max-width: 992px) {
-  .sspf-grid-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .form-row-3 {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 640px) {
-  .sspf-grid-2,
-  .sspf-grid-3 {
+@media (max-width: 600px) {
+  .form-row-3,
+  .form-row-2 {
     grid-template-columns: 1fr;
   }
 }
