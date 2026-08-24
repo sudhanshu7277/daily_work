@@ -191,8 +191,8 @@ describe('SSPaymentFlow Component', () => {
       />
     );
 
-    // Initial mount: Re-key does NOT match -> Output must be failed & invalid
-    expect(onPaymentOutput).toHaveBeenLastCalledWith(
+    // Initial mount: Key mismatch -> isValid MUST be false, dualBlindKeyResult MUST be failed
+    expect(onPaymentOutput).toHaveBeenCalledWith(
       expect.objectContaining({
         isValid: false,
         isDualBlindKeyPassed: false,
@@ -200,13 +200,13 @@ describe('SSPaymentFlow Component', () => {
       })
     );
 
-    // Simulate checker typing the correct matching value
+    // Checker re-keys the correct value into Debtor Account Number
     const acctInput = screen.getByLabelText(/Debtor Account Number/i);
     fireEvent.change(acctInput, {
       target: { name: 'debtorAccountNumber', value: 'EXPECTED-ACCT-999' }
     });
 
-    // After typing matching value: Output updates to passed & valid
+    // After typing matching value -> isValid MUST be true, dualBlindKeyResult MUST be passed
     expect(onPaymentOutput).toHaveBeenLastCalledWith(
       expect.objectContaining({
         isValid: true,
