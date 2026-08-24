@@ -86,7 +86,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return map;
   }, [fieldConfig]);
 
-  // Robust Form Values Initialization & Prop Hydration
+  // Form Values Initialization
   const [formValues, setFormValues] = useState<Pain001Model>(() => {
     const empty = createEmptyPain001() as Record<string, any>;
     const init = {
@@ -100,7 +100,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
       values[cfg.fieldName] = cfg.value ?? init[cfg.fieldName] ?? empty[cfg.fieldName] ?? '';
     });
 
-    // Ensure key base fields are populated
     if (!values.painPaymentMethodType) values.painPaymentMethodType = init.painPaymentMethodType || empty.painPaymentMethodType || 'CBT';
     if (!values.instructedAmountCurrencyCode) values.instructedAmountCurrencyCode = init.instructedAmountCurrencyCode || paymentInput?.currency || 'USD';
     if (!values.requestedExecutionDate) values.requestedExecutionDate = init.requestedExecutionDate || todayDateString;
@@ -127,7 +126,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return { ...empty, ...values } as Pain001Model;
   });
 
-  // Keep state synchronized if parent sends updated props asynchronously
+  // Keep state synchronized with async props
   useEffect(() => {
     const source = (paymentInput?.paymentModel || initialData) as Record<string, any>;
     if (source && Object.keys(source).length > 0) {
@@ -214,7 +213,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     [isRepair, onFormChange]
   );
 
-  // Dual Blind Cache Initialization (Checker)
+  // Initialize Dual Blind Cache (Checker)
   useEffect(() => {
     if (isDualBlindEnabled && paymentInput?.paymentModel) {
       dualBlindCache.current.clear();
@@ -265,7 +264,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     setIsDualBlindPassed(allMatched);
   }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]);
 
-  // Generic Form Rule Evaluation
   useEffect(() => {
     const rawForm = formValues as unknown as Record<string, unknown>;
     const fieldMap = genericValidator.evaluateAllFields(rawForm);
@@ -405,7 +403,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     isChecker
   ]);
 
-  // Debounced Amount Handler
   const instructedAmountChange = (rawInputVal?: string) => {
     if (amountDebouncer.current) clearTimeout(amountDebouncer.current);
     amountDebouncer.current = setTimeout(() => {
@@ -461,16 +458,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     }
   }, [hardcapResultReceived]);
 
-  // Mode-Aware Readonly Resolver with Empty-Required Safety Check
   const isFieldReadonly = useCallback(
     (fieldName: keyof Pain001Model): boolean => {
-      // 1. Explicit override from fieldConfig
       const cfg = configMap.get(fieldName as string);
       if (cfg && cfg.disabled !== undefined) {
         return Boolean(cfg.disabled);
       }
 
-      // 2. Safety Rule: Never lock an empty required field (allows users to enter missing data)
       const val = (formValues as any)[fieldName];
       const isFieldEmpty = val === undefined || val === null || String(val).trim() === '';
       const isRequired =
@@ -481,12 +475,10 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         return false;
       }
 
-      // 3. Maker Mode: Everything is fully enabled
       if (isMaker) {
         return false;
       }
 
-      // 4. Checker Mode: Re-key fields are open for entry; others are read-only for review
       if (isChecker) {
         if (fieldName === 'debtorCountryCode') return true;
         if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
@@ -495,13 +487,11 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         return true;
       }
 
-      // 5. Derived BIC country states
       if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
       if (fieldName === 'debtorCountryCode') return false;
       if (fieldName === 'creditorCountryCode' && isCreditorCountryReadonly) return true;
       if (fieldName === 'creditorCountryCode') return false;
 
-      // 6. Repair Mode: Only Checker-rejected review fields are unlocked for edits
       if (isRepair) {
         if (repairReviewFieldList && repairReviewFieldList.length > 0) {
           return !repairReviewFieldList.includes(fieldName as string);
@@ -525,7 +515,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     ]
   );
 
-  // Checker Double-Click Error Tagging
   const handleDoubleClickFailedField = (fieldName: string, e: MouseEvent) => {
     e.stopPropagation();
     if (!isChecker) return;
@@ -538,7 +527,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     });
   };
 
-  // Form Validity Evaluation
   const isFormValid = useMemo(() => {
     for (const [fName, rule] of validationResults.entries()) {
       if (rule.visible !== false && rule.required) {
@@ -564,7 +552,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return true;
   }, [validationResults, formValues, isChecker, isDualBlindEnabled, isDualBlindPassed, failedFields, hardcapError]);
 
-  // Output Emission to Parent
   useEffect(() => {
     const payload: PaymentComponentOutput = {
       paymentData: buildPain001FromForm(formValues),
@@ -583,7 +570,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     });
   }, [isFormValid, formValues, isDualBlindEnabled, isDualBlindPassed, onPaymentOutput, onFormValidityChange]);
 
-  // Field Renderer Engine
+  // Reusable Field Rendering Engine with Full Testing Library Accessibility & Label Overrides
   const renderField = (
     fieldName: keyof Pain001Model,
     defaultLabel: string,
@@ -639,6 +626,12 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
 
     const labelClass = ['field-label', isFailed && 'rejected'].filter(Boolean).join(' ');
 
+    // Prioritize pacsFormVerbiages -> configMap.label -> defaultLabel
+    const resolvedLabel =
+      pacsFormVerbiages[fieldName as string] ||
+      configMap.get(fieldName as string)?.label ||
+      defaultLabel;
+
     const handleTextChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       let val = e.target.value;
       if (opts.numericOnly) {
@@ -656,20 +649,22 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         className={containerClass}
         onDoubleClick={e => handleDoubleClickFailedField(fieldName as string, e)}
       >
-        <label className={labelClass}>
-          {pacsFormVerbiages[fieldName as string] || defaultLabel}
+        <label htmlFor={fieldName as string} className={labelClass}>
+          {resolvedLabel}
           {showMandatoryIndicator && <span className="mandatory-indicator">*</span>}
         </label>
 
         {opts.options ? (
           <select
+            id={fieldName as string}
+            name={fieldName as string}
             value={value}
             disabled={isReadonly}
             className={hasInputError ? 'input-error' : ''}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setField(fieldName, e.target.value)}
             onBlur={() => setTouched(t => ({ ...t, [fieldName]: true }))}
           >
-            <option value="">{opts.placeholder || `-- Select ${defaultLabel} --`}</option>
+            <option value="">{opts.placeholder || `-- Select ${resolvedLabel} --`}</option>
             {opts.options.map(opt => (
               <option key={opt} value={opt}>
                 {opt}
@@ -678,12 +673,14 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           </select>
         ) : opts.type === 'textarea' ? (
           <textarea
+            id={fieldName as string}
+            name={fieldName as string}
             value={value}
             rows={3}
             readOnly={isReadonly}
             className={hasInputError ? 'input-error' : ''}
             maxLength={opts.maxLength || rule?.maxLength}
-            placeholder={opts.placeholder || `Enter ${defaultLabel}`}
+            placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
             onChange={handleTextChange}
             onBlur={() => {
               setTouched(t => ({ ...t, [fieldName]: true }));
@@ -692,13 +689,15 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           />
         ) : (
           <input
+            id={fieldName as string}
+            name={fieldName as string}
             type={opts.type || 'text'}
             value={value}
             readOnly={isReadonly}
             min={opts.minDate}
             className={hasInputError ? 'input-error' : ''}
             maxLength={opts.maxLength || rule?.maxLength}
-            placeholder={opts.placeholder || `Enter ${defaultLabel}`}
+            placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
             onChange={handleTextChange}
             onBlur={() => {
               setTouched(t => ({ ...t, [fieldName]: true }));
@@ -713,7 +712,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
           </div>
         )}
         {isRequiredMissing && (
-          <div className="field-error">{opts.errorFallback || `${defaultLabel} is required`}</div>
+          <div className="field-error">{opts.errorFallback || `${resolvedLabel} is required`}</div>
         )}
         {isPatternInvalid && (
           <div className="field-error">{rule?.patternMessage || 'Invalid format'}</div>
@@ -770,13 +769,15 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
               </div>
 
               <div className="form-field">
-                <label className="field-label">
-                  {pacsFormVerbiages.TransactionAmount || 'Transaction Amount'}
+                <label htmlFor="instructedAmount" className="field-label">
+                  {pacsFormVerbiages.TransactionAmount || configMap.get('instructedAmount')?.label || 'Transaction Amount'}
                   {(!isChecker || (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes('instructedAmount'))) && (
                     <span className="mandatory-indicator">*</span>
                   )}
                 </label>
                 <input
+                  id="instructedAmount"
+                  name="instructedAmount"
                   type="number"
                   placeholder="Enter Transaction Amount"
                   value={formValues.instructedAmount === 0 ? '' : formValues.instructedAmount ?? ''}
@@ -1043,13 +1044,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         </div>
       </div>
 
-      {/* MEGA-SECTION 3: Additional Information */}
+      {/* MEGA-SECTION 3: Remittance & Charges (Additional Information) */}
       <div className="section-main">
         <div
           className="section-main-header"
           onClick={() => toggleSection('additionalInformation')}
         >
-          <span>{pacsFormVerbiages.AdditionalInformation || 'Additional Information'}</span>
+          <span>{pacsFormVerbiages.RemittanceAndCharges || pacsFormVerbiages.AdditionalInformation || 'Remittance & Charges'}</span>
           <span className="chev">
             {sectionCollapsed.additionalInformation ? '\u25B4' : '\u25BE'}
           </span>
