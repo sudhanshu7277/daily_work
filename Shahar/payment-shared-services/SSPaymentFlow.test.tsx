@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { SSPaymentFlow, SSPaymentFlowProps } from './SSPaymentFlow';
+import { SSPaymentFlow } from './SSPaymentFlow';
 import { PaymentComponentInput, FormFieldConfig, createEmptyPain001 } from '../types/models';
 
 describe('SSPaymentFlow Component', () => {
@@ -17,6 +17,7 @@ describe('SSPaymentFlow Component', () => {
     currency: 'USD',
     paymentModel: {
       ...createEmptyPain001(),
+      requestedExecutionDate: '2026-08-23',
       debtorName: 'Acme Corp',
       debtorAccountNumber: 'ACCT-987654',
       debtorAgentBIC: 'CHASUS33XXX',
@@ -62,15 +63,12 @@ describe('SSPaymentFlow Component', () => {
       />
     );
 
-    // Custom label applied
     expect(screen.getByText(/Custom Debtor Title/i)).toBeDefined();
 
-    // Disabled class & prop applied
     const debtorNameInput = screen.getByLabelText(/Custom Debtor Title/i) as HTMLInputElement;
     expect(debtorNameInput.disabled).toBe(true);
     expect(debtorNameInput.className).toContain('sspf-disabled');
 
-    // Hidden field not present
     expect(screen.queryByLabelText(/Tax ID Number/i)).toBeNull();
   });
 
@@ -138,16 +136,13 @@ describe('SSPaymentFlow Component', () => {
 
     const debtorNameInput = screen.getByLabelText(/Debtor Name/i);
 
-    // Initial state: interactive
     expect(debtorNameInput.className).toContain('sspf-interactive');
     expect(debtorNameInput.className).not.toContain('sspf-flagged-error');
 
-    // First double click: Flag field
     fireEvent.doubleClick(debtorNameInput.closest('.sspf-group')!);
     expect(debtorNameInput.className).toContain('sspf-flagged-error');
     expect(onFailedFieldListChange).toHaveBeenCalledWith(['debtorName']);
 
-    // Second double click: Unflag field
     fireEvent.doubleClick(debtorNameInput.closest('.sspf-group')!);
     expect(debtorNameInput.className).not.toContain('sspf-flagged-error');
     expect(onFailedFieldListChange).toHaveBeenCalledWith([]);
@@ -183,6 +178,7 @@ describe('SSPaymentFlow Component', () => {
       },
       paymentModel: {
         ...defaultPaymentInput.paymentModel,
+        requestedExecutionDate: '2026-08-23',
         debtorAccountNumber: 'WRONG-ACCT-111'
       }
     };
@@ -195,7 +191,6 @@ describe('SSPaymentFlow Component', () => {
       />
     );
 
-    // Fails match
     expect(onPaymentOutput).toHaveBeenLastCalledWith(
       expect.objectContaining({
         isValid: false,
