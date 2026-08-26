@@ -76,3 +76,74 @@
       white-space: nowrap;
     }
   }
+
+
+  // SAME ICON INVERTED
+
+
+  <button type="button" class="download-btn" (click)="onDownload()">
+  <svg 
+    class="download-icon" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <!-- Downward pointing arrow -->
+    <path 
+      d="M12 4V16M12 16L7 11M12 16L17 11" 
+      stroke="currentColor" 
+      stroke-width="2.2" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+    />
+    <!-- Bottom horizontal tray line -->
+    <path 
+      d="M5 20H19" 
+      stroke="currentColor" 
+      stroke-width="2.2" 
+      stroke-linecap="round" 
+    />
+  </svg>
+  <span class="download-btn-text">DOWNLOAD</span>
+</button>
+
+/// SCSS FOR INVERTED ICON
+
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    color: #1a1a1a;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: color 0.15s ease, opacity 0.15s ease;
+  
+    &:hover {
+      color: #0079c1; /* Theme blue hover */
+    }
+  
+    &:active {
+      opacity: 0.75;
+    }
+  
+    .download-icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+  
+    .download-btn-text {
+      line-height: 1;
+      white-space: nowrap;
+    }
+  }
