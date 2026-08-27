@@ -107,3 +107,37 @@ export interface FormFieldConfig {
   maxLength?: number;
   [key: string]: any;
 }
+
+
+
+// Using hide property on the column definition (Recommended)
+//Add the hide property to the Actions column definition. Check
+//  if the current mode is 'SUPER CHECKER' (or if it is not one of 
+// 'MAKER', 'CHECKER', 'REPAIR').
+
+
+{
+  headerName: 'Actions',
+  colId: 'actions',
+  minWidth: 110,
+  width: 110,
+  sortable: false,
+  filter: false,
+  pinned: 'right',
+  hide: mode === 'SUPER CHECKER' || !['MAKER', 'CHECKER', 'REPAIR'].includes(mode?.toUpperCase()),
+  cellRenderer: (p: ICellRendererParams<InstructionAccountResponse, any, AdditionalInfoGridContext>) => {
+    return (
+      <Button
+        color="primary"
+        size="sm"
+        onClick={() => {
+          if (p.data && p.context?.onEditRow) {
+            p.context.onEditRow(p.data);
+          }
+        }}
+      >
+        Edit
+      </Button>
+    );
+  }
+}
