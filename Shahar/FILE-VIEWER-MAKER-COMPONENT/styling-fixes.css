@@ -1,0 +1,761 @@
+// 1. SplitPaymentMakerModal.css
+
+/* ==========================================================================
+   SplitPaymentMakerModal - Exact Designer Theme & Responsive Boundaries
+   ========================================================================== */
+
+/* 1. Modal Overlay - Keeps Host Navigation Header Visible */
+.split-maker-modal-overlay {
+    position: fixed;
+    top: 56px; /* Retains visibility of the top Citi navigation header */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: calc(100vh - 56px);
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 12px 20px 20px 20px;
+    box-sizing: border-box;
+  }
+  
+  /* 2. Floating Window */
+  .split-maker-modal-window {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.28);
+    width: 96vw;
+    max-width: 1720px;
+    height: calc(100vh - 84px);
+    max-height: 940px;
+    min-height: 520px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  
+  /* 3. Modal Top Bar */
+  .split-maker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+  }
+  
+  .split-maker-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  
+  .split-maker-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  
+  .split-doc-dropdown {
+    height: 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #002d72;
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 0 8px;
+    outline: none;
+    cursor: pointer;
+  }
+  
+  .split-maker-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 3px;
+    color: #002d72;
+    background-color: #e0f2fe;
+  }
+  
+  .split-maker-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .split-maker-btn-close {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 22px;
+    font-weight: 400;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: color 0.15s, background-color 0.15s;
+  }
+  
+  .split-maker-btn-close:hover {
+    color: #0f172a;
+    background-color: #f1f5f9;
+  }
+  
+  /* 4. 50/50 Body Grid */
+  .split-maker-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    padding: 12px 16px;
+    flex: 1 1 auto;
+    overflow: hidden;
+    background: #f8fafc;
+    box-sizing: border-box;
+  }
+  
+  /* Left Panel: Document / Schedule Viewer */
+  .split-maker-panel.left-panel {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #d9e2ec;
+    border-radius: 4px;
+    overflow-y: auto;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+  
+  .split-maker-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 240px;
+    color: #64748b;
+    font-size: 13px;
+  }
+  
+  .split-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #002d72;
+    border-radius: 50%;
+    animation: split-spin 0.8s linear infinite;
+    margin-bottom: 8px;
+  }
+  
+  @keyframes split-spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .split-doc-iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 480px;
+    border: none;
+  }
+  
+  .split-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    overflow: auto;
+  }
+  
+  .split-doc-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+  }
+  
+  .split-text-container {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 12px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 11px;
+    overflow: auto;
+    white-space: pre-wrap;
+  }
+  
+  /* Excel Sheet Tab & Table Styling */
+  .excel-tabs-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #cbd5e1;
+    margin-bottom: 8px;
+    overflow-x: auto;
+  }
+  
+  .excel-tab-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+  }
+  
+  .excel-tab-btn.active {
+    background: #ffffff;
+    color: #002d72;
+    border-color: #002d72;
+    border-top: 2px solid #002d72;
+  }
+  
+  .excel-table-wrapper {
+    overflow: auto;
+    width: 100%;
+    flex: 1;
+  }
+  
+  .split-doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    color: #1e293b;
+  }
+  
+  .split-doc-table th {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .split-doc-table td {
+    border: 1px solid #e2e8f0;
+    padding: 5px 8px;
+    white-space: nowrap;
+  }
+  
+  .split-doc-table tr:hover td {
+    background-color: #f8fafc;
+  }
+  
+  /* Right Panel: Embedded PaymentParent Form */
+  .split-maker-panel.right-panel {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #d9e2ec;
+    border-radius: 4px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  
+  .split-form-scroll-pane {
+    overflow-y: auto;
+    height: 100%;
+    padding: 8px 12px 16px 12px;
+    box-sizing: border-box;
+  }
+  
+  /* Responsive Collapse for Displays < 1100px */
+  @media (max-width: 1100px) {
+    .split-maker-body {
+      grid-template-columns: minmax(0, 1fr);
+      overflow-y: auto;
+    }
+  
+    .split-maker-panel.left-panel {
+      min-height: 380px;
+      overflow-y: visible;
+    }
+  
+    .split-maker-panel.right-panel {
+      overflow-y: visible;
+    }
+  }
+
+
+
+  // 2. projects/payment-flow-ui-lib/src/styles/index.css
+
+
+  /* ==========================================================================
+   SSPaymentFlow Theme - Deep Navy Section Bars, Light Grey Inputs, Dynamic Grid
+   ========================================================================== */
+
+.sample-container,
+.ss-payment-flow {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1e293b;
+  background-color: transparent;
+  padding: 0 0 16px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ss-payment-flow *,
+.ss-payment-flow *::before,
+.ss-payment-flow *::after {
+  box-sizing: border-box;
+}
+
+.parent-section-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.parent-section-checker-info {
+  background-color: #f8fafc;
+  border: 1px solid #d9e2ec;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.parent-section-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.parent-section-meta strong {
+  color: #0f172a;
+}
+
+/* ==========================================================================
+   Mega-Section Containers (Navy Accordion Bars)
+   ========================================================================== */
+.section-main {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  width: 100%;
+  overflow: hidden;
+}
+
+.section-main.noBorders {
+  border: 1px solid #cbd5e1;
+}
+
+/* Solid Citi Navy Header */
+.section-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: #002d72 !important; /* Citi Navy */
+  color: #ffffff !important;
+  border-bottom: 1px solid #001a44;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: background-color 0.15s;
+}
+
+.section-main-header:hover {
+  background-color: #002257 !important;
+}
+
+.section-main-header .chev {
+  color: #ffffff !important;
+  font-size: 11px;
+}
+
+.section-main-body {
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.section-main-body.collapsed,
+.section-body.collapsed {
+  display: none;
+}
+
+/* Inner Sub-sections */
+.section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.section-header:hover {
+  background-color: #e2e8f0;
+}
+
+.section-body {
+  padding: 10px;
+}
+
+.chev {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   Multi-Column Grid Rows
+   ========================================================================== */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .form-row-2,
+  .form-row-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==========================================================================
+   Form Fields, Labels & Readonly Controls
+   ========================================================================== */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  min-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mandatory-indicator {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* Inputs, Selects, and Textareas */
+.form-field input[type="text"],
+.form-field input[type="number"],
+.form-field input[type="date"],
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  box-sizing: border-box;
+}
+
+.form-field textarea {
+  height: auto;
+  min-height: 52px;
+  resize: vertical;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: #002d72;
+  box-shadow: 0 0 0 1.5px rgba(0, 45, 114, 0.2);
+}
+
+/* Flat Light Grey Fill for Inactive / Readonly Inputs */
+.form-field input:disabled,
+.form-field input[readonly],
+.form-field select:disabled,
+.form-field textarea[readonly] {
+  background-color: #eef2f6 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  cursor: default;
+}
+
+/* ==========================================================================
+   Validation, Error & Mode Highlight States
+   ========================================================================== */
+.form-field.field-invalid input,
+.form-field.field-invalid select,
+.form-field.field-invalid textarea,
+.form-field input.input-error,
+.form-field select.input-error {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+}
+
+.field-error,
+.dual-blind-error {
+  font-size: 10px;
+  color: #dc2626;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.hint {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.success-message {
+  font-size: 10px;
+  color: #059669;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* Checker Mode Discrepancy (Double-Click Error Tagging) */
+.form-field.failed-field input,
+.form-field.failed-field select,
+.form-field.failed-field textarea {
+  border-color: #dc2626 !important;
+  background-color: #fee2e2 !important;
+}
+
+.field-label.rejected {
+  color: #b91c1c !important;
+  font-weight: 700;
+}
+
+/* Repair Mode Highlights */
+.form-field.repair-review-field input,
+.form-field.repair-review-field select,
+.form-field.repair-review-field textarea {
+  border-color: #f59e0b !important;
+  background-color: #fef3c7 !important;
+}
+
+.form-field.repair-newly-modify-field input,
+.form-field.repair-newly-modify-field select,
+.form-field.repair-newly-modify-field textarea {
+  border-color: #10b981 !important;
+  background-color: #ecfdf5 !important;
+}
+
+/* ==========================================================================
+   Action Bar & Buttons
+   ========================================================================== */
+.action-bar,
+.action-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  width: 100%;
+}
+
+.lmn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 3px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+  box-sizing: border-box;
+}
+
+.lmn-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.lmn-btn.lmn-btn-primary,
+.btn-approve {
+  background-color: #002d72 !important;
+  border-color: #002d72 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.lmn-btn.lmn-btn-primary:hover,
+.btn-approve:hover {
+  background-color: #001a44 !important;
+  border-color: #001a44 !important;
+}
+
+.btn-reject {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 3px;
+  border: 1px solid #dc2626 !important;
+  background-color: #ffffff !important;
+  color: #dc2626 !important;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-reject:hover {
+  background-color: #fee2e2 !important;
+}
+
+.lmn-btn.lmn-btn-unclickable,
+.lmn-btn.lmn-btn-grey,
+.lmn-btn:disabled,
+.btn-approve:disabled,
+.btn-reject:disabled {
+  background-color: #94a3b8 !important;
+  border-color: #94a3b8 !important;
+  color: #ffffff !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* Modals */
+.modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+}
+
+.modal-container {
+  width: 440px !important;
+  max-width: 90vw !important;
+  background: #ffffff !important;
+  border-radius: 6px !important;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 10px 16px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  background-color: #f8fafc !important;
+}
+
+.modal-header h3 {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.close-btn {
+  background: none !important;
+  border: none !important;
+  font-size: 20px !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+}
+
+.modal-body {
+  padding: 14px 16px !important;
+  background: #ffffff !important;
+}
+
+.details-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.detail-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  font-size: 12px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding-bottom: 4px !important;
+}
+
+.detail-row .label {
+  color: #64748b !important;
+}
+
+.detail-row .value {
+  color: #0f172a !important;
+  font-weight: 500 !important;
+}
+
+.modal-footer {
+  padding: 10px 16px !important;
+  border-top: 1px solid #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+}
