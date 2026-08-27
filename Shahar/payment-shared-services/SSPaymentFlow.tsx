@@ -86,14 +86,9 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return map;
   }, [fieldConfig]);
 
-  // Form Values Initialization
   const [formValues, setFormValues] = useState<Pain001Model>(() => {
     const empty = createEmptyPain001() as Record<string, any>;
-    const init = {
-      ...(initialData || {}),
-      ...(paymentInput?.paymentModel || {})
-    } as Record<string, any>;
-
+    const init = { ...(initialData || {}), ...(paymentInput?.paymentModel || {}) } as Record<string, any>;
     const values: Record<string, any> = {};
 
     fieldConfig.forEach(cfg => {
@@ -126,7 +121,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return { ...empty, ...values } as Pain001Model;
   });
 
-  // Keep state synchronized with async props
   useEffect(() => {
     const source = (paymentInput?.paymentModel || initialData) as Record<string, any>;
     if (source && Object.keys(source).length > 0) {
@@ -213,7 +207,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     [isRepair, onFormChange]
   );
 
-  // Initialize Dual Blind Cache (Checker)
   useEffect(() => {
     if (isDualBlindEnabled && paymentInput?.paymentModel) {
       dualBlindCache.current.clear();
@@ -272,7 +265,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     setValidationResults(finalMap);
   }, [formValues]);
 
-  // Debtor BIC Derivation
   useEffect(() => {
     if (debtorBicDebouncer.current) clearTimeout(debtorBicDebouncer.current);
     debtorBicDebouncer.current = setTimeout(() => {
@@ -287,7 +279,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(debtorBicDebouncer.current);
   }, [formValues.debtorAgentBIC, setField]);
 
-  // Creditor BIC Derivation
   useEffect(() => {
     if (creditorBicDebouncer.current) clearTimeout(creditorBicDebouncer.current);
     creditorBicDebouncer.current = setTimeout(() => {
@@ -302,7 +293,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(creditorBicDebouncer.current);
   }, [formValues.creditorAgentFinancialInstitutionBIC, setField]);
 
-  // Debtor Address Lookup
   useEffect(() => {
     if (isChecker) return;
     if (debtorAddrDebouncer.current) clearTimeout(debtorAddrDebouncer.current);
@@ -341,7 +331,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     return () => clearTimeout(debtorAddrDebouncer.current);
   }, [formValues.debtorAccountNumber, formValues.debtorAgentBIC, formValues.debtorCountryCode, isChecker]);
 
-  // Creditor Address Lookup
   useEffect(() => {
     if (isChecker) return;
     if (creditorAddrDebouncer.current) clearTimeout(creditorAddrDebouncer.current);
@@ -460,11 +449,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
 
   const isFieldReadonly = useCallback(
     (fieldName: keyof Pain001Model): boolean => {
+      // 1. Explicit dynamic configuration override
       const cfg = configMap.get(fieldName as string);
       if (cfg && cfg.disabled !== undefined) {
         return Boolean(cfg.disabled);
       }
 
+      // 2. Deadlock protection for empty required fields
       const val = (formValues as any)[fieldName];
       const isFieldEmpty = val === undefined || val === null || String(val).trim() === '';
       const isRequired =
@@ -475,10 +466,12 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         return false;
       }
 
+      // 3. Maker Mode
       if (isMaker) {
         return false;
       }
 
+      // 4. Checker Mode
       if (isChecker) {
         if (fieldName === 'debtorCountryCode') return true;
         if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
@@ -487,11 +480,13 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         return true;
       }
 
+      // 5. Derived BIC country states
       if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
       if (fieldName === 'debtorCountryCode') return false;
       if (fieldName === 'creditorCountryCode' && isCreditorCountryReadonly) return true;
       if (fieldName === 'creditorCountryCode') return false;
 
+      // 6. Repair Mode
       if (isRepair) {
         if (repairReviewFieldList && repairReviewFieldList.length > 0) {
           return !repairReviewFieldList.includes(fieldName as string);
@@ -570,7 +565,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
     });
   }, [isFormValid, formValues, isDualBlindEnabled, isDualBlindPassed, onPaymentOutput, onFormValidityChange]);
 
-  // Reusable Field Rendering Engine with Full Testing Library Accessibility & Label Overrides
   const renderField = (
     fieldName: keyof Pain001Model,
     defaultLabel: string,
@@ -626,7 +620,6 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
 
     const labelClass = ['field-label', isFailed && 'rejected'].filter(Boolean).join(' ');
 
-    // Prioritize pacsFormVerbiages -> configMap.label -> defaultLabel
     const resolvedLabel =
       pacsFormVerbiages[fieldName as string] ||
       configMap.get(fieldName as string)?.label ||
@@ -1044,7 +1037,7 @@ export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
         </div>
       </div>
 
-      {/* MEGA-SECTION 3: Remittance & Charges (Additional Information) */}
+      {/* MEGA-SECTION 3: Remittance & Charges */}
       <div className="section-main">
         <div
           className="section-main-header"
