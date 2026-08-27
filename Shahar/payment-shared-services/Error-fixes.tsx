@@ -89,3 +89,21 @@ const isFieldReadonly = useCallback(
     formValues
   ]
 );
+
+
+//// fixed
+
+
+export interface FormFieldConfig {
+  fieldName: string;
+  label: string;
+  value?: any;
+  required?: boolean;
+  disabled?: boolean;
+  hidden?: boolean;
+  type?: 'text' | 'number' | 'date' | 'textarea' | string;
+  options?: readonly string[] | string[];
+  placeholder?: string;
+  maxLength?: number;
+  [key: string]: any;
+}
