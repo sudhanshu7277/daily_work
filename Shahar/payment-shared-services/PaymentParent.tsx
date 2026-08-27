@@ -13,11 +13,10 @@ import {
   FormFieldConfig,
   createEmptyPain001,
   PaymentComponentInput,
-  PaymentComponentOutput
+  PaymentComponentOutput,
+  SSPaymentFlow
 } from '@citi-icg-179025/payment-flow-reactjs-ui-lib';
-import { SSPaymentFlow } from '@citi-icg-179025/payment-flow-reactjs-ui-lib';
 import { hardcapService } from '@/services/hardcapService';
-import SplitPaymentMakerModal, { ExtractedScheduleRow } from './SplitPaymentMakerModal';
 
 export interface PaymentParentProps {
   mode?: 'maker' | 'checker' | 'repair';
@@ -119,8 +118,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
   }
 
   const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair'>(mode);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number>(0);
 
   useEffect(() => {
     if (mode) {
@@ -128,21 +125,17 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   }, [mode]);
 
-  // Dynamic Unified Form State
   const [currentFormPayload, setCurrentFormPayload] = useState<Pain001Model | null>(null);
   const [isCurrentFormValid, setIsCurrentFormValid] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Checker Specific State
   const [checkerDualBlindPassed, setCheckerDualBlindPassed] = useState<boolean>(false);
   const [checkerFailedFields, setCheckerFailedFields] = useState<string[]>([]);
   const [checkerComments, setCheckerComments] = useState<string>('');
 
-  // Repair Specific State
   const [repairNewlyModifiedFields, setRepairNewlyModifiedFields] = useState<string[]>([]);
   const repairReviewFieldList = useMemo(() => ['debtorName', 'creditorName', 'instructedAmount'], []);
 
-  // Shared active transaction records
   const [activeSubmittedTransaction, setActiveSubmittedTransaction] = useState<{
     transactionId: string;
     paymentId: string;
@@ -196,7 +189,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     if (onClose) onClose();
   };
 
-  // Hardcap Verification on Amount Change
   const [makerHardcapResult, setMakerHardcapResult] = useState<any>(null);
   const handleAmountChange = useCallback(async ({ instructedAmount, instructedAmountCurrencyCode }: { instructedAmount: number; instructedAmountCurrencyCode: string }) => {
     if (!instructedAmount || instructedAmount <= 0) {
@@ -216,7 +208,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   }, []);
 
-  // Dynamic Payment Component Input Builder
   const dynamicPaymentInput: PaymentComponentInput = useMemo(() => {
     switch (activeTab) {
       case 'checker':
@@ -276,7 +267,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   }, [activeTab, initialData, activeSubmittedTransaction, repairReviewFieldList]);
 
-  // Unified Output Handler
   const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
     setIsCurrentFormValid(Boolean(output?.isValid));
     setCheckerDualBlindPassed(Boolean(output?.isDualBlindKeyPassed));
@@ -285,7 +275,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   }, []);
 
-  // 1. Maker Submit Handler
   const handleMakerSubmit = async (overrideDuplicate = false) => {
     if (!currentFormPayload || !isCurrentFormValid) return;
     setIsSubmitting(true);
@@ -364,7 +353,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   };
 
-  // 2. Checker Decision Handler
   const handleCheckerDecision = async (action: 'Approved' | 'Rejected') => {
     if (action === 'Rejected' && !checkerComments.trim()) {
       alert('Please enter comments stating the reason for rejection.');
@@ -426,7 +414,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   };
 
-  // 3. Repair Resubmit Handler
   const handleRepairResubmit = async () => {
     if (!currentFormPayload || !isCurrentFormValid) return;
     setIsSubmitting(true);
@@ -471,12 +458,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
     }
   };
 
-  const scheduleRows: ExtractedScheduleRow[] = [
-    { valueDate: '2026-08-20', debitAccountNumber: '10420600', amount: '255,477.09', accountName: 'WSP USA, Inc.', currency: 'USD' },
-    { valueDate: '2026-08-20', debitAccountNumber: '10420600', amount: '25,000.00', accountName: 'WSP USA, Inc.', currency: 'USD' },
-    { valueDate: '2026-08-20', debitAccountNumber: '10420600', amount: '350,000.00', accountName: 'WSP USA, Inc.', currency: 'USD' }
-  ];
-
   const isCheckerApproveDisabled = isSubmitting || !isCurrentFormValid || !checkerDualBlindPassed || checkerFailedFields.length > 0;
   const isCheckerRejectDisabled = isSubmitting;
 
@@ -512,22 +493,10 @@ export const PaymentParent: FC<PaymentParentProps> = ({
         </div>
       )}
 
-      {/* Dynamic Pane Header */}
+      {/* Mode Pane Headers */}
       {activeTab === 'maker' && (
         <div>
           <div className="parent-section-heading">Outbound ISO 20022 Payment (Maker Mode)</div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-            <button
-              type="button"
-              className="lmn-btn lmn-btn-primary"
-              onClick={() => {
-                setSelectedRowIndex(0);
-                setIsModalOpen(true);
-              }}
-            >
-              Open Split Payment Maker Modal
-            </button>
-          </div>
         </div>
       )}
 
@@ -571,7 +540,7 @@ export const PaymentParent: FC<PaymentParentProps> = ({
       <div className="payment-component-wrapper">
         <SSPaymentFlow
           paymentInput={dynamicPaymentInput}
-          fieldConfig={PARENT_FIELD_CONFIG}
+          fieldConfig={PARENT_FIELD_CONFIG as FormFieldConfig[]}
           initialData={activeTab === 'maker' ? (initialData || undefined) : undefined}
           isMakerMode={activeTab === 'maker'}
           isCheckerMode={activeTab === 'checker'}
@@ -656,21 +625,6 @@ export const PaymentParent: FC<PaymentParentProps> = ({
           </button>
         </div>
       )}
-
-      {/* Embedded SplitPaymentMakerModal */}
-      <SplitPaymentMakerModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        mode={activeTab}
-        scheduleRows={scheduleRows}
-        selectedRowIndex={selectedRowIndex}
-        initialPaymentData={initialData || undefined}
-        customFieldConfig={PARENT_FIELD_CONFIG}
-        onSubmitPayment={payload => {
-          setCurrentFormPayload(payload);
-          handleMakerSubmit(false);
-        }}
-      />
 
       {/* Global Notification Modal */}
       {modalResponse && (
