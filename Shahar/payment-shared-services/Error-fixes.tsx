@@ -1,65 +1,91 @@
-// Step 1: Fix tsconfig.json
-Open tsconfig.json and update the "include" array to target projects/payment-flow-ui-lib/**/* without the src/ path:
+// Step 1: Update FormFieldConfig Interface
+//Open projects/payment-//flow-ui-lib/src/models/models.ts (
+// and/or your shared types definition) and add disabled?: boolean;:
 
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "declaration": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "strict": true,
-    "resolveJsonModule": true
-  },
-  "include": [
-    "projects/payment-flow-ui-lib/**/*",
-    "vite.config.ts",
-    "vitest.setup.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+
+
+export interface FormFieldConfig {
+  fieldName: string;
+  label?: string;
+  value?: any;
+  required?: boolean;
+  disabled?: boolean; // <--- Add this property
+  hidden?: boolean;
+  type?: 'text' | 'number' | 'date' | 'textarea' | string;
+  options?: readonly string[] | string[];
+  placeholder?: string;
+  maxLength?: number;
+  [key: string]: any;
 }
 
-//Step 2: Component Definition in SSPaymentFlow.tsx
-In projects/payment-flow-ui-lib/components/ss-payment-flow/SSPaymentFlow.tsx (around line 35):
 
-export const SSPaymentFlow = ({
-  paymentInput,
-  fieldConfig = [],
-  initialData,
-  pacsFormVerbiages = {},
-  isMakerMode,
-  isCheckerMode,
-  isRepairMode,
-  repairReviewFieldList = [],
-  repairNewlyModifyFieldList = [],
-  hardcapResultReceived,
-  onPaymentOutput,
-  onFormChange,
-  onFormValidityChange,
-  onFailedFieldListChange,
-  onAmountChange
-}: SSPaymentFlowProps) => {
+// Step 2: Ensure Safe Type Casting in SSPaymentFlow.tsx
+//To prevent any transient build issues 
+// if types are being re-indexed or imported from 
+// a published package declaration, update the check i
+// n isFieldReadonly to safely read disabled:
 
-  // Step 3: Restart VS Code TS Server
-//In VS Code, press Ctrl + Shift + P (or Cmd + Shift + P).
 
-//Type TypeScript: Restart TS Server and press Enter.
 
-//TypeScript will now bind directly to projects/payment-flow-ui-lib/components/ 
-///and all JSX errors (<div>, <label>, <select>, <option>) will clear.
+const isFieldReadonly = useCallback(
+  (fieldName: keyof Pain001Model): boolean => {
+    // 1. Explicit dynamic configuration override (with type guard)
+    const cfg = configMap.get(fieldName as string) as (FormFieldConfig & { disabled?: boolean }) | undefined;
+    if (cfg && cfg.disabled !== undefined) {
+      return Boolean(cfg.disabled);
+    }
 
-//Step 4: Run the Build
+    // 2. Deadlock protection for empty required fields
+    const val = (formValues as any)[fieldName];
+    const isFieldEmpty = val === undefined || val === null || String(val).trim() === '';
+    const isRequired =
+      PAIN001_MANDATORY_FIELDS.includes(fieldName as string) ||
+      Boolean(configMap.get(fieldName as string)?.required);
 
-ROLLUP_NO_NATIVE=true npm run build
-  
-  
+    if (isFieldEmpty && isRequired && !isChecker) {
+      return false;
+    }
+
+    // 3. Maker Mode
+    if (isMaker) {
+      return false;
+    }
+
+    // 4. Checker Mode
+    if (isChecker) {
+      if (fieldName === 'debtorCountryCode') return true;
+      if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
+        return false;
+      }
+      return true;
+    }
+
+    // 5. Derived BIC country states
+    if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
+    if (fieldName === 'debtorCountryCode') return false;
+    if (fieldName === 'creditorCountryCode' && isCreditorCountryReadonly) return true;
+    if (fieldName === 'creditorCountryCode') return false;
+
+    // 6. Repair Mode
+    if (isRepair) {
+      if (repairReviewFieldList && repairReviewFieldList.length > 0) {
+        return !repairReviewFieldList.includes(fieldName as string);
+      }
+      return false;
+    }
+
+    return false;
+  },
+  [
+    isMaker,
+    isChecker,
+    isDualBlindEnabled,
+    paymentInput?.dualBlindKeyFields,
+    isDebtorCountryReadonly,
+    isCreditorCountryReadonly,
+    isRepair,
+    repairReviewFieldList,
+    configMap,
+    formValues
+  ]
+);
