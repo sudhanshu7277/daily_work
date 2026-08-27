@@ -1,143 +1,118 @@
-// Step 1: Update FormFieldConfig Interface
-//Open projects/payment-//flow-ui-lib/src/models/models.ts (
-// and/or your shared types definition) and add disabled?: boolean;:
+// 1. Define Allowed Status Set & Factory Function
+//In InstructionDetailPage.tsx, replace the static ADDITIONAL_INFO_COLUMNS 
+// array with a factory function that computes column definitions based on instruction?.status:
 
 
+const ALLOWED_ACTION_STATUSES = [
+  'PAYMENT_MAKER',
+  'PAYMENT_CHECKER',
+  'PAYMENT_REWORK'
+];
 
-export interface FormFieldConfig {
-  fieldName: string;
-  label?: string;
-  value?: any;
-  required?: boolean;
-  disabled?: boolean; // <--- Add this property
-  hidden?: boolean;
-  type?: 'text' | 'number' | 'date' | 'textarea' | string;
-  options?: readonly string[] | string[];
-  placeholder?: string;
-  maxLength?: number;
-  [key: string]: any;
-}
+export const getAdditionalInfoColumns = (
+  status?: string
+): ColDef<InstructionAccountResponse>[] => {
+  const isActionAllowed = status && ALLOWED_ACTION_STATUSES.includes(status.toUpperCase());
 
-
-// Step 2: Ensure Safe Type Casting in SSPaymentFlow.tsx
-//To prevent any transient build issues 
-// if types are being re-indexed or imported from 
-// a published package declaration, update the check i
-// n isFieldReadonly to safely read disabled:
-
-
-
-const isFieldReadonly = useCallback(
-  (fieldName: keyof Pain001Model): boolean => {
-    // 1. Explicit dynamic configuration override (with type guard)
-    const cfg = configMap.get(fieldName as string) as (FormFieldConfig & { disabled?: boolean }) | undefined;
-    if (cfg && cfg.disabled !== undefined) {
-      return Boolean(cfg.disabled);
-    }
-
-    // 2. Deadlock protection for empty required fields
-    const val = (formValues as any)[fieldName];
-    const isFieldEmpty = val === undefined || val === null || String(val).trim() === '';
-    const isRequired =
-      PAIN001_MANDATORY_FIELDS.includes(fieldName as string) ||
-      Boolean(configMap.get(fieldName as string)?.required);
-
-    if (isFieldEmpty && isRequired && !isChecker) {
-      return false;
-    }
-
-    // 3. Maker Mode
-    if (isMaker) {
-      return false;
-    }
-
-    // 4. Checker Mode
-    if (isChecker) {
-      if (fieldName === 'debtorCountryCode') return true;
-      if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName as string)) {
-        return false;
+  return [
+    // ... preceding columns (e.g. Value Date, Debit Account Number, CCY)
+    {
+      headerName: 'Amount',
+      colId: 'amount',
+      minWidth: 130,
+      sortable: true,
+      filter: true,
+      valueGetter: (p) => {
+        const amount = p.data?.amount;
+        if (typeof amount !== 'number' || !Number.isFinite(amount)) return '-';
+        return formatCurrency(amount, p.data?.currency);
       }
-      return true;
-    }
-
-    // 5. Derived BIC country states
-    if (fieldName === 'debtorCountryCode' && isDebtorCountryReadonly) return true;
-    if (fieldName === 'debtorCountryCode') return false;
-    if (fieldName === 'creditorCountryCode' && isCreditorCountryReadonly) return true;
-    if (fieldName === 'creditorCountryCode') return false;
-
-    // 6. Repair Mode
-    if (isRepair) {
-      if (repairReviewFieldList && repairReviewFieldList.length > 0) {
-        return !repairReviewFieldList.includes(fieldName as string);
+    },
+    {
+      headerName: 'Actions',
+      colId: 'actions',
+      minWidth: 110,
+      width: 110,
+      sortable: false,
+      filter: false,
+      pinned: 'right',
+      hide: !isActionAllowed, // Hidden for PAYMENT_SUPER_CHECKER, APPROVED, etc.
+      cellRenderer: (
+        p: ICellRendererParams<InstructionAccountResponse, any, AdditionalInfoGridContext>
+      ) => {
+        return (
+          <Button
+            color="primary"
+            size="sm"
+            onClick={() => {
+              if (p.data && p.context?.onEditRow) {
+                p.context.onEditRow(p.data);
+              }
+            }}
+          >
+            Edit
+          </Button>
+        );
       }
-      return false;
     }
-
-    return false;
-  },
-  [
-    isMaker,
-    isChecker,
-    isDualBlindEnabled,
-    paymentInput?.dualBlindKeyFields,
-    isDebtorCountryReadonly,
-    isCreditorCountryReadonly,
-    isRepair,
-    repairReviewFieldList,
-    configMap,
-    formValues
-  ]
-);
+  ];
+};
 
 
-//// fixed
+// 2. Integration inside InstructionDetailPage.tsx Component Body
+//Inside InstructionDetailPage:
 
 
-export interface FormFieldConfig {
-  fieldName: string;
-  label: string;
-  value?: any;
-  required?: boolean;
-  disabled?: boolean;
-  hidden?: boolean;
-  type?: 'text' | 'number' | 'date' | 'textarea' | string;
-  options?: readonly string[] | string[];
-  placeholder?: string;
-  maxLength?: number;
-  [key: string]: any;
-}
+export const InstructionDetailPage: FC = () => {
+  // ... existing state & fetch logic (e.g. instruction details)
+  const [instruction, setInstruction] = useState<InstructionDetailResponse | null>(null);
 
+  // Dynamically memoize columns whenever instruction status updates
+  const additionalInfoColumns = useMemo(() => {
+    return getAdditionalInfoColumns(instruction?.status);
+  }, [instruction?.status]);
 
+  // Context passed to AG Grid cell renderer
+  const gridContext: AdditionalInfoGridContext = useMemo(() => ({
+    onEditRow: (rowData) => {
+      // Map mode from status
+      const currentMode = instruction?.status === 'PAYMENT_CHECKER'
+        ? 'checker'
+        : instruction?.status === 'PAYMENT_REWORK'
+        ? 'repair'
+        : 'maker';
 
-// Using hide property on the column definition (Recommended)
-//Add the hide property to the Actions column definition. Check
-//  if the current mode is 'SUPER CHECKER' (or if it is not one of 
-// 'MAKER', 'CHECKER', 'REPAIR').
+      setSelectedRowData(rowData);
+      setModalMode(currentMode);
+      setIsSplitModalOpen(true);
+    }
+  }), [instruction?.status]);
 
+  return (
+    <div className="instruction-detail-page">
+      {/* ... Instruction Summary Panels ... */}
 
-{
-  headerName: 'Actions',
-  colId: 'actions',
-  minWidth: 110,
-  width: 110,
-  sortable: false,
-  filter: false,
-  pinned: 'right',
-  hide: mode === 'SUPER CHECKER' || !['MAKER', 'CHECKER', 'REPAIR'].includes(mode?.toUpperCase()),
-  cellRenderer: (p: ICellRendererParams<InstructionAccountResponse, any, AdditionalInfoGridContext>) => {
-    return (
-      <Button
-        color="primary"
-        size="sm"
-        onClick={() => {
-          if (p.data && p.context?.onEditRow) {
-            p.context.onEditRow(p.data);
-          }
-        }}
-      >
-        Edit
-      </Button>
-    );
-  }
-}
+      <div className="ag-theme-alpine" style={{ width: '100%', height: 320 }}>
+        <AgGridReact
+          rowData={instruction?.accountResponses || []}
+          columnDefs={additionalInfoColumns}
+          context={gridContext}
+          // ... other grid options
+        />
+      </div>
+
+      {/* Split Payment Modal */}
+      <SplitPaymentMakerModal
+        isOpen={isSplitModalOpen}
+        onClose={() => setIsSplitModalOpen(false)}
+        mode={modalMode}
+        document={selectedDoc}
+        previewUrl={previewStreamUrl}
+        initialData={selectedRowData}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
+    </div>
+  );
+};
+
+export default InstructionDetailPage;
