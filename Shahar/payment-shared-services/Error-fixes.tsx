@@ -1,128 +1,120 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SSPaymentFlow, SSPaymentFlowProps } from './SSPaymentFlow';
-import { FormFieldConfig, PaymentComponentInput } from '../../models/models';
+// import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { SSPaymentFlow } from './SSPaymentFlow';
+import { PaymentComponentInput, createEmptyPain001, FormFieldConfig } from '../models';
 
 describe('SSPaymentFlow Component', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    cleanup();
+    vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
-  });
+  const defaultPaymentInput: PaymentComponentInput = {
+    applicationName: 'ADR',
+    applicationModule: 'ADR',
+    paymentMode: 'maker',
+    currency: 'USD',
+    paymentModel: {
+      ...createEmptyPain001(),
+      requestedExecutionDate: '2026-08-23',
+      debtorName: 'Acme Corp',
+      debtorAccountNumber: 'ACCT-987654',
+      debtorAgentBIC: 'CHASUS33XXX',
+      instructedAmount: 5000,
+      instructedAmountCurrencyCode: 'USD',
+      creditorName: 'Globex Corp',
+      creditorAccount: 'ACCT-123456',
+      creditorAgentFinancialInstitutionBIC: 'BOFAUS3NXXX',
+      creditorAgentFinancialInstitutionName: 'Bank of America',
+      creditorAddressLines1: '100 Main Street',
+      chargeBearer: 'SHAR'
+    }
+  };
 
   it('renders all primary form sections and populates default data', () => {
-    render(<SSPaymentFlow isMakerMode={true} />);
+    render(<SSPaymentFlow paymentInput={defaultPaymentInput} isMakerMode={true} />);
 
-    expect(screen.getByText(/Payment Details/i)).toBeInTheDocument();
-    expect(screen.getByText(/Payment Information/i)).toBeInTheDocument();
-    expect(screen.getByText(/Debtor Information/i)).toBeInTheDocument();
-    expect(screen.getByText(/Beneficiary Details/i)).toBeInTheDocument();
-    expect(screen.getByText(/Creditor Information/i)).toBeInTheDocument();
+    expect(screen.getByText('Payment Details')).toBeDefined();
+    expect(screen.getByText('Payment Information')).toBeDefined();
+    expect(screen.getByText('Debtor Information')).toBeDefined();
+    expect(screen.getByText('Debtor Address Details')).toBeDefined();
+    expect(screen.getByText('Creditor Information')).toBeDefined();
+    expect(screen.getByText('Remittance & Charges')).toBeDefined();
+
+    const debtorNameInput = screen.getByLabelText(/Debtor Name/i) as HTMLInputElement;
+    expect(debtorNameInput.value).toBe('Acme Corp');
+
+    const amountInput = screen.getByLabelText(/Transaction Amount/i) as HTMLInputElement;
+    expect(amountInput.value).toBe('5000');
   });
 
   it('handles field config: disables, hides, and overrides labels correctly', () => {
-    const customConfig: FormFieldConfig[] = [
-      {
-        fieldName: 'debtorName',
-        label: 'Custom Debtor Title',
-        disabled: true,
-        required: true
-      },
-      {
-        fieldName: 'debtorAddressLines1',
-        label: 'Debtor Address 1',
-        hidden: true
-      }
+    const fieldConfig: FormFieldConfig[] = [
+      { fieldName: 'debtorName', label: 'Custom Debtor Title', disabled: true },
+      { fieldName: 'taxIdNumber', label: 'Tax ID Number', hidden: true }
     ];
 
     render(
       <SSPaymentFlow
-        fieldConfig={customConfig}
+        paymentInput={defaultPaymentInput}
+        fieldConfig={fieldConfig}
         isMakerMode={true}
       />
     );
 
-    // Label override check
-    const debtorNameInput = screen.getByLabelText(/Custom Debtor Title/i);
-    expect(debtorNameInput).toBeInTheDocument();
+    expect(screen.getByText(/Custom Debtor Title/i)).toBeDefined();
 
-    // Disabled / readonly check
-    const isFieldLocked = (debtorNameInput as HTMLInputElement).disabled || (debtorNameInput as HTMLInputElement).readOnly;
-    expect(isFieldLocked).toBe(true);
+    const debtorNameInput = screen.getByLabelText(/Custom Debtor Title/i) as HTMLInputElement;
+    expect(debtorNameInput.disabled).toBe(true);
+    expect(debtorNameInput.className).toContain('sspf-disabled');
 
-    // Hidden field check
-    expect(screen.queryByLabelText(/Debtor Address 1/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Tax ID Number/i)).toBeNull();
   });
 
-  it('triggers onAmountChange and onFormChange when transaction amount is modified', async () => {
+  it('triggers onAmountChange and onFormChange when transaction amount is modified', () => {
     const onAmountChange = vi.fn();
     const onFormChange = vi.fn();
 
     render(
       <SSPaymentFlow
-        isMakerMode={true}
+        paymentInput={defaultPaymentInput}
         onAmountChange={onAmountChange}
         onFormChange={onFormChange}
+        isMakerMode={true}
       />
     );
 
     const amountInput = screen.getByLabelText(/Transaction Amount/i);
-
     fireEvent.change(amountInput, { target: { name: 'instructedAmount', value: '15000' } });
 
-    // Advance past 400ms debouncer
-    vi.advanceTimersByTime(450);
-
-    await waitFor(() => {
-      expect(onAmountChange).toHaveBeenCalledWith({
-        instructedAmountCurrencyCode: 'USD',
-        instructedAmount: 15000
-      });
+    expect(onAmountChange).toHaveBeenCalledWith({
+      instructedAmountCurrencyCode: 'USD',
+      instructedAmount: 15000
     });
-
     expect(onFormChange).toHaveBeenCalled();
   });
 
-  it('emits onPaymentOutput and onFormValidityChange with valid state when required fields are satisfied', async () => {
+  it('emits onPaymentOutput and onFormValidityChange with valid state when required fields are satisfied', () => {
     const onPaymentOutput = vi.fn();
     const onFormValidityChange = vi.fn();
 
-    const validInitialData = {
-      painPaymentMethodType: 'CBT',
-      requestedExecutionDate: '2026-08-25',
-      instructedAmountCurrencyCode: 'USD',
-      instructedAmount: 25000,
-      debtorName: 'Acme Corp',
-      debtorAccountNumber: '1234567890',
-      debtorAgentBIC: 'CITIUS33XXX',
-      creditorName: 'Global Supplier Inc',
-      creditorAccount: '987654321',
-      creditorAgentFinancialInstitutionBIC: 'CHASUS33XXX',
-      chargeBearer: 'DEBT'
-    };
-
     render(
       <SSPaymentFlow
-        isMakerMode={true}
-        initialData={validInitialData}
+        paymentInput={defaultPaymentInput}
         onPaymentOutput={onPaymentOutput}
         onFormValidityChange={onFormValidityChange}
+        isMakerMode={true}
       />
     );
 
-    // Allow microtasks and state effects to evaluate
-    await waitFor(() => {
-      expect(onPaymentOutput).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isValid: true,
-          outputMessage: 'Valid'
-        })
-      );
-    });
+    expect(onPaymentOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isValid: true,
+        outputMessage: 'Payment instruction validated successfully.',
+        isDualBlindKeyPassed: true
+      })
+    );
 
     expect(onFormValidityChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -131,69 +123,45 @@ describe('SSPaymentFlow Component', () => {
     );
   });
 
-  it('toggles red flagged error class and emits onFailedFieldListChange on double-click in Checker mode', async () => {
+  it('toggles red flagged error class and emits onFailedFieldListChange on double-click in Checker mode', () => {
     const onFailedFieldListChange = vi.fn();
-
-    const paymentInput: PaymentComponentInput = {
-      applicationName: 'ADR',
-      applicationModule: 'ADR',
-      paymentMode: 'checker',
-      dualBlindKeyFlag: 'N',
-      paymentModel: {
-        debtorName: 'Test Debtor Corp',
-        creditorName: 'Test Creditor Corp'
-      }
-    };
 
     render(
       <SSPaymentFlow
-        paymentInput={paymentInput}
+        paymentInput={{ ...defaultPaymentInput, paymentMode: 'checker' }}
         isCheckerMode={true}
         onFailedFieldListChange={onFailedFieldListChange}
       />
     );
 
     const debtorNameInput = screen.getByLabelText(/Debtor Name/i);
-    const fieldContainer = debtorNameInput.closest('.form-field');
 
-    expect(fieldContainer).toBeInTheDocument();
+    expect(debtorNameInput.className).toContain('sspf-interactive');
+    expect(debtorNameInput.className).not.toContain('sspf-flagged-error');
 
-    // Trigger double click to reject
-    fireEvent.doubleClick(fieldContainer!);
+    fireEvent.doubleClick(debtorNameInput.closest('.sspf-group')!);
+    expect(debtorNameInput.className).toContain('sspf-flagged-error');
+    expect(onFailedFieldListChange).toHaveBeenCalledWith(['debtorName']);
 
-    await waitFor(() => {
-      expect(fieldContainer).toHaveClass('failed-field');
-      expect(onFailedFieldListChange).toHaveBeenCalledWith(
-        expect.arrayContaining(['debtorName'])
-      );
-    });
-
-    // Double click again to unflag
-    fireEvent.doubleClick(fieldContainer!);
-
-    await waitFor(() => {
-      expect(fieldContainer).not.toHaveClass('failed-field');
-    });
+    fireEvent.doubleClick(debtorNameInput.closest('.sspf-group')!);
+    expect(debtorNameInput.className).not.toContain('sspf-flagged-error');
+    expect(onFailedFieldListChange).toHaveBeenCalledWith([]);
   });
 
   it('applies amber review and green modified classes correctly in Repair mode', () => {
-    const repairReviewFieldList = ['debtorName', 'instructedAmount'];
-    const repairNewlyModifyFieldList = ['creditorName'];
-
     render(
       <SSPaymentFlow
+        paymentInput={{ ...defaultPaymentInput, paymentMode: 'repair' }}
         isRepairMode={true}
-        repairReviewFieldList={repairReviewFieldList}
-        repairNewlyModifyFieldList={repairNewlyModifyFieldList}
+        repairReviewFieldList={['debtorName']}
+        repairNewlyModifyFieldList={['instructedAmount']}
       />
     );
 
     const debtorNameInput = screen.getByLabelText(/Debtor Name/i);
-    const debtorFieldContainer = debtorNameInput.closest('.form-field');
-    expect(debtorFieldContainer).toHaveClass('repair-review-field');
+    expect(debtorNameInput.className).toContain('sspf-review-amber');
 
-    const creditorNameInput = screen.getByLabelText(/Creditor Name/i);
-    const creditorFieldContainer = creditorNameInput.closest('.form-field');
-    expect(creditorFieldContainer).toHaveClass('repair-newly-modify-field');
+    const amountInput = screen.getByLabelText(/Transaction Amount/i);
+    expect(amountInput.className).toContain('sspf-modified-green');
   });
 });
