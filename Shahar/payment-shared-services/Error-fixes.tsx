@@ -1,40 +1,48 @@
-/* 1. Modal Overlay pinned directly under top nav */
+/* ==========================================================================
+   SplitPaymentMakerModal - Pinned Directly Below Top Nav (No Overlap)
+   ========================================================================== */
+
+/* 1. Backdrop: Anchored below the full height of the Citi navbar */
 .split-maker-modal-overlay {
   position: fixed !important;
-  top: 56px !important;
+  top: 66px !important; /* Clears the blue navbar completely with a clean gap */
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   width: 100vw !important;
-  height: calc(100vh - 56px) !important;
-  background: transparent !important;
+  height: calc(100vh - 66px) !important;
+  background: transparent !important; /* No dark shadow or grey overlay */
   backdrop-filter: none !important;
   display: flex !important;
   align-items: flex-start !important;
   justify-content: center !important;
   z-index: 9000 !important;
-  padding: 8px 16px 16px 16px !important;
+  padding: 0 16px 16px 16px !important;
   box-sizing: border-box !important;
+  pointer-events: auto !important;
 }
 
-/* 2. Modal Window */
+/* 2. Modal Window: Anchors at top: 0 relative to the overlay */
 .split-maker-modal-window {
   display: flex !important;
   flex-direction: column !important;
   background: #ffffff !important;
   border-radius: 4px !important;
   border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22) !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18) !important;
   width: 98vw !important;
   max-width: 1820px !important;
-  height: calc(100vh - 72px) !important;
-  max-height: calc(100vh - 72px) !important;
+  height: calc(100vh - 84px) !important; /* Clean bottom margin matching the top gap */
+  max-height: calc(100vh - 84px) !important;
   min-height: 480px !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  margin: 0 !important;
+  top: 0 !important;
+  position: relative !important;
 }
 
-/* 3. Header */
+/* 3. Header Bar */
 .split-maker-header {
   display: flex !important;
   align-items: center !important;
@@ -70,10 +78,10 @@
   background-color: #f1f5f9 !important;
 }
 
-/* 4. Asymmetric Grid: 54% Left (Document) : 46% Right (Form) */
+/* 4. Asymmetric 54% : 46% Body Grid (Toolbar Never Clipped) */
 .split-maker-body {
   display: grid !important;
-  grid-template-columns: minmax(560px, 1.15fr) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(580px, 1.18fr) minmax(0, 1fr) !important;
   gap: 12px !important;
   padding: 8px 12px !important;
   flex: 1 1 0 !important;
@@ -84,18 +92,18 @@
   box-sizing: border-box !important;
 }
 
-/* Left Panel: Zero-padding for edge-to-edge PDF frame */
+/* Left Panel: Edge-to-edge frame for native viewer toolbar */
 .split-maker-panel.left-panel {
   display: flex !important;
   flex-direction: column !important;
-  background: #525659 !important; /* Matches native PDF viewer background */
+  background: #525659 !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 4px !important;
   height: 100% !important;
   min-height: 0 !important;
   min-width: 0 !important;
   overflow: hidden !important;
-  padding: 0 !important; /* Zero padding prevents squishing toolbar */
+  padding: 0 !important;
   box-sizing: border-box !important;
 }
 
@@ -107,7 +115,7 @@
   box-sizing: border-box !important;
 }
 
-/* Right Panel: Form Pane with Independent Scroll */
+/* Right Panel: Form Pane with Dedicated Independent Scroll */
 .split-maker-panel.right-panel {
   display: flex !important;
   flex-direction: column !important;
@@ -129,20 +137,3 @@
   padding: 8px 14px 20px 14px !important;
   box-sizing: border-box !important;
 }
-
-
-
-
-
-// Minor Update in SplitPaymentMakerModal.tsx
-//In SplitPaymentMakerModal.tsx, update the iframe src query parameters to prevent 
-// 
-// the browser's PDF engine from cutting off controls:
-
-
-<iframe
-  src={`${previewUrl}#toolbar=1&navpanes=0&view=Fit`}
-  className="split-doc-iframe"
-  title="Document Preview"
-/>
-
