@@ -1,18 +1,26 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { SSPaymentFlow } from './SSPaymentFlow';
 import { PaymentComponentInput, createEmptyPain001, FormFieldConfig } from '../models';
+
+// Mock addressService to prevent Node unhandled fetch URL errors
+vi.mock('../services', async () => {
+  const actual = await vi.importActual<any>('../services');
+  return {
+    ...actual,
+    addressService: {
+      lookupDebtorAddress: vi.fn().mockResolvedValue(null),
+      lookupDebtorAddresss: vi.fn().mockResolvedValue(null),
+      lookupCreditorAddress: vi.fn().mockResolvedValue(null),
+      lookupCreditorAddresss: vi.fn().mockResolvedValue(null)
+    }
+  };
+});
 
 describe('SSPaymentFlow Component', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-  });
-
-  afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
   });
 
   const defaultPaymentInput: PaymentComponentInput = {
@@ -40,7 +48,6 @@ describe('SSPaymentFlow Component', () => {
   it('renders all primary form sections and populates default data', () => {
     render(<SSPaymentFlow paymentInput={defaultPaymentInput} isMakerMode={true} />);
 
-    // Section Headers
     expect(screen.getByText('Payment Details')).toBeDefined();
     expect(screen.getByText('Payment Information')).toBeDefined();
     expect(screen.getByText('Debtor Information')).toBeDefined();
@@ -48,7 +55,6 @@ describe('SSPaymentFlow Component', () => {
     expect(screen.getByText('Creditor Information')).toBeDefined();
     expect(screen.getByText(/Remittance & Charges/i)).toBeDefined();
 
-    // Default populated inputs
     const debtorNameInput = screen.getByLabelText(/Debtor Name/i) as HTMLInputElement;
     expect(debtorNameInput.value).toBe('Acme Corp');
 
@@ -70,14 +76,11 @@ describe('SSPaymentFlow Component', () => {
       />
     );
 
-    // Overridden label presence
     expect(screen.getByText(/Custom Debtor Title/i)).toBeDefined();
 
-    // Disabled state
     const debtorNameInput = screen.getByLabelText(/Custom Debtor Title/i) as HTMLInputElement;
     expect(debtorNameInput.disabled).toBe(true);
 
-    // Hidden field state
     expect(screen.queryByLabelText(/Tax ID Number/i)).toBeNull();
   });
 
@@ -97,18 +100,23 @@ describe('SSPaymentFlow Component', () => {
     const amountInput = screen.getByLabelText(/Transaction Amount/i);
     fireEvent.change(amountInput, { target: { name: 'instructedAmount', value: '15000' } });
 
-    // Advance 400ms amount debouncer
-    vi.advanceTimersByTime(400);
+    // Polls through the 400ms debouncer and queueMicrotask without timing out
+    await waitFor(
+      () => {
+        expect(onAmountChange).toHaveBeenCalledWith({
+          instructedAmountCurrencyCode: 'USD',
+          instructedAmount: 15000
+        });
+      },
+      { timeout: 2000 }
+    );
 
-    expect(onAmountChange).toHaveBeenCalledWith({
-      instructedAmountCurrencyCode: 'USD',
-      instructedAmount: 15000
-    });
-
-    // onFormChange is executed inside queueMicrotask
-    await waitFor(() => {
-      expect(onFormChange).toHaveBeenCalled();
-    });
+    await waitFor(
+      () => {
+        expect(onFormChange).toHaveBeenCalled();
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('emits onPaymentOutput and onFormValidityChange with valid state when required fields are satisfied', async () => {
@@ -124,24 +132,29 @@ describe('SSPaymentFlow Component', () => {
       />
     );
 
-    // Both output callbacks are executed inside queueMicrotask
-    await waitFor(() => {
-      expect(onPaymentOutput).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isValid: true,
-          outputMessage: 'Valid',
-          isDualBlindKeyPassed: true
-        })
-      );
-    });
+    await waitFor(
+      () => {
+        expect(onPaymentOutput).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isValid: true,
+            outputMessage: 'Valid',
+            isDualBlindKeyPassed: true
+          })
+        );
+      },
+      { timeout: 2000 }
+    );
 
-    await waitFor(() => {
-      expect(onFormValidityChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          validForm: true
-        })
-      );
-    });
+    await waitFor(
+      () => {
+        expect(onFormValidityChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            validForm: true
+          })
+        );
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('toggles red flagged error class and emits onFailedFieldListChange on double-click in Checker mode', () => {
@@ -160,12 +173,10 @@ describe('SSPaymentFlow Component', () => {
 
     expect(container.className).not.toContain('failed-field');
 
-    // First double-click flags the field
     fireEvent.doubleClick(container);
     expect(container.className).toContain('failed-field');
     expect(onFailedFieldListChange).toHaveBeenCalledWith(['debtorName']);
 
-    // Second double-click un-flags the field
     fireEvent.doubleClick(container);
     expect(container.className).not.toContain('failed-field');
     expect(onFailedFieldListChange).toHaveBeenCalledWith([]);
