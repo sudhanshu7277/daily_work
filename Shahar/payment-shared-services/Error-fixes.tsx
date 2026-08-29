@@ -1,58 +1,55 @@
-// Step 1: Pass status into context on <AgGridReact .../>
-//In InstructionDetailPage.tsx, update the <AgGridReact> 
-// JSX where the grid is rendered to pass status inside the context prop:
+// Option 1: Turn ADDITIONAL_INFO_COLUMNS into a Function (Cleanest & Standard AG-Grid Pattern)
+//Change ADDITIONAL_INFO_COLUMNS at the top of InstructionDetailPage.tsx to accept the status:
+
+
+const ALLOWED_STATUSES = ['PAYMENT_MAKER', 'PAYMENT_CHECKER', 'PAYMENT_REWORK'];
+
+export const getAdditionalInfoColumns = (status?: string): ColDef<InstructionAccountResponse>[] => {
+  const isActionAllowed = status && ALLOWED_STATUSES.includes(status.toUpperCase());
+
+  return [
+    // ... all your other columns (Debit Account, Currency, Amount, etc.)
+    {
+      headerName: 'Actions',
+      colId: 'actions',
+      minWidth: 110,
+      width: 110,
+      sortable: false,
+      filter: false,
+      pinned: 'right',
+      hide: !isActionAllowed, // <--- AG-Grid hides the whole column when true
+      cellRenderer: (p: ICellRendererParams<InstructionAccountResponse, any, AdditionalInfoGridContext>) => (
+        <Button
+          color="primary"
+          size="sm"
+          onClick={() => {
+            if (p.data && p.context?.onEditRow) {
+              p.context.onEditRow(p.data);
+            }
+          }}
+        >
+          Edit
+        </Button>
+      )
+    }
+  ];
+};
+
+
+
+// Then in PaymentInfoCard (Line 551), update columnDefs:
+
 
 
 <AgGridReact
-  rowData={instruction?.accountResponses || []}
-  columnDefs={ADDITIONAL_INFO_COLUMNS}
-  context={{
-    status: instruction?.status,
-    onEditRow: (rowData) => {
-      // your existing onEditRow logic
-    }
-  }}
-  // other grid props...
+  rowData={instructionAccounts}
+  columnDefs={getAdditionalInfoColumns(status)}
+  defaultColDef={{ resizable: true, sortable: true, filter: true, flex: 1, minWidth: 100 }}
+  animateRows
+  pagination
+  paginationPageSize={5}
+  paginationPageSizeSelector={[5, 10, 20]}
+  rowHeight={46}
+  headerHeight={40}
+  context={{ onEditRow }}
 />
-
-
-
-/// Step 2: Read p.context?.status in ADDITIONAL_INFO_COLUMNS
-//Update lines 405–412 in ADDITIONAL_INFO_COLUMNS:
-
-
-cellRenderer: (p: ICellRendererParams<InstructionAccountResponse, any, AdditionalInfoGridContext>) => {
-  const ALLOWED_STATUSES = ['PAYMENT_MAKER', 'PAYMENT_CHECKER', 'PAYMENT_REWORK'];
-  
-  const currentStatus = p.context?.status;
-
-  if (!currentStatus || !ALLOWED_STATUSES.includes(currentStatus.toUpperCase())) {
-    return null;
-  }
-
-  return (
-    <Button
-      color="primary"
-      size="sm"
-      onClick={() => {
-        if (p.data && p.context?.onEditRow) {
-          p.context.onEditRow(p.data);
-        }
-      }}
-    >
-      Edit
-    </Button>
-  );
-}
-
-
-// Step 3 (Optional TypeScript Interface Update):
-//If AdditionalInfoGridContext gives a type warning 
-// about status, add status?: string; to its definition:
-
-export interface AdditionalInfoGridContext {
-  status?: string;
-  onEditRow?: (data: InstructionAccountResponse) => void;
-  [key: string]: any;
-}
-
