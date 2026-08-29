@@ -1,44 +1,70 @@
-.split-maker-loading {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 280px !important;
-  color: #64748b !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  gap: 8px !important;
-  background-color: #ffffff !important;
-  box-sizing: border-box !important;
-}
+// Step 1: Add this helper function inside your component (above return)
+//Place this right above your return ( statement in SplitPaymentMakerModal.tsx:
 
-.split-spinner {
-  width: 32px !important;
-  height: 32px !important;
-  border: 3px solid #e2e8f0 !important;
-  border-top-color: #002d72 !important;
-  border-radius: 50% !important;
-  animation: split-spin 0.8s linear infinite !important;
-  box-sizing: border-box !important;
-}
 
-@keyframes split-spin {
-  to {
-    transform: rotate(360deg);
+const renderDocumentPreview = () => {
+  if (previewLoading || isParsingDoc) {
+    return (
+      <div className="split-maker-loading">
+        <div className="split-spinner" />
+        <span>Loading document stream...</span>
+      </div>
+    );
   }
-}
+
+  if (!previewUrl) {
+    return (
+      <div className="split-maker-loading">
+        <div className="split-spinner" />
+        <span>Loading document stream...</span>
+      </div>
+    );
+  }
+
+  if (isPdf) {
+    return (
+      <iframe
+        src={`${previewUrl}#toolbar=1&navpanes=0&view=Fit`}
+        className="split-doc-iframe"
+        title="Document Preview"
+      />
+    );
+  }
+
+  if (isImage) {
+    return (
+      <div className="split-image-container">
+        <img src={previewUrl} alt={fileName} className="split-doc-img" />
+      </div>
+    );
+  }
+
+  if (isText) {
+    return (
+      <div className="split-text-container">
+        <pre><code>{textContent}</code></pre>
+      </div>
+    );
+  }
+
+  return (
+    <iframe
+      src={previewUrl}
+      title={fileName || 'Document'}
+      className="split-doc-iframe"
+    />
+  );
+};
 
 
+// Step 2: Replace lines 153 to 179 in JSX
+//Replace the entire nested ternary block with the helper call:
 
 
-
-{previewLoading || isParsingDoc ? (
-  <div className="split-maker-loading">
-    <div className="split-spinner" />
-    <span>Loading document stream...</span>
+<div className="split-maker-body">
+  <div className="split-maker-panel left-panel">
+    {renderDocumentPreview()}
   </div>
-) : (
-  /* document viewer iframe / excel / image */
-)}
+
+  {/* Right Panel: 50% PaymentParent */}
+  <div className="split-maker-panel right-panel"></div>
