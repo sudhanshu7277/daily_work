@@ -1,7 +1,20 @@
-// Option 1: Inline ternary (Cleanest & standard JSX)
+Option 2: Pre-compute the label above return
+Above your component's return ( statement, define:
 
-{isSubmitting
+
+
+const rejectButtonLabel = isSubmitting
   ? 'Processing...'
   : checkerFailedFields.length > 0
   ? `Reject (${checkerFailedFields.length} Flagged)`
-  : 'Reject'}
+  : 'Reject';
+
+
+  <button
+  type="button"
+  className="btn-reject"
+  disabled={isCheckerRejectDisabled}
+  onClick={() => handleCheckerDecision('Rejected')}
+>
+  {rejectButtonLabel}
+</button>
