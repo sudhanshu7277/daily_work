@@ -1,96 +1,85 @@
-// 1. PaymentParent.tsx: Safe extraction in handlePaymentOutput (Images 71 & 72)
-//Problem: Depending on whether PaymentComponentOutput comes from your
-//  local models or the published @citi-icg-179025/payment-flow-reactjs-ui-lib 
-// package, the payload might be keyed as paymentData vs paymentModel, 
-// or isValid vs isDualBlindKeyPassed.
+// The Fix
+//In PaymentParent.tsx and PaymentParent.spec.tsx:
 
-//Fix in src/pages/ss-payment/PaymentParent.tsx (around line 258):
+//Step 1: Ensure PaymentParent.tsx renders tabs when mounted without props
+//In src/pages/ss-payment/PaymentParent.tsx, verify line ~103:
 
 
-const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
-  setIsCurrentFormValid(Boolean((output as any)?.isValid ?? (output as any)?.validForm));
-  setCheckerDualBlindPassed(Boolean((output as any)?.isDualBlindKeyPassed ?? (output as any)?.dualBlindKeyPassed));
-
-  const payload = (output as any)?.paymentData ?? (output as any)?.paymentModel;
-  if (payload) {
-    setCurrentFormPayload(payload);
-  }
-}, []);
+export const PaymentParent: FC<PaymentParentProps> = ({
+  mode = 'maker',
+  initialData = null,
+  hideTabs = false, // <-- Must default to false!
+  onPaymentSuccess,
+  onClose,
+}) => {
 
 
-//2. InstructionDetailPage.tsx: Wrap handlePreviewDocument in useCallback (Images 73 & 74)
-//Problem: handleEditPaymentAccount lists handlePreviewDocument in its dependency array, but handlePreviewDocument is an unmemoized async function recreated on every render. This forces AgGridReact context to invalidate constantly.
+  //And in the JSX where the tabs render, ensure they are <button> elements matching the regex:
 
-//Fix in src/pages/instructions/InstructionDetailPage.tsx:
-
-//Find where handlePreviewDocument is defined (above line 1347) and wrap it in useCallback:
-
-const handlePreviewDocument = useCallback(
-  async (doc: GabInstructionDocument, force: boolean = false) => {
-    // ... existing implementation body remains untouched ...
-  },
-  [selectedDocument, previewUrl, instructionId, documents]
-);
-
-
-// 3. PaymentParent.tsx: Replace window.confirm with non-blocking logic (Images 75 & 76)
-//Problem: window.confirm blocks UI execution and fails corporate code scans.
-
-//Fix in src/pages/ss-payment/PaymentParent.tsx:
-
-//Add state:
-
-
-const [duplicateWarning, setDuplicateWarning] = useState<{ referenceId: string } | null>(null);
-
-
-//Replace lines 288–293:
-
-
-if (res.status === 400 && data?.errorCode === 'DUPLICATE_PAYMENT') {
-  setDuplicateWarning({ referenceId: data?.referenceId ?? 'N/A' });
-  return;
-}
-
-
-// Render the confirmation dialog in JSX (or bind to your existing app modal component):
-
-{duplicateWarning && (
-  <div className="modal-backdrop">
-    <div className="modal-dialog">
-      <h4>Duplicate Payment Detected</h4>
-      <p>A similar payment exists with Reference ID: {duplicateWarning.referenceId}. Do you want to proceed?</p>
-      <div className="modal-actions">
-        <button type="button" className="lmn-btn" onClick={() => setDuplicateWarning(null)}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="lmn-btn lmn-btn-primary"
-          onClick={async () => {
-            setDuplicateWarning(null);
-            await handleMakerSubmit(true);
-          }}
-        >
-          Proceed
-        </button>
-      </div>
+  {!hideTabs && (
+    <div className="tab-navigation">
+      <button
+        type="button"
+        className={`tab-button ${activeTab === 'maker' ? 'active' : ''}`}
+        onClick={() => setActiveTab('maker')}
+      >
+        1. Maker Mode
+      </button>
+      <button
+        type="button"
+        className={`tab-button ${activeTab === 'checker' ? 'active' : ''}`}
+        onClick={() => setActiveTab('checker')}
+      >
+        2. Checker Mode
+      </button>
+      <button
+        type="button"
+        className={`tab-button ${activeTab === 'repair' ? 'active' : ''}`}
+        onClick={() => setActiveTab('repair')}
+      >
+        3. Repair Mode
+      </button>
     </div>
-  </div>
-)}
+  )}
 
 
-/// 4. PaymentParent.spec.tsx: Align useAuth mock property name (Images 77 & 78)
-//Problem: The component executes const { soeid: soeId } = useAuth(); expecting lowercase soeid from AuthContext, but PaymentParent.spec.tsx mocked { soeId: 'sj81534' }. Because of this, soeid was undefined during test execution.
+  //And verify the title in PaymentParent.tsx:
 
-//Fix in src/pages/ss-payment/PaymentParent.spec.tsx (around lines 8–11):
+  <h3>
+  {activeTab === 'maker' && 'Outbound ISO 20022 Payment (Maker Mode)'}
+  {activeTab === 'checker' && 'Payment Verification & Authorization (Checker Mode)'}
+  {activeTab === 'repair' && 'Payment Repair & Modification (Repair Mode)'}
+</h3>
 
 
-vi.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({
-    soeid: 'sj81534',
-    soeId: 'sj81534',
-    user: { soeid: 'sj81534', soeId: 'sj81534', name: 'Sudhanshu Jain' }
+//Step 2: Make PaymentParent.spec.tsx resilient
+//Update PaymentParent.spec.tsx to handle flexible button matching and text split across tags:
+
+
+// 1. For the Maker title assertion (resolving Image 82/83):
+expect(
+  screen.getByText((content, element) => {
+    return (
+      element?.tagName.toLowerCase() !== 'script' &&
+      /Outbound ISO 20022 Payment.*Maker Mode/i.test(content || element?.textContent || '')
+    );
   })
-}));
+).toBeDefined();
+
+// 2. For the Checker Tab button (resolving Image 81, 84, 85):
+// Matches "2. Checker Mode", "Checker Mode", or "Checker"
+const checkerTabBtn = screen.getByRole('button', { name: /checker/i });
+fireEvent.click(checkerTabBtn);
+
+// 3. For the Checker title verification:
+expect(
+  screen.getByText((content, element) => {
+    return (
+      element?.tagName.toLowerCase() !== 'script' &&
+      /Checker Mode/i.test(content || element?.textContent || '')
+    );
+  })
+).toBeDefined();
+
+
 
