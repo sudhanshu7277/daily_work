@@ -1,55 +1,39 @@
-// Step 1: Update TypeScript (Flattening / Grid Row Logic)
-//In multi-level-customer-grid-component.ts, where you flatten or prepare this.rowData / gridOptions.getRowClass:
-
-//In getRowClass(params) (or inside your tree-flattening loop where classes are calculated):
-
-
-
-getRowClass(params: any): string | string[] {
-  const classes: string[] = [];
-  const node = params.data;
-  const rowIndex = params.node?.rowIndex;
-
-  if (node?._isParent) {
-    classes.push(node._expanded ? 'row-parent-expanded' : 'row-parent-collapsed');
-  } else if (node?._isChild) {
-    classes.push('row-child');
-    if (node._isLastChild) {
-      classes.push('row-cluster-end');
-    }
-  }
-
-  // Look ahead: if the NEXT row in the grid is an expanded parent, mark this row
-  const nextRowNode = params.api?.getDisplayedRowAtIndex((rowIndex ?? 0) + 1);
-  if (nextRowNode?.data?._isParent && nextRowNode.data._expanded) {
-    classes.push('row-before-expanded');
-  }
-
-  return classes;
-}
-
-
-
-// Step 2: Add the CSS Rules in SCSS
-//In multi-level-customer-grid-component.scss:
-
-
-/* When closed: normal grey border */
+/* --- Cluster Closed (Default state) --- */
 .ag-row.row-parent-collapsed {
+  background-color: #ffffff !important;
   border-bottom: 1px solid #d8e4e6 !important;
+
+  &:hover {
+    background-color: #f5f9fa !important;
+  }
 }
 
-/* When open: the row preceding the expanded cluster paints the top blue divider */
-.ag-row.row-before-expanded {
-  border-bottom: 2px solid $bmo-blue !important;
+/* --- Cluster Open (Parent Header) --- */
+.ag-row.row-parent-expanded {
+  background-color: #e8f4fd !important;
+  border-bottom: 1px solid #b8d9f0 !important;
+  outline: 2px solid $bmo-blue !important;
+  outline-offset: -2px;
+  /* Clip outline to only show the TOP side */
+  clip-path: inset(0 0 calc(100% - 2px) 0);
+  z-index: 10 !important;
+
+  &:hover {
+    background-color: #d6ecf9 !important;
+  }
 }
 
-/* Edge case: if the expanded row is the very first row (index 0), paint under header */
-.ag-row[row-index="0"].row-parent-expanded {
-  box-shadow: inset 0 2px 0 0 $bmo-blue !important;
+/* --- Child Rows --- */
+.ag-row.row-child {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+
+  &:hover {
+    background-color: #f5f9fa !important;
+  }
 }
 
-/* Bottom of open cluster (existing rule) */
+/* --- Bottom Line on Final Child Row (Working Baseline) --- */
 .ag-row.row-cluster-end {
   border-bottom: 2px solid $bmo-blue !important;
 }
