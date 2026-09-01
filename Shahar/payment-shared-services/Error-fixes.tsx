@@ -1,9 +1,6 @@
-// Replace Lines 209 to 246 in multi-level-customer-grid-component.scss
-// Locate the row block inside ::ng-deep .ag-theme-alpine.csg-grid 
-// (lines 209 to 246) and replace it with:
+//Put border-top: 2px solid $bmo-blue !important directly on .ag-row.row-parent-expanded:
 
-
-/* Base Row Styles: Standard grey row dividers */
+/* 1. Base Row Defaults: Grey bottom divider, zero top borders */
 .ag-row {
   border-top: none !important;
   border-bottom: 1px solid #d8e4e6 !important;
@@ -27,7 +24,7 @@
   }
 }
 
-/* Closed/Collapsed Cluster -> Default grey border only, NO blue line */
+/* 2. Closed / Collapsed Parent Row -> Plain grey bottom divider, NO top blue line */
 .ag-row.row-parent-collapsed {
   background-color: #ffffff !important;
   border-top: none !important;
@@ -38,31 +35,19 @@
   }
 }
 
-/* Open/Expanded Cluster -> Draws Blue Top Line ONLY when open */
+/* 3. Open / Expanded Parent Row -> Top Blue border right here */
 .ag-row.row-parent-expanded {
   background-color: #e8f4fd !important;
-  border-top: none !important;
+  border-top: 2px solid $bmo-blue !important;
   border-bottom: 1px solid #b8d9f0 !important;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: $bmo-blue;
-    z-index: 10;
-    pointer-events: none;
-  }
+  z-index: 2 !important;
 
   &:hover {
     background-color: #d6ecf9 !important;
   }
 }
 
-/* Child Cluster Rows */
+/* 4. Child cluster rows inside open cluster */
 .ag-row.row-child {
   background-color: #ffffff !important;
   border-top: none !important;
@@ -73,8 +58,7 @@
   }
 }
 
-/* Bottom blue line for the last child row of an open cluster */
+/* 5. Blue line at the bottom of the open cluster */
 .ag-row.row-cluster-end {
   border-bottom: 2px solid $bmo-blue !important;
 }
-
