@@ -1,14 +1,14 @@
-/* --- Cluster Top Blue Line (Expanded Only) --- */
-.ag-row.row-parent-expanded {
-  z-index: 5 !important;
+/* ----------------------------------------
+   Cluster open state – BMO blue lines
+   ---------------------------------------- */
 
-  .ag-cell {
-    border-top: 2px solid $bmo-blue !important;
-  }
+/* Top blue line on the parent when cluster is open */
+.ag-row.row-cluster-start,
+.ag-row.ag-row-group-expanded {
+  border-top: 2px solid $bmo-blue !important;
 }
 
-.ag-row.row-parent-collapsed {
-  .ag-cell {
-    border-top: none !important;
-  }
+/* Bottom blue line on the last child of open cluster */
+.ag-row.row-cluster-end {
+  border-bottom: 2px solid $bmo-blue !important;
 }
