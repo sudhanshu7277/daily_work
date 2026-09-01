@@ -96,3 +96,74 @@
   }
 }
 
+
+
+
+
+//// Here is the exact replacement for lines 209 to 246 in multi-level-customer-grid-component.scss:
+
+
+
+/* Base Row Styles */
+.ag-row {
+  border-top: none !important;
+  border-bottom: 1px solid #d8e4e6 !important;
+  background-color: #ffffff;
+
+  .ag-cell {
+    display: flex !important;
+    align-items: center !important;
+    font-size: 13px !important;
+    color: #1c2333;
+    border: none !important; /* Clears rogue cell borders */
+    background: transparent !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 14px !important;
+    line-height: 1.5;
+
+    &[col-id="profileName"] {
+      border-right: 1px solid #d8e4e6 !important;
+    }
+  }
+}
+
+/* --- Cluster Collapsed (Closed): Normal Grey Divider Only --- */
+.ag-row.row-parent-collapsed {
+  background-color: #ffffff !important;
+  border-top: none !important;
+  border-bottom: 1px solid #d8e4e6 !important;
+
+  &:hover {
+    background-color: #f5f9fa !important;
+  }
+}
+
+/* --- Cluster Expanded (Open): Blue Top & Bottom Framing --- */
+.ag-row.row-parent-expanded {
+  background-color: #e8f4fd !important;
+  border-top: 2px solid $bmo-blue !important;
+  border-bottom: 1px solid #b8d9f0 !important;
+  z-index: 2 !important;
+
+  &:hover {
+    background-color: #d6ecf9 !important;
+  }
+}
+
+/* Child Cluster Rows */
+.ag-row.row-child {
+  background-color: #ffffff !important;
+  border-top: none !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+
+  &:hover {
+    background-color: #f5f9fa !important;
+  }
+}
+
+/* Blue line at the bottom of the open cluster */
+.ag-row.row-cluster-end {
+  border-bottom: 2px solid $bmo-blue !important;
+}
+
