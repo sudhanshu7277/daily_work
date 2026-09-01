@@ -1,8 +1,65 @@
-git commit --allow-empty -m "chore: trigger CI build for IS-74377"
-git push origin feature/IS-74377-Integration-maker-file-viewer
+// Update 1: Cluster Open/Closed Top Line Styles (Lines 225–246)
+// Replace lines 225 to 246 (inside ::ng-deep .ag-theme-alpine.csg-grid) with:
+
+/* --- Cluster Expanded (Open): Blue Top & Bottom Lines --- */
+.ag-row.row-parent-expanded {
+  background-color: #e8f4fd !important;
+  border-bottom: 1px solid #b8d9f0 !important;
+  z-index: 2 !important;
+
+  .ag-cell {
+    border-top: 2px solid $bmo-blue !important;
+  }
+}
+
+.ag-row-first.row-parent-expanded {
+  .ag-cell {
+    border-top: 2px solid $bmo-blue !important;
+  }
+}
+
+.ag-row.row-parent-expanded:hover {
+  background-color: #d6ecf9 !important;
+}
+
+/* --- Cluster Collapsed (Closed): Stays Grey Line --- */
+.ag-row.row-parent-collapsed {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+
+  .ag-cell {
+    border-top: 1px solid #d8e4e6 !important;
+  }
+}
+
+.ag-row-first.row-parent-collapsed {
+  .ag-cell {
+    border-top: none !important;
+  }
+}
+
+.ag-row.row-parent-collapsed:hover {
+  background-color: #f5f9fa !important;
+}
+
+/* --- Child Cluster Rows & Ending Border --- */
+.ag-row.row-child {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  border-top: none !important;
+
+  &:hover {
+    background-color: #f5f9fa !important;
+  }
+}
+
+.ag-row.row-cluster-end {
+  border-bottom: 2px solid $bmo-blue !important;
+}
 
 
-
+// Update 2: "Showing:" & Chips Row Alignment (Lines 462–495)
+// Replace lines 462 to 495 with:
 
 .chips-row {
   display: flex !important;
@@ -12,19 +69,17 @@ git push origin feature/IS-74377-Integration-maker-file-viewer
   margin-left: 0 !important;
 
   .showing-label {
-    /* Auto width snaps it flush with the container boundary ('Results') */
     width: auto !important;
     min-width: unset !important;
     max-width: unset !important;
     flex: 0 0 auto !important;
 
-    /* Flush with Results & Search result filter */
     padding: 0 !important;
-    /* 8px right margin brings 'Profile Name' tight and close */
+    /* 6px aligns baseline with chips; 8px keeps Profile Name close */
     margin: 6px 8px 0 0 !important;
 
     font-size: 14px;
-    font-weight: 400 !important; /* Regular font weight */
+    font-weight: 400 !important;
     color: #1a1a1a;
     line-height: 1.2;
     white-space: nowrap;
@@ -35,8 +90,9 @@ git push origin feature/IS-74377-Integration-maker-file-viewer
     display: flex !important;
     flex-wrap: wrap !important;
     align-items: center;
-    gap: 10px 8px; /* 10px vertical row gap, 8px horizontal chip gap */
+    gap: 10px 8px; /* 10px vertical row spacing, 8px horizontal chip spacing */
     flex: 1 1 auto !important;
     min-width: 0 !important;
   }
 }
+
