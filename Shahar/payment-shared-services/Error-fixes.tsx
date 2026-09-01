@@ -1,42 +1,34 @@
-::ng-deep {
-  /* AG-Grid Theme Variable */
-  .ag-root-wrapper {
-    --ag-scrollbar-size: 16px !important;
-  }
+.mat-mdc-option:not(.select-all-option) {
+  &.mat-mdc-option-disabled {
+    /* 1. Prevent Material from fading out the entire row */
+    opacity: 1 !important;
+    background-color: #ffffff !important;
+    cursor: not-allowed !important;
 
-  /* Override AG-Grid inline styles on scroll containers */
-  .ag-body-vertical-scroll,
-  .ag-body-vertical-scroll-viewport,
-  .ag-body-vertical-scroll-container {
-    width: 16px !important;
-    min-width: 16px !important;
-    max-width: 16px !important;
-  }
-
-  /* WebKit (Chrome / Edge / Safari) */
-  .ag-body-vertical-scroll-viewport {
-    &::-webkit-scrollbar {
-      width: 16px !important;
+    /* 2. Text styling: Dark, crisp, readable */
+    .mdc-list-item__primary-text,
+    .mat-mdc-option-text,
+    span {
+      color: #212529 !important;
+      font-weight: 500 !important;
+      opacity: 1 !important;
+      cursor: not-allowed !important;
     }
 
-    &::-webkit-scrollbar-track {
-      background-color: #e5e5e5 !important;
-    }
+    /* 3. Checkbox container: Solid medium-grey filled box */
+    .mat-pseudo-checkbox,
+    .mat-pseudo-checkbox-full {
+      background-color: #718096 !important; /* Solid grey fill */
+      border-color: #718096 !important;
+      border-radius: 3px !important;
+      opacity: 1 !important;
+      cursor: not-allowed !important;
 
-    &::-webkit-scrollbar-thumb {
-      background-color: #4a4a4a !important; /* Dark grey */
-      border-radius: 8px !important;
-      border: 3px solid #e5e5e5 !important; /* Clean padding around thumb */
-
-      &:hover {
-        background-color: #2b2b2b !important; /* Darker grey on hover */
+      /* 4. Sharp White Checkmark (matches lines 402-416 from .is-checked) */
+      &::after {
+        opacity: 1 !important;
+        border-color: #ffffff !important;
       }
     }
-  }
-
-  /* Firefox */
-  .ag-body-vertical-scroll-viewport {
-    scrollbar-width: auto;
-    scrollbar-color: #4a4a4a #e5e5e5;
   }
 }
