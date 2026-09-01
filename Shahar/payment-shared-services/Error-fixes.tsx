@@ -1,102 +1,32 @@
-// 1. multi-level-grid-tree.util.ts
-Replace the loop at lines 50–60 inside flattenTree:
+// In multi-level-customer-grid-component.scss, the exact clean fix used across the codebase to override AG Grid's scrollbar width and styling is:
 
+/* Target the grid root and custom scrollbar size */
+.ag-root-wrapper {
+  --ag-scrollbar-size: 8px;
 
+  /* Force scroll viewport to custom width */
+  .ag-body-vertical-scroll-viewport {
+    &::-webkit-scrollbar {
+      width: 8px !important;
+    }
 
-for (let i = 0; i < flattenedRows.length; i++) {
-  const node = flattenedRows[i];
-  const nextNode = flattenedRows[i + 1];
-  const nextIsRoot = nextNode && nextNode._level === 0;
-  const isLastRow = i === flattenedRows.length - 1;
+    &::-webkit-scrollbar-track {
+      background-color: #f1f1f1 !important;
+    }
 
-  const isClusterNode = node._isParent || node._level > 0;
-  node._isClusterEnd = !!(isClusterNode && (nextIsRoot || isLastRow));
+    &::-webkit-scrollbar-thumb {
+      background-color: #c1c1c1 !important;
+      border-radius: 4px !important;
 
-  // Flag the row right before an expanded parent cluster (strictly boolean check)
-  node['_isBeforeExpanded'] = Boolean(nextNode && nextNode._isParent && nextNode._expanded === true);
-}
-
-
-// 2. multi-level-customer-grid-component.ts
-Ensure getRowClass applies row-before-expanded:
-
-
-getRowClass = (params: any): string | string[] => {
-  const node = params.data;
-  if (!node) return '';
-
-  const classes: string[] = [];
-
-  if (node._isParent) {
-    classes.push(node._expanded ? 'row-parent-expanded' : 'row-parent-collapsed');
-  } else if (node._level > 0) {
-    classes.push('row-child');
+      &:hover {
+        background-color: #999999 !important;
+      }
+    }
   }
 
-  if (node._isClusterEnd) {
-    classes.push('row-cluster-end');
+  /* Firefox */
+  .ag-body-vertical-scroll-viewport {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
   }
-
-  if (node['_isBeforeExpanded']) {
-    classes.push('row-before-expanded');
-  }
-
-  return classes;
-};
-
-
-// 3. multi-level-customer-grid-component.scss
-Replace the cluster styling block with this:
-
-
-/* Base Row */
-.ag-row {
-  border-top: none !important;
-  border-bottom: 1px solid #d8e4e6 !important;
-  background-color: #ffffff;
-}
-
-/* Closed Cluster -> Standard grey bottom border */
-.ag-row.row-parent-collapsed {
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #d8e4e6 !important;
-
-  &:hover {
-    background-color: #f5f9fa !important;
-  }
-}
-
-/* Expanded Cluster Header */
-.ag-row.row-parent-expanded {
-  background-color: #e8f4fd !important;
-  border-bottom: 1px solid #b8d9f0 !important;
-
-  &:hover {
-    background-color: #d6ecf9 !important;
-  }
-}
-
-/* Handles the top blue line if expanded cluster is the first row (index 0) */
-.ag-row[row-index="0"].row-parent-expanded {
-  box-shadow: inset 0 2px 0 0 $bmo-blue !important;
-}
-
-/* Preceding row gets the top blue divider for index > 0 */
-.ag-row.row-before-expanded {
-  border-bottom: 2px solid $bmo-blue !important;
-}
-
-/* Child Rows */
-.ag-row.row-child {
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-
-  &:hover {
-    background-color: #f5f9fa !important;
-  }
-}
-
-/* Bottom line on final child row of open cluster */
-.ag-row.row-cluster-end {
-  border-bottom: 2px solid $bmo-blue !important;
 }
