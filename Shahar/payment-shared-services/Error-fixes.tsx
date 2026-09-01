@@ -1,39 +1,46 @@
-/* --- Cluster Closed (Default state) --- */
+/* 1. Collapsed Cluster: Ensure no cell top borders */
 .ag-row.row-parent-collapsed {
   background-color: #ffffff !important;
   border-bottom: 1px solid #d8e4e6 !important;
+
+  .ag-cell {
+    border-top: none !important;
+  }
 
   &:hover {
     background-color: #f5f9fa !important;
   }
 }
 
-/* --- Cluster Open (Parent Header) --- */
+/* 2. Expanded Cluster: Direct top border on every cell of the row */
 .ag-row.row-parent-expanded {
   background-color: #e8f4fd !important;
   border-bottom: 1px solid #b8d9f0 !important;
-  outline: 2px solid $bmo-blue !important;
-  outline-offset: -2px;
-  /* Clip outline to only show the TOP side */
-  clip-path: inset(0 0 calc(100% - 2px) 0);
-  z-index: 10 !important;
+
+  > .ag-cell {
+    border-top: 2px solid $bmo-blue !important;
+  }
 
   &:hover {
     background-color: #d6ecf9 !important;
   }
 }
 
-/* --- Child Rows --- */
+/* 3. Child Rows */
 .ag-row.row-child {
   background-color: #ffffff !important;
   border-bottom: 1px solid #e0e0e0 !important;
+
+  .ag-cell {
+    border-top: none !important;
+  }
 
   &:hover {
     background-color: #f5f9fa !important;
   }
 }
 
-/* --- Bottom Line on Final Child Row (Working Baseline) --- */
+/* 4. Bottom Cluster End (Existing working rule) */
 .ag-row.row-cluster-end {
   border-bottom: 2px solid $bmo-blue !important;
 }
