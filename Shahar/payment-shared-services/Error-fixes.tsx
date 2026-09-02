@@ -15,3 +15,13 @@ const validCode = (await
       consumed: false,
     },
   });
+
+
+  // alternate
+
+  const validCode = (
+    await this.codeRepository.query(
+      'SELECT * FROM codes WHERE code = ? AND consumed = false',
+      [body.code]
+    )
+  )[0];
