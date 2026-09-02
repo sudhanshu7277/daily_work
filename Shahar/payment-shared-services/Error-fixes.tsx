@@ -1,9 +1,8 @@
-// The Only Two Fixes Needed
-//1. Spinner Visibility: Trigger Change Detection Immediately
-// In legal-hold-shell.component.ts, when onEntityGridPageChange starts, this.dataLoading = true is set, but Angular doesn't paint the shell spinner because change detection isn't triggered before the asynchronous HTTP request begins.
-
-// Add this.cdr.detectChanges() right after this.dataLoading = true:
-
+/// The Shell Spinner Fix
+// To make sure the loading spinner displays immediately whenever 
+// a user navigates pages or changes the page size, apply 
+// this.cdr.detectChanges() directly after this.dataLoading = true; 
+// in legal-hold-shell.component.ts:
 
 onEntityGridPageChange(event: { page: number; pageSize: number }): void {
   const criteriaPayload = this.lastEntityCriteria?.entityPayload;
@@ -19,9 +18,8 @@ onEntityGridPageChange(event: { page: number; pageSize: number }): void {
     pageEndIndex: String(endIndex)
   };
 
-  // Turn on loading and force view update so spinner paints immediately
   this.dataLoading = true;
-  this.cdr.detectChanges();
+  this.cdr.detectChanges(); // Forces immediate paint of <div class="spinner">
 
   this.actualCustServ.getCustomersEntityAndLegalHoldList(payload).subscribe({
     next: (response: any) => {
@@ -41,24 +39,8 @@ onEntityGridPageChange(event: { page: number; pageSize: number }): void {
 }
 
 
-// 2. Grid-Level Spinner (Inside multi-level-entity-grid-component.ts)
-// In multi-level-entity-grid-component.ts, set this.isLoading = true 
-// and call this.cdr.detectChanges() inside goPage() and onPageSizeChange():
+// Do the same for onGridPageChange (the customer handler):
 
 
-goPage(page: number): void {
-  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-  this.currentPage = page;
-  this.isLoading = true;
-  this.cdr.detectChanges();
-  this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
-}
-
-onPageSizeChange(): void {
-  this.currentPage = 1;
-  this.isLoading = true;
-  this.cdr.detectChanges();
-  this.pageChange.emit({ page: 1, pageSize: this.pageSize });
-}
-
-
+this.dataLoading = true;
+  this.cdr.detectChanges(); // Forces immediate paint of customer loading spinner
