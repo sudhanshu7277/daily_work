@@ -1,95 +1,119 @@
-/* Target disabled options via aria-disabled and MDC disabled class */
-.mat-mdc-option[aria-disabled="true"],
-.mat-mdc-option.mdc-list-item--disabled {
-  opacity: 1 !important;
-  cursor: not-allowed !important;
+// Step 1: Update multi-level-grid.mapper.ts
+//Only modify lines 122–126 to use 1000 (or availableResultsCount if 
+// valid) instead of slicing data.length:
 
-  /* 1. Kill the grey focus/hover state layer completely */
-  .mat-mdc-option-state-layer {
-    background-color: transparent !important;
-    opacity: 0 !important;
-  }
 
-  /* 2. Remove default MDC opacity dimming on the text */
-  --mdc-list-list-item-disabled-label-text-opacity: 1 !important;
+export const mapMultiLevelApiResponse = (res: any): { totalCount: number; data: any[] } => {
+  const results = res?.searchResult ?? res?.searchResults ?? (Array.isArray(res) ? res : []);
+  const data = results.map((p: any) => mapPlayer(p));
+  
+  // Use 1000 as configured for server-side testing
+  const serverCount = Number(res?.responsePaginationInfo?.availableResultsCount);
+  const totalCount = (!isNaN(serverCount) && serverCount > 1) ? serverCount : 1000;
 
-  .mdc-list-item__primary-text {
-    color: #1a1a1a !important; /* Solid dark text */
-    opacity: 1 !important;
-    font-weight: 500 !important;
-    cursor: not-allowed !important;
-  }
+  return { totalCount, data };
+};
 
-  /* 3. Target real MDC pseudo-checkbox (solid grey box) */
-  .mat-pseudo-checkbox {
-    background-color: #718096 !important;
-    border-color: #718096 !important;
-    border-radius: 3px !important;
-    opacity: 1 !important;
-    cursor: not-allowed !important;
 
-    /* 4. Sharp white checkmark tick */
-    &::after {
-      opacity: 1 !important;
-      border-color: #ffffff !important;
-      border-width: 0 2px 2px 0 !important;
-    }
-  }
+// Step 2: Update multi-level-customer-grid.component.ts
+// 1. Add inputs & output (around line 93):
+
+
+@Input() totalCount: number = 1000;
+@Output() pageChange = new EventEmitter<{ page: number; pageSize: number }>();
+
+
+// 2. Update handleResponse() (lines 238–245):
+
+// Keep currentPage unch
+
+
+private handleResponse(res: any): void {
+  this.tree = res.data as EntityRowNode[];
+  this.stampTree(this.tree, '');
+  this.showChipsSection = true;
+  this.totalRows = this.totalCount || res.totalCount || 1000;
+  this.isLoading = false;
+  this.refresh();
 }
 
 
+// 3. Update refresh() (lines 274–285):
 
-/// final fix
+ // Stop client-side slicing of this.tree because the API now returns
+ //  the current page's slice:
 
 
-/* Target disabled mandatory mat-options */
-.mat-mdc-option[aria-disabled="true"],
-.mat-mdc-option.mdc-list-item--disabled {
-  opacity: 1 !important;
-  background-color: transparent !important;
-  cursor: not-allowed !important;
-
-  /* 1. Remove the grey focus/hover state layer strip */
-  .mat-mdc-option-state-layer {
-    background-color: transparent !important;
-    opacity: 0 !important;
-  }
-
-  /* 2. Text styling: Solid dark, high-contrast readable text */
-  --mdc-list-list-item-disabled-label-text-opacity: 1 !important;
-
-  .mdc-list-item__primary-text {
-    color: #1a1a1a !important;
-    font-weight: 500 !important;
-    opacity: 1 !important;
-    cursor: not-allowed !important;
-  }
-
-  /* 3. Solid medium-grey checkbox box */
-  .mat-pseudo-checkbox {
-    background-color: #718096 !important;
-    border-color: #718096 !important;
-    border-radius: 3px !important;
-    opacity: 1 !important;
-    position: relative !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: not-allowed !important;
-
-    /* 4. Force white checkmark tick inside disabled box */
-    &::after {
-      content: '' !important;
-      display: block !important;
-      position: absolute !important;
-      left: 5px !important;
-      top: 2px !important;
-      width: 4px !important;
-      height: 8px !important;
-      border: solid #ffffff !important;
-      border-width: 0 2px 2px 0 !important;
-      transform: rotate(45deg) !important;
-      opacity: 1 !important;
-    }
-  }
+ private refresh(): void {
+  // Use server total rows
+  this.totalRows = this.totalCount || 1000;
+  this.totalPages = Math.max(1, Math.ceil(this.totalRows / this.pageSize));
+  this.pageNumbers = this.buildPageNumbers();
+  
+  // Render current server-provided page directly
+  this.rowData = [...this.flattenTree(this.tree)];
+  this.syncHeaderCheckbox();
+  this.cdr.detectChanges();
 }
+
+
+// 4. Update goPage() and onPageSizeChange() (lines 369–378):
+
+// Emit the pagination request to the shell:
+
+goPage(page: number): void {
+  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+  this.currentPage = page;
+  this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
+}
+
+onPageSizeChange(): void {
+  this.currentPage = 1;
+  this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
+}
+
+
+// Step 3: Wire Event in legal-hold-shell.component.html
+// Add the (pageChange) binding to your customer grid:
+
+<multi-level-customer-grid
+  [multiLevelGridData]="customerGridData"
+  [totalCount]="1000"
+  (pageChange)="onGridPageChange($event)"
+  (selectionChanged)="onSelectionChange($event)">
+</multi-level-customer-grid>
+
+
+// Step 4: Handle Pagination in legal-hold-shell.component.ts
+// Add the page-fetch handler to call the service with the matching payload indices:
+
+
+// Add handler in legal-hold-shell.component.ts
+onGridPageChange(event: { page: number; pageSize: number }): void {
+  const startIndex = (event.page - 1) * event.pageSize + 1;
+  const endIndex = event.page * event.pageSize;
+
+  // Clone active payload and attach requested indices
+  const payload = JSON.parse(JSON.stringify(this.lastSearchCriteria?.customerSearchPayload || {}));
+  payload.requestPaginationInfo = {
+    returnAvailableResultCount: "true",
+    pageStartIndex: String(startIndex),
+    pageEndIndex: String(endIndex)
+  };
+
+  this.dataLoading = true;
+  this.actualCustServ.getCustomersEntityAndLegalHoldList(payload).subscribe({
+    next: (response: any) => {
+      this.customerGridData = response;
+      this.dataLoading = false;
+      this.cdr.detectChanges();
+    },
+    error: (err: any) => {
+      console.error('Pagination search error:', err);
+      this.dataLoading = false;
+      this.cdr.detectChanges();
+    }
+  });
+}
+
+
