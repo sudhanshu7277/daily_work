@@ -1,53 +1,16 @@
-// 1. multi-level-entity-grid-component.html (or .ts template)
-// Update the items-per-page <select> (or mat-select) to capture the 
-// selected value directly from the change event:
+// The Only Two Fixes Needed
+//1. Spinner Visibility: Trigger Change Detection Immediately
+// In legal-hold-shell.component.ts, when onEntityGridPageChange starts, this.dataLoading = true is set, but Angular doesn't paint the shell spinner because change detection isn't triggered before the asynchronous HTTP request begins.
 
-<select [value]="pageSize" (change)="onPageSizeChange($event)">
-  @for (opt of pageSizeOpts; track opt) {
-    <option [value]="opt">{{ opt }}</option>
-  }
-</select>
-
-// 2. multi-level-entity-grid-component.ts
-// Update goPage() and onPageSizeChange() so they turn on the internal 
-// loader immediately and forward the correct pageSize:
-
-goPage(page: number): void {
-  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-  this.currentPage = page;
-  this.isLoading = true;
-  this.cdr.detectChanges();
-  this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
-}
-
-onPageSizeChange(event?: any): void {
-  if (event) {
-    const rawVal = event?.target?.value ?? event?.value ?? event;
-    const parsed = Number(rawVal);
-    if (!isNaN(parsed) && parsed > 0) {
-      this.pageSize = parsed;
-    }
-  }
-  this.currentPage = 1;
-  this.isLoading = true;
-  this.cdr.detectChanges();
-  this.pageChange.emit({ page: 1, pageSize: this.pageSize });
-}
-
-// 3. legal-hold-shell.component.ts
-// In onEntityGridPageChange(), ensure numbers are cleanly extracted and trigger 
-// this.cdr.detectChanges() immediately after this.dataLoading = true:
+// Add this.cdr.detectChanges() right after this.dataLoading = true:
 
 
-onEntityGridPageChange(event: any): void {
-  const pageEvent = event?.page ? event : event?.event || event;
+onEntityGridPageChange(event: { page: number; pageSize: number }): void {
   const criteriaPayload = this.lastEntityCriteria?.entityPayload;
   if (!criteriaPayload) return;
 
-  const page = Number(pageEvent.page) || 1;
-  const pageSize = Number(pageEvent.pageSize) || 10;
-  const startIndex = (page - 1) * pageSize + 1;
-  const endIndex = page * pageSize;
+  const startIndex = (event.page - 1) * event.pageSize + 1;
+  const endIndex = event.page * event.pageSize;
 
   const payload = JSON.parse(JSON.stringify(criteriaPayload));
   payload.requestPaginationInfo = {
@@ -56,7 +19,7 @@ onEntityGridPageChange(event: any): void {
     pageEndIndex: String(endIndex)
   };
 
-  // Immediate detection cycle to display the shell loading spinner instantly
+  // Turn on loading and force view update so spinner paints immediately
   this.dataLoading = true;
   this.cdr.detectChanges();
 
@@ -76,3 +39,26 @@ onEntityGridPageChange(event: any): void {
     }
   });
 }
+
+
+// 2. Grid-Level Spinner (Inside multi-level-entity-grid-component.ts)
+// In multi-level-entity-grid-component.ts, set this.isLoading = true 
+// and call this.cdr.detectChanges() inside goPage() and onPageSizeChange():
+
+
+goPage(page: number): void {
+  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+  this.currentPage = page;
+  this.isLoading = true;
+  this.cdr.detectChanges();
+  this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
+}
+
+onPageSizeChange(): void {
+  this.currentPage = 1;
+  this.isLoading = true;
+  this.cdr.detectChanges();
+  this.pageChange.emit({ page: 1, pageSize: this.pageSize });
+}
+
+
