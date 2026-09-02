@@ -6,3 +6,8 @@ async getItemPicture(filename: string): Promise<ReadStream> {
   const itemPicture: ReadStream = createReadStream(filepath);
   return itemPicture;
 }
+
+
+{
+  "code": "' or 1=1 --"
+}
