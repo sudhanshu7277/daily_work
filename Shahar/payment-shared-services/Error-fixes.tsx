@@ -1,32 +1,16 @@
-// Remediation
-Replace lines 72–74:
+private refresh(): void {
+  this.totalRows = this.totalCount || this.tree.length || 0;
+  this.totalPages = Math.max(1, Math.ceil(this.totalRows / this.pageSize));
+  this.pageNumbers = this.buildPageNumbers();
 
-const validCode = (await
-  this.userRepository.query(`SELECT * FROM codes WHERE code = "${body.code}"
-  AND consumed = false`))[0];
-
-
-
-  // With:
-
-  const validCode = await this.codeRepository.findOne({
-    where: {
-      code: body.code,
-      consumed: false,
-    },
-  });
-
-
-  // alternate
-
-  const validCode = (
-    await this.codeRepository.query(
-      'SELECT * FROM codes WHERE code = ? AND consumed = false',
-      [body.code]
-    )
-  )[0];
-
-
-  {
-    "code": "\" or 1=1 --"
+  // Guard: if backend returned full payload instead of a slice, paginate locally
+  let displayNodes = this.tree;
+  if (this.tree.length > this.pageSize) {
+    const start = (this.currentPage - 1) * this.pageSize;
+    displayNodes = this.tree.slice(start, start + this.pageSize);
   }
+
+  this.rowData = [...this.flattenTree(displayNodes)];
+  this.syncHeaderCheckbox();
+  this.cdr.detectChanges();
+}
