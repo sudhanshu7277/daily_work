@@ -11,3 +11,8 @@ async getItemPicture(filename: string): Promise<ReadStream> {
 {
   "code": "' or 1=1 --"
 }
+
+
+"code": "' or '1'='1"
+
+"code": "' or 1=1 #"
