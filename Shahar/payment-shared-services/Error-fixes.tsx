@@ -133,6 +133,22 @@ goPage(page: number): void {
 onPageSizeChange(): void {
   this.currentPage = 1;
   this.pageChange.emit({ page: 1, pageSize: this.pageSize });
+
+
+
+  // quick error fix
+
+  @if (currentTab === 'entity' && entityGridData.length && !tabSwitchFlag) {
+    <multi-level-entity-grid #entityAggGrid
+      [multiLevelGridData]="entityGridData"
+      [searchSummary]="searchSummary"
+      [deselectByOcifId]="deletedProfileEcifId"
+      [totalCount]="availableEntityResultsCount"
+      (pageChange)="onEntityGridPageChange($event)"
+      (selectionChanged)="handleSelectionChange($event)"
+      (removeProfile)="handleRemoveProfile($event)">
+    </multi-level-entity-grid>
+  }
 }
 
 
