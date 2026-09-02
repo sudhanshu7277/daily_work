@@ -1,18 +1,17 @@
-async getItemPicture(filename: string): Promise<ReadStream> {
-  const publicDirectory = path.resolve(process.cwd(), 'images/public');
-  const safeFilename = path.basename(filename);
-  const filepath: string = path.resolve(publicDirectory, safeFilename);
+// Remediation
+Replace lines 72–74:
 
-  const itemPicture: ReadStream = createReadStream(filepath);
-  return itemPicture;
-}
+const validCode = (await
+  this.userRepository.query(`SELECT * FROM codes WHERE code = "${body.code}"
+  AND consumed = false`))[0];
 
 
-{
-  "code": "' or 1=1 --"
-}
 
+  // With:
 
-"code": "' or '1'='1"
-
-"code": "' or 1=1 #"
+  const validCode = await this.codeRepository.findOne({
+    where: {
+      code: body.code,
+      consumed: false,
+    },
+  });
