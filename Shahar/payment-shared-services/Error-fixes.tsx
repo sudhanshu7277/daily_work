@@ -25,3 +25,8 @@ const validCode = (await
       [body.code]
     )
   )[0];
+
+
+  {
+    "code": "\" or 1=1 --"
+  }
