@@ -1,17 +1,8 @@
-/// The Shell Spinner Fix
-// To make sure the loading spinner displays immediately whenever 
-// a user navigates pages or changes the page size, apply 
-// this.cdr.detectChanges() directly after this.dataLoading = true; 
-// in legal-hold-shell.component.ts:
-
 onEntityGridPageChange(event: { page: number; pageSize: number }): void {
-  const criteriaPayload = this.lastEntityCriteria?.entityPayload;
-  if (!criteriaPayload) return;
-
+  if (!this.lastEntityCriteria?.entityPayload) return;
   const startIndex = (event.page - 1) * event.pageSize + 1;
   const endIndex = event.page * event.pageSize;
-
-  const payload = JSON.parse(JSON.stringify(criteriaPayload));
+  const payload = JSON.parse(JSON.stringify(this.lastEntityCriteria.entityPayload));
   payload.requestPaginationInfo = {
     returnAvailableResultCount: 'true',
     pageStartIndex: String(startIndex),
@@ -19,28 +10,19 @@ onEntityGridPageChange(event: { page: number; pageSize: number }): void {
   };
 
   this.dataLoading = true;
-  this.cdr.detectChanges(); // Forces immediate paint of <div class="spinner">
-
+  this.cdr.detectChanges();
   this.actualCustServ.getCustomersEntityAndLegalHoldList(payload).subscribe({
     next: (response: any) => {
-      this.availableEntityResultsCount = Number(response?.responsePaginationInfo?.availableResultsCount) || this.availableEntityResultsCount;
+      this.availableEntityResultsCount = Number(response?.responsePaginationInfo?.availableResultsCount) ||
+        this.availableEntityResultsCount;
       this.entityGridData = response?.searchResult || [];
-      this.tabSwitchFlag = false;
       this.dataLoading = false;
       this.cdr.detectChanges();
     },
     error: (err: any) => {
-      console.error('Entity pagination search error:', err);
-      this.setSearchError(err);
+      console.error('Pagination search error:', err);
       this.dataLoading = false;
       this.cdr.detectChanges();
     }
   });
 }
-
-
-// Do the same for onGridPageChange (the customer handler):
-
-
-this.dataLoading = true;
-  this.cdr.detectChanges(); // Forces immediate paint of customer loading spinner
