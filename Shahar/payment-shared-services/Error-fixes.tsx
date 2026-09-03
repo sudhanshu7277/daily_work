@@ -125,3 +125,13 @@ onGridPageChange(event: { page: number; pageSize: number }): void {
 }
 
 
+// Strip the leading zeros before applying the format using .replace(/^0+/, '').
+// Update lines 389–391 in your code to:
+
+
+if (a.accountType === 'Credit Card') {
+  const cleanNumber = a.accountNumber?.replace(/^0+/, '') || '';
+  acNumber = cleanNumber.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+}
+
+
