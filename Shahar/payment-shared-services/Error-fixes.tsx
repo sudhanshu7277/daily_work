@@ -129,28 +129,43 @@ onGridPageChange(event: { page: number; pageSize: number }): void {
 // Update lines 389–391 in your code to:
 
 
-if (a.accountType === 'Credit Card') {
-  const cleanNumber = a.accountNumber?.replace(/^0+/, '') || '';
-  acNumber = cleanNumber.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+formatAccountList(accounts: { accountType: string; accountNumber: string }[]): string {
+  const grouped = new Map<string, string[]>();
+
+  for (const a of accounts) {
+    let type = a.accountType;
+    let acNumber: string = '';
+
+    const isCard = /credit\s*card|mastercard|debit\s*card/i.test(type);
+
+    if (isCard) {
+      if (/mastercard/i.test(type)) {
+        type = 'Credit Card';
+      }
+
+      // 1. Extract only numeric digits
+      const rawDigits = (a.accountNumber || '').replace(/\D/g, '');
+
+      // 2. Remove the leading prefix/zeros:
+      // If it has leading padding making it > 16 digits (e.g., 0005... = 20 digits), 
+      // take the actual 16-digit card number from the end. Otherwise strip leading zeros.
+      const cleanDigits = rawDigits.length > 16 
+        ? rawDigits.slice(-16) 
+        : rawDigits.replace(/^0+/, '');
+
+      // 3. Format into 4-digit groups (XXXX-XXXX-XXXX-XXXX)
+      acNumber = cleanDigits.match(/.{1,4}/g)?.join('-') || '';
+    } else {
+      acNumber = this.formatAccountNumbersInText(a.accountNumber);
+    }
+
+    const nums = grouped.get(type) ?? [];
+    nums.push(acNumber);
+    grouped.set(type, nums);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([type, nums]) => `<strong>${type}:</strong> ${nums.join('; ')}`)
+    .join('<br>');
 }
-
-
-/// Displaying text as Credit Card
-
-
-let type = a.accountType;
-let acNumber: string | undefined;
-
-if (type === 'Credit Card' || type === 'MasterCard') {
-  type = 'Credit Card';
-  const cleanNumber = a.accountNumber?.replace(/^0+/, '') || '';
-  acNumber = cleanNumber.replace(/(.{4})/g, '$1-').replace(/-$/, '');
-} else {
-  acNumber = this.formatAccountNumbersInText(a.accountNumber);
-}
-
-const nums = grouped.get(type) ?? [];
-nums.push(acNumber);
-grouped.set(type, nums);
-
 
