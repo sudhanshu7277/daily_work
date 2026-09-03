@@ -1,52 +1,44 @@
-// 1. refresh()
-// When slicing what to display on the screen, calculate the 
-// offset relative to the 100-item chunk:
+// 1. In multi-level-customer-grid-component.ts
+//A. In refresh()
+// Slice the exact 10, 20, or 50 items for the active currentPage out of this.tree:
+
 
 private refresh(): void {
   this.totalRows = this.totalCount || this.tree.length || 0;
   this.totalPages = Math.max(1, Math.ceil(this.totalRows / this.pageSize));
   this.pageNumbers = this.buildPageNumbers();
 
-  // Find index relative to the current 100-record block in memory:
-  // e.g., Page 1 -> localStart = 0
-  // e.g., Page 2 -> localStart = 10
-  // e.g., Page 10 -> localStart = 90
-  // e.g., Page 11 (after new chunk loaded) -> localStart = 0
-  const localStart = ((this.currentPage - 1) * this.pageSize) % 100;
-  const pageParents = this.tree.slice(localStart, localStart + this.pageSize);
+  const start = (this.currentPage - 1) * this.pageSize;
+  const end = start + this.pageSize;
 
-  this.rowData = [...this.flattenTree(pageParents)];
+  const pageSlice = this.tree.slice(start, end);
+  this.rowData = [...this.flattenTree(pageSlice)];
   this.syncHeaderCheckbox();
   this.cdr.detectChanges();
 }
 
 
-// 2. goPage(page: number)
-// Check if the requested page is inside the current 100-item block or crosses the boundary:
+// B. In goPage(page: number)
+// Check if the requested range is already loaded into this.tree:
 
 goPage(page: number): void {
   if (page < 1 || page > this.totalPages || page === this.currentPage) return;
 
-  // Which 100-item chunk does the current page belong to? (0 for pages 1-10, 1 for pages 11-20, etc.)
-  const currentChunk = Math.floor(((this.currentPage - 1) * this.pageSize) / 100);
-  const targetChunk = Math.floor(((page - 1) * this.pageSize) / 100);
-
+  const neededStartIndex = (page - 1) * this.pageSize;
   this.currentPage = page;
 
-  if (currentChunk === targetChunk && this.tree.length > 0) {
-    // Target page is already in our 100-item memory buffer!
-    // Just slice and display locally — ZERO network calls.
+  // If the required records are already in memory (e.g., pages 1-10 or going back to page 1):
+  if (neededStartIndex < this.tree.length) {
     this.refresh();
   } else {
-    // Target page is in another chunk (e.g., crossing from page 10 to page 11).
-    // Emit to shell to fetch the required 100-item window.
+    // We reached the end of cached records (e.g., clicking page 11). Fetch next batch from server.
     this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
   }
 }
 
 
-// 3. onPageSizeChange()
-// If the user changes the dropdown (e.g., from 10 to 20 or 50):
+// C. In onPageSizeChange()
+// When density changes (10, 20, 50), reset to page 1 and slice locally:
 
 onPageSizeChange(): void {
   this.currentPage = 1;
@@ -54,19 +46,56 @@ onPageSizeChange(): void {
 }
 
 
+//D. In ngOnChanges()
+// Ensure incoming new records append or initialize this.tree:
 
-// Step 2: In the Shell Component (legal-hold-shell.component.ts)
-// Because the grid only emits (pageChange) when it actually needs
-//  a new chunk of 100, the shell simply requests the 100-item slice that contains event.page:
+ngOnChanges(changes: SimpleChanges): void {
+  if (this.preserveGrid) {
+    this.preserveGrid = false;
+    return;
+  }
+
+  if (changes['multiLevelGridData'] && this.multiLevelGridData) {
+    this.isLoading = true;
+    this.loadError = false;
+    this.handleResponse(this.mapApiResponse(this.multiLevelGridData));
+    this.syncColumns();
+  }
+}
+
+
+// 2. In legal-hold-shell.component.ts
+// When an initial search runs, initialize customerGridData. When a pagination fetch runs, append the new 100 records to customerGridData:
+
+// A. Initial Search (onSearch)
+
+this.actualCustServ.getCustomersEntityAndLegalHoldList(criteria.customerSearchPayload).subscribe({
+  next: (response: any) => {
+    this.availableCustomerResultsCount = Number(response?.responsePaginationInfo?.availableResultsCount) || 0;
+    // Initial search: load first batch (1-100)
+    this.customerGridData = response?.searchResult || [];
+    this.tabSwitchFlag = false;
+    this.dataLoading = false;
+    this.cdr.detectChanges();
+  },
+  error: (err: any) => {
+    this.setSearchError(err);
+    this.dataLoading = false;
+    this.cdr.detectChanges();
+  }
+});
+
+
+// B. Paginated Chunk Fetch (onGridPageChange)
+// Always request the next 100 records starting from wherever your current data ends:
+
 
 onGridPageChange(event: { page: number; pageSize: number }): void {
   const criteriaPayload = this.lastCustomerCriteria?.customerSearchPayload;
   if (!criteriaPayload) return;
 
-  // Calculate the 100-item window that contains this page
-  // e.g., page 11 with pageSize 10 -> item 101 -> startIndex = 101, endIndex = 200
-  const chunkIndex = Math.floor(((event.page - 1) * event.pageSize) / 100);
-  const startIndex = chunkIndex * 100 + 1;
+  // Fetch next chunk of 100 starting directly after what we already hold
+  const startIndex = this.customerGridData.length + 1;
   const endIndex = startIndex + 99;
 
   const payload = JSON.parse(JSON.stringify(criteriaPayload));
@@ -81,103 +110,18 @@ onGridPageChange(event: { page: number; pageSize: number }): void {
 
   this.actualCustServ.getCustomersEntityAndLegalHoldList(payload).subscribe({
     next: (response: any) => {
-      this.availableCustomerResultsCount = Number(response?.responsePaginationInfo?.availableResultsCount) || this.availableCustomerResultsCount;
-      this.customerGridData = response?.searchResult || [];
+      const newRecords = response?.searchResult || [];
+      // Append the new 100 records to existing data cache
+      this.customerGridData = [...this.customerGridData, ...newRecords];
       this.dataLoading = false;
       this.cdr.detectChanges();
     },
     error: (err: any) => {
-      console.error('Customer pagination search error:', err);
-      this.setSearchError(err);
+      console.error('Customer pagination error:', err);
       this.dataLoading = false;
       this.cdr.detectChanges();
     }
   });
 }
-
-
-
-// Inside multi-level-customer-grid-component.ts
-//1. Maintain a master cumulative list alongside this.tree:
-
-
-// Master cache that stores every record fetched so far
-private allLoadedTree: EntityRowNode[] = [];
-
-
-
-//2. Update handleResponse to append incoming records:
-
-
-private handleResponse(res: any): void {
-  const incoming = (res.data as EntityRowNode[]) || [];
-
-  if (this.currentPage === 1 && incoming.length <= 100) {
-    // New search or reset: initialize master cache
-    this.allLoadedTree = incoming;
-  } else {
-    // Append newly fetched chunk to the cumulative cache
-    this.allLoadedTree = [...this.allLoadedTree, ...incoming];
-  }
-
-  this.stampTree(this.allLoadedTree, '');
-  this.showChipsSection = true;
-  this.totalRows = this.totalCount || this.allLoadedTree.length || 0;
-  this.isLoading = false;
-  this.refresh();
-}
-
-
-//3. Update refresh() to slice from the cumulative store:Because 
-// allLoadedTree preserves all fetched records in order 
-// ($0, 1, 2, \dots$), refresh() uses standard array offsets:
-
-
-private refresh(): void {
-  this.totalRows = this.totalCount || this.allLoadedTree.length || 0;
-  this.totalPages = Math.max(1, Math.ceil(this.totalRows / this.pageSize));
-  this.pageNumbers = this.buildPageNumbers();
-
-  const start = (this.currentPage - 1) * this.pageSize;
-  const end = start + this.pageSize;
-
-  // Slice directly from our master cumulative buffer
-  const pageSlice = this.allLoadedTree.slice(start, end);
-
-  this.rowData = [...this.flattenTree(pageSlice)];
-  this.syncHeaderCheckbox();
-  this.cdr.detectChanges();
-}
-
-
-//4. Update goPage() to check if the record exists in cache:
-
-goPage(page: number): void {
-  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-
-  const targetIndexStart = (page - 1) * this.pageSize;
-
-  this.currentPage = page;
-
-  // If the requested records already exist anywhere in the cumulative cache,
-  // slice locally — works going backward (to page 1) or forward within loaded range!
-  if (targetIndexStart < this.allLoadedTree.length) {
-    this.refresh();
-  } else {
-    // Moving forward beyond what has ever been downloaded: fetch next 100
-    this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
-  }
-}
-
-
-//5. Update onPageSizeChange():
-
-onPageSizeChange(): void {
-  this.currentPage = 1;
-  this.refresh(); // Page 1 items (up to 50) are already in allLoadedTree
-}
-
-
-
 
 
