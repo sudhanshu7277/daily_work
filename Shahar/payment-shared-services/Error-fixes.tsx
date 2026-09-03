@@ -128,6 +128,8 @@ onGridPageChange(event: { page: number; pageSize: number }): void {
 // Strip the leading zeros before applying the format using .replace(/^0+/, '').
 // Update lines 389–391 in your code to:
 
+// final fix
+
 
 formatAccountList(accounts: { accountType: string; accountNumber: string }[]): string {
   const grouped = new Map<string, string[]>();
@@ -136,19 +138,14 @@ formatAccountList(accounts: { accountType: string; accountNumber: string }[]): s
     let type = a.accountType;
     let acNumber: string = '';
 
-    const isCard = /credit\s*card|mastercard|debit\s*card/i.test(type);
+    // Checks Credit Card, Debit Card, and Loan accounts
+    const isFormatted16Digit = /credit\s*card|debit\s*card|loan/i.test(type);
 
-    if (isCard) {
-      if (/mastercard/i.test(type)) {
-        type = 'Credit Card';
-      }
-
-      // 1. Extract only numeric digits
+    if (isFormatted16Digit) {
+      // 1. Strip all non-digit characters
       const rawDigits = (a.accountNumber || '').replace(/\D/g, '');
 
-      // 2. Remove the leading prefix/zeros:
-      // If it has leading padding making it > 16 digits (e.g., 0005... = 20 digits), 
-      // take the actual 16-digit card number from the end. Otherwise strip leading zeros.
+      // 2. Remove leading padding: extract the last 16 digits if longer, otherwise strip leading zeros
       const cleanDigits = rawDigits.length > 16 
         ? rawDigits.slice(-16) 
         : rawDigits.replace(/^0+/, '');
@@ -168,4 +165,3 @@ formatAccountList(accounts: { accountType: string; accountNumber: string }[]): s
     .map(([type, nums]) => `<strong>${type}:</strong> ${nums.join('; ')}`)
     .join('<br>');
 }
-
