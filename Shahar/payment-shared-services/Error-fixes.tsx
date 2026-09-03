@@ -135,3 +135,22 @@ if (a.accountType === 'Credit Card') {
 }
 
 
+/// Displaying text as Credit Card
+
+
+let type = a.accountType;
+let acNumber: string | undefined;
+
+if (type === 'Credit Card' || type === 'MasterCard') {
+  type = 'Credit Card';
+  const cleanNumber = a.accountNumber?.replace(/^0+/, '') || '';
+  acNumber = cleanNumber.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+} else {
+  acNumber = this.formatAccountNumbersInText(a.accountNumber);
+}
+
+const nums = grouped.get(type) ?? [];
+nums.push(acNumber);
+grouped.set(type, nums);
+
+
