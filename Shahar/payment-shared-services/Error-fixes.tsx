@@ -96,3 +96,88 @@ onGridPageChange(event: { page: number; pageSize: number }): void {
 }
 
 
+
+// Inside multi-level-customer-grid-component.ts
+//1. Maintain a master cumulative list alongside this.tree:
+
+
+// Master cache that stores every record fetched so far
+private allLoadedTree: EntityRowNode[] = [];
+
+
+
+//2. Update handleResponse to append incoming records:
+
+
+private handleResponse(res: any): void {
+  const incoming = (res.data as EntityRowNode[]) || [];
+
+  if (this.currentPage === 1 && incoming.length <= 100) {
+    // New search or reset: initialize master cache
+    this.allLoadedTree = incoming;
+  } else {
+    // Append newly fetched chunk to the cumulative cache
+    this.allLoadedTree = [...this.allLoadedTree, ...incoming];
+  }
+
+  this.stampTree(this.allLoadedTree, '');
+  this.showChipsSection = true;
+  this.totalRows = this.totalCount || this.allLoadedTree.length || 0;
+  this.isLoading = false;
+  this.refresh();
+}
+
+
+//3. Update refresh() to slice from the cumulative store:Because 
+// allLoadedTree preserves all fetched records in order 
+// ($0, 1, 2, \dots$), refresh() uses standard array offsets:
+
+
+private refresh(): void {
+  this.totalRows = this.totalCount || this.allLoadedTree.length || 0;
+  this.totalPages = Math.max(1, Math.ceil(this.totalRows / this.pageSize));
+  this.pageNumbers = this.buildPageNumbers();
+
+  const start = (this.currentPage - 1) * this.pageSize;
+  const end = start + this.pageSize;
+
+  // Slice directly from our master cumulative buffer
+  const pageSlice = this.allLoadedTree.slice(start, end);
+
+  this.rowData = [...this.flattenTree(pageSlice)];
+  this.syncHeaderCheckbox();
+  this.cdr.detectChanges();
+}
+
+
+//4. Update goPage() to check if the record exists in cache:
+
+goPage(page: number): void {
+  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+
+  const targetIndexStart = (page - 1) * this.pageSize;
+
+  this.currentPage = page;
+
+  // If the requested records already exist anywhere in the cumulative cache,
+  // slice locally — works going backward (to page 1) or forward within loaded range!
+  if (targetIndexStart < this.allLoadedTree.length) {
+    this.refresh();
+  } else {
+    // Moving forward beyond what has ever been downloaded: fetch next 100
+    this.pageChange.emit({ page: this.currentPage, pageSize: this.pageSize });
+  }
+}
+
+
+//5. Update onPageSizeChange():
+
+onPageSizeChange(): void {
+  this.currentPage = 1;
+  this.refresh(); // Page 1 items (up to 50) are already in allLoadedTree
+}
+
+
+
+
+
