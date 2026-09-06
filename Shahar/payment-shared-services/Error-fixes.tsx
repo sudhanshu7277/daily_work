@@ -1,32 +1,47 @@
 formatAccountList(accounts: { accountType: string; accountNumber: string }[]): string {
   const grouped = new Map<string, string[]>();
 
+  if (!Array.isArray(accounts) || accounts.length === 0) {
+    return '';
+  }
+
   for (const a of accounts) {
-    let type = a.accountType;
+    if (!a) continue;
+
+    const rawType = (a.accountType || '').trim();
+    let type = rawType;
     let acNumber: string = '';
 
-    // Check if account is a Credit Card or Debit Card
-    const isCard = /credit\s*card|mastercard|debit\s*card/i.test(type);
+    // Check if the entry represents a card
+    const isCreditCard = rawType.toLowerCase() === 'credit card';
+    const isDebitCard = /debit\s*card/i.test(rawType);
 
-    if (isCard) {
-      // Normalize any MasterCard label to Credit Card per Figma
-      if (/mastercard/i.test(type)) {
-        type = 'Credit Card';
+    if (isCreditCard || isDebitCard) {
+      // 1. Sanitize to pure digits (handles '0005-1912...', spaces, or plain numbers)
+      const digitsOnly = String(a.accountNumber || '').replace(/\D/g, '');
+
+      // 2. Remove system prefix padding:
+      // Standard card numbers are 16 digits.
+      // If the backend adds a prefix (e.g. 20 digits like 0005-...), take the last 16.
+      // If it is 16 or fewer digits with leading zeros, strip the zeros.
+      let cleanDigits = digitsOnly;
+      if (cleanDigits.length > 16) {
+        cleanDigits = cleanDigits.slice(-16);
+      } else {
+        cleanDigits = cleanDigits.replace(/^0+/, '');
       }
 
-      // 1. Extract purely digits
-      const digitsOnly = (a.accountNumber || '').replace(/\D/g, '');
-
-      // 2. Remove leading prefix/zeros:
-      // If padded (> 16 digits, e.g. 0005...), extract the 16 card digits from the end.
-      // Otherwise, strip any leading zeroes.
-      const cleanDigits = digitsOnly.length > 16 
-        ? digitsOnly.slice(-16) 
-        : digitsOnly.replace(/^0+/, '');
-
-      // 3. Format as 4-digit groups (XXXX-XXXX-XXXX-XXXX)
-      acNumber = cleanDigits.match(/.{1,4}/g)?.join('-') || cleanDigits;
+      // 3. Apply standard 4-digit grouping (XXXX-XXXX-XXXX-XXXX)
+      if (cleanDigits.length === 16) {
+        acNumber = cleanDigits.match(/.{1,4}/g)?.join('-') || cleanDigits;
+      } else if (cleanDigits.length > 0) {
+        // Fallback if card length is non-standard (e.g. 15-digit Amex or partial)
+        acNumber = cleanDigits.match(/.{1,4}/g)?.join('-') || cleanDigits;
+      } else {
+        acNumber = String(a.accountNumber || '');
+      }
     } else {
+      // Standard formatting for all other non-card account types (Chequing, Savings, etc.)
       acNumber = this.formatAccountNumbersInText(a.accountNumber);
     }
 
@@ -39,7 +54,6 @@ formatAccountList(accounts: { accountType: string; accountNumber: string }[]): s
     .map(([type, nums]) => `<strong>${type}:</strong> ${nums.join('; ')}`)
     .join('<br>');
 }
-
 
 // QUESTION TO QA
 
