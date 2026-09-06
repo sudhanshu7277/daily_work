@@ -86,3 +86,67 @@ this.applyForm = this.formBuilder.group({
   managerName: ['', [Validators.required]],
   lawyerEmail: ['', [Validators.required, Validators.email]]
 });
+
+
+
+// 1. Template (.component.html)
+// Add (keypress) and (paste) listeners to your <input id="apply-hold-name"> (around line 136):
+
+
+<input
+  id="apply-hold-name"
+  type="text"
+  formControlName="holdName"
+  aria-required="true"
+  maxlength="50"
+  placeholder="Enter name"
+  (keypress)="blockSpecialChars($event)"
+  (paste)="onHoldNamePaste($event)"
+  (input)="onHoldNameChanged()"
+/>
+
+
+// 2. Component (.component.ts)
+// Add the blocking helper methods and keep onHoldNameChanged() clean:
+
+// Prevents typing special characters
+blockSpecialChars(event: KeyboardEvent): boolean {
+  const allowed = /^[a-zA-Z0-9 ]$/;
+  if (!allowed.test(event.key)) {
+    event.preventDefault();
+    return false;
+  }
+  return true;
+}
+
+// Prevents pasting strings that contain special characters
+onHoldNamePaste(event: ClipboardEvent): void {
+  event.preventDefault();
+  const pastedText = event.clipboardData?.getData('text') || '';
+  // Keep only letters, numbers, and spaces
+  const cleanText = pastedText.replace(/[^a-zA-Z0-9 ]/g, '');
+  
+  const control = this.applyForm.get('holdName');
+  if (control) {
+    const currentVal = control.value || '';
+    control.setValue((currentVal + cleanText).slice(0, 50));
+    this.onHoldNameChanged();
+  }
+}
+
+// Keep your duplicate validation logic untouched
+onHoldNameChanged(): void {
+  const control = this.applyForm.get('holdName');
+  if (control && control.value) {
+    // Safety fallback for mobile/virtual keyboards
+    const sanitized = control.value.replace(/[^a-zA-Z0-9 ]/g, '');
+    if (sanitized !== control.value) {
+      control.setValue(sanitized);
+    }
+  }
+
+  this.duplicateHoldError = '';
+  this.validateDuplicateHoldName();
+}
+
+
