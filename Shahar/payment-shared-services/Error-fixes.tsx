@@ -39,3 +39,20 @@ formatAccountList(accounts: { accountType: string; accountNumber: string }[]): s
     .map(([type, nums]) => `<strong>${type}:</strong> ${nums.join('; ')}`)
     .join('<br>');
 }
+
+
+// QUESTION TO QA
+
+Copy and paste this message on the defect or Slack/Teams:
+
+Regarding Homeowner ReadiLine Account Number:
+
+The UI currently receives 0000-000022090124214 in the API response (which contains only the 11-digit internal account number 22090124214).
+
+In Customer Connect, the expected number is displayed as 9105-2220-9012-4214 (16 digits).
+
+Because the 9105 prefix does not exist anywhere in the payload sent to the frontend, could backend confirm:
+
+Is there an API field mapping update needed from NCCS to send the full 16-digit customer card/account number?
+
+Or is the UI supposed to display the 11-digit account number directly without the 16-digit hyphenation?
