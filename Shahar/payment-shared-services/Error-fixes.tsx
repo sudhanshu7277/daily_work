@@ -70,3 +70,19 @@ Because the 9105 prefix does not exist anywhere in the payload sent to the front
 Is there an API field mapping update needed from NCCS to send the full 16-digit customer card/account number?
 
 Or is the UI supposed to display the 11-digit account number directly without the 16-digit hyphenation?
+
+
+
+//1. TypeScript (.component.ts)
+//On Line 129, add Validators.pattern(/^[a-zA-Z0-9 ]*$/) to holdName (allows alphanumeric characters and spaces):
+
+
+this.applyForm = this.formBuilder.group({
+  holdName: ['', [
+    Validators.required, 
+    Validators.maxLength(50),
+    Validators.pattern(/^[a-zA-Z0-9 ]*$/)
+  ]],
+  managerName: ['', [Validators.required]],
+  lawyerEmail: ['', [Validators.required, Validators.email]]
+});
