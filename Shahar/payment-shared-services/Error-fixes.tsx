@@ -73,13 +73,15 @@ Or is the UI supposed to display the 11-digit account number directly without th
 
 
 
-//1. TypeScript (.component.ts)
-//On Line 129, add Validators.pattern(/^[a-zA-Z0-9 ]*$/) to holdName (allows alphanumeric characters and spaces):
+
+
+// 1. TypeScript Form Definition (.component.ts)
+// Add Validators.pattern(/^[a-zA-Z0-9 ]*$/) to line 129 so the form control flags special characters under the 'pattern' error key:
 
 
 this.applyForm = this.formBuilder.group({
   holdName: ['', [
-    Validators.required, 
+    Validators.required,
     Validators.maxLength(50),
     Validators.pattern(/^[a-zA-Z0-9 ]*$/)
   ]],
@@ -88,65 +90,30 @@ this.applyForm = this.formBuilder.group({
 });
 
 
+// 2. TypeScript Event Handler (.component.ts)
+// Keep onHoldNameChanged() simple without stripping input, so the invalid characters remain in the field and trigger the validator:
 
-// 1. Template (.component.html)
-// Add (keypress) and (paste) listeners to your <input id="apply-hold-name"> (around line 136):
-
-
-<input
-  id="apply-hold-name"
-  type="text"
-  formControlName="holdName"
-  aria-required="true"
-  maxlength="50"
-  placeholder="Enter name"
-  (keypress)="blockSpecialChars($event)"
-  (paste)="onHoldNamePaste($event)"
-  (input)="onHoldNameChanged()"
-/>
-
-
-// 2. Component (.component.ts)
-// Add the blocking helper methods and keep onHoldNameChanged() clean:
-
-// Prevents typing special characters
-blockSpecialChars(event: KeyboardEvent): boolean {
-  const allowed = /^[a-zA-Z0-9 ]$/;
-  if (!allowed.test(event.key)) {
-    event.preventDefault();
-    return false;
-  }
-  return true;
-}
-
-// Prevents pasting strings that contain special characters
-onHoldNamePaste(event: ClipboardEvent): void {
-  event.preventDefault();
-  const pastedText = event.clipboardData?.getData('text') || '';
-  // Keep only letters, numbers, and spaces
-  const cleanText = pastedText.replace(/[^a-zA-Z0-9 ]/g, '');
-  
-  const control = this.applyForm.get('holdName');
-  if (control) {
-    const currentVal = control.value || '';
-    control.setValue((currentVal + cleanText).slice(0, 50));
-    this.onHoldNameChanged();
-  }
-}
-
-// Keep your duplicate validation logic untouched
 onHoldNameChanged(): void {
-  const control = this.applyForm.get('holdName');
-  if (control && control.value) {
-    // Safety fallback for mobile/virtual keyboards
-    const sanitized = control.value.replace(/[^a-zA-Z0-9 ]/g, '');
-    if (sanitized !== control.value) {
-      control.setValue(sanitized);
-    }
-  }
-
   this.duplicateHoldError = '';
   this.validateDuplicateHoldName();
+}
+
+
+// 3. HTML Template (.component.html)
+// Under the <input id="apply-hold-name"> block (lines 147–152), add the pattern error message:
+
+@if (showControlError(holdNameControl) && holdNameControl.hasError('required')) {
+  <div id="apply-hold-name-error" class="validation-error inline-field-error" role="alert">
+    <mat-icon class="validation-error-icon" aria-hidden="true">error_outline</mat-icon>
+    <span>Enter Legal Hold Name</span>
+  </div>
+}
+
+@if (showControlError(holdNameControl) && holdNameControl.hasError('pattern')) {
+  <div id="apply-hold-name-pattern-error" class="validation-error inline-field-error" role="alert">
+    <mat-icon class="validation-error-icon" aria-hidden="true">error_outline</mat-icon>
+    <span>Special characters are not allowed</span>
+  </div>
 }
 
 
