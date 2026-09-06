@@ -117,3 +117,50 @@ onHoldNameChanged(): void {
 }
 
 
+// 1. Template (selection-panel.component.html)
+// In <ng-template #releaseModal>, replace the current <th> for the Name 
+// column (lines 282–285 in image 25) with the exact SVG markup from the Apply modal:
+
+
+<th class="col-name sortable" tabindex="0"
+  [attr.aria-sort]="releaseSortDirection === 'asc' ? 'ascending' : releaseSortDirection === 'desc' ? 'descending' : 'none'"
+  (click)="toggleReleaseSort()"
+  (keydown.enter)="toggleReleaseSort()"
+  (keydown.space)="$event.preventDefault(); toggleReleaseSort()">
+  <span>{{ 'RELEASE_MODAL.COL_NAME' | translate }}</span>
+  <svg class="sort-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Up Arrow -->
+    <path [class.arrow-active]="releaseSortDirection === 'asc'" class="arrow-path"
+      d="M4 11V3M4 3L1.5 5.5M4 3L6.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Down Arrow -->
+    <path [class.arrow-active]="releaseSortDirection === 'desc'" class="arrow-path"
+      d="M10 3V11M10 11L7.5 8.5M10 11L12.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</th>
+
+
+// 2. TypeScript (selection-panel.component.ts)
+// In image 27, line 327 in toggleApplySort() has this.cdr.detectChanges();. 
+// Add that same call to toggleReleaseSort() right before line 337 so the view 
+// updates immediately on click:
+
+
+toggleReleaseSort(): void {
+  this.releaseSortDirection = this.releaseSortDirection === 'asc' ? 'desc' : 'asc';
+  this.releaseModalRows = [...this.releaseModalRows].sort((a, b) => {
+    const nameA = (a.legalName || a.profileName || '').toLowerCase();
+    const nameB = (b.legalName || b.profileName || '').toLowerCase();
+    return this.releaseSortDirection === 'asc'
+      ? nameA.localeCompare(nameB)
+      : nameB.localeCompare(nameA);
+  });
+  this.cdr.detectChanges();
+}
+
+// Ensure releaseSortDirection is declared as a property on the component class 
+// (similar to applySortDirection):
+
+
+releaseSortDirection: 'asc' | 'desc' = 'asc';
+
+
