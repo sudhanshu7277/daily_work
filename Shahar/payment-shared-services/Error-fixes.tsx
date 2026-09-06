@@ -1,133 +1,41 @@
-//File 1: selection-panel.component.html
-// Find lines 195–198 in #applyModal:
+formatAccountList(accounts: { accountType: string; accountNumber: string }[]): string {
+  const grouped = new Map<string, string[]>();
 
-<th class="col-name sortable" tabindex="0" [attr.aria-sort]="applySortDirection === 'asc' ? 'ascending' : applySortDirection === 'desc' ? 'descending' : 'none'" (click)="toggleApplySort()" (keydown.enter)="toggleApplySort()" (keydown.space)="$event.preventDefault(); toggleApplySort()">
-  {{selectionPanelVerbiage.name | translate}}<mat-icon aria-hidden="true">swap_vert</mat-icon></th>
+  for (const a of accounts) {
+    let type = a.accountType;
+    let acNumber: string = '';
 
+    // Check if account is a Credit Card or Debit Card
+    const isCard = /credit\s*card|mastercard|debit\s*card/i.test(type);
 
-  //Replace those lines with:
+    if (isCard) {
+      // Normalize any MasterCard label to Credit Card per Figma
+      if (/mastercard/i.test(type)) {
+        type = 'Credit Card';
+      }
 
-  <th class="col-name sortable" tabindex="0" 
-    [attr.aria-sort]="applySortDirection === 'asc' ? 'ascending' : applySortDirection === 'desc' ? 'descending' : 'none'" 
-    (click)="toggleApplySort()" 
-    (keydown.enter)="toggleApplySort()" 
-    (keydown.space)="$event.preventDefault(); toggleApplySort()">
-  <span>{{ selectionPanelVerbiage.name | translate }}</span>
-  <svg class="sort-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Up Arrow -->
-    <path [class.arrow-active]="applySortDirection === 'asc'" class="arrow-path"
-          d="M4 11V3M4 3L1.5 5.5M4 3L6.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- Down Arrow -->
-    <path [class.arrow-active]="applySortDirection === 'desc'" class="arrow-path"
-          d="M10 3V11M10 11L7.5 8.5M10 11L12.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-</th>
+      // 1. Extract purely digits
+      const digitsOnly = (a.accountNumber || '').replace(/\D/g, '');
 
+      // 2. Remove leading prefix/zeros:
+      // If padded (> 16 digits, e.g. 0005...), extract the 16 card digits from the end.
+      // Otherwise, strip any leading zeroes.
+      const cleanDigits = digitsOnly.length > 16 
+        ? digitsOnly.slice(-16) 
+        : digitsOnly.replace(/^0+/, '');
 
+      // 3. Format as 4-digit groups (XXXX-XXXX-XXXX-XXXX)
+      acNumber = cleanDigits.match(/.{1,4}/g)?.join('-') || cleanDigits;
+    } else {
+      acNumber = this.formatAccountNumbersInText(a.accountNumber);
+    }
 
-//File 2: selection-panel.component.ts
-// Find toggleApplySort() around lines 324–331:
-
-
-toggleApplySort(): void {
-  this.applySortDirection = this.applySortDirection === 'asc' ? 'desc' : 'asc';
-  this.filteredModalRows = [...this.filteredModalRows].sort((a, b) => {
-    const nameA = (a.legalName || a.profileName || '').toLowerCase();
-    const nameB = (b.legalName || b.profileName || '').toLowerCase();
-    return this.applySortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-  });
-}
-
-
-//Replace with:
-
-toggleApplySort(): void {
-  // Cycle: null (initial grey) -> 'asc' (up black) -> 'desc' (down black) -> 'asc'
-  this.applySortDirection = this.applySortDirection === 'asc' ? 'desc' : 'asc';
-
-  this.filteredModalRows = [...this.filteredModalRows].sort((a, b) => {
-    const nameA = (a.legalName || a.profileName || '').toLowerCase();
-    const nameB = (b.legalName || b.profileName || '').toLowerCase();
-    return this.applySortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-  });
-  this.cdr.detectChanges();
-}
-
-
-//File 3: selection-panel.component.scss
-// In the table header section around lines 338–360:
-
-// Find:
-
-th {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 2;
-  text-align: left;
-  padding: 15px 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #000;
-  border-bottom: 1px solid #e0e0e0;
-  mat-icon {
-    font-size: 16px;
-    vertical-align: middle;
-    margin-left: 4px;
-    margin-top: 4px;
+    const nums = grouped.get(type) ?? [];
+    nums.push(acNumber);
+    grouped.set(type, nums);
   }
 
-  &.sortable {
-    cursor: pointer;
-    user-select: none;
-  }
+  return Array.from(grouped.entries())
+    .map(([type, nums]) => `<strong>${type}:</strong> ${nums.join('; ')}`)
+    .join('<br>');
 }
-
-
-// Replace with:
-
-
-th {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 2;
-  text-align: left;
-  padding: 15px 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #000;
-  border-bottom: 1px solid #e0e0e0;
-
-  &.sortable {
-    cursor: pointer;
-    user-select: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-
-    .sort-icon {
-      cursor: pointer;
-      flex-shrink: 0;
-      vertical-align: middle;
-      margin-left: 4px;
-    }
-
-    .arrow-path {
-      color: #a0a0a0;
-      opacity: 0.6;
-      transition: color 0.15s ease, opacity 0.15s ease;
-    }
-
-    .arrow-path.arrow-active {
-      color: #1c2333;
-      opacity: 1;
-    }
-
-    &:hover .arrow-path:not(.arrow-active) {
-      opacity: 0.85;
-    }
-  }
-}
-
-
