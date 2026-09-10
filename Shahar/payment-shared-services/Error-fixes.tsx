@@ -7,7 +7,9 @@
 const selectedLatamIndex = useMemo(() => {
   if (!selectedRowData || !instructionAccounts) return undefined;
   const idx = instructionAccounts.findIndex(
-    (acc) => acc.instructionAccountId === selectedRowData.instructionAccountId
+    (acc) =>
+      acc === selectedRowData ||
+      ((acc as any)?.id != null && (acc as any)?.id === (selectedRowData as any)?.id)
   );
   return idx >= 0 ? idx : undefined;
 }, [instructionAccounts, selectedRowData]);
@@ -16,7 +18,9 @@ const selectedLatamIndex = useMemo(() => {
 const handleNavigateLatamAccount = useCallback((direction: 'prev' | 'next') => {
   if (!selectedRowData || !instructionAccounts || instructionAccounts.length === 0) return;
   const currentIndex = instructionAccounts.findIndex(
-    (acc) => acc.instructionAccountId === selectedRowData.instructionAccountId
+    (acc) =>
+      acc === selectedRowData ||
+      ((acc as any)?.id != null && (acc as any)?.id === (selectedRowData as any)?.id)
   );
   if (currentIndex < 0) return;
 
