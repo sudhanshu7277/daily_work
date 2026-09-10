@@ -75,3 +75,141 @@ const handleNavigateLatamAccount = useCallback((direction: 'prev' | 'next') => {
     }}
   />
 )}
+
+
+
+
+// Step 1: Add the Open Handler
+// In the component containing this Card (or directly in 
+// InstructionDetailPage.tsx near your other handlers):
+
+
+const handleAddPayment = () => {
+  setSelectedRowData(null);
+  setActivePaymentMode('maker');
+  setShowSplitMakerModal(true);
+};
+
+
+
+  // Step 2: Update the Card JSX (Lines 554–559 in image_17.png)
+/// Replace lines 554–559 with:
+
+return (
+  <Card className="lmn-mb-12px">
+    <Card header>
+      <El className="lmn-d-flex lmn-justify-content-between lmn-align-items-center" style={{ width: '100%' }}>
+        <span>Payment Info</span>
+        <Button
+          color="primary"
+          size="sm"
+          onClick={handleAddPayment}
+        >
+          <Icon type="plus" style={{ marginRight: 6 }} /> Add Payment
+        </Button>
+      </El>
+    </Card>
+    <Card body>{content}</Card>
+  </Card>
+);  
+
+
+
+
+
+
+
+
+// POPULATING SSPAYMENT COMPONENT IN A MODAL
+
+
+// Step 1: Manage Modal State and Handler
+// In InstructionDetailPage.tsx:
+
+
+const [showAddPaymentModal, setShowAddPaymentModal] = useState<boolean>(false);
+
+const handleOpenAddPayment = useCallback(() => {
+  setShowAddPaymentModal(true);
+}, []);
+
+const handleCloseAddPayment = useCallback(() => {
+  setShowAddPaymentModal(false);
+}, []);
+
+
+// Step 2: Wire the "Add Payment" Button in the Card Header
+// Update lines 554–559 where the Payment Info <Card> is defined:
+
+
+<Card className="lmn-mb-12px">
+  <Card header>
+    <El className="lmn-d-flex lmn-justify-content-between lmn-align-items-center" style={{ width: '100%' }}>
+      <span style={{ fontWeight: 600, fontSize: 14 }}>Payment Info</span>
+      <El className="lmn-d-flex lmn-align-items-center" style={{ gap: 8 }}>
+        <Button
+          color="primary"
+          size="sm"
+          onClick={handleOpenAddPayment}
+        >
+          <Icon type="plus" style={{ marginRight: 4 }} /> Add Payment
+        </Button>
+      </El>
+    </El>
+  </Card>
+  <Card body>{content}</Card>
+</Card>
+
+
+//Step 3: Mount the Modal with Transparent Background
+// Mount the modal in the modal declaration area (near line 3350+). 
+// Apply custom styles to ensure the backdrop and modal card render 
+// transparently without the default opaque white box:
+
+
+<Modal
+  visible={showAddPaymentModal}
+  onCancel={handleCloseAddPayment}
+  onClose={handleCloseAddPayment}
+  footer={null}
+  closable
+  width="85vw"
+  style={{
+    background: 'transparent',
+    boxShadow: 'none',
+  }}
+  bodyStyle={{
+    background: 'transparent',
+    padding: 0,
+  }}
+  maskStyle={{
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backdropFilter: 'blur(2px)',
+  }}
+>
+  <El
+    style={{
+      background: 'rgba(255, 255, 255, 0.96)',
+      borderRadius: 8,
+      padding: 20,
+      maxHeight: '85vh',
+      overflowY: 'auto',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
+    }}
+  >
+    <PaymentParent
+      mode="maker"
+      initialData={null}
+      hideTabs={false}
+      onPaymentSuccess={(refId?: string, payload?: Pain001Model) => {
+        notification.success({
+          title: 'Payment Created',
+          content: `Payment instruction ${refId || ''} created successfully.`,
+        });
+        setShowAddPaymentModal(false);
+        loadAll();
+      }}
+      onClose={handleCloseAddPayment}
+    />
+  </El>
+</Modal>
