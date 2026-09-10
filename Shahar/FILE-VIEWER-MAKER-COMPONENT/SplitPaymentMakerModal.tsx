@@ -501,20 +501,25 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
     const loadDocument = async () => {
       try {
         if (selectedDocId && typeof getDocumentPreviewBlob === 'function') {
+          const docIdNum = Number(selectedDocId);
           const activeDoc = documents.find((d) => String(d.documentId) === String(selectedDocId));
-          const blob = await getDocumentPreviewBlob(instructionId, selectedDocId);
-          const buffer = await blob.arrayBuffer();
-          const url = URL.createObjectURL(blob);
-          revoked = url;
+          const previewUrl = await getDocumentPreviewBlob(instructionId, docIdNum);
 
           const fileName = activeDoc?.fileName || 'document.pdf';
           const ext = fileName.split('.').pop()?.toLowerCase() || 'pdf';
+          const defaultMime = ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
+          const mimeType = activeDoc?.contentType || defaultMime;
+
+          // Fetch the ArrayBuffer from the URL for NativePdfViewer and SpreadsheetPreview
+          const response = await fetch(previewUrl);
+          const buffer = await response.arrayBuffer();
 
           setSource({
-            url,
+            url: previewUrl,
             buffer,
             fileName,
             fileType: ext,
+            contentType: mimeType,
           });
         } else {
           const file = await getPaymentSourceFile(instructionId);
