@@ -242,3 +242,25 @@ const PaymentInfoCard = ({
 >
   <Icon type="plus" style={{ marginRight: 4 }} /> Add Payment
 </Button>
+
+
+
+// function fix
+
+const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
+  const newIsValid = Boolean(output?.isValid);
+  const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
+
+  setIsCurrentFormValid((prev) => (prev === newIsValid ? prev : newIsValid));
+  setCheckerDualBlindPassed((prev) => (prev === newDualBlind ? prev : newDualBlind));
+
+  if (output?.paymentData) {
+    setCurrentFormPayload((prev) => {
+      // Prevent re-render if payload content hasn't changed
+      if (prev && JSON.stringify(prev) === JSON.stringify(output.paymentData)) {
+        return prev;
+      }
+      return output.paymentData;
+    });
+  }
+}, []);
