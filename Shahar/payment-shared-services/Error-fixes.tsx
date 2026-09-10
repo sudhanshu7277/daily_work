@@ -216,59 +216,29 @@ const handleCloseAddPayment = useCallback(() => {
 
 
 
+// Step 1: Destructure onAddPayment in PaymentInfoCard
+// Scroll up to line 511 where const PaymentInfoCard = 
+// ({ ... }) is declared. Add onAddPayment to the destructured props:
 
 
+const PaymentInfoCard = ({
+  // ... existing props like rows, onEditRow, instruction, etc.
+  onAddPayment,
+}: {
+  // if typed inline:
+  [key: string]: any;
+  onAddPayment?: () => void;
+}) => {
 
-// credit card fiz
+
+  // Step 2: Use onAddPayment on line 567
+//Replace onClick={handleOpenAddPayment} with onClick={onAddPayment}:
 
 
-formatAccountList(accounts: { accountType: string; accountNumber: string }[]): string {
-  const grouped = new Map<string, string[]>();
-
-  if (!Array.isArray(accounts) || accounts.length === 0) {
-    return '';
-  }
-
-  for (const a of accounts) {
-    if (!a) continue;
-
-    const rawType = (a.accountType || '').trim();
-    let type = rawType;
-    let acNumber: string = '';
-
-    // 1. Detect if it is a credit card (whether sent as 'Credit Card', 'MasterCard', 'Visa', etc.)
-    const isCreditCard = /credit\s*card|mastercard|visa/i.test(rawType);
-    const isDebitCard = /debit\s*card/i.test(rawType);
-
-    if (isCreditCard || isDebitCard) {
-      // Normalize label to 'Credit Card' per Figma design
-      if (isCreditCard) {
-        type = 'Credit Card';
-      }
-
-      // 2. Strip all dashes and non-digit characters
-      const digitsOnly = String(a.accountNumber || '').replace(/\D/g, '');
-
-      // 3. Remove system prefix padding (e.g. '0005' or extra leading zeros)
-      let cleanDigits = digitsOnly;
-      if (cleanDigits.length > 16) {
-        cleanDigits = cleanDigits.slice(-16);
-      } else {
-        cleanDigits = cleanDigits.replace(/^0+/, '');
-      }
-
-      // 4. Format into 4-digit hyphenated chunks (XXXX-XXXX-XXXX-XXXX)
-      acNumber = cleanDigits.match(/.{1,4}/g)?.join('-') || cleanDigits;
-    } else {
-      acNumber = this.formatAccountNumbersInText(a.accountNumber);
-    }
-
-    const nums = grouped.get(type) ?? [];
-    nums.push(acNumber);
-    grouped.set(type, nums);
-  }
-
-  return Array.from(grouped.entries())
-    .map(([type, nums]) => `<strong>${type}:</strong> ${nums.join('; ')}`)
-    .join('<br>');
-}
+<Button
+  color="primary"
+  size="sm"
+  onClick={onAddPayment}
+>
+  <Icon type="plus" style={{ marginRight: 4 }} /> Add Payment
+</Button>
