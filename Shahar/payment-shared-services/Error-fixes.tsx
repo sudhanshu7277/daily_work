@@ -67,10 +67,10 @@ const handleNavigateLatamAccount = useCallback((direction: 'prev' | 'next') => {
           }
         : null
     }
-    onPaymentSuccess={(refId: string, payload: Pain001Model) => {
+    onPaymentSuccess={(refId?: string, payload?: Pain001Model) => {
       notification.success({
         title: 'Payment Processed',
-        content: `Payment instruction ${refId} processed successfully.`,
+        content: `Payment instruction ${refId || ''} processed successfully.`,
       });
       setShowSplitMakerModal(false);
       setSelectedRowData(null);
