@@ -1,9 +1,8 @@
-// 1. Handler & Indexing Logic
-// Place this block right before handleEditPaymentAccount 
-// (around line 1374 in InstructionDetailPage.tsx):
+// File 2: Usage in InstructionDetailPage.tsx
+// 1. Add Indexing & Navigation Handler (above line 1399)
 
 
-// Track current active index for record flipping
+// Track active LATAM account row index for record flipping
 const selectedLatamIndex = useMemo(() => {
   if (!selectedRowData || !instructionAccounts) return undefined;
   const idx = instructionAccounts.findIndex(
@@ -33,10 +32,7 @@ const handleNavigateLatamAccount = useCallback((direction: 'prev' | 'next') => {
 
 
 
-
-//2. Modal JSX Mounting
-// Replace the existing non-NAM <SplitPaymentMakerModal> block (lines 3327–3358 
-// in InstructionDetailPage.tsx) with the unified call:
+// 2. Mount Modal in JSX (replacing lines 3356–3392)
 
 
 {instruction && instruction.region !== 'NAM' && (
@@ -46,10 +42,11 @@ const handleNavigateLatamAccount = useCallback((direction: 'prev' | 'next') => {
     mode={activePaymentMode}
     wireIndex={selectedLatamIndex}
     movementAmount={selectedRowData?.amount ? String(selectedRowData.amount) : undefined}
+    documents={Array.isArray(documents) && documents.length > 0 ? documents : (instruction as any)?.documents || []}
     hasPrev={selectedLatamIndex !== undefined && selectedLatamIndex > 0}
     hasNext={selectedLatamIndex !== undefined && selectedLatamIndex < instructionAccounts.length - 1}
-    currentIndex={selectedLatamIndex !== undefined ? selectedLatamIndex + 1 : undefined}
-    totalCount={instructionAccounts.length}
+    currentIndex={selectedLatamIndex !== undefined ? selectedLatamIndex + 1 : 1}
+    totalCount={instructionAccounts?.length || 1}
     onNavigate={handleNavigateLatamAccount}
     onClose={() => {
       setShowSplitMakerModal(false);

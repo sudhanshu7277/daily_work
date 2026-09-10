@@ -345,7 +345,7 @@ const SpreadsheetPreview: FC<SpreadsheetPreviewProps> = ({ buffer, fileType, mov
         </El>
       )}
 
-      {/* Grid View Table */}
+      {/* Sheet Content Grid */}
       <El style={{ flex: 1, overflow: 'auto', padding: 8 }}>
         <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
           <tbody>
@@ -448,7 +448,7 @@ export interface SplitPaymentMakerModalProps {
 }
 
 // =========================================================
-// SPLIT PAYMENT MAKER MODAL
+// SPLIT PAYMENT MAKER MODAL COMPONENT
 // =========================================================
 
 export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
@@ -471,6 +471,8 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
   const [source, setSource] = useState<PaymentSourceFile | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState('');
+  const [loadTrigger, setLoadTrigger] = useState(0);
+
   const [coordinates, setCoordinates] = useState<FieldCoordinate[]>([]);
   const [activeFieldId] = useState<string | null>(null);
   const [scrollToken] = useState(0);
@@ -479,21 +481,23 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<'prev' | 'next' | null>(null);
 
-  // Default selection to PAYMENT_INSTRUCTION or first available attached document
+  // Select initial document: prefer PAYMENT_INSTRUCTION, else first attached document
   useEffect(() => {
     if (!isOpen) return;
     if (documents && documents.length > 0) {
-      const paymentDoc = documents.find((d) => d.documentType === 'PAYMENT_INSTRUCTION');
-      setSelectedDocId(paymentDoc ? paymentDoc.documentId : documents[0].documentId);
+      const preferred = documents.find((d) => d.documentType === 'PAYMENT_INSTRUCTION');
+      setSelectedDocId(preferred ? preferred.documentId : documents[0].documentId);
     } else {
       setSelectedDocId('');
     }
   }, [isOpen, documents]);
 
-  // Document Fetcher: Loads selected attached document or falls back to DMC payment source
+  // Load document buffer dynamically with error termination
   useEffect(() => {
     if (!isOpen) return;
     let revoked: string | null = null;
+    let isMounted = true;
+
     setSource(null);
     setSourceError('');
     setSourceLoading(true);
@@ -510,37 +514,54 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
           const defaultMime = ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
           const mimeType = activeDoc?.contentType || defaultMime;
 
-          // Fetch the ArrayBuffer from the URL for NativePdfViewer and SpreadsheetPreview
           const response = await fetch(previewUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to load document content (${response.status})`);
+          }
           const buffer = await response.arrayBuffer();
 
-          setSource({
-            url: previewUrl,
-            buffer,
-            fileName,
-            fileType: ext,
-            contentType: mimeType,
-          });
+          if (isMounted) {
+            setSource({
+              url: previewUrl,
+              buffer,
+              fileName,
+              fileType: ext,
+              contentType: mimeType,
+            });
+          }
         } else {
           const file = await getPaymentSourceFile(instructionId);
-          revoked = file.url;
-          setSource(file);
+          if (file && file.url) {
+            revoked = file.url;
+            if (isMounted) setSource(file);
+          } else {
+            throw new Error('No source document returned for this instruction.');
+          }
         }
-      } catch (err) {
-        setSourceError(err instanceof Error ? err.message : 'Failed to load source document');
+      } catch (err: any) {
+        if (isMounted) {
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Unable to load document from DMC.';
+          setSourceError(msg);
+        }
       } finally {
-        setSourceLoading(false);
+        if (isMounted) {
+          setSourceLoading(false);
+        }
       }
     };
 
     loadDocument();
 
     return () => {
+      isMounted = false;
       if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, [isOpen, instructionId, selectedDocId, documents]);
+  }, [isOpen, instructionId, selectedDocId, documents, loadTrigger]);
 
-  // Fetch Bounding Box Coordinates
+  // Fetch extraction coordinates
   useEffect(() => {
     if (!isOpen) {
       setCoordinates([]);
@@ -553,7 +574,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
 
   const pdfFields = useMemo(() => toCapturedFields(coordinates, wireIndex), [coordinates, wireIndex]);
 
-  // Record Navigation Callbacks
+  // Navigation callbacks
   const requestNavigation = useCallback((direction: 'prev' | 'next') => {
     if (isDirty) {
       setPendingNavigation(direction);
@@ -569,7 +590,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
     if (direction) onNavigate?.(direction);
   }, [pendingNavigation, onNavigate]);
 
-  // Document Pane Content Resolver (Matching lines 1258-1293 of VerifyPaymentDetailModal)
+  // Document Pane Content Resolver
   const documentContent = useMemo(() => {
     if (sourceLoading) {
       return (
@@ -582,10 +603,19 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
       return (
         <El
           className="lmn-d-flex lmn-flex-column lmn-align-items-center lmn-justify-content-center"
-          style={{ height: '100%', color: '#e74c3c', padding: 16, textAlign: 'center' }}
+          style={{ height: '100%', color: '#666', padding: 24, textAlign: 'center', gap: 12 }}
         >
-          <Icon type="alert-circle" style={{ fontSize: 24, marginBottom: 8 }} />
-          <span>{sourceError}</span>
+          <Icon type="alert-circle" style={{ fontSize: 36, color: '#e74c3c' }} />
+          <El style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>Preview Unavailable</El>
+          <El style={{ fontSize: 12, color: '#888', maxWidth: 320 }}>{sourceError}</El>
+          <Button
+            color="outline"
+            size="sm"
+            onClick={() => setLoadTrigger((prev) => prev + 1)}
+            style={{ marginTop: 4 }}
+          >
+            <Icon type="refresh" style={{ marginRight: 6 }} /> Retry
+          </Button>
         </El>
       );
     }
@@ -643,9 +673,9 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
         width="92vw"
         footer={null}
       >
-        {/* Main Body Split Columns */}
+        {/* Split Left & Right Columns */}
         <El className="lmn-d-flex" style={{ gap: 16, alignItems: 'stretch', minHeight: '74vh' }}>
-          {/* Left Column: Document Pane (Matching lines 1319-1335) */}
+          {/* Left Column: Document Pane */}
           <El
             style={{
               flex: '0 0 46%',
@@ -659,7 +689,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
               background: '#fff',
             }}
           >
-            {/* Top-Left Document Selection Bar */}
+            {/* Top-Left Document Dropdown Selection Bar */}
             {documents && documents.length > 0 && (
               <El
                 className="lmn-d-flex lmn-align-items-center"
@@ -675,7 +705,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
                 <Dropdown
                   value={String(selectedDocId)}
                   onChange={(val: unknown) => setSelectedDocId(String(val))}
-                  style={{ flex: 1, maxWidth: 280 }}
+                  style={{ flex: 1, maxWidth: 300 }}
                 >
                   {documents.map((doc) => (
                     <Dropdown.Item key={String(doc.documentId)} value={String(doc.documentId)}>
@@ -686,13 +716,13 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
               </El>
             )}
 
-            {/* Document Render Canvas */}
+            {/* Document Render Area */}
             <El style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
               {documentContent}
             </El>
           </El>
 
-          {/* Right Column: PaymentParent ISO 20022 Form Engine */}
+          {/* Right Column: Custom PaymentParent ISO 20022 Engine */}
           <El
             style={{
               flex: 1,
@@ -715,8 +745,8 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
           </El>
         </El>
 
-        {/* Global Bottom-Center Record Flipping Bar (Matching lines 1445-1472) */}
-        {onNavigate && totalCount != null && totalCount > 1 && (
+        {/* Global Bottom-Center Record Flipping Bar */}
+        {onNavigate && (
           <El
             className="lmn-d-flex lmn-align-items-center"
             style={{
@@ -725,6 +755,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
               marginTop: 14,
               paddingTop: 10,
               borderTop: '1px solid #e0e0e0',
+              background: '#fff',
             }}
           >
             <Button
@@ -738,11 +769,9 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
               <Icon type="left-double" /> Previous Payment
             </Button>
 
-            {currentIndex != null && (
-              <El style={{ fontSize: 12, fontWeight: 600, margin: '0 8px' }}>
-                {currentIndex} / {totalCount}
-              </El>
-            )}
+            <El style={{ fontSize: 12, fontWeight: 600, margin: '0 8px', color: '#333' }}>
+              {currentIndex != null ? currentIndex : 1} / {totalCount != null ? totalCount : 1}
+            </El>
 
             <Button
               color="outline"
@@ -758,7 +787,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
         )}
       </Modal>
 
-      {/* Discard Confirmation Dialog (Matching lines 1475-1487) */}
+      {/* Discard Confirmation Dialog */}
       <Modal
         visible={pendingNavigation !== null}
         type="confirm"
