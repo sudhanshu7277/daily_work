@@ -1,13 +1,11 @@
-// UPDATED CODE SplitPaymentMakerModal
-
-
 import React, { FC, useState, useEffect, useMemo, useCallback } from 'react';
-import { Modal, El, Loading, Icon, Input, Button } from '@citi-icg-172888/icgds-react';
+import { Modal, El, Loading, Icon, Input, Button, Dropdown } from '@citi-icg-172888/icgds-react';
 import * as XLSX from 'xlsx';
 
 import NativePdfViewer from '../documentViewer/NativePdfViewer';
 import type { CapturedField } from '../../types/documentViewer';
 import { getPaymentSourceFile, getPaymentCoordinates } from '../../api/paymentDetails';
+import { getDocumentPreviewBlob } from '../../api/documents';
 import type { PaymentSourceFile, FieldCoordinate } from '../../api/paymentDetails';
 import type { Pain001Model } from '@citi-icg-179025/payment-flow-reactjs-ui-lib';
 
@@ -155,7 +153,7 @@ const SpreadsheetPreview: FC<SpreadsheetPreviewProps> = ({ buffer, fileType, mov
         setActiveSheet(book.SheetNames[0] ?? '');
       }
     } catch (e) {
-      if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to parse file');
+      if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to parse spreadsheet');
     } finally {
       if (!cancelled) setLoading(false);
     }
@@ -347,7 +345,7 @@ const SpreadsheetPreview: FC<SpreadsheetPreviewProps> = ({ buffer, fileType, mov
         </El>
       )}
 
-      {/* Grid Table */}
+      {/* Grid View Table */}
       <El style={{ flex: 1, overflow: 'auto', padding: 8 }}>
         <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
           <tbody>
@@ -421,8 +419,16 @@ export function toCapturedFields(
 }
 
 // =========================================================
-// LATAM SPLIT PAYMENT MODAL
+// COMPONENT PROPS
 // =========================================================
+
+export interface InstructionDoc {
+  documentId: string | number;
+  fileName: string;
+  documentType?: string;
+  contentType?: string;
+  [key: string]: any;
+}
 
 export interface SplitPaymentMakerModalProps {
   isOpen: boolean;
@@ -430,6 +436,7 @@ export interface SplitPaymentMakerModalProps {
   mode?: 'maker' | 'checker' | 'repair' | 'super-checker';
   wireIndex?: number;
   movementAmount?: string;
+  documents?: InstructionDoc[];
   initialData?: any;
   hasPrev?: boolean;
   hasNext?: boolean;
@@ -440,12 +447,17 @@ export interface SplitPaymentMakerModalProps {
   onPaymentSuccess?: (refId?: string, payload?: Pain001Model) => void;
 }
 
+// =========================================================
+// SPLIT PAYMENT MAKER MODAL
+// =========================================================
+
 export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
   isOpen,
   instructionId,
   mode = 'maker',
   wireIndex,
   movementAmount,
+  documents = [],
   initialData,
   hasPrev = false,
   hasNext = false,
@@ -455,6 +467,7 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
   onClose,
   onPaymentSuccess,
 }) => {
+  const [selectedDocId, setSelectedDocId] = useState<string | number>('');
   const [source, setSource] = useState<PaymentSourceFile | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState('');
@@ -466,7 +479,18 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<'prev' | 'next' | null>(null);
 
-  // 1. Ingest Raw Document from DMC
+  // Default selection to PAYMENT_INSTRUCTION or first available attached document
+  useEffect(() => {
+    if (!isOpen) return;
+    if (documents && documents.length > 0) {
+      const paymentDoc = documents.find((d) => d.documentType === 'PAYMENT_INSTRUCTION');
+      setSelectedDocId(paymentDoc ? paymentDoc.documentId : documents[0].documentId);
+    } else {
+      setSelectedDocId('');
+    }
+  }, [isOpen, documents]);
+
+  // Document Fetcher: Loads selected attached document or falls back to DMC payment source
   useEffect(() => {
     if (!isOpen) return;
     let revoked: string | null = null;
@@ -474,22 +498,44 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
     setSourceError('');
     setSourceLoading(true);
 
-    getPaymentSourceFile(instructionId)
-      .then((file) => {
-        revoked = file.url;
-        setSource(file);
-      })
-      .catch((err) => {
-        setSourceError(err instanceof Error ? err.message : 'Failed to load source file');
-      })
-      .finally(() => setSourceLoading(false));
+    const loadDocument = async () => {
+      try {
+        if (selectedDocId && typeof getDocumentPreviewBlob === 'function') {
+          const activeDoc = documents.find((d) => String(d.documentId) === String(selectedDocId));
+          const blob = await getDocumentPreviewBlob(instructionId, selectedDocId);
+          const buffer = await blob.arrayBuffer();
+          const url = URL.createObjectURL(blob);
+          revoked = url;
+
+          const fileName = activeDoc?.fileName || 'document.pdf';
+          const ext = fileName.split('.').pop()?.toLowerCase() || 'pdf';
+
+          setSource({
+            url,
+            buffer,
+            fileName,
+            fileType: ext,
+          });
+        } else {
+          const file = await getPaymentSourceFile(instructionId);
+          revoked = file.url;
+          setSource(file);
+        }
+      } catch (err) {
+        setSourceError(err instanceof Error ? err.message : 'Failed to load source document');
+      } finally {
+        setSourceLoading(false);
+      }
+    };
+
+    loadDocument();
 
     return () => {
       if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, [isOpen, instructionId]);
+  }, [isOpen, instructionId, selectedDocId, documents]);
 
-  // 2. Ingest Extraction Coordinates
+  // Fetch Bounding Box Coordinates
   useEffect(() => {
     if (!isOpen) {
       setCoordinates([]);
@@ -518,8 +564,8 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
     if (direction) onNavigate?.(direction);
   }, [pendingNavigation, onNavigate]);
 
-  // Document Pane Resolver
-  const documentPane = useMemo(() => {
+  // Document Pane Content Resolver (Matching lines 1258-1293 of VerifyPaymentDetailModal)
+  const documentContent = useMemo(() => {
     if (sourceLoading) {
       return (
         <El className="lmn-d-flex lmn-align-items-center lmn-justify-content-center" style={{ height: '100%' }}>
@@ -530,10 +576,11 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
     if (sourceError) {
       return (
         <El
-          className="lmn-d-flex lmn-align-items-center lmn-justify-content-center"
+          className="lmn-d-flex lmn-flex-column lmn-align-items-center lmn-justify-content-center"
           style={{ height: '100%', color: '#e74c3c', padding: 16, textAlign: 'center' }}
         >
-          {sourceError}
+          <Icon type="alert-circle" style={{ fontSize: 24, marginBottom: 8 }} />
+          <span>{sourceError}</span>
         </El>
       );
     }
@@ -588,103 +635,125 @@ export const SplitPaymentMakerModal: FC<SplitPaymentMakerModalProps> = ({
         visible={isOpen}
         onCancel={onClose}
         title="Payment Verification & Authorization"
-        width="90vw"
+        width="92vw"
         footer={null}
       >
-        <El className="lmn-d-flex" style={{ gap: 16, alignItems: 'flex-start' }}>
-          {/* Left Pane: Document Viewer */}
+        {/* Main Body Split Columns */}
+        <El className="lmn-d-flex" style={{ gap: 16, alignItems: 'stretch', minHeight: '74vh' }}>
+          {/* Left Column: Document Pane (Matching lines 1319-1335) */}
           <El
             style={{
               flex: '0 0 46%',
-              position: 'sticky',
-              top: 0,
-              alignSelf: 'flex-start',
+              display: 'flex',
+              flexDirection: 'column',
               minWidth: 0,
-              height: '72vh',
+              height: '74vh',
               border: '1px solid var(--lmn-border-color, #e0e0e0)',
               borderRadius: 4,
-              overflow: 'visible',
+              overflow: 'hidden',
               background: '#fff',
             }}
           >
-            {documentPane}
+            {/* Top-Left Document Selection Bar */}
+            {documents && documents.length > 0 && (
+              <El
+                className="lmn-d-flex lmn-align-items-center"
+                style={{
+                  padding: '6px 12px',
+                  background: '#f5f7fa',
+                  borderBottom: '1px solid #e0e0e0',
+                  gap: 8,
+                }}
+              >
+                <Icon type="file-text" style={{ color: '#00247D', fontSize: 14 }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>Document:</span>
+                <Dropdown
+                  value={String(selectedDocId)}
+                  onChange={(val: unknown) => setSelectedDocId(String(val))}
+                  style={{ flex: 1, maxWidth: 280 }}
+                >
+                  {documents.map((doc) => (
+                    <Dropdown.Item key={String(doc.documentId)} value={String(doc.documentId)}>
+                      {doc.fileName} {doc.documentType ? `(${doc.documentType})` : ''}
+                    </Dropdown.Item>
+                  ))}
+                </Dropdown>
+              </El>
+            )}
+
+            {/* Document Render Canvas */}
+            <El style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              {documentContent}
+            </El>
           </El>
 
-          {/* Right Pane: PaymentParent ISO 20022 Engine */}
+          {/* Right Column: PaymentParent ISO 20022 Form Engine */}
           <El
             style={{
               flex: 1,
               minWidth: 0,
-              maxHeight: '72vh',
+              height: '74vh',
               overflowY: 'auto',
               overflowX: 'hidden',
               padding: '0 8px',
               boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column',
             }}
           >
-            <El style={{ flex: 1 }}>
-              <PaymentParent
-                mode={mode}
-                initialData={initialData}
-                hideTabs={false}
-                onDirtyChange={(dirty: boolean) => setIsDirty(dirty)}
-                onPaymentSuccess={onPaymentSuccess}
-                onClose={onClose}
-              />
-            </El>
-
-            {/* Bottom Record Flipping Bar */}
-            {onNavigate && totalCount != null && totalCount > 1 && (
-              <El
-                className="lmn-d-flex lmn-align-items-center"
-                style={{
-                  justifyContent: 'center',
-                  gap: 8,
-                  marginTop: 12,
-                  paddingTop: 8,
-                  borderTop: '1px solid #e0e0e0',
-                  background: '#fff',
-                  position: 'sticky',
-                  bottom: 0,
-                  zIndex: 2,
-                }}
-              >
-                <Button
-                  color="outline"
-                  size="sm"
-                  aria-label="Previous Payment"
-                  title="Previous Payment"
-                  disabled={!hasPrev}
-                  onClick={() => requestNavigation('prev')}
-                >
-                  <Icon type="left-double" /> Previous Payment
-                </Button>
-
-                {currentIndex != null && (
-                  <El style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', margin: '0 8px' }}>
-                    {currentIndex} / {totalCount}
-                  </El>
-                )}
-
-                <Button
-                  color="outline"
-                  size="sm"
-                  aria-label="Next Payment"
-                  title="Next Payment"
-                  disabled={!hasNext}
-                  onClick={() => requestNavigation('next')}
-                >
-                  Next Payment <Icon type="right-double" />
-                </Button>
-              </El>
-            )}
+            <PaymentParent
+              mode={mode}
+              initialData={initialData}
+              hideTabs={false}
+              onDirtyChange={(dirty: boolean) => setIsDirty(dirty)}
+              onPaymentSuccess={onPaymentSuccess}
+              onClose={onClose}
+            />
           </El>
         </El>
+
+        {/* Global Bottom-Center Record Flipping Bar (Matching lines 1445-1472) */}
+        {onNavigate && totalCount != null && totalCount > 1 && (
+          <El
+            className="lmn-d-flex lmn-align-items-center"
+            style={{
+              justifyContent: 'center',
+              gap: 12,
+              marginTop: 14,
+              paddingTop: 10,
+              borderTop: '1px solid #e0e0e0',
+            }}
+          >
+            <Button
+              color="outline"
+              size="sm"
+              aria-label="Previous Payment"
+              title="Previous Payment"
+              disabled={!hasPrev}
+              onClick={() => requestNavigation('prev')}
+            >
+              <Icon type="left-double" /> Previous Payment
+            </Button>
+
+            {currentIndex != null && (
+              <El style={{ fontSize: 12, fontWeight: 600, margin: '0 8px' }}>
+                {currentIndex} / {totalCount}
+              </El>
+            )}
+
+            <Button
+              color="outline"
+              size="sm"
+              aria-label="Next Payment"
+              title="Next Payment"
+              disabled={!hasNext}
+              onClick={() => requestNavigation('next')}
+            >
+              Next Payment <Icon type="right-double" />
+            </Button>
+          </El>
+        )}
       </Modal>
 
-      {/* Discard Confirmation Dialog */}
+      {/* Discard Confirmation Dialog (Matching lines 1475-1487) */}
       <Modal
         visible={pendingNavigation !== null}
         type="confirm"
