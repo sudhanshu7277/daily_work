@@ -264,3 +264,8 @@ const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
     });
   }
 }, []);
+
+
+// end point gab backend server
+
+const endpoint = '/nextgengab/api/api/v1/gab/payments/createMakerPayment';
