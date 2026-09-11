@@ -269,3 +269,66 @@ const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
 // end point gab backend server
 
 const endpoint = '/nextgengab/api/api/v1/gab/payments/createMakerPayment';
+
+
+
+// Step 1: Fix Dropdown Selection & Label in SplitPaymentMakerModal.tsx
+// Find the <Dropdown> block (inside the top-left document selection bar) 
+// and update it to track the selected document label properly and capture selection:
+
+{/* Top-Left Document Selection Bar */}
+{documents && documents.length > 0 && (
+  <El
+    className="lmn-d-flex lmn-align-items-center"
+    style={{
+      padding: '6px 12px',
+      background: '#f5f7fa',
+      borderBottom: '1px solid #e0e0e0',
+      gap: 8,
+    }}
+  >
+    <Icon type="file-text" style={{ color: '#00247D', fontSize: 14 }} />
+    <span style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>Document:</span>
+    <Dropdown
+      style={{ flex: 1, maxWidth: 320 }}
+      value={String(selectedDocId)}
+      onChange={(val: any) => {
+        // Handle both primitive value or object payload from ICGDS Dropdown
+        const nextId = typeof val === 'object' && val !== null ? val.value ?? val.key : val;
+        if (nextId != null) {
+          setSelectedDocId(String(nextId));
+        }
+      }}
+    >
+      {documents.map((doc) => {
+        const docIdStr = String(doc.documentId);
+        const label = `${doc.fileName || 'Document'} ${doc.documentType ? `(${doc.documentType})` : ''}`;
+        return (
+          <Dropdown.Item key={docIdStr} value={docIdStr}>
+            {label}
+          </Dropdown.Item>
+        );
+      })}
+    </Dropdown>
+  </El>
+)}
+
+
+// Step 2: Handle Non-PDF/Text Previews (.txt)
+// Looking at image 32 and 34, the file is Test#xyz99&261125#1.txt 
+// (a plain text file). Currently, documentContent only handles .pdf and spreadsheets 
+// (.xlsx, .xls, .csv), rendering unsupported for anything else.
+
+// Add .txt support and decode text directly from the ArrayBuffer:
+
+
+if (source.fileType === 'txt' || source.contentType?.includes('text/plain')) {
+  const text = new TextDecoder('utf-8').decode(source.buffer);
+  return (
+    <El style={{ height: '100%', overflow: 'auto', padding: 16, background: '#fff' }}>
+      <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        {text}
+      </pre>
+    </El>
+  );
+}
