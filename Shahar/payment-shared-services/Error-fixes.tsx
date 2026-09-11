@@ -43,3 +43,44 @@ const stableInitialPaymentModel = useMemo(() => {
 
 paymentModel: stableInitialPaymentModel,
 
+
+
+
+/// pagination fixes
+
+
+private buildPageNumbers(): (number | '...')[] {
+  const t = this.totalPages;
+  const c = this.currentPage;
+  if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1);
+
+  const pages: (number | '...')[] = [];
+
+  if (c <= 4) {
+    // Near start: 1, 2, 3, 4, 5, ..., lastPage
+    for (let i = 1; i <= 5; i++) {
+      pages.push(i);
+    }
+    pages.push('...');
+    pages.push(t);
+  } else if (c >= t - 3) {
+    // Near end: 1, ..., lastPage-4, lastPage-3, lastPage-2, lastPage-1, lastPage
+    pages.push(1);
+    pages.push('...');
+    for (let i = t - 4; i <= t; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Middle sliding window: 1, ..., c-1, c, c+1, ..., lastPage
+    pages.push(1);
+    pages.push('...');
+    for (let i = c - 1; i <= c + 1; i++) {
+      pages.push(i);
+    }
+    pages.push('...');
+    pages.push(t);
+  }
+
+  return pages;
+}
+
