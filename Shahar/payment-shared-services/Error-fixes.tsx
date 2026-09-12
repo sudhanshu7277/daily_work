@@ -1,62 +1,87 @@
-// 1. multi-level-customer-grid.component.ts
-/// Locate syncHeaderCheckbox() (starting at line 298). Replace the method with:
+// File: name-renderers.component.ts
+// In name-renderers.component.ts, look at the styles block for 
+// NameCellComponent (lines 48–83 in your screenshots).
 
-private syncHeaderCheckbox(): void {
-  const nodes = this.allNodes();
-  if (!nodes.length) return;
+// Replace lines 48–83 with:
 
-  const sel = nodes.filter(n => n._selected).length;
-  const state: 'none' | 'some' | 'all' = sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
 
-  if (this.columnDefs && this.columnDefs[0]?.headerComponentParams) {
-    this.columnDefs[0].headerComponentParams.state = state;
-  }
+:host {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
 
-  if (this.gridApi) {
-    this.gridApi.refreshHeader();
-  }
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.cb-wrap {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 2px;
+}
+
+.cb-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1.5px solid #96a6b4;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+.cb-wrap:hover .cb-box { border-color: #0079C1; }
+.cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
+
+.name-text {
+  color: #0079C1;
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.name-text--parent {
+  font-weight: 600;
 }
 
 
-//2. name-renderers.component.ts
-//In NameHeaderComponent (lines 275–282), add change detection 
-// inside the existing refresh hook so the header icon repaints 
-// when this.gridApi.refreshHeader() is called:
+// File: multi-level-customer-grid.component.scss
+// Add these rules to lock the cell bounds so row selection and checkbox 
+// toggling cannot expand the column width:
 
-refresh(p: any): boolean {
-  this.params = p;
-  this.state = p.state ?? 'none';
-  this.showCheckbox = p.showCheckbox ?? true;
-  this.cdr.detectChanges();
-  return true;
+/* Keep Profile Name cell bound strictly to its column box */
+.ag-cell[col-id="profileName"] {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
 }
 
-
-// 3. Verification of multi-level-grid.config.ts
-// Ensure your baseline configuration for profileName remains intact:
-
-{
-  field: 'profileName',
-  headerName: 'Profile Name',
-  sortable: true,
-  minWidth: 170,
-  width: 170,
-  flex: 2,
-  headerComponent: NameHeaderComponent,
-  headerComponentParams: {
-    onSelectAll: onHeaderCheckClick,
-    state: 'none'
-  },
-  cellRenderer: NameCellComponent,
-  cellRendererParams: {
-    onCheck: onCheckboxClick,
-    onToggle: toggleExpand
-  },
-  cellStyle: {
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis'
-  }
-},
+/* Ensure AG Grid's selection highlight class does not alter box-sizing or dimensions */
+.ag-row-selected .ag-cell[col-id="profileName"] {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
