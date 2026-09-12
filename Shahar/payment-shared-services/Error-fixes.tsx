@@ -1,17 +1,11 @@
-// 1. In multi-level-customer-grid.component.ts
-// Locate syncHeaderCheckbox() (around line 298 in Image 23):
+//Lines 304–310 update this.columnDefs[0].headerComponentParams and then call:
 
-// Check what follows line 304. If you have:
+this.gridApi.setGridOption('columnDefs', this.columnDefs);
 
 
-this.columnDefs[0].headerComponentParams.state = state;
-this.gridApi.setGridOption('columnDefs', this.columnDefs); // <-- THIS LINE TRIGGERS THE EXPANSION
+// Replace the syncHeaderCheckbox method with:
 
-// or:
 
-this.gridApi.setColumnDefs(this.columnDefs);
-
-// Replace that redraw call by refreshing the header directly without touching the column definitions:
 
 private syncHeaderCheckbox(): void {
   const nodes = this.allNodes();
@@ -20,43 +14,32 @@ private syncHeaderCheckbox(): void {
   const sel = nodes.filter(n => n._selected).length;
   const state: 'none' | 'some' | 'all' = sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
 
-  // Update the state property in params
   if (this.columnDefs && this.columnDefs[0]?.headerComponentParams) {
     this.columnDefs[0].headerComponentParams.state = state;
   }
 
-  // Refresh ONLY the header cells, NOT the column layout or widths
   if (this.gridApi) {
+    // 1. Snapshot the exact current column widths and positions
+    const savedColState = this.gridApi.getColumnState();
+
+    // 2. Refresh only the header component cells without recalculating grid flex layout
     this.gridApi.refreshHeader();
-  }
-}
 
-//2. In multi-level-customer-grid.component.ts (if columnDefs must be reset)
-// If your architecture requires updating column definitions via 
-// setGridOption, capture and restore the column state so widths remain 
-// identical before and after the click:
-
-private syncHeaderCheckbox(): void {
-  const nodes = this.allNodes();
-  if (!nodes.length) return;
-
-  const sel = nodes.filter(n => n._selected).length;
-  const state: 'none' | 'some' | 'all' = sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
-
-  if (this.gridApi) {
-    // 1. Capture exact pixel widths prior to updating header state
-    const colState = this.gridApi.getColumnState();
-
-    if (this.columnDefs && this.columnDefs[0]?.headerComponentParams) {
-      this.columnDefs[0].headerComponentParams.state = state;
+    // 3. Fallback: if your custom header renderer requires setGridOption to pick up state,
+    // restore the exact snapshot so widths cannot shift or expand:
+    if (this.columnDefs) {
+      this.gridApi.setGridOption('columnDefs', this.columnDefs);
+      this.gridApi.applyColumnState({ state: savedColState, applyOrder: false });
     }
-
-    // 2. Refresh header without letting flex reset widths
-    this.gridApi.refreshHeader();
-
-    // If setGridOption('columnDefs') was strictly needed:
-    // this.gridApi.setGridOption('columnDefs', [...this.columnDefs]);
-    // this.gridApi.applyColumnState({ state: colState, applyOrder: false });
   }
 }
 
+// In name-renderers.component.ts
+// Ensure the header component updates its icon when refreshHeader() 
+// fires. In NameHeaderComponent, implement or update refresh(params: any): boolean:
+
+refresh(params: any): boolean {
+  this.params = params;
+  this.state = params.state ?? 'none';
+  return true; // Tells AG Grid the custom header refreshed successfully in place
+}
