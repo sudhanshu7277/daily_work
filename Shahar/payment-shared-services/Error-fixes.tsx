@@ -99,34 +99,35 @@ private buildPageNumbers(): (number | '…')[] {
 // 170 while using a dynamic cellStyle callback:
 
 
-field: 'profileName',
-    headerName: 'Profile Name',
-    sortable: true,
-    minWidth: 170,
-    width: 170,
-    flex: 1,
-    headerComponent: NameHeaderComponent,
-    headerComponentParams: {
-      onSelectAll: onHeaderCheckClick,
-      state: 'none'
-    },
-    cellRenderer: NameCellComponent,
-    cellRendererParams: {
-      onCheck: onCheckboxClick,
-      onToggle: toggleExpand
-    },
-    cellStyle: (params) => {
-      const level = (params.data as any)?._level ?? 0;
-      return {
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: '4px',
-        paddingRight: '8px',
-        overflow: 'hidden',
-        minWidth: `${170 + level * 20}px`
-      };
-    },
-
+{
+  field: 'profileName',
+  headerName: 'Profile Name',
+  sortable: true,
+  minWidth: 170,
+  width: 170,
+  flex: 1,
+  headerComponent: NameHeaderComponent,
+  headerComponentParams: {
+    onSelectAll: onHeaderCheckClick,
+    state: 'none'
+  },
+  cellRenderer: NameCellComponent,
+  cellRendererParams: {
+    onCheck: onCheckboxClick,
+    onToggle: toggleExpand
+  },
+  cellStyle: (params) => {
+    const level = (params.data as any)?._level ?? 0;
+    return {
+      display: 'flex',
+      alignItems: 'center',
+      paddingLeft: '4px',
+      paddingRight: '8px',
+      overflow: 'hidden',
+      minWidth: `${170 + level * 20}px`
+    };
+  }
+},
 
     // File 2: name-renderers.component.ts
 // In NameCellComponent styles (around lines 48–74), 
