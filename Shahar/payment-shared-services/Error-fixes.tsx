@@ -1,11 +1,5 @@
-//Lines 304–310 update this.columnDefs[0].headerComponentParams and then call:
-
-this.gridApi.setGridOption('columnDefs', this.columnDefs);
-
-
-// Replace the syncHeaderCheckbox method with:
-
-
+// 1. multi-level-customer-grid.component.ts
+/// Locate syncHeaderCheckbox() (starting at line 298). Replace the method with:
 
 private syncHeaderCheckbox(): void {
   const nodes = this.allNodes();
@@ -19,27 +13,50 @@ private syncHeaderCheckbox(): void {
   }
 
   if (this.gridApi) {
-    // 1. Snapshot the exact current column widths and positions
-    const savedColState = this.gridApi.getColumnState();
-
-    // 2. Refresh only the header component cells without recalculating grid flex layout
     this.gridApi.refreshHeader();
-
-    // 3. Fallback: if your custom header renderer requires setGridOption to pick up state,
-    // restore the exact snapshot so widths cannot shift or expand:
-    if (this.columnDefs) {
-      this.gridApi.setGridOption('columnDefs', this.columnDefs);
-      this.gridApi.applyColumnState({ state: savedColState, applyOrder: false });
-    }
   }
 }
 
-// In name-renderers.component.ts
-// Ensure the header component updates its icon when refreshHeader() 
-// fires. In NameHeaderComponent, implement or update refresh(params: any): boolean:
 
-refresh(params: any): boolean {
-  this.params = params;
-  this.state = params.state ?? 'none';
-  return true; // Tells AG Grid the custom header refreshed successfully in place
+//2. name-renderers.component.ts
+//In NameHeaderComponent (lines 275–282), add change detection 
+// inside the existing refresh hook so the header icon repaints 
+// when this.gridApi.refreshHeader() is called:
+
+refresh(p: any): boolean {
+  this.params = p;
+  this.state = p.state ?? 'none';
+  this.showCheckbox = p.showCheckbox ?? true;
+  this.cdr.detectChanges();
+  return true;
 }
+
+
+// 3. Verification of multi-level-grid.config.ts
+// Ensure your baseline configuration for profileName remains intact:
+
+{
+  field: 'profileName',
+  headerName: 'Profile Name',
+  sortable: true,
+  minWidth: 170,
+  width: 170,
+  flex: 2,
+  headerComponent: NameHeaderComponent,
+  headerComponentParams: {
+    onSelectAll: onHeaderCheckClick,
+    state: 'none'
+  },
+  cellRenderer: NameCellComponent,
+  cellRendererParams: {
+    onCheck: onCheckboxClick,
+    onToggle: toggleExpand
+  },
+  cellStyle: {
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis'
+  }
+},
