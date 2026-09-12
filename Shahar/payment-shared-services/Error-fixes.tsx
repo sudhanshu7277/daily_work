@@ -1,5 +1,7 @@
-// 1. multi-level-grid.config.ts
-// Replace the entire profileName column definition (lines 69–93) with this configuration:
+//1. In multi-level-grid.config.ts
+// Keep your exact 3 properties (minWidth: 170, width: 170, 
+// flex: 2), but add maxWidth and proper cell style 
+// constraints so AG-Grid's flex: 2 cannot expand excessively upon selection:
 
 {
   field: 'profileName',
@@ -7,7 +9,8 @@
   sortable: true,
   minWidth: 170,
   width: 170,
-  suppressSizeToFit: true,
+  flex: 2,
+  maxWidth: 380, // Dynamic ceiling: lets flex: 2 expand naturally, but stops excessive ballooning on selection
   headerComponent: NameHeaderComponent,
   headerComponentParams: {
     onSelectAll: onHeaderCheckClick,
@@ -26,11 +29,13 @@
   }
 },
 
+  // 2. In name-renderers.component.ts
+// The reason multi-level deep items (level 1, 2, 3) 
+// were either spilling over Proxy OCIF ID or getting cut down to 
+// Dou... at 170px is that the inner flex items did not 
+// allow shrinkage and truncation inside indented containers.
 
-// 2. name-renderers.component.ts
-// In NameCellComponent, update the component @Component({ styles: [...] })
-//  block (around lines 48–74) to enforce containment and graceful ellipsis 
-// truncation for deep indentation levels:
+// Update NameCellComponent styles (lines 48–74):
 
 
 :host {
@@ -51,6 +56,7 @@
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .name-text {
@@ -62,26 +68,26 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 0; // Essential: allows text to shrink and show ellipsis instead of forcing the container wide
 }
 
 
-// 3. multi-level-customer-grid-component.scss
-// Ensure AG-Grid's selection layer does not mutate column bounds or allow overflow:
+//3. In multi-level-customer-grid-component.scss
+// Add this rule to lock the cell container to AG-Grid’s 
+// layout track so row selection never causes geometry shifting:
 
-/* Constrain Profile Name cell boundaries strictly to the column width */
+
 .ag-cell[col-id="profileName"] {
   display: flex !important;
   align-items: center !important;
   overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
   box-sizing: border-box !important;
 }
 
-/* Ensure row selection does not trigger layout recalculation */
+/* Ensure selected rows do not trigger horizontal reflows */
 .ag-row.ag-row-selected {
   .ag-cell[col-id="profileName"] {
     overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 }
