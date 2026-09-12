@@ -85,3 +85,95 @@ private buildPageNumbers(): (number | '…')[] {
   return pages;
 }
 
+
+
+
+
+// File 1: multi-level-grid.config.ts
+// Lines 70–92 in image_31.png show the conflicting settings: 
+// flex: 2 forces the column to stretch dynamically across r
+// emaining container space, while overflow: 'hidden' and whiteSpace:
+//  'nowrap' clip the content when nested indents push the text out.
+
+// Update the definition to maintain minWidth: 170 and width: 
+// 170 while using a dynamic cellStyle callback:
+
+
+field: 'profileName',
+    headerName: 'Profile Name',
+    sortable: true,
+    minWidth: 170,
+    width: 170,
+    flex: 1,
+    headerComponent: NameHeaderComponent,
+    headerComponentParams: {
+      onSelectAll: onHeaderCheckClick,
+      state: 'none'
+    },
+    cellRenderer: NameCellComponent,
+    cellRendererParams: {
+      onCheck: onCheckboxClick,
+      onToggle: toggleExpand
+    },
+    cellStyle: (params) => {
+      const level = (params.data as any)?._level ?? 0;
+      return {
+        display: 'flex',
+        alignItems: 'center',
+        paddingLeft: '4px',
+        paddingRight: '8px',
+        overflow: 'hidden',
+        minWidth: `${170 + level * 20}px`
+      };
+    },
+
+
+    // File 2: name-renderers.component.ts
+// In NameCellComponent styles (around lines 48–74), 
+// ensure the inner container adapts to the dynamic cell 
+// width and allows long names to fit properly:
+
+
+:host {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.name-text {
+  color: #0079c1;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+
+// File 3: multi-level-customer-grid.component.scss
+// Add this rule to prevent the selection highlight 
+// layer in AG Grid from altering cell bounding boxes:
+
+
+.ag-cell[col-id="profileName"] {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.ag-row.ag-row-selected .ag-cell[col-id="profileName"] {
+  width: auto;
+}
