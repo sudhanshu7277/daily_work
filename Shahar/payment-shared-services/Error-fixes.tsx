@@ -1,48 +1,43 @@
-// 1. In multi-level-customer-grid.component.ts
-// Lines 305–315 snapshot the current column widths before setting 
-// columnDefs, and immediately restore them via applyColumnState. This prevents AG Grid from expanding the column when the checkbox state updates.
+// In multi-level-customer-grid.component.ts, update onCheckboxClick:
 
-// Replace lines 305–315 with:
+onCheckboxClick(uid: string): void {
+  const found = this.findNode(uid);
+  if (!found) return;
+  const { node } = found;
+  node._selected = !node._selected;
 
-cellStyle: (params) => {
-  const level = params.data?._level ?? 0;
-  // Conditional ternary operator targeting non-indented (0) and 1-level indented (1) records:
-  const isShallow = level <= 1;
-
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
-    boxSizing: 'border-box',
-    maxWidth: isShallow ? '100%' : 'none'
-  };
-},
-
-// 2. In multi-level-customer-grid.component.ts (syncHeaderCheckbox(), lines 305–316)
-// In image_31.png, replace lines 305–316:
-
-if (this.columnDefs[0]) {
-  this.columnDefs = [
-    {
-      ...this.columnDefs[0],
-      headerComponentParams: { ...this.columnDefs[0].headerComponentParams, state }
-    },
-    ...this.columnDefs.slice(1)
-  ];
-
-  if (this.gridApi) {
-    // Snapshot the current pixel widths of all columns before updating definitions
-    const colState = this.gridApi.getColumnState();
-
-    this.gridApi.setGridOption('columnDefs', this.columnDefs);
-
-    // Immediately restore exact column widths so flex: 2 cannot expand Profile Name on check/uncheck
-    this.gridApi.applyColumnState({
-      state: colState.map(c => ({ colId: c.colId, width: c.width })),
-      applyOrder: false
-    });
+  const children = this.getChildren(node);
+  if (node._isParent && children.length) {
+    this.setDescendantsSelected(children, node._selected);
   }
+
+  this.refresh();
+  this.emitSelected();
+
+  // Re-apply auto-sizing just like toggleExpand and onGridReady do
+  setTimeout(() => {
+    this.gridApi?.autoSizeColumns(['profileName'], false);
+  });
 }
 
+
+// And in onHeaderCheckClick (lines 546–558 in image_38.png):
+
+onHeaderCheckClick(): void {
+  const all = this.allNodes();
+  if (!all.length) return;
+  const areAllSelected = all.every(n => n._selected);
+  const shouldSelect = !areAllSelected;
+  all.forEach(node => {
+    node._selected = shouldSelect;
+  });
+
+  this.refresh();
+  this.syncHeaderCheckbox();
+  this.emitSelected();
+
+  // Re-apply auto-sizing so header select-all does not blow out the column width
+  setTimeout(() => {
+    this.gridApi?.autoSizeColumns(['profileName'], false);
+  });
+}
