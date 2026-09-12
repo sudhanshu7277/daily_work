@@ -1,7 +1,54 @@
-// The Complete Fix for PaymentParent.tsx
-// Step 1: Map fields from output.paymentData instead of activeSubmittedTransaction.payload
-// In lines 285–365 of PaymentParent.tsx:
+// File 1: src/pages/ss-payment/PaymentParent.tsx
+// Replace the dynamicPaymentInput, handlePaymentOutput, and 
+// handleMakerSubmit blocks (lines 249–375) with the following stabilized code:
 
+
+// 1. Stabilize the initial payment model reference so it doesn't re-create every render
+const stableInitialPaymentModel = useMemo(() => {
+  return initialData ? { ...createEmptyPain001(), ...initialData } : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [initialData?.debtorAccountNumber, initialData?.instructedAmount]);
+
+// 2. Stabilize dynamicPaymentInput to stop the top-down re-render cascade
+const dynamicPaymentInput: PaymentComponentInput = useMemo(() => {
+  switch (activeTab) {
+    case 'repair':
+      return {
+        applicationName: 'ADR',
+        applicationModule: 'ADR',
+        currency: initialData?.instructedAmountCurrencyCode ?? 'USD',
+        paymentMode: 'repair',
+        dualBlindKeyFlag: 'N',
+        paymentModel: stableInitialPaymentModel,
+      };
+    case 'checker':
+      return {
+        applicationName: 'ADR',
+        applicationModule: 'ADR',
+        currency: initialData?.instructedAmountCurrencyCode ?? 'USD',
+        paymentMode: 'checker',
+        dualBlindKeyFlag: 'Y',
+        paymentModel: stableInitialPaymentModel,
+      };
+    default:
+      return {
+        applicationName: 'ADR',
+        applicationModule: 'ADR',
+        currency: initialData?.instructedAmountCurrencyCode ?? 'USD',
+        paymentMode: 'maker',
+        dualBlindKeyFlag: 'N',
+        paymentModel: stableInitialPaymentModel,
+      };
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [
+  activeTab,
+  stableInitialPaymentModel,
+  activeSubmittedTransaction?.id,
+  repairReviewFieldList,
+]);
+
+// 3. Output handler with pData extraction, JSON guard, and TypeScript cast
 const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
   const newValid = Boolean(output?.isValid);
   const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
@@ -12,9 +59,8 @@ const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
   const pData: any = output?.paymentData;
   if (!pData) return;
 
-  // Build payload reading directly from live form output (pData)
   const makerSSPaymentPayload = {
-    txndId: instructionId && String(instructionId),
+    txndId: instructionId ? String(instructionId) : undefined,
     maker: currentUserId || 'SS71872',
     paymentDetailsRequest: {
       requestedExecutionDate: pData.requestedExecutionDate || pData.valueDate || '',
@@ -88,44 +134,145 @@ const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
     duplicateInputDataModel: {},
   };
 
-  setCurrentFormPayload((prev) => {
+  setCurrentFormPayload((prev: any) => {
     if (prev && JSON.stringify(prev) === JSON.stringify(makerSSPaymentPayload)) {
       return prev;
     }
     console.log('makerSSPaymentPayload line 360 :', makerSSPaymentPayload);
-    return makerSSPaymentPayload;
+    return makerSSPaymentPayload as any;
   });
 }, [currentUserId, instructionId]);
 
+// 4. API Submit function targeting the correct proxied backend endpoint
+const handleMakerSubmit = async (overrideDuplicate = false) => {
+  if (!currentFormPayload || !isCurrentFormValid) return;
+  setIsSubmitting(true);
 
-// Step 2: Stabilize dynamicPaymentInput in PaymentParent.tsx
-// Lines 267–273 in image_40.png are recreating dynamicPaymentInput 
-// whenever initialData changes reference.
+  const endpoint = '/nextgengab/api/api/v1/gab/payments/createMakerPayment';
 
-// Change its dependency array from [activeTab, initialData, ...] 
-// to depend only on primitive fields:
+  const payload = {
+    ...currentFormPayload,
+    loginUser: soeId || currentUserId || 'SS71872',
+    overrideDuplicateFlag: overrideDuplicate ? 'Y' : 'N',
+  };
 
-const dynamicPaymentInput: PaymentComponentInput = useMemo(() => {
-  // your existing switch block
-  switch (activeTab) {
-    // ...
-    default:
-      return {
-        applicationName: 'ADR',
-        applicationModule: 'ADR',
-        currency: initialData?.instructedAmountCurrencyCode ?? 'USD',
-        paymentMode: 'maker',
-        dualBlindKeyFlag: 'N',
-        paymentModel: initialData ? { ...createEmptyPain001(), ...initialData } : null,
-      };
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        SOEID: soeId || currentUserId || 'SS71872',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || `Submission failed with status ${res.status}`);
+    }
+
+    const data = await res.json();
+    onPaymentSuccess?.(data?.referenceId || data?.paymentId, payload);
+    onClose?.();
+  } catch (err: any) {
+    console.error('Submission failed:', err);
+  } finally {
+    setIsSubmitting(false);
   }
-// Stabilize dependencies so this DOES NOT recalculate on every parent render
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [
-  activeTab, 
-  initialData?.debtorAccountNumber, 
-  initialData?.instructedAmount, 
-  initialData?.instructedAmountCurrencyCode,
-  activeSubmittedTransaction?.id,
-  repairReviewFieldList
-]);
+};
+
+
+// File 2: src/pages/instructions/InstructionDetailPage.tsx
+// Ensure the hook declarations are inside InstructionDetailPage 
+// (around line 876) and wired to PaymentInfoCard and the Modal:
+
+// 1. Inside InstructionDetailPage() Component Body
+
+
+export default function InstructionDetailPage() {
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState<boolean>(false);
+
+  const handleOpenAddPayment = useCallback(() => {
+    setShowAddPaymentModal(true);
+  }, []);
+
+  const handleCloseAddPayment = useCallback(() => {
+    setShowAddPaymentModal(false);
+  }, []);
+
+  // ... existing InstructionDetailPage state
+
+  // 2. Pass onAddPayment to <PaymentInfoCard> (around line 2183)
+
+  <PaymentInfoCard
+  // ... other props
+  onAddPayment={handleOpenAddPayment}
+/>
+
+
+
+// 3. Update PaymentInfoCard Header (lines 557–574)
+
+return (
+  <Card className="lmn-mb-12px">
+    <Card header>
+      <El className="lmn-d-flex lmn-justify-content-between lmn-align-items-center" style={{ width: '100%' }}>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>Payment Info</span>
+        <Button
+          color="primary"
+          size="sm"
+          onClick={onAddPayment}
+        >
+          <Icon type="plus" style={{ marginRight: 4 }} /> Add Payment
+        </Button>
+      </El>
+    </Card>
+    <Card body>{content}</Card>
+  </Card>
+);
+
+// 4. Add Payment Modal Declaration (near line 3460)
+
+
+<Modal
+  visible={showAddPaymentModal}
+  onCancel={handleCloseAddPayment}
+  onClose={handleCloseAddPayment}
+  footer={null}
+  closable
+  width="85vw"
+  style={{
+    background: 'transparent',
+    boxShadow: 'none',
+  }}
+  bodyStyle={{
+    background: 'transparent',
+    padding: 0,
+  }}
+>
+  <El
+    style={{
+      background: 'rgba(255, 255, 255, 0.98)',
+      borderRadius: 8,
+      padding: 24,
+      maxHeight: '82vh',
+      overflowY: 'auto',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+    }}
+  >
+    <PaymentParent
+      mode="maker"
+      initialData={null}
+      hideTabs={false}
+      onPaymentSuccess={(refId?: string) => {
+        notification.success({
+          title: 'Payment Created',
+          content: `Payment instruction ${refId || ''} created successfully.`,
+        });
+        setShowAddPaymentModal(false);
+        loadAll();
+      }}
+      onClose={handleCloseAddPayment}
+    />
+  </El>
+</Modal>
