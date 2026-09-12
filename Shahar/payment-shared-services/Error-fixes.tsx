@@ -31,4 +31,23 @@ const handleFormChange = useCallback((val: any) => {
   onPaymentOutput={handlePaymentOutput}
 />
 
+useEffect(() => {
+  const originalFetch = window.fetch;
 
+  window.fetch = async (...args) => {
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
+    
+    if (url.includes('address-lookup')) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return originalFetch(...args);
+  };
+
+  return () => {
+    window.fetch = originalFetch;
+  };
+}, []);
