@@ -1,45 +1,48 @@
-// In multi-level-grid.config.ts
-// Replace the static cellStyle: { ... } on profileName with a dynamic callback:
+// 1. In multi-level-customer-grid.component.ts
+// Lines 305–315 snapshot the current column widths before setting 
+// columnDefs, and immediately restore them via applyColumnState. This prevents AG Grid from expanding the column when the checkbox state updates.
 
-{
-  field: 'profileName',
-  headerName: 'Profile Name',
-  sortable: true,
-  minWidth: 170,
-  width: 170,
-  flex: 2,
-  headerComponent: NameHeaderComponent,
-  headerComponentParams: {
-    onSelectAll: onHeaderCheckClick,
-    state: 'none'
-  },
-  cellRenderer: NameCellComponent,
-  cellRendererParams: {
-    onCheck: onCheckboxClick,
-    onToggle: toggleExpand
-  },
-  cellStyle: (params) => {
-    const level = params.data?.level ?? params.data?._level ?? 0;
-    
-    // Ternary condition based on indentation level:
-    // Level 0 (flat) & Level 1: strictly cap max-width to prevent selection ballooning
-    // Level > 1 (deep clusters): allow natural flexible width so hierarchy is never squished
-    const maxWidth = (level <= 1) ? '240px' : '100%';
+// Replace lines 305–315 with:
 
-    return {
-      display: 'flex',
-      alignItems: 'center',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      textOverflow: 'ellipsis',
-      maxWidth: maxWidth,
-      boxSizing: 'border-box'
-    };
-  }
+cellStyle: (params) => {
+  const level = params.data?._level ?? 0;
+  // Conditional ternary operator targeting non-indented (0) and 1-level indented (1) records:
+  const isShallow = level <= 1;
+
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    boxSizing: 'border-box',
+    maxWidth: isShallow ? '100%' : 'none'
+  };
 },
 
-// In name-renderers.component.ts, update NameCellComponent (lines 16–17):
+// 2. In multi-level-customer-grid.component.ts (syncHeaderCheckbox(), lines 305–316)
+// In image_31.png, replace lines 305–316:
 
-<div class="name-cell" 
-     [style.padding-left.px]="level * 20"
-     [style.max-width]="level <= 1 ? '240px' : 'none'">
+if (this.columnDefs[0]) {
+  this.columnDefs = [
+    {
+      ...this.columnDefs[0],
+      headerComponentParams: { ...this.columnDefs[0].headerComponentParams, state }
+    },
+    ...this.columnDefs.slice(1)
+  ];
+
+  if (this.gridApi) {
+    // Snapshot the current pixel widths of all columns before updating definitions
+    const colState = this.gridApi.getColumnState();
+
+    this.gridApi.setGridOption('columnDefs', this.columnDefs);
+
+    // Immediately restore exact column widths so flex: 2 cannot expand Profile Name on check/uncheck
+    this.gridApi.applyColumnState({
+      state: colState.map(c => ({ colId: c.colId, width: c.width })),
+      applyOrder: false
+    });
+  }
+}
+
