@@ -1,53 +1,50 @@
-//Step 1: Memoize all callback props passed to <SSPaymentFlow>
-In PaymentParent.tsx, lines 658–668 show multiple inline functions:
+// In PaymentParent.tsx:
+const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
 
+const handleMakerSubmit = async (overrideDuplicate = false) => {
+  const payloadToSubmit = currentFormPayload.current;
+  if (!payloadToSubmit || !isCurrentFormValid) return;
 
-const handleFormChange = useCallback((val: any) => {
-  if (activeTab === 'repair') {
-    setRepairNewlyModifiedFields((prev) => {
-      const changed = Object.keys(val).filter(
-        (k) => val[k] !== (dynamicPaymentInput.paymentModel as any)?.[k]
-      );
-      if (changed.length === 0) return prev;
-      const nextSet = new Set([...prev, ...changed]);
-      return nextSet.size === prev.length ? prev : Array.from(nextSet);
+  setIsSubmitting(true);
+  setSubmitErrorMessage(null);
+
+  const endpoint = '/nextgengab/api/api/v1/gab/payments/createMakerPayment';
+
+  const payload = {
+    ...payloadToSubmit,
+    loginUser: soeId || currentUserId || 'SS71872',
+    overrideDuplicateFlag: overrideDuplicate ? 'Y' : 'N',
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'SOEID': soeId || currentUserId || 'SS71872',
+        'SM_USER': soeId || currentUserId || 'SS71872',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
     });
-  }
-}, [activeTab, dynamicPaymentInput.paymentModel]);
 
+    const data = await res.json().catch(() => ({}));
 
-//And update lines 658–668 to use stable references:
-
-<SSPaymentFlow
-  paymentInput={dynamicPaymentInput}
-  fieldConfig={PARENT_FIELD_CONFIG as any}
-  initialData={activeTab === 'maker' ? (initialData ?? undefined) : undefined}
-  isMakerMode={activeTab === 'maker'}
-  isCheckerMode={activeTab === 'checker'}
-  isRepairMode={activeTab === 'repair'}
-  repairReviewFieldList={activeTab === 'repair' ? repairReviewFieldList : undefined}
-  repairNewlyModifyFieldList={activeTab === 'repair' ? repairNewlyModifiedFields : undefined}
-  onFormChange={handleFormChange}
-  onPaymentOutput={handlePaymentOutput}
-/>
-
-useEffect(() => {
-  const originalFetch = window.fetch;
-
-  window.fetch = async (...args) => {
-    const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
-    
-    if (url.includes('address-lookup')) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!res.ok) {
+      const message =
+        data?.message ||
+        data?.error ||
+        `Submission failed with status ${res.status}: ${res.statusText || 'Forbidden'}`;
+      throw new Error(message);
     }
 
-    return originalFetch(...args);
-  };
-
-  return () => {
-    window.fetch = originalFetch;
-  };
-}, []);
+    onPaymentSuccess?.(data?.referenceId || data?.paymentId, payload);
+    onClose?.();
+  } catch (err: any) {
+    console.error('Submission failed:', err);
+    // Display error modal directly to user
+    setSubmitErrorMessage(err.message || 'Payment submission failed. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
