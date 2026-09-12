@@ -1,87 +1,56 @@
-// File: name-renderers.component.ts
-// In name-renderers.component.ts, look at the styles block for 
-// NameCellComponent (lines 48–83 in your screenshots).
+// 1. multi-level-grid.config.ts
+// In your profileName column definition, add suppressSizeToFit: true and maxWidth.
 
-// Replace lines 48–83 with:
+// AG Grid's flex: 2 calculates an initial target width, but without maxWidth, clicking a row lets the column grow dynamically to the widest text on screen:
 
-
-:host {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.name-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.cb-wrap {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 2px;
-}
-
-.cb-box {
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
-  border: 1.5px solid #96a6b4;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s, border-color 0.12s;
-  flex-shrink: 0;
-}
-
-.cb-wrap:hover .cb-box { border-color: #0079C1; }
-.cb-box--checked { background: #0079C1 !important; border-color: #0079C1 !important; }
-
-.name-text {
-  color: #0079C1;
-  font-size: 13px;
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.35;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.name-text--parent {
-  font-weight: 600;
-}
+{
+  field: 'profileName',
+  headerName: 'Profile Name',
+  sortable: true,
+  minWidth: 170,
+  width: 170,
+  flex: 2,
+  maxWidth: 260, // Locks the ceiling so clicking/focusing never blows the column wide
+  headerComponent: NameHeaderComponent,
+  headerComponentParams: {
+    onSelectAll: onHeaderCheckClick,
+    state: 'none'
+  },
+  cellRenderer: NameCellComponent,
+  cellRendererParams: {
+    onCheck: onCheckboxClick,
+    onToggle: toggleExpand
+  },
+  cellStyle: {
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis'
+  }
+},
 
 
-// File: multi-level-customer-grid.component.scss
-// Add these rules to lock the cell bounds so row selection and checkbox 
-// toggling cannot expand the column width:
+// 2. multi-level-customer-grid-component.scss
+// When a row is clicked, AG Grid applies .ag-row-focus and .ag-cell-focus. Browsers natively expand flex items if an inner child receives focus unless the cell track has an explicit width constraint matching AG Grid's computed style.
 
-/* Keep Profile Name cell bound strictly to its column box */
+// Add these exact rules to your SCSS file:
+
+/* Prevent AG Grid header and cell tracks from expanding on click/focus */
+.ag-header-cell[col-id="profileName"],
 .ag-cell[col-id="profileName"] {
-  max-width: 100% !important;
+  max-width: 260px !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   box-sizing: border-box !important;
 }
 
-/* Ensure AG Grid's selection highlight class does not alter box-sizing or dimensions */
-.ag-row-selected .ag-cell[col-id="profileName"] {
-  max-width: 100% !important;
-  box-sizing: border-box !important;
+/* Specifically suppress the browser auto-scroll/expansion on focus/selected state */
+.ag-row-selected,
+.ag-row-focus {
+  .ag-cell[col-id="profileName"] {
+    max-width: 260px !important;
+    width: inherit;
+  }
 }
