@@ -1,93 +1,62 @@
-//1. In multi-level-grid.config.ts
-// Keep your exact 3 properties (minWidth: 170, width: 170, 
-// flex: 2), but add maxWidth and proper cell style 
-// constraints so AG-Grid's flex: 2 cannot expand excessively upon selection:
+// 1. In multi-level-customer-grid.component.ts
+// Locate syncHeaderCheckbox() (around line 298 in Image 23):
 
-{
-  field: 'profileName',
-  headerName: 'Profile Name',
-  sortable: true,
-  minWidth: 170,
-  width: 170,
-  flex: 2,
-  maxWidth: 380, // Dynamic ceiling: lets flex: 2 expand naturally, but stops excessive ballooning on selection
-  headerComponent: NameHeaderComponent,
-  headerComponentParams: {
-    onSelectAll: onHeaderCheckClick,
-    state: 'none'
-  },
-  cellRenderer: NameCellComponent,
-  cellRendererParams: {
-    onCheck: onCheckboxClick,
-    onToggle: toggleExpand
-  },
-  cellStyle: {
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-    boxSizing: 'border-box'
+// Check what follows line 304. If you have:
+
+
+this.columnDefs[0].headerComponentParams.state = state;
+this.gridApi.setGridOption('columnDefs', this.columnDefs); // <-- THIS LINE TRIGGERS THE EXPANSION
+
+// or:
+
+this.gridApi.setColumnDefs(this.columnDefs);
+
+// Replace that redraw call by refreshing the header directly without touching the column definitions:
+
+private syncHeaderCheckbox(): void {
+  const nodes = this.allNodes();
+  if (!nodes.length) return;
+
+  const sel = nodes.filter(n => n._selected).length;
+  const state: 'none' | 'some' | 'all' = sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
+
+  // Update the state property in params
+  if (this.columnDefs && this.columnDefs[0]?.headerComponentParams) {
+    this.columnDefs[0].headerComponentParams.state = state;
   }
-},
 
-  // 2. In name-renderers.component.ts
-// The reason multi-level deep items (level 1, 2, 3) 
-// were either spilling over Proxy OCIF ID or getting cut down to 
-// Dou... at 170px is that the inner flex items did not 
-// allow shrinkage and truncation inside indented containers.
-
-// Update NameCellComponent styles (lines 48–74):
-
-
-:host {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.name-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.name-text {
-  color: #0079c1;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1 1 auto;
-  min-width: 0; // Essential: allows text to shrink and show ellipsis instead of forcing the container wide
-}
-
-
-//3. In multi-level-customer-grid-component.scss
-// Add this rule to lock the cell container to AG-Grid’s 
-// layout track so row selection never causes geometry shifting:
-
-
-.ag-cell[col-id="profileName"] {
-  display: flex !important;
-  align-items: center !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-}
-
-/* Ensure selected rows do not trigger horizontal reflows */
-.ag-row.ag-row-selected {
-  .ag-cell[col-id="profileName"] {
-    overflow: hidden !important;
-    box-sizing: border-box !important;
+  // Refresh ONLY the header cells, NOT the column layout or widths
+  if (this.gridApi) {
+    this.gridApi.refreshHeader();
   }
 }
+
+//2. In multi-level-customer-grid.component.ts (if columnDefs must be reset)
+// If your architecture requires updating column definitions via 
+// setGridOption, capture and restore the column state so widths remain 
+// identical before and after the click:
+
+private syncHeaderCheckbox(): void {
+  const nodes = this.allNodes();
+  if (!nodes.length) return;
+
+  const sel = nodes.filter(n => n._selected).length;
+  const state: 'none' | 'some' | 'all' = sel === 0 ? 'none' : sel === nodes.length ? 'all' : 'some';
+
+  if (this.gridApi) {
+    // 1. Capture exact pixel widths prior to updating header state
+    const colState = this.gridApi.getColumnState();
+
+    if (this.columnDefs && this.columnDefs[0]?.headerComponentParams) {
+      this.columnDefs[0].headerComponentParams.state = state;
+    }
+
+    // 2. Refresh header without letting flex reset widths
+    this.gridApi.refreshHeader();
+
+    // If setGridOption('columnDefs') was strictly needed:
+    // this.gridApi.setGridOption('columnDefs', [...this.columnDefs]);
+    // this.gridApi.applyColumnState({ state: colState, applyOrder: false });
+  }
+}
+
