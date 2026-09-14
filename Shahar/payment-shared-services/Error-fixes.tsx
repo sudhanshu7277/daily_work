@@ -1,50 +1,87 @@
-// In PaymentParent.tsx:
-const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
+// Step 1: Update the Status Column in InstructionDetailPage.tsx
+// In InstructionDetailPage.tsx, update lines 385–391 (shown in image 47):
 
-const handleMakerSubmit = async (overrideDuplicate = false) => {
-  const payloadToSubmit = currentFormPayload.current;
-  if (!payloadToSubmit || !isCurrentFormValid) return;
+{
+  headerName: 'Status',
+  colId: 'status',
+  minWidth: 130,
+  sortable: true,
+  filter: true,
+  cellRenderer: () => {
+    return (
+      <StatusTag
+        status={(instruction?.status) as InstructionStatus}
+        region={instruction?.region ?? null}
+      />
+    );
+  },
+},
 
-  setIsSubmitting(true);
-  setSubmitErrorMessage(null);
 
-  const endpoint = '/nextgengab/api/api/v1/gab/payments/createMakerPayment';
+//Step 2: Configure the Yellow Tag Styling for PAYMENT_MAKER
+// In StatusTag.tsx:
 
-  const payload = {
-    ...payloadToSubmit,
-    loginUser: soeId || currentUserId || 'SS71872',
-    overrideDuplicateFlag: overrideDuplicate ? 'Y' : 'N',
-  };
+// Update in StatusTag.tsx (lines 19–29):
 
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'SOEID': soeId || currentUserId || 'SS71872',
-        'SM_USER': soeId || currentUserId || 'SS71872',
-      },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
 
-    const data = await res.json().catch(() => ({}));
+// 1. Remove PAYMENT_MAKER from grey statuses so it gets custom color
+const LATAM_GREY_STATUSES: ReadonlySet<InstructionStatus> = new Set<InstructionStatus>([
+  'PAYMENT_CHECKER',
+  'PAYMENT_REWORK',
+  // 'CALLBACK_VALIDATION',
+]);
 
-    if (!res.ok) {
-      const message =
-        data?.message ||
-        data?.error ||
-        `Submission failed with status ${res.status}: ${res.statusText || 'Forbidden'}`;
-      throw new Error(message);
-    }
-
-    onPaymentSuccess?.(data?.referenceId || data?.paymentId, payload);
-    onClose?.();
-  } catch (err: any) {
-    console.error('Submission failed:', err);
-    // Display error modal directly to user
-    setSubmitErrorMessage(err.message || 'Payment submission failed. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
+// 2. Define the yellow border & background colors in CUSTOM_STATUS_HEX
+const CUSTOM_STATUS_HEX: Partial<Record<InstructionStatus, string>> = {
+  PAYMENT_MAKER: '#D97706',       // Yellow-amber text & border
+  PAYMENT_CHECKER: '#1abc9c',
+  XCEPTOR_RETRY_REQUIRED: '#e84393',
 };
+
+// Update the <Tag> styles in StatusTag.tsx (around lines 54–58):
+// Match the light yellow pill styling from your reference screenshot:
+
+const isPaymentMaker = status === 'PAYMENT_MAKER';
+
+return (
+  <Tag
+    {...(usePresetTagColor ? { color: statusColor(status) } : {})}
+    className={grey ? 'lmn-mx-4px lmn-tag-default' : 'lmn-mx-4px'}
+    style={{
+      display: 'inline-flex',
+      width: 'max-content',
+      padding: '2px 8px',
+      margin: '0 auto',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: 'auto',
+      fontSize: '11px',
+      fontWeight: 500,
+      whiteSpace: 'nowrap',
+      textAlign: 'center',
+      borderRadius: '4px',
+      ...(isPaymentMaker
+        ? {
+            backgroundColor: '#FFFBEB',
+            borderColor: '#F59E0B',
+            color: '#B45309',
+          }
+        : customHex
+        ? {
+            backgroundColor: customHex,
+            borderColor: customHex,
+            color: '#ffffff',
+          }
+        : {}),
+      ...(isAdminRework
+        ? {
+            backgroundColor: '#F19188',
+            borderColor: '#F19188',
+            color: '#1F1F1F',
+          }
+        : {}),
+    }}
+  >
+    {statusLabel(status)}
+  </Tag>
+);
