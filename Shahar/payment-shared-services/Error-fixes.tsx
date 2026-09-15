@@ -1,87 +1,128 @@
-// Step 1: Update the Status Column in InstructionDetailPage.tsx
-// In InstructionDetailPage.tsx, update lines 385–391 (shown in image 47):
+// Step 1: Update PaymentParent.tsx to notify failure
+//Add an onPaymentError prop callback to PaymentParentProps so the parent page catches rejected API calls.
 
-{
-  headerName: 'Status',
-  colId: 'status',
-  minWidth: 130,
-  sortable: true,
-  filter: true,
-  cellRenderer: () => {
-    return (
-      <StatusTag
-        status={(instruction?.status) as InstructionStatus}
-        region={instruction?.region ?? null}
-      />
-    );
-  },
-},
+// In PaymentParentProps interface:
+
+interface PaymentParentProps {
+  // ... existing props
+  onPaymentSuccess?: (refId?: string, payload?: any) => void;
+  onPaymentError?: (errorMessage: string) => void;
+  onClose?: () => void;
+}
 
 
-//Step 2: Configure the Yellow Tag Styling for PAYMENT_MAKER
-// In StatusTag.tsx:
+// In handleMakerSubmit (inside catch):
 
-// Update in StatusTag.tsx (lines 19–29):
+} catch (err: any) {
+  console.error('Submission failed:', err);
+  const msg = err?.message || 'Payment submission failed. Please try again.';
+  onPaymentError?.(msg);
+} finally {
+  setIsSubmitting(false);
+}
 
 
-// 1. Remove PAYMENT_MAKER from grey statuses so it gets custom color
-const LATAM_GREY_STATUSES: ReadonlySet<InstructionStatus> = new Set<InstructionStatus>([
-  'PAYMENT_CHECKER',
-  'PAYMENT_REWORK',
-  // 'CALLBACK_VALIDATION',
-]);
+//Step 2: Add Success/Failure Modal States in InstructionDetailPage.tsx
+// In InstructionDetailPage.tsx, declare states to track the modals (around line 920):
 
-// 2. Define the yellow border & background colors in CUSTOM_STATUS_HEX
-const CUSTOM_STATUS_HEX: Partial<Record<InstructionStatus, string>> = {
-  PAYMENT_MAKER: '#D97706',       // Yellow-amber text & border
-  PAYMENT_CHECKER: '#1abc9c',
-  XCEPTOR_RETRY_REQUIRED: '#e84393',
-};
+const [paymentSuccessInfo, setPaymentSuccessInfo] = useState<{ refId?: string } | null>(null);
+const [paymentErrorInfo, setPaymentErrorInfo] = useState<string | null>(null);
 
-// Update the <Tag> styles in StatusTag.tsx (around lines 54–58):
-// Match the light yellow pill styling from your reference screenshot:
+//Step 3: Wire Callbacks on <PaymentParent> (Lines 3634–3648)
+// Replace the existing onPaymentSuccess block (shown in Image 51) with:
 
-const isPaymentMaker = status === 'PAYMENT_MAKER';
+<PaymentParent
+  mode="maker"
+  instructionId={instructionId}
+  initialData={null}
+  onPaymentSuccess={(refId?: string) => {
+    setShowAddPaymentModal(false);
+    setPaymentSuccessInfo({ refId: refId || 'N/A' });
+    loadAll();
+  }}
+  onPaymentError={(errorMessage: string) => {
+    // Keep or close the payment modal depending on preference, then show error dialog
+    setPaymentErrorInfo(errorMessage);
+  }}
+  onClose={handleCloseAddPayment}
+/>
 
-return (
-  <Tag
-    {...(usePresetTagColor ? { color: statusColor(status) } : {})}
-    className={grey ? 'lmn-mx-4px lmn-tag-default' : 'lmn-mx-4px'}
-    style={{
-      display: 'inline-flex',
-      width: 'max-content',
-      padding: '2px 8px',
-      margin: '0 auto',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: 'auto',
-      fontSize: '11px',
-      fontWeight: 500,
-      whiteSpace: 'nowrap',
-      textAlign: 'center',
-      borderRadius: '4px',
-      ...(isPaymentMaker
-        ? {
-            backgroundColor: '#FFFBEB',
-            borderColor: '#F59E0B',
-            color: '#B45309',
-          }
-        : customHex
-        ? {
-            backgroundColor: customHex,
-            borderColor: customHex,
-            color: '#ffffff',
-          }
-        : {}),
-      ...(isAdminRework
-        ? {
-            backgroundColor: '#F19188',
-            borderColor: '#F19188',
-            color: '#1F1F1F',
-          }
-        : {}),
-    }}
-  >
-    {statusLabel(status)}
-  </Tag>
-);
+
+// Step 4: Render the Success and Failure Modals in InstructionDetailPage.tsx
+// Add these two standard ICGDS <Modal> components right after the showAddPaymentModal 
+// block (around line 3652):
+
+
+{/* Success Modal */}
+<Modal
+  visible={Boolean(paymentSuccessInfo)}
+  title="Payment Instruction Created"
+  closable
+  onClose={() => setPaymentSuccessInfo(null)}
+  onCancel={() => setPaymentSuccessInfo(null)}
+  footer={
+    <El className="lmn-d-flex lmn-justify-content-end">
+      <Button
+        color="primary"
+        onClick={() => setPaymentSuccessInfo(null)}
+      >
+        OK
+      </Button>
+    </El>
+  }
+>
+  <El className="lmn-d-flex lmn-align-items-center" style={{ gap: 16, padding: '12px 0' }}>
+    <Icon type="check-circle" style={{ color: '#2e7d32', fontSize: 32 }} />
+    <El>
+      <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: '#2e7d32' }}>
+        Payment instruction created successfully!
+      </p>
+      <p style={{ margin: '4px 0 0 0', color: '#555', fontSize: 13 }}>
+        Reference ID: <strong>{paymentSuccessInfo?.refId}</strong>
+      </p>
+    </El>
+  </El>
+</Modal>
+
+{/* Failure Modal */}
+<Modal
+  visible={Boolean(paymentErrorInfo)}
+  title="Payment Submission Failed"
+  closable
+  onClose={() => setPaymentErrorInfo(null)}
+  onCancel={() => setPaymentErrorInfo(null)}
+  footer={
+    <El className="lmn-d-flex lmn-justify-content-end">
+      <Button
+        color="danger"
+        onClick={() => setPaymentErrorInfo(null)}
+      >
+        Dismiss
+      </Button>
+    </El>
+  }
+>
+  <El className="lmn-d-flex lmn-align-items-start" style={{ gap: 16, padding: '12px 0' }}>
+    <Icon type="times-circle" style={{ color: '#d32f2f', fontSize: 32, marginTop: 2 }} />
+    <El style={{ flex: 1 }}>
+      <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: '#d32f2f' }}>
+        Unable to process payment instruction
+      </p>
+      <p
+        style={{
+          margin: '8px 0 0 0',
+          fontSize: 12,
+          color: '#333',
+          background: '#fff3f3',
+          border: '1px solid #ffcdd2',
+          padding: '8px 12px',
+          borderRadius: 4,
+          fontFamily: 'monospace',
+          wordBreak: 'break-word',
+        }}
+      >
+        {paymentErrorInfo}
+      </p>
+    </El>
+  </El>
+</Modal>
