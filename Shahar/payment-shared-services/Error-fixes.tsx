@@ -1,109 +1,113 @@
-// 1. Close showAddPaymentModal on Submission Completion
-// Since the submission attempt is finished (and showing the dialog), 
-// close showAddPaymentModal right inside the callbacks so the Payment Maker 
-// modal is dismissed and never traps the screen:
-
-<PaymentParent
-  mode="maker"
-  instructionId={instructionId}
-  initialData={null}
-  onPaymentSuccess={(refId?: string) => {
-    setShowAddPaymentModal(false); // Dismisses payment form
-    setPaymentSuccessInfo({ refId: refId || 'N/A' });
-    loadAll();
-  }}
-  onPaymentError={(errorMessage: string) => {
-    setShowAddPaymentModal(false); // Dismisses payment form
-    setPaymentErrorInfo(errorMessage);
-  }}
-  onClose={handleCloseAddPayment}
-/>
+// 1. Validator Helper Function
+// Place this above PaymentParent (or right above handlePaymentOutput):
 
 
-// 2. Force Top-Level Stacking for the Dialogs
-// To ensure the success/failure dialogs always sit in 
-// front of every other layer, pass wrapClassName with an 
-// explicit high z-index and set the modal style:
+const validateMakerFormDetails = (pData: any): boolean => {
+  if (!pData) return false;
 
-{/* Success Modal */}
-<Modal
-  visible={Boolean(paymentSuccessInfo)}
-  title="Payment Instruction Created"
-  closable
-  wrapClassName="top-priority-modal"
-  style={{ zIndex: 9999 }}
-  onClose={() => setPaymentSuccessInfo(null)}
-  onCancel={() => setPaymentSuccessInfo(null)}
-  footer={
-    <El className="lmn-d-flex lmn-justify-content-end">
-      <Button
-        color="primary"
-        onClick={() => setPaymentSuccessInfo(null)}
-      >
-        OK
-      </Button>
-    </El>
+  // 1. Payment Information (Value Date *, Currency *, Amount *)
+  const hasValueDate = Boolean(pData.requestedExecutionDate || pData.valueDate);
+  const hasCurrency = Boolean(pData.instructedAmountCurrencyCode || pData.currency);
+  const rawAmt = pData.instructedAmount ?? pData.amount;
+  const hasAmount =
+    rawAmt !== '' && rawAmt !== null && rawAmt !== undefined && Number(rawAmt) > 0;
+
+  if (!hasValueDate || !hasCurrency || !hasAmount) return false;
+
+  // 2. Debtor Information (Name *, Account *, Agent BIC *)
+  const hasDebtorName = Boolean(pData.debtorName?.toString().trim());
+  const hasDebtorAccount = Boolean(pData.debtorAccountNumber?.toString().trim());
+  const hasDebtorBIC = Boolean(pData.debtorAgentBIC?.toString().trim());
+
+  if (!hasDebtorName || !hasDebtorAccount || !hasDebtorBIC) return false;
+
+  // 3. Debtor Address Conditional Validation:
+  // If Debtor Address Line 1 has text, Town/City and Country are mandatory.
+  const debtorAddr1 = (
+    pData.debtorAddressLines1 ||
+    pData.debtorAddressLine1 ||
+    pData.debtorAddressLines ||
+    ''
+  ).toString().trim();
+
+  if (debtorAddr1.length > 0) {
+    const hasDebtorTown = Boolean(
+      (pData.debtorTownName || pData.debtorTown || pData.debtorCity)?.toString().trim()
+    );
+    const hasDebtorCountry = Boolean(
+      (pData.debtorCountryCode || pData.debtorCountry)?.toString().trim()
+    );
+
+    if (!hasDebtorTown || !hasDebtorCountry) return false;
   }
->
-  <El className="lmn-d-flex lmn-align-items-center" style={{ gap: 16, padding: '12px 0' }}>
-    <Icon type="check-circle" style={{ color: '#2e7d32', fontSize: 32 }} />
-    <El>
-      <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: '#2e7d32' }}>
-        Payment instruction created successfully!
-      </p>
-      <p style={{ margin: '4px 0 0 0', color: '#555', fontSize: 13 }}>
-        Reference ID: <strong>{paymentSuccessInfo?.refId}</strong>
-      </p>
-    </El>
-  </El>
-</Modal>
 
-{/* Failure Modal */}
-<Modal
-  visible={Boolean(paymentErrorInfo)}
-  title="Payment Submission Failed"
-  closable
-  wrapClassName="top-priority-modal"
-  style={{ zIndex: 9999 }}
-  onClose={() => setPaymentErrorInfo(null)}
-  onCancel={() => setPaymentErrorInfo(null)}
-  footer={
-    <El className="lmn-d-flex lmn-justify-content-end">
-      <Button
-        color="danger"
-        onClick={() => setPaymentErrorInfo(null)}
-      >
-        Dismiss
-      </Button>
-    </El>
-  }
->
-  <El className="lmn-d-flex lmn-align-items-start" style={{ gap: 16, padding: '12px 0' }}>
-    <Icon type="times-circle" style={{ color: '#d32f2f', fontSize: 32, marginTop: 2 }} />
-    <El style={{ flex: 1 }}>
-      <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: '#d32f2f' }}>
-        Unable to process payment instruction
-      </p>
-      <p
-        style={{
-          margin: '8px 0 0 0',
-          fontSize: 12,
-          color: '#333',
-          background: '#fff3f3',
-          border: '1px solid #ffcdd2',
-          padding: '8px 12px',
-          borderRadius: 4,
-          fontFamily: 'monospace',
-          wordBreak: 'break-word',
-        }}
-      >
-        {paymentErrorInfo}
-      </p>
-    </El>
-  </El>
-</Modal>
+  // 4. Beneficiary / Creditor Information (Name *, Account *, Agent BIC *, Agent Bank Name *)
+  const hasCreditorName = Boolean(pData.creditorName?.toString().trim());
+  const hasCreditorAccount = Boolean(
+    (pData.creditorAccount || pData.creditorAccountNumber)?.toString().trim()
+  );
+  const hasCreditorBIC = Boolean(
+    (
+      pData.creditorAgentFinancialInstitutionBIC ||
+      pData.creditorAgentBIC
+    )?.toString().trim()
+  );
+  const hasCreditorBankName = Boolean(
+    (
+      pData.creditorAgentFinancialInstitutionName ||
+      pData.creditorAgentBankName
+    )?.toString().trim()
+  );
 
-.top-priority-modal,
-.top-priority-modal ~ .lmn-modal-backdrop {
-  z-index: 9999 !important;
-}
+  if (!hasCreditorName || !hasCreditorAccount || !hasCreditorBIC || !hasCreditorBankName)
+    return false;
+
+  // 5. Creditor Address Line 1 * (Mandatory with red star)
+  const hasCreditorAddr1 = Boolean(
+    (
+      pData.creditorAddressLines1 ||
+      pData.creditorAddressLine1 ||
+      pData.creditorAddressLines ||
+      ''
+    ).toString().trim()
+  );
+  if (!hasCreditorAddr1) return false;
+
+  // 6. Charge Details (Charge Information *)
+  const hasChargeInfo = Boolean(
+    (pData.chargeBearer || pData.chargeInformation)?.toString().trim()
+  );
+  if (!hasChargeInfo) return false;
+
+  return true;
+};
+
+
+// 2. Updated handlePaymentOutput
+// Replace lines 280–290 with:
+
+const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
+  console.log('checking if form is valid : ', output?.isValid);
+  console.log('checking payload of maker form output : ', output);
+
+  const pData: any = output?.paymentData;
+
+  // Check if form is valid via library OR our mandatory field checks
+  const isFieldsValid = validateMakerFormDetails(pData);
+  const newValid = Boolean(output?.isValid) || isFieldsValid;
+  const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
+
+  setIsCurrentFormValid((prev) => (prev !== newValid ? newValid : prev));
+  setCheckerDualBlindPassed((prev) => (prev !== newDualBlind ? newDualBlind : prev));
+
+  if (!pData) return;
+
+  const makerSSPaymentPayload = {
+    txndId: instructionId_ ? String(instructionId_) : undefined,
+    maker: 'SS71872',
+    paymentDetailsRequest: {
+      requestedExecutionDate: pData.requestedExecutionDate || pData.valueDate || '',
+      debtorName: pData.debtorName || '',
+      source: 'UI',
+      debtorAccountNumber: pData.debtorAccountNumber || '',
+      // ... keep existing mapping lines 299 onwards
