@@ -1,60 +1,48 @@
-// Route onEditRow to open showAddPaymentModal when the instruction is in Maker status:
+const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
+  console.log('checking if form is valid : ', output?.isValid);
+  console.log('checking payload of maker form output : ', output);
 
+  // Trust the library's internal validation directly
+  const newValid = Boolean(output?.isValid);
+  const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
 
-const gridContext = useMemo(() => ({
-  onEditRow: (rowData: any) => {
-    setSelectedRowData(rowData);
+  setIsCurrentFormValid((prev) => (prev !== newValid ? newValid : prev));
+  setCheckerDualBlindPassed((prev) => (prev !== newDualBlind ? newDualBlind : prev));
 
-    // If it's Payment Maker, open the exact same working Maker modal:
-    if (instruction?.status?.toUpperCase() === 'PAYMENT_MAKER') {
-      setShowAddPaymentModal(true);
-    } else {
-      // Checker/Review flows keep split modal
-      setShowSplitMakerModal(true);
-    }
-  },
-}), [instruction?.status]);
+  const pData: any = output?.paymentData;
+  if (!pData) return;
 
-
-// In InstructionDetailPage.tsx (around lines 3634–3650):
-
-// Ensure initialData receives selectedRowData:
-
-
-<Modal
-  visible={showAddPaymentModal}
-  onCancel={() => {
-    setShowAddPaymentModal(false);
-    setSelectedRowData(null);
-  }}
-  onClose={() => {
-    setShowAddPaymentModal(false);
-    setSelectedRowData(null);
-  }}
-  footer={null}
-  width="85vw"
->
-  <PaymentParent
-    mode="maker"
-    instructionId={instructionId}
-    initialData={selectedRowData} // Pre-fills row data when editing
-    onPaymentSuccess={(refId?: string) => {
-      setShowAddPaymentModal(false);
-      setSelectedRowData(null);
-      setPaymentSuccessInfo({ refId: refId || 'N/A' });
-      loadAll();
-    }}
-    onPaymentError={(errorMessage: string) => {
-      setShowAddPaymentModal(false);
-      setSelectedRowData(null);
-      setPaymentErrorInfo(errorMessage);
-    }}
-    onClose={() => {
-      setShowAddPaymentModal(false);
-      setSelectedRowData(null);
-    }}
-  />
-</Modal>
-
-
-context={gridContext}
+  currentFormPayloadRef.current = {
+    txndId: instructionId_ ? String(instructionId_) : undefined,
+    maker: 'SS71872',
+    paymentDetailsRequest: {
+      requestedExecutionDate: pData.requestedExecutionDate || pData.valueDate || '',
+      debtorName: pData.debtorName || '',
+      source: 'UI',
+      debtorAccountNumber: pData.debtorAccountNumber || '',
+      debtorAgentBIC: pData.debtorAgentBIC || '',
+      chargeBearer: pData.chargeBearer || 'DEBT',
+      chargesAmount: pData.chargesAmount || '',
+      chargesAgentBIC: pData.chargesAgentBIC || '',
+      debtorAddressLines1: pData.debtorAddressLines1 || pData.debtorAddressLine1 || '',
+      debtorTownName: pData.debtorTownName || pData.debtorTown || '',
+      debtorCountryCode: pData.debtorCountryCode || pData.debtorCountry || '',
+      instructedAmount: pData.instructedAmount != null ? String(pData.instructedAmount) : '',
+      instructedAmountCurrencyCode: pData.instructedAmountCurrencyCode || pData.currency || 'USD',
+      creditorName: pData.creditorName || '',
+      creditorAccount: pData.creditorAccount || '',
+      creditorAgentFinancialInstitutionBIC: pData.creditorAgentFinancialInstitutionBIC || pData.creditorAgentBIC || '',
+      creditorAgentFinancialInstitutionName: pData.creditorAgentFinancialInstitutionName || pData.creditorAgentBankName || '',
+      creditorAddressLines1: pData.creditorAddressLines1 || pData.creditorAddressLine1 || '',
+      applicationName: 'GAB-LATAM',
+      applicationModule: 'GAB-LATAM',
+      region: 'LATAM',
+      paymentId: pData.paymentId || 'PAY-2024-001',
+    },
+    dupValidityCheckDays: 30,
+    duplicateCheckFieldList: ['debtorAccountNumber', 'instructedAmount'],
+    overrideDuplicate: false,
+    duplicateRefId: '',
+    duplicateInputDataModel: {},
+  };
+}, [instructionId_]);
