@@ -1,53 +1,44 @@
-// 1. Updated Callbacks on <PaymentParent>
-// In InstructionDetailPage.tsx (lines 3634–3648), 
-// leave showAddPaymentModal(true) alone inside both callbacks
-//  so the maker modal stays visible behind the alert:
+// 1. Close showAddPaymentModal on Submission Completion
+// Since the submission attempt is finished (and showing the dialog), 
+// close showAddPaymentModal right inside the callbacks so the Payment Maker 
+// modal is dismissed and never traps the screen:
 
 <PaymentParent
   mode="maker"
   instructionId={instructionId}
   initialData={null}
   onPaymentSuccess={(refId?: string) => {
-    // Keep maker modal visible behind the alert
+    setShowAddPaymentModal(false); // Dismisses payment form
     setPaymentSuccessInfo({ refId: refId || 'N/A' });
     loadAll();
   }}
   onPaymentError={(errorMessage: string) => {
-    // Keep maker modal visible behind the alert
+    setShowAddPaymentModal(false); // Dismisses payment form
     setPaymentErrorInfo(errorMessage);
   }}
   onClose={handleCloseAddPayment}
 />
 
 
-// 2. Success & Failure Modals (Closes Both on Dismiss)
-// Add these modal definitions right after the Add Payment modal. 
-// Setting zIndex={1300} ensures they sit on top of the payment modal, and their 
-// dismiss handlers close both the alert and showAddPaymentModal:
+// 2. Force Top-Level Stacking for the Dialogs
+// To ensure the success/failure dialogs always sit in 
+// front of every other layer, pass wrapClassName with an 
+// explicit high z-index and set the modal style:
 
-{/* Success Modal - Displays on top, closes both on dismissal */}
+{/* Success Modal */}
 <Modal
   visible={Boolean(paymentSuccessInfo)}
   title="Payment Instruction Created"
   closable
-  zIndex={1300}
-  style={{ zIndex: 1300 }}
-  onClose={() => {
-    setPaymentSuccessInfo(null);
-    setShowAddPaymentModal(false);
-  }}
-  onCancel={() => {
-    setPaymentSuccessInfo(null);
-    setShowAddPaymentModal(false);
-  }}
+  wrapClassName="top-priority-modal"
+  style={{ zIndex: 9999 }}
+  onClose={() => setPaymentSuccessInfo(null)}
+  onCancel={() => setPaymentSuccessInfo(null)}
   footer={
     <El className="lmn-d-flex lmn-justify-content-end">
       <Button
         color="primary"
-        onClick={() => {
-          setPaymentSuccessInfo(null);
-          setShowAddPaymentModal(false);
-        }}
+        onClick={() => setPaymentSuccessInfo(null)}
       >
         OK
       </Button>
@@ -67,29 +58,20 @@
   </El>
 </Modal>
 
-{/* Failure Modal - Displays on top, closes both on dismissal */}
+{/* Failure Modal */}
 <Modal
   visible={Boolean(paymentErrorInfo)}
   title="Payment Submission Failed"
   closable
-  zIndex={1300}
-  style={{ zIndex: 1300 }}
-  onClose={() => {
-    setPaymentErrorInfo(null);
-    setShowAddPaymentModal(false);
-  }}
-  onCancel={() => {
-    setPaymentErrorInfo(null);
-    setShowAddPaymentModal(false);
-  }}
+  wrapClassName="top-priority-modal"
+  style={{ zIndex: 9999 }}
+  onClose={() => setPaymentErrorInfo(null)}
+  onCancel={() => setPaymentErrorInfo(null)}
   footer={
     <El className="lmn-d-flex lmn-justify-content-end">
       <Button
         color="danger"
-        onClick={() => {
-          setPaymentErrorInfo(null);
-          setShowAddPaymentModal(false);
-        }}
+        onClick={() => setPaymentErrorInfo(null)}
       >
         Dismiss
       </Button>
@@ -121,4 +103,7 @@
   </El>
 </Modal>
 
-
+.top-priority-modal,
+.top-priority-modal ~ .lmn-modal-backdrop {
+  z-index: 9999 !important;
+}
