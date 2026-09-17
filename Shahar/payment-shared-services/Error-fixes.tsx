@@ -21,7 +21,6 @@ export class SystemStatusService {
 // Wrap next.handle(...) calls with a catchError that flips 
 // isSystemDown(true) whenever a 5xx or network status code (status === 0) occurs.
 
-
 import { Injectable } from '@angular/core';
 import {
   HttpEvent,
@@ -35,7 +34,7 @@ import { catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { MsalService } from '@azure/msal-angular';
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
-import { SystemStatusService } from './services/system-status.service';
+import { SystemStatusService } from '../services/system-status.service';
 
 @Injectable()
 export class AuthTokenInterceptor implements HttpInterceptor {
@@ -46,7 +45,8 @@ export class AuthTokenInterceptor implements HttpInterceptor {
 
   private handleHttpError(error: any): Observable<never> {
     if (error instanceof HttpErrorResponse) {
-      // 0 = network/CORS failure or backend unreachable; >= 500 = internal server/gateway crash
+      // 0 = Server offline / network unreachable / CORS block
+      // >= 500 = Backend gateway or internal server failure
       if (error.status === 0 || error.status >= 500) {
         this.systemStatusService.setSystemDown(true);
       }
@@ -58,14 +58,14 @@ export class AuthTokenInterceptor implements HttpInterceptor {
     // Only attach token if SSO is enabled
     if (!environment.ssoEnabled) {
       return next.handle(req).pipe(
-        catchError(err => this.handleHttpError(err))
+        catchError((err) => this.handleHttpError(err))
       );
     }
 
     // Only attach token for API requests - skip local assets (translations, etc.)
     if (!req.url.startsWith(environment.apiURL)) {
       return next.handle(req).pipe(
-        catchError(err => this.handleHttpError(err))
+        catchError((err) => this.handleHttpError(err))
       );
     }
 
