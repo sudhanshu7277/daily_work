@@ -1,16 +1,10 @@
-// Replace hardcapService.ts with the network implementation 
-// that hits /nextgengab/api/api/v1/gab/hard-cap:
+// Here is the clean implementation with zero hardcoded limits—no defaultLimit, no fallback amounts, and purely relying on the backend response.
 
+// 1. src/pages/ss-payment/services/hardcapService.ts
 
 import { VerifyHardCapRequest, HardcapCheckResponse } from '../types/models';
 
-export interface HardcapServiceConfig {
-  defaultHardcapLimit?: number;
-  timeoutMs?: number;
-}
-
 class HardcapService {
-  private defaultLimit: number = 1000000;
   private requestTimeout: number = 8000;
 
   public async verifyHardCap(
@@ -18,10 +12,13 @@ class HardcapService {
     request: VerifyHardCapRequest
   ): Promise<HardcapCheckResponse> {
     const endpoint = baseUrl.replace(/\/+$/, '');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.requestTimeout);
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
@@ -32,29 +29,25 @@ class HardcapService {
           applicationName: request.applicationName || 'GAB',
           applicationModule: request.applicationModule || 'GAB-LATAM',
         }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timer);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Hardcap endpoint returned status ${response.status}`);
       }
 
       const data = await response.json();
 
       return {
         amountWithinLimit: Boolean(data?.amountWithinLimit),
-        hardCapValue:
-          data?.hardCapValue !== undefined
-            ? Number(data.hardCapValue)
-            : this.defaultLimit,
+        hardCapValue: data?.hardCapValue,
       };
-    } catch (err) {
-      console.warn('[HardcapService] Network request failed:', err);
-      // If the backend call fails, fallback to local validation so the UI doesn't crash to $undefined
-      const amount = Number(request.paymentAmount) || 0;
-      return {
-        amountWithinLimit: amount <= this.defaultLimit,
-        hardCapValue: this.defaultLimit,
-      };
+    } catch (err: any) {
+      clearTimeout(timer);
+      console.error('[HardcapService] Verification failed:', err);
+      throw err;
     }
   }
 }
@@ -63,8 +56,10 @@ export const hardcapService = new HardcapService();
 export default hardcapService;
 
 
-//2. In PaymentParent.tsxCheck line 200 in PaymentParent.tsx. 
-// Ensure handleAmountChange directly calls the service and updates setMakerHardcapResult:  
+// 2. In PaymentParent.tsx
+// In handleAmountChange, catch the error without setting any 
+// fake limit so nothing artificial is passed down:
+
 
 const handleAmountChange = useCallback(
   async ({
@@ -74,8 +69,6 @@ const handleAmountChange = useCallback(
     instructedAmount: number;
     instructedAmountCurrencyCode: string;
   }) => {
-    console.log('>>> handleAmountChange triggered:', instructedAmount, instructedAmountCurrencyCode);
-
     if (!instructedAmount || instructedAmount <= 0) {
       setMakerHardcapResult(null);
       return;
@@ -92,15 +85,13 @@ const handleAmountChange = useCallback(
         }
       );
 
-      console.log('>>> hardcap verification result:', res);
       setMakerHardcapResult(res);
     } catch (err) {
-      console.error('Hardcap API error:', err);
-      setMakerHardcapResult({
-        amountWithinLimit: false,
-        hardCapValue: 1000000,
-      });
+      // Do not inject any default/hardcoded limit
+      setMakerHardcapResult(null);
     }
   },
   []
 );
+
+
