@@ -274,8 +274,6 @@ private handleHttpError(error: any): Observable<never> {
 
 // system failure component
 
-
-
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -286,13 +284,15 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="system-failure-screen">
       <div class="failure-box">
-        <!-- Using root-relative path + inline SVG fallback -->
-        <img 
-          src="/assets/maintenance-xl.svg" 
-          alt="System Error" 
-          class="failure-svg"
-          (error)="onImgError($event)" 
-        />
+        <!-- Direct Inline SVG: 0 HTTP calls required -->
+        <div class="svg-container">
+          <svg width="240" height="200" viewBox="0 0 320 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Paste the inner paths from src/assets/maintenance-xl.svg here -->
+            <g class="illustration-art">
+              <!-- If keeping as image while online, fallback to data-uri or paste the exact <path> tags from maintenance-xl.svg -->
+            </g>
+          </svg>
+        </div>
 
         <p class="failure-text">A system error occurred. Please try again later.</p>
         <button type="button" class="btn-return" (click)="onReturn()">RETURN</button>
@@ -322,7 +322,7 @@ import { CommonModule } from '@angular/common';
       text-align: center;
       max-width: 440px;
     }
-    .failure-svg {
+    .svg-container {
       width: 240px;
       height: auto;
       margin-bottom: 24px;
@@ -344,7 +344,6 @@ import { CommonModule } from '@angular/common';
       font-weight: 600;
       letter-spacing: 0.5px;
       cursor: pointer;
-      transition: background-color 0.2s ease;
     }
     .btn-return:hover {
       background-color: #005a91;
@@ -355,24 +354,4 @@ export class SystemFailureComponent {
   onReturn(): void {
     window.location.reload();
   }
-
-  onImgError(event: Event): void {
-    // If the browser blocked network fetching the file while offline,
-    // ensure the broken image icon doesn't show
-    (event.target as HTMLElement).style.display = 'none';
-  }
-}
-
-
-// Step 3: Remove "Manage Legal Hold" Title When Error is Shown
-// In legal-hold-shell.component.html (or wherever <h3>Manage Legal Hold</h3> 
-// is located), wrap the shell content and title inside @if (!systemStatus.isSystemDown()):
-
-@if (!systemStatus.isSystemDown()) {
-  <div class="legal-hold-header">
-    <h2>Manage Legal Hold</h2>
-  </div>
-  <!-- search and grid components -->
-} @else {
-  <app-system-failure></app-system-failure>
 }
