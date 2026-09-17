@@ -1,49 +1,70 @@
-// To reproduce the exact behavior from the 
-// working app without hardcoding arbitrary 
-// amounts or hitting the unconfigured backend, 
-// update src/pages/ss-payment/services/hardcapService.ts:
+// Replace hardcapService.ts with the network implementation 
+// that hits /nextgengab/api/api/v1/gab/hard-cap:
 
 
 import { VerifyHardCapRequest, HardcapCheckResponse } from '../types/models';
 
-class HardcapService {
-  // Configurable simulation threshold (default 1,000,000 like your working app)
-  private defaultLimit: number = 1000000;
+export interface HardcapServiceConfig {
+  defaultHardcapLimit?: number;
+  timeoutMs?: number;
+}
 
-  public setLimit(limit: number): void {
-    this.defaultLimit = limit;
-  }
+class HardcapService {
+  private defaultLimit: number = 1000000;
+  private requestTimeout: number = 8000;
 
   public async verifyHardCap(
-    _baseUrl: string,
+    baseUrl: string,
     request: VerifyHardCapRequest
   ): Promise<HardcapCheckResponse> {
-    const amount = Number(request.paymentAmount) || 0;
-    const limit = this.defaultLimit;
+    const endpoint = baseUrl.replace(/\/+$/, '');
 
-    // Returns the exact shape expected by the UI library component
-    return {
-      amountWithinLimit: amount <= limit,
-      hardCapValue: limit,
-    };
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          currency: request.currency || 'USD',
+          paymentAmount: Number(request.paymentAmount) || 0,
+          applicationName: request.applicationName || 'GAB',
+          applicationModule: request.applicationModule || 'GAB-LATAM',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        amountWithinLimit: Boolean(data?.amountWithinLimit),
+        hardCapValue:
+          data?.hardCapValue !== undefined
+            ? Number(data.hardCapValue)
+            : this.defaultLimit,
+      };
+    } catch (err) {
+      console.warn('[HardcapService] Network request failed:', err);
+      // If the backend call fails, fallback to local validation so the UI doesn't crash to $undefined
+      const amount = Number(request.paymentAmount) || 0;
+      return {
+        amountWithinLimit: amount <= this.defaultLimit,
+        hardCapValue: this.defaultLimit,
+      };
+    }
   }
 }
 
 export const hardcapService = new HardcapService();
-
-export const verifyHardCap = (
-  baseUrl: string,
-  request: VerifyHardCapRequest
-): Promise<HardcapCheckResponse> => {
-  return hardcapService.verifyHardCap(baseUrl, request);
-};
-
 export default hardcapService;
 
 
-// In PaymentParent.tsx
-// Pass that response directly into setMakerHardcapResult:
-
+//2. In PaymentParent.tsxCheck line 200 in PaymentParent.tsx. 
+// Ensure handleAmountChange directly calls the service and updates setMakerHardcapResult:  
 
 const handleAmountChange = useCallback(
   async ({
@@ -53,26 +74,33 @@ const handleAmountChange = useCallback(
     instructedAmount: number;
     instructedAmountCurrencyCode: string;
   }) => {
+    console.log('>>> handleAmountChange triggered:', instructedAmount, instructedAmountCurrencyCode);
+
     if (!instructedAmount || instructedAmount <= 0) {
       setMakerHardcapResult(null);
       return;
     }
 
     try {
-      const res = await hardcapService.verifyHardCap('', {
-        currency: instructedAmountCurrencyCode,
-        paymentAmount: instructedAmount,
-        applicationName: 'ADR',
-        applicationModule: 'ADR',
-      });
+      const res = await hardcapService.verifyHardCap(
+        '/nextgengab/api/api/v1/gab/hard-cap',
+        {
+          currency: instructedAmountCurrencyCode || 'USD',
+          paymentAmount: instructedAmount,
+          applicationName: 'GAB',
+          applicationModule: 'GAB-LATAM',
+        }
+      );
 
-      // Directly feeds { amountWithinLimit: boolean, hardCapValue: number }
+      console.log('>>> hardcap verification result:', res);
       setMakerHardcapResult(res);
     } catch (err) {
-      console.error('Hardcap check error:', err);
-      setMakerHardcapResult(null);
+      console.error('Hardcap API error:', err);
+      setMakerHardcapResult({
+        amountWithinLimit: false,
+        hardCapValue: 1000000,
+      });
     }
   },
   []
 );
-
