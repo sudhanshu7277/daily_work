@@ -93,11 +93,6 @@ build: {
 },
 
 
-rm -rf node_modules/.vite
-npm run dev -- --force
-
-
-
 
 server: {
   port: 3002,
