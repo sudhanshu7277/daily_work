@@ -95,3 +95,18 @@ build: {
 
 rm -rf node_modules/.vite
 npm run dev -- --force
+
+
+
+
+server: {
+  port: 3002,
+  proxy: {
+    '/nextgengab/api': {
+      target: 'http://localhost:8080',
+      changeOrigin: true,
+      secure: false,
+      rewrite: (path) => path.replace(/^\/nextgengab\/api/, ''),
+    },
+  },
+},
