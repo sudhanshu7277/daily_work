@@ -71,3 +71,27 @@ const data = await res.json();
     setIsSubmitting(false);
   }
 };
+
+
+
+
+//Update lines 96–100 in vite.config.ts to include optimizeDeps and build:   
+
+esbuild: {
+  target: 'esnext',
+},
+optimizeDeps: {
+  esbuildOptions: {
+    target: 'esnext',
+    supported: {
+      'top-level-await': true,
+    },
+  },
+},
+build: {
+  target: 'esnext',
+},
+
+
+rm -rf node_modules/.vite
+npm run dev -- --force
