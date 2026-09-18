@@ -93,13 +93,18 @@ build: {
 },
 
 
-
 server: {
   port: 3002,
   proxy: {
+    '/nextgengab/api/api': {
+      target: 'http://localhost:8080',
+      changeOrigin: true,
+      rewrite: (path) => path.replace('/nextgengab/api/api', '/api'),
+    },
     '/nextgengab/api': {
       target: 'http://localhost:8080',
       changeOrigin: true,
+      rewrite: (path) => path.replace('/nextgengab/api', '/api'),
     },
-  }
+  },
 },
