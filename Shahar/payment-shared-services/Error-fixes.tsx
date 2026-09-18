@@ -96,15 +96,16 @@ build: {
 server: {
   port: 3002,
   proxy: {
+    // Collapses the duplicate /api/api down to single /api
     '/nextgengab/api/api': {
       target: 'http://localhost:8080',
       changeOrigin: true,
-      rewrite: (path) => path.replace('/nextgengab/api/api', '/api'),
+      rewrite: (path) => path.replace('/nextgengab/api/api', '/nextgengab/api'),
     },
+    // Standard /nextgengab/api requests pass directly to Spring Boot as-is
     '/nextgengab/api': {
       target: 'http://localhost:8080',
       changeOrigin: true,
-      rewrite: (path) => path.replace('/nextgengab/api', '/api'),
     },
   },
 },
