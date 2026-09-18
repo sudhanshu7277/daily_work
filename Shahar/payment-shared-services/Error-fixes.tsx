@@ -1,81 +1,65 @@
-// 1. API Service Function
-// Add this function to your payment service file (or create 
-// it alongside createMakerPayment):
+// 1. The Helper Function
+// Place this above handleMakerSubmit (around line ~440 in PaymentParent.tsx):
 
-export interface PaymentDetailsForActionPayload {
-  application: string;
-  module: string;
-  action: string;
-  checker: string;
-  dualBlindlyModel: any | null;
-}
 
-export const submitPaymentDetailsForAction = async (
-  payload?: Partial<PaymentDetailsForActionPayload>
-) => {
-  const requestBody: PaymentDetailsForActionPayload = {
-    application: 'GAB',
-    module: 'GAB-LATAM',
-    action: payload?.action || 'APPROVED',
-    checker: payload?.checker || '',
-    dualBlindlyModel: payload?.dualBlindlyModel ?? null,
-  };
+/**
+ * Fetches post-submission details-for-action list.
+ * Returns an array of action detail objects.
+ */
+const fetchDetailsForAction = async (): Promise<any[]> => {
+  const endpoint = '/nextgengab/api/api/v1/gab/payments/payment/details-for-action';
 
-  const response = await fetch(
-    '/shared-services/api/payment/api/payments/payment/details-for-action',
-    {
+  try {
+    const res = await fetch(endpoint, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        SOEID: 'SS71872',
       },
-      body: JSON.stringify(requestBody),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `details-for-action failed with status ${response.status}`
-    );
-  }
-
-  return response.json();
-};
-
-
-// 2. Integration in PaymentParent.tsx
-// Trigger the new API call immediately after createMakerPayment succeeds:
-
-
-const handleMakerSubmit = async (isDraft: boolean = false) => {
-  try {
-    setIsSubmitting(true);
-
-    // 1. Submit primary maker payment
-    const response = await createMakerPayment(currentFormPayloadRef.current);
-
-    // 2. Call details-for-action
-    try {
-      await submitPaymentDetailsForAction({
+      body: JSON.stringify({
         application: 'GAB',
         module: 'GAB-LATAM',
         action: 'APPROVED',
         checker: '',
         dualBlindlyModel: null,
-      });
-    } catch (actionErr) {
-      console.warn('details-for-action call failed:', actionErr);
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn(`details-for-action failed with status: ${res.status}`);
+      return [];
     }
 
-    // 3. Resolve Reference ID & trigger success modal
+    const json = await res.json();
+    return Array.isArray(json) ? json : [json];
+  } catch (error) {
+    console.error('Failed to fetch details-for-action:', error);
+    return [];
+  }
+};
+
+
+// 2. Updated handleMakerSubmit
+// Now call it cleanly right after const data = await res.json(); (lines ~466–478):
+
+
+const data = await res.json();
+
+    // Call the separated API function and capture the array response
+    const actionDetails = await fetchDetailsForAction();
+    console.log('Captured action details:', actionDetails);
+
     const refId =
-      response?.data?.referenceId ||
-      response?.data?.paymentReferenceId ||
-      response?.data?.id ||
+      data?.paymentId ||
+      data?.referenceId ||
+      data?.paymentReferenceId ||
+      data?.id ||
       'N/A';
 
-    onPaymentSuccess?.(refId, currentFormPayloadRef.current);
+    onPaymentSuccess?.(refId, payloadToSubmit, actionDetails);
+    onClose?.();
   } catch (err: any) {
     console.error('Payment submission failed:', err);
     const msg =
@@ -87,5 +71,3 @@ const handleMakerSubmit = async (isDraft: boolean = false) => {
     setIsSubmitting(false);
   }
 };
-
-
