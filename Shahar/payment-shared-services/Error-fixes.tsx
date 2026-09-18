@@ -109,3 +109,42 @@ server: {
     },
   },
 },
+
+
+
+// Add a useEffect hook near the top of the PaymentParent component to execute fetchDetailsForAction on initial mount:
+
+import React, { FC, useEffect, useState, useCallback, useRef } from 'react';
+
+export const PaymentParent: FC<PaymentParentProps> = (props) => {
+  const [actionDetailsList, setActionDetailsList] = useState<any[]>([]);
+  const [isLoadingActionDetails, setIsLoadingActionDetails] = useState<boolean>(false);
+
+  // Load details-for-action on component mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadInitialDetailsForAction = async () => {
+      try {
+        setIsLoadingActionDetails(true);
+        const details = await fetchDetailsForAction();
+        if (isMounted) {
+          setActionDetailsList(details);
+        }
+      } catch (err) {
+        console.error('Failed to load initial details-for-action:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingActionDetails(false);
+        }
+      }
+    };
+
+    loadInitialDetailsForAction();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ... rest of your component logic
