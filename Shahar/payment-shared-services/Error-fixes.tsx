@@ -1,6 +1,5 @@
-
 /**
- * Strips '/' characters and whitespace from account numbers before comparison.
+ * Strips '/' and whitespace from account numbers.
  */
 const cleanAccountNumber = (acc: string | number | null | undefined): string => {
   if (!acc) return '';
@@ -8,54 +7,53 @@ const cleanAccountNumber = (acc: string | number | null | undefined): string => 
 };
 
 /**
- * Compares instruction accounts against details-for-action list.
- * Matches on instructionId and clean debitAccountNumber.
+ * Enriches existing instruction.accounts rows directly with updated status,
+ * button text, and action properties without creating extra nested arrays.
  */
-export const compareAndMapAccountsWithActions = (
+export const mergeAccountsWithActionDetails = (
   accountsList: any[] = [],
   actionDetailsList: any[] = []
 ) => {
   return accountsList.map((account) => {
-    // Current property names for instruction accounts
-    const accountInstId = String(account?.instructionId ?? '').trim();
-    const accountDebitNo = cleanAccountNumber(account?.debitAccountNumber);
+    const accInstId = String(account?.instructionId ?? '').trim();
+    const accDebitNo = cleanAccountNumber(account?.debitAccountNumber);
 
-    // Find all matching action records for this account/wire
-    const matchedActions = actionDetailsList.filter((action) => {
-      // Current property names in details-for-action response
+    // Find the single corresponding action entry
+    const matchedAction = actionDetailsList.find((action) => {
       const actionInstId = String(action?.parentReferenceId ?? '').trim();
       const actionDebitNo = cleanAccountNumber(action?.debtorAccountNumber);
-
-      const isInstIdMatch = accountInstId === actionInstId;
-      const isAccountMatch = accountDebitNo === actionDebitNo;
-
-      return isInstIdMatch && isAccountMatch;
+      return accInstId === actionInstId && accDebitNo === actionDebitNo;
     });
 
+    const isMakerState = matchedAction?.state === 'MAKER';
+
     return {
+      // 1. Preserve all existing account fields exactly as they are
       ...account,
-      // Boolean flag indicating if this wire has an action match
-      hasActionMatch: matchedActions.length > 0,
-      // Primary match (first record if single)
-      matchedAction: matchedActions[0] || null,
-      // Array of all matches if one instruction/account has multiple wires
-      allMatchedActions: matchedActions,
+
+      // 2. Conditionally update status & action button text
+      status: isMakerState ? 'Payment Checker' : (account?.status || 'Payment Maker'),
+      actionText: isMakerState ? 'Review' : 'Edit',
+
+      // 3. Append only the required fields from details-for-action
+      state: matchedAction?.state ?? null,
+      paymentId: matchedAction?.paymentId ?? null,
+      transactionId: matchedAction?.transactionId ?? null,
     };
   });
 };
 
 
-//Implementation Inside PaymentParent.tsxInside 
-// loadInitialDetailsForAction in PaymentParent.tsx:   
+//How to Use Inside loadInitialDetailsForActionReplace 
+// the previous comparison call inside PaymentParent.tsx:   
 
+const details = await fetchDetailsForAction(); // or dummy data
+if (isMounted) {
+  setActionDetailsList(details);
 
-const details = await fetchDetailsForAction();
-      if (isMounted) {
-        setActionDetailsList(details);
+  const rawAccounts = instruction?.accounts || [];
+  const updatedAccounts = mergeAccountsWithActionDetails(rawAccounts, details);
 
-        // Compare the two arrays
-        const accounts = instruction?.accounts || [];
-        const mergedGridData = compareAndMapAccountsWithActions(accounts, details);
-
-        console.log('Successfully compared and merged grid data:', mergedGridData);
-      }
+  console.log('Updated instruction.accounts:', updatedAccounts);
+  // Pass updatedAccounts to grid state or callback
+}
