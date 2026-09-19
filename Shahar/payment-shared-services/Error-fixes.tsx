@@ -1,150 +1,61 @@
-// 1. The Helper Function
-// Place this above handleMakerSubmit (around line ~440 in PaymentParent.tsx):
-
 
 /**
- * Fetches post-submission details-for-action list.
- * Returns an array of action detail objects.
+ * Strips '/' characters and whitespace from account numbers before comparison.
  */
-const fetchDetailsForAction = async (): Promise<any[]> => {
-  const endpoint = '/nextgengab/api/api/v1/gab/payments/payment/details-for-action';
+const cleanAccountNumber = (acc: string | number | null | undefined): string => {
+  if (!acc) return '';
+  return String(acc).replace(/\//g, '').trim();
+};
 
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        SOEID: 'SS71872',
-      },
-      body: JSON.stringify({
-        application: 'GAB',
-        module: 'GAB-LATAM',
-        action: 'APPROVED',
-        checker: '',
-        dualBlindlyModel: null,
-      }),
+/**
+ * Compares instruction accounts against details-for-action list.
+ * Matches on instructionId and clean debitAccountNumber.
+ */
+export const compareAndMapAccountsWithActions = (
+  accountsList: any[] = [],
+  actionDetailsList: any[] = []
+) => {
+  return accountsList.map((account) => {
+    // Current property names for instruction accounts
+    const accountInstId = String(account?.instructionId ?? '').trim();
+    const accountDebitNo = cleanAccountNumber(account?.debitAccountNumber);
+
+    // Find all matching action records for this account/wire
+    const matchedActions = actionDetailsList.filter((action) => {
+      // Current property names in details-for-action response
+      const actionInstId = String(action?.parentReferenceId ?? '').trim();
+      const actionDebitNo = cleanAccountNumber(action?.debtorAccountNumber);
+
+      const isInstIdMatch = accountInstId === actionInstId;
+      const isAccountMatch = accountDebitNo === actionDebitNo;
+
+      return isInstIdMatch && isAccountMatch;
     });
 
-    if (!res.ok) {
-      console.warn(`details-for-action failed with status: ${res.status}`);
-      return [];
-    }
-
-    const json = await res.json();
-    return Array.isArray(json) ? json : [json];
-  } catch (error) {
-    console.error('Failed to fetch details-for-action:', error);
-    return [];
-  }
+    return {
+      ...account,
+      // Boolean flag indicating if this wire has an action match
+      hasActionMatch: matchedActions.length > 0,
+      // Primary match (first record if single)
+      matchedAction: matchedActions[0] || null,
+      // Array of all matches if one instruction/account has multiple wires
+      allMatchedActions: matchedActions,
+    };
+  });
 };
 
 
-// 2. Updated handleMakerSubmit
-// Now call it cleanly right after const data = await res.json(); (lines ~466–478):
+//Implementation Inside PaymentParent.tsxInside 
+// loadInitialDetailsForAction in PaymentParent.tsx:   
 
 
-const data = await res.json();
+const details = await fetchDetailsForAction();
+      if (isMounted) {
+        setActionDetailsList(details);
 
-    // Call the separated API function and capture the array response
-    const actionDetails = await fetchDetailsForAction();
-    console.log('Captured action details:', actionDetails);
+        // Compare the two arrays
+        const accounts = instruction?.accounts || [];
+        const mergedGridData = compareAndMapAccountsWithActions(accounts, details);
 
-    const refId =
-      data?.paymentId ||
-      data?.referenceId ||
-      data?.paymentReferenceId ||
-      data?.id ||
-      'N/A';
-
-    onPaymentSuccess?.(refId, payloadToSubmit, actionDetails);
-    onClose?.();
-  } catch (err: any) {
-    console.error('Payment submission failed:', err);
-    const msg =
-      err?.response?.data?.message ||
-      err?.message ||
-      'Payment submission failed';
-    onPaymentError?.(msg);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-
-
-
-//Update lines 96–100 in vite.config.ts to include optimizeDeps and build:   
-
-esbuild: {
-  target: 'esnext',
-},
-optimizeDeps: {
-  esbuildOptions: {
-    target: 'esnext',
-    supported: {
-      'top-level-await': true,
-    },
-  },
-},
-build: {
-  target: 'esnext',
-},
-
-
-server: {
-  port: 3002,
-  proxy: {
-    // Collapses the duplicate /api/api down to single /api
-    '/nextgengab/api/api': {
-      target: 'http://localhost:8080',
-      changeOrigin: true,
-      rewrite: (path) => path.replace('/nextgengab/api/api', '/nextgengab/api'),
-    },
-    // Standard /nextgengab/api requests pass directly to Spring Boot as-is
-    '/nextgengab/api': {
-      target: 'http://localhost:8080',
-      changeOrigin: true,
-    },
-  },
-},
-
-
-
-// Add a useEffect hook near the top of the PaymentParent component to execute fetchDetailsForAction on initial mount:
-
-import React, { FC, useEffect, useState, useCallback, useRef } from 'react';
-
-export const PaymentParent: FC<PaymentParentProps> = (props) => {
-  const [actionDetailsList, setActionDetailsList] = useState<any[]>([]);
-  const [isLoadingActionDetails, setIsLoadingActionDetails] = useState<boolean>(false);
-
-  // Load details-for-action on component mount
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadInitialDetailsForAction = async () => {
-      try {
-        setIsLoadingActionDetails(true);
-        const details = await fetchDetailsForAction();
-        if (isMounted) {
-          setActionDetailsList(details);
-        }
-      } catch (err) {
-        console.error('Failed to load initial details-for-action:', err);
-      } finally {
-        if (isMounted) {
-          setIsLoadingActionDetails(false);
-        }
+        console.log('Successfully compared and merged grid data:', mergedGridData);
       }
-    };
-
-    loadInitialDetailsForAction();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // ... rest of your component logic
