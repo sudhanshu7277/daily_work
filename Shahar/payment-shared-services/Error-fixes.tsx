@@ -1,54 +1,63 @@
-// In InstructionDetailPage.tsx, replace the
-//  lines constructing initialData (lines 5583 to 5607) with this exact block:   
+// Step 1: Define modalInitialData right above the modal return
+// In InstructionDetailPage.tsx, right before the modal is returned 
+// in JSX (or before line 5554):
 
 
-initialData={
-  selectedRowData
+const row = selectedRowData as any;
+  const action = row?.actionDetails || row?.matchedAction || {};
+
+  const modalInitialData = selectedRowData
     ? {
-        ...selectedRowData,
-        ...(selectedRowData.actionDetails || selectedRowData.matchedAction || {}),
+        ...row,
+        ...action,
         debtorAccountNumber: String(
-          selectedRowData.debtorAccountNumber ||
-            selectedRowData.debitAccountNumber ||
-            ""
+          row.debtorAccountNumber ||
+          row.debitAccountNumber ||
+          ""
         ).replace(/\//g, "").trim(),
         instructedAmountCurrencyCode:
-          selectedRowData.instructedAmountCurrencyCode ||
-          selectedRowData.actionDetails?.instructedAmountCurrencyCode ||
-          selectedRowData.currency ||
+          row.instructedAmountCurrencyCode ||
+          action.instructedAmountCurrencyCode ||
+          row.currency ||
           "USD",
         instructedAmount:
-          selectedRowData.instructedAmount ??
-          selectedRowData.actionDetails?.instructedAmount ??
-          (typeof selectedRowData.amount === "number" ? selectedRowData.amount : undefined),
+          row.instructedAmount ??
+          action.instructedAmount ??
+          (typeof row.amount === "number" ? row.amount : undefined),
         debtorName:
-          selectedRowData.debtorName ||
-          selectedRowData.actionDetails?.debtorName ||
+          row.debtorName ||
+          action.debtorName ||
           (instruction as any)?.clientName ||
           (instruction as any)?.dealName ||
           "",
         painPaymentMethodType:
-          selectedRowData.painPaymentMethodType ||
-          selectedRowData.actionDetails?.painPaymentMethodType ||
-          selectedRowData.transactionType ||
+          row.painPaymentMethodType ||
+          action.painPaymentMethodType ||
+          row.transactionType ||
           "BKT",
         requestedExecutionDate:
-          selectedRowData.requestedExecutionDate ||
-          selectedRowData.actionDetails?.requestedExecutionDate ||
+          row.requestedExecutionDate ||
+          action.requestedExecutionDate ||
           (instruction as any)?.valueDate ||
           new Date().toISOString().split("T")[0],
         creditorName:
-          selectedRowData.creditorName ||
-          selectedRowData.actionDetails?.creditorName,
+          row.creditorName ||
+          action.creditorName,
         creditorAccount:
-          selectedRowData.creditorAccount ||
-          selectedRowData.actionDetails?.creditorAccount,
+          row.creditorAccount ||
+          action.creditorAccount,
         creditorAgentBIC:
-          selectedRowData.creditorAgentBIC ||
-          selectedRowData.actionDetails?.creditorAgentBIC,
+          row.creditorAgentBIC ||
+          action.creditorAgentBIC,
         debtorAgentBIC:
-          selectedRowData.debtorAgentBic ||
-          selectedRowData.actionDetails?.debtorAgentBic,
+          row.debtorAgentBic ||
+          action.debtorAgentBic,
       }
-    : null
-}
+    : null;
+
+
+    // Step 2: Pass modalInitialData to the Modal
+// Replace lines 5583 to 5637 with:
+
+
+initialData={modalInitialData}
