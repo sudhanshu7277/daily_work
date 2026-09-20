@@ -1,125 +1,80 @@
-// Step 1: Create the Mapping Helper
-// Add this typed helper function inside InstructionDetailPage.tsx
-//  (or an imported helper file). It takes selectedRowData and formats 
-// it into a valid Partial<Pain001Model>:
+// 1. In PaymentParent.tsx: Keep the Entire Action Payload
+Update mergeAccountsWithActionDetails (around line 221 in PaymentParent.tsx):
+
+Instead of picking just a few fields, spread or attach matchedAction completely:
 
 
-import { Pain001Model } from '@citi-icg-179025/payment-flow-reactjs-ui-lib';
+export const mergeAccountsWithActionDetails = (
+  accountsList: any[] = [],
+  actionDetailsList: any[] = []
+) => {
+  return accountsList.map((account) => {
+    const accInstId = String(account?.instructionId ?? '').trim();
+    const accDebitNo = String(account?.debitAccountNumber ?? '').replace(/\//g, '').trim();
 
-/**
- * Normalizes account numbers by removing slashes and trimming
- */
-const cleanAccountNumber = (acc: unknown): string => {
-  if (!acc) return '';
-  return String(acc).replace(/\//g, '').trim();
-};
+    // Find the exact maker submission for this wire
+    const matchedAction = actionDetailsList.find((action) => {
+      const actionInstId = String(action?.parentReferenceId ?? '').trim();
+      const actionDebitNo = String(action?.debtorAccountNumber ?? '').replace(/\//g, '').trim();
+      return accInstId === actionInstId && accDebitNo === actionDebitNo;
+    });
 
-/**
- * Transforms the clicked row into a clean, strongly-typed Pain001Model payload
- */
-export const buildModalInitialData = (
-  selectedRow: any,
-  instruction: any
-): Partial<Pain001Model> | null => {
-  if (!selectedRow) return null;
+    const isMakerState = matchedAction?.state === 'MAKER';
 
-  // Extract action details if nested, or use row directly if merged in-place
-  const action = selectedRow.matchedAction || selectedRow.actionDetails || selectedRow;
+    return {
+      // 1. Existing account data
+      ...account,
 
-  return {
-    // 1. Mandatory core identification & dates
-    requestedExecutionDate:
-      action.requestedExecutionDate ||
-      selectedRow.requestedExecutionDate ||
-      instruction?.valueDate ||
-      new Date().toISOString().split('T')[0],
+      // 2. Grid action controls
+      status: isMakerState ? 'Payment Checker' : (account?.status || 'Payment Maker'),
+      actionText: isMakerState ? 'Review' : 'Edit',
 
-    // 2. Debtor Information
-    debtorName:
-      action.debtorName ||
-      selectedRow.debtorName ||
-      instruction?.clientName ||
-      instruction?.dealName ||
-      '',
-    debtorAccountNumber: cleanAccountNumber(
-      action.debtorAccountNumber || selectedRow.debtorAccountNumber || selectedRow.debitAccountNumber
-    ),
-    debtorAgentBIC: action.debtorAgentBic || selectedRow.debtorAgentBic || '',
+      // 3. Keep the entire raw maker submission in actionDetails
+      actionDetails: matchedAction || null,
 
-    // 3. Payment Method & Amounts
-    painPaymentMethodType:
-      action.painPaymentMethodType ||
-      selectedRow.painPaymentMethodType ||
-      selectedRow.transactionType ||
-      'BKT',
-    instructedAmountCurrencyCode:
-      action.instructedAmountCurrencyCode ||
-      selectedRow.instructedAmountCurrencyCode ||
-      selectedRow.currency ||
-      'USD',
-    instructedAmount:
-      action.instructedAmount ??
-      selectedRow.instructedAmount ??
-      (typeof selectedRow.amount === 'number' ? selectedRow.amount : ''),
-
-    // 4. Charge configuration
-    chargeBearer: action.chargeBearer || selectedRow.chargeBearer || 'DEBT',
-    chargesAmount: action.chargesAmount ?? selectedRow.chargesAmount ?? 200,
-    chargesAgentBIC: action.chargesAgentBIC || action.chargesAgentBic || selectedRow.chargesAgentBIC || '',
-
-    // 5. Creditor Information
-    creditorName: action.creditorName || selectedRow.creditorName || '',
-    creditorAccount: action.creditorAccount || selectedRow.creditorAccount || '',
-    creditorAgentFinancialInstitutionBIC:
-      action.creditorAgentFinancialInstitutionBIC ||
-      selectedRow.creditorAgentFinancialInstitutionBIC ||
-      action.creditorAgentBic ||
-      '',
-    creditorAgentFinancialInstitutionName:
-      action.creditorAgentFinancialInstitutionName ||
-      selectedRow.creditorAgentFinancialInstitutionName ||
-      '',
-    creditorAgentPostalAddress:
-      action.creditorAgentPostalAddress ||
-      selectedRow.creditorAgentPostalAddress ||
-      '',
-
-    // 6. Creditor Address
-    creditorStreetName: action.creditorStreetName || selectedRow.creditorStreetName || '',
-    creditorBuildingNumber: action.creditorBuildingNumber || selectedRow.creditorBuildingNumber || '',
-    creditorPostalCode: action.creditorPostalCode || selectedRow.creditorPostalCode || '',
-    creditorTownName: action.creditorTownName || selectedRow.creditorTownName || '',
-    creditorCountrySubDivision:
-      action.creditorCountrySubDivision || selectedRow.creditorCountrySubDivision || '',
-    creditorCountryCode: action.creditorCountryCode || selectedRow.creditorCountryCode || '',
-
-    // 7. System metadata
-    applicationName: action.applicationName || selectedRow.applicationName || 'GAB',
-    applicationModule: action.applicationModule || selectedRow.applicationModule || 'GAB-LATAM',
-    region: action.region || selectedRow.region || instruction?.region || 'LATAM',
-  };
+      // 4. Also spread matchedAction fields directly onto the object so they are immediately available
+      ...(matchedAction || {}),
+    };
+  });
 };
 
 
-// Step 2: Use in InstructionDetailPage.tsx
-// Replace the inline logic in the modal call (lines 5583–5637) with:
+// 2. In InstructionDetailPage.tsx: Pass the Captured Maker Data directly
+When the user clicks "Review" on the row, handleEditRow(row) puts that full record into selectedRowData.
+
+Because selectedRowData now contains the full maker submission, simplify initialData passed to <SplitPaymentMakerModal .../>:
+
 
 
 <SplitPaymentMakerModal
   isOpen={showSplitMakerModal}
   instructionId={instructionId}
   instruction={instruction}
-  mode={modalMode} // 'checker' when clicking Review, 'maker' when clicking Edit
+  mode={modalMode} // 'checker'
   wireIndex={selectedLatamIndex}
-  movementAmount={
-    selectedRowData?.amount ? String(selectedRowData.amount) : undefined
-  }
+  movementAmount={selectedRowData?.amount ? String(selectedRowData.amount) : undefined}
   documents={
     Array.isArray(documents) && documents.length > 0
       ? documents
       : (instruction as any)?.documents || []
   }
-  initialData={buildModalInitialData(selectedRowData, instruction)}
+  // Simply take the maker submission captured on the row
+  initialData={
+    selectedRowData
+      ? ({
+          // 1. If we preserved the full payload in actionDetails, prioritize it
+          ...(selectedRowData.actionDetails || {}),
+          // 2. Fall back to any row properties
+          ...selectedRowData,
+          // 3. Ensure debtorAccountNumber has no slashes
+          debtorAccountNumber: String(
+            selectedRowData.debtorAccountNumber ||
+            selectedRowData.debitAccountNumber ||
+            ''
+          ).replace(/\//g, '').trim(),
+        } as any)
+      : null
+  }
   onClose={() => {
     setShowSplitMakerModal(false);
     setSelectedRowData(null);
