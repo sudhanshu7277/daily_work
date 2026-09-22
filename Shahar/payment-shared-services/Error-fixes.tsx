@@ -1,15 +1,35 @@
-// Solution 1: Force Rollup to Rebuild/Fetch the Node 22 Binary (Fastest)
-
-npm rebuild @rollup/rollup-win32-x64-msvc
-
-//If it does not automatically re-download the matching Node 
-// 22 ABI, remove the mismatched package directory and 
-// reinstall with --force so npm doesn't pull the stale cache
-//  from your local Artifactory cache:   
-
-
-rm -rf node_modules/@rollup/rollup-win32-x64-msvc
-npm install @rollup/rollup-win32-x64-msvc --force
-
-
-npm run dev
+export default defineConfig({
+  base: '/nextgengab/ui',
+  plugins: [react()],
+  // 1. Tell build to target modern ES
+  build: {
+    target: 'esnext',
+  },
+  // 2. Tell esbuild (dev server pre-bundling) to target modern ES
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 4200,
+    proxy: {
+      '/nextgengab/api': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/shared-services': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+  // ... rest of config
+});
