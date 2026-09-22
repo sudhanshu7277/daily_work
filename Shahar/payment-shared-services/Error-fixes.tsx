@@ -37,84 +37,108 @@ export default defineConfig({
 
 
 
-// Step 1: Fix the Icon Position in selection-panel.component.scss
-// In your SCSS, .profile-name-wrap
+// 1. Template (selection-panel.component.html)
+// Position the tooltip at 'right'
 
-.profile-name-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  max-width: 100%;
-}
-
-
-//Step 2: Set Right-Bottom Positioning in Template
-// In selection-panel.component.html
 
 <span
   class="suspect-icon"
   matTooltipPosition="right"
   matTooltipClass="suspect-tooltip-panel"
-  [matTooltipPositionAtOrigin]="true"
   matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
 >!</span>
 
 
-//Step 3: Tooltip & Prominent Arrow Styling
-// In Figma, the speech notch sits near the top-left 
-// edge of the box pointing up toward the badge. 
-// Replace your tooltip style in selection-panel.component.scss
+//2. Component SCSS (selection-panel.component.scss)
+// Fix .profile-name-wrap so it does not stretch across the table row, 
+// keeping the icon pinned right beside the name:
 
+
+.profile-row {
+  display: flex;
+  align-items: center;
+}
+
+/* Stop this wrapper from stretching across the row */
+.profile-name-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;       /* Prevents expanding into the Proxy OCIF ID column */
+  width: fit-content;
+  max-width: 100%;
+}
+
+.profile-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: $bmo-blue;     /* Keeps existing color variable */
+  cursor: pointer;
+}
+
+.suspect-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #d97706; /* Suspect warning orange */
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+
+// . Tooltip Card & Tail Notch (SCSS or styles.scss)
+//Use ::ng-deep (or put this in your root styles.scss 
+// without ::ng-deep) to style the white bubble card and 
+// place the pointed triangle on the top-left edge:
 
 ::ng-deep {
+  /* Remove clipping from overlay panel */
   .mat-mdc-tooltip.suspect-tooltip-panel {
     overflow: visible !important;
   }
 
+  /* Style the inner card surface */
   .mat-mdc-tooltip.suspect-tooltip-panel .mdc-tooltip__surface,
   .mat-tooltip.suspect-tooltip-panel {
     background-color: #ffffff !important;
-    color: #2b2b2b !important;
+    color: #333333 !important;
     border-radius: 6px !important;
-    padding: 16px 20px !important;
-    max-width: 320px !important;
+    padding: 14px 18px !important;
+    max-width: 330px !important;
     font-size: 13.5px !important;
     line-height: 1.45 !important;
-    white-space: pre-line !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16) !important;
+    white-space: pre-line !important;  /* Preserves line breaks */
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18) !important;
     overflow: visible !important;
     position: relative !important;
     text-align: left !important;
+    margin-top: 10px !important;       /* Shifts the card down relative to the icon */
 
-    /* Bold first heading line */
+    /* Bold headline */
     &::first-line {
       font-weight: 700 !important;
       color: #111111 !important;
     }
 
-    /* Substantial arrow matching Figma */
+    /* Figma-style triangle pointer pointing up/left to the icon */
     &::before {
       content: '';
       position: absolute;
-      /* Place arrow at the top-left edge pointing up/left towards the icon */
-      top: 14px;
-      left: -10px;
+      top: 12px;
+      left: -12px;
       width: 0;
       height: 0;
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-right: 10px solid #ffffff;
-      filter: drop-shadow(-2px 0 2px rgba(0, 0, 0, 0.05));
+      border-top: 9px solid transparent;
+      border-bottom: 9px solid transparent;
+      border-right: 12px solid #ffffff;
+      filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.05));
     }
   }
 }
-
-//Note on arrow orientation: If you prefer the arrow coming off the top edge (if the card sits fully beneath the icon):
-
-top: -10px;
-left: 16px;
-border-left: 8px solid transparent;
-border-right: 8px solid transparent;
-border-bottom: 10px solid #ffffff;
-border-top: none;
