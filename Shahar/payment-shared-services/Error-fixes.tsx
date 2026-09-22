@@ -1,81 +1,20 @@
-export default defineConfig({
-  base: '/nextgengab/ui',
-  plugins: [react()],
-  // 1. Tell build to target modern ES
-  build: {
-    target: 'esnext',
-  },
-  // 2. Tell esbuild (dev server pre-bundling) to target modern ES
-  optimizeDeps: {
-    esbuildOptions: {
-      target: 'esnext',
-    },
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  server: {
-    port: 4200,
-    proxy: {
-      '/nextgengab/api': {
-        target: 'http://127.0.0.1:8080',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/shared-services': {
-        target: 'http://127.0.0.1:8080',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
-  // ... rest of config
-});
+// The Permanent Clean Fix
+// 1. Fix the Icon Layout (SCSS)
+// Stop .profile-name-wrap from stretching across t
+// he row so the icon stays anchored right next to the name where it belongs:
 
-
-
-// Step 1: Fix the Icon Position in HTML & SCSS
-// In selection-panel.component.html, ensure the name and 
-// suspect icon stay together in the name column
-
-
-<div class="profile-row">
-  <div class="profile-name-wrap">
-    <span class="profile-name">{{ profile.legalName || profile.profileName }}</span>
-    @if (profile.isSuspect) {
-      <span
-        class="suspect-icon"
-        matTooltipPosition="right"
-        matTooltipClass="suspect-tooltip-panel"
-        matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
-      >!</span>
-    }
-  </div>
-
-  <span class="profile-id">{{ profile.proxyOcifId }}</span>
-  <span class="col-action">...</span>
-</div>
-
-
-
-//In selection-panel.component.scss, ensure .profile-name-wrap 
-// does not stretch or push the icon across the row:
-
-
+/* In selection-panel.component.scss */
 .profile-row {
   display: flex;
   align-items: center;
-  width: 100%;
 }
 
 .profile-name-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;        /* Stop it from filling row and pushing icon to the right */
-  width: auto;
+  gap: 6px;
+  flex: 0 0 auto;       /* Prevents expanding across into the OCIF ID column */
+  width: fit-content;
 }
 
 .suspect-icon {
@@ -86,7 +25,7 @@ export default defineConfig({
   height: 18px;
   border-radius: 50%;
   background-color: #d97706;
-  color: #fff;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
@@ -95,24 +34,22 @@ export default defineConfig({
 }
 
 
-//Step 2: Force Right-Bottom Placement & Arrow Position
-// To position the tooltip card so it starts just below the icon 
-// and hangs toward the bottom-right (matching the Figma screenshot
+//2. Position the Tooltip (HTML)
+// Tell Angular Material to place the tooltip at 'right'
 
 
+<span
+  class="suspect-icon"
+  matTooltipPosition="right"
+  matTooltipClass="suspect-tooltip-panel"
+  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
+>!</span>
 
 
-
+//3. Styling & Speech Notch (SCSS)
 
 ::ng-deep {
-  /* Shift overlay pane to the right and downward */
-  .cdk-overlay-pane:has(.suspect-tooltip-panel) {
-    transform: translate(calc(100% + 28px), 18px) !important;
-  }
-
-  /* Fallback transform */
   .mat-mdc-tooltip.suspect-tooltip-panel {
-    transform: translate(calc(100% + 28px), 18px) !important;
     overflow: visible !important;
   }
 
@@ -121,40 +58,39 @@ export default defineConfig({
     background-color: #ffffff !important;
     color: #2b2b2b !important;
     border-radius: 6px !important;
-
-    /* Narrow width + generous vertical padding and line-height */
+    
+    /* Dimensions matching Figma card */
     width: 250px !important;
     max-width: 250px !important;
-    min-height: 120px !important;
-    padding: 18px 20px !important;
-    font-size: 13.5px !important;
-    line-height: 1.55 !important;
+    padding: 16px 18px !important;
     
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
     white-space: pre-line !important;
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16) !important;
     overflow: visible !important;
     position: relative !important;
     text-align: left !important;
 
-    /* Bold first heading line */
+    /* Bold first line (Title) */
     &::first-line {
       font-weight: 700 !important;
       color: #000000 !important;
-      line-height: 1.8 !important;
     }
 
-    /* Left pointer notch pointing toward the suspect icon */
+    /* Arrow on the left edge pointing back to the suspect icon */
     &::before {
       content: '';
       position: absolute;
       top: 14px;
-      left: -12px;
+      left: -11px;
       width: 0;
       height: 0;
       border-top: 8px solid transparent;
       border-bottom: 8px solid transparent;
-      border-right: 12px solid #ffffff;
+      border-right: 11px solid #ffffff;
       filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.05));
     }
   }
 }
+
