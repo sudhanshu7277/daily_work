@@ -1,96 +1,68 @@
-// The Permanent Clean Fix
-// 1. Fix the Icon Layout (SCSS)
-// Stop .profile-name-wrap from stretching across t
-// he row so the icon stays anchored right next to the name where it belongs:
+// File 1: selection-panel.component.html
+// In image_19.png, update lines 27–32:
 
-/* In selection-panel.component.scss */
-.profile-row {
-  display: flex;
-  align-items: center;
-}
+<span
+  class="suspect-icon"
+  matTooltipPosition="right"
+  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
+  matTooltipClass="suspect-tooltip"
+>!</span>
+
+
+//File 2: selection-panel.component.scss
+// 1. Fix .profile-name-wrap (Line 75–81
+
 
 .profile-name-wrap {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex: 0 0 auto;       /* Prevents expanding across into the OCIF ID column */
+  min-width: 0;
   width: fit-content;
 }
 
-.suspect-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: #d97706;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-}
 
+//2. Replace lines 138–142 in
 
-//2. Position the Tooltip (HTML)
-// Tell Angular Material to place the tooltip at 'right'
-
-
-<span
-  class="suspect-icon"
-  matTooltipPosition="right"
-  matTooltipClass="suspect-tooltip-panel"
-  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
->!</span>
-
-
-//3. Styling & Speech Notch (SCSS)
 
 ::ng-deep {
-  .mat-mdc-tooltip.suspect-tooltip-panel {
+  .mat-mdc-tooltip.suspect-tooltip {
     overflow: visible !important;
   }
 
-  .mat-mdc-tooltip.suspect-tooltip-panel .mdc-tooltip__surface,
-  .mat-tooltip.suspect-tooltip-panel {
+  .mat-mdc-tooltip.suspect-tooltip .mdc-tooltip__surface,
+  .mat-tooltip.suspect-tooltip {
     background-color: #ffffff !important;
     color: #2b2b2b !important;
     border-radius: 6px !important;
-    
-    /* Dimensions matching Figma card */
-    width: 250px !important;
-    max-width: 250px !important;
-    padding: 16px 18px !important;
-    
+    padding: 14px 18px !important;
+    max-width: 300px !important;
     font-size: 13.5px !important;
-    line-height: 1.5 !important;
+    line-height: 1.45 !important;
     white-space: pre-line !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16) !important;
     overflow: visible !important;
     position: relative !important;
     text-align: left !important;
 
-    /* Bold first line (Title) */
+    /* Bold first heading line */
     &::first-line {
       font-weight: 700 !important;
       color: #000000 !important;
     }
 
-    /* Arrow on the left edge pointing back to the suspect icon */
+    /* Left pointer notch pointing back toward the orange icon */
     &::before {
       content: '';
       position: absolute;
       top: 14px;
-      left: -11px;
+      left: -10px;
       width: 0;
       height: 0;
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-right: 11px solid #ffffff;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-right: 10px solid #ffffff;
       filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.05));
     }
   }
 }
-
