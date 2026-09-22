@@ -36,44 +36,46 @@ export default defineConfig({
 
 
 
-
-// 1. Template (selection-panel.component.html)
-// Position the tooltip at 'right'
-
-
-<span
-  class="suspect-icon"
-  matTooltipPosition="right"
-  matTooltipClass="suspect-tooltip-panel"
-  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
->!</span>
+// Step 1: Fix the Icon Position in HTML & SCSS
+// In selection-panel.component.html, ensure the name and 
+// suspect icon stay together in the name column
 
 
-//2. Component SCSS (selection-panel.component.scss)
-// Fix .profile-name-wrap so it does not stretch across the table row, 
-// keeping the icon pinned right beside the name:
+<div class="profile-row">
+  <div class="profile-name-wrap">
+    <span class="profile-name">{{ profile.legalName || profile.profileName }}</span>
+    @if (profile.isSuspect) {
+      <span
+        class="suspect-icon"
+        matTooltipPosition="right"
+        matTooltipClass="suspect-tooltip-panel"
+        matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
+      >!</span>
+    }
+  </div>
+
+  <span class="profile-id">{{ profile.proxyOcifId }}</span>
+  <span class="col-action">...</span>
+</div>
+
+
+
+//In selection-panel.component.scss, ensure .profile-name-wrap 
+// does not stretch or push the icon across the row:
 
 
 .profile-row {
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
-/* Stop this wrapper from stretching across the row */
 .profile-name-wrap {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex: 0 0 auto;       /* Prevents expanding into the Proxy OCIF ID column */
-  width: fit-content;
-  max-width: 100%;
-}
-
-.profile-name {
-  font-weight: 700;
-  font-size: 14px;
-  color: $bmo-blue;     /* Keeps existing color variable */
-  cursor: pointer;
+  flex: 0 0 auto;        /* Stop it from filling row and pushing icon to the right */
+  width: auto;
 }
 
 .suspect-icon {
@@ -83,8 +85,8 @@ export default defineConfig({
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background-color: #d97706; /* Suspect warning orange */
-  color: #ffffff;
+  background-color: #d97706;
+  color: #fff;
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
@@ -93,52 +95,51 @@ export default defineConfig({
 }
 
 
-// . Tooltip Card & Tail Notch (SCSS or styles.scss)
-//Use ::ng-deep (or put this in your root styles.scss 
-// without ::ng-deep) to style the white bubble card and 
-// place the pointed triangle on the top-left edge:
+//Step 2: Force Right-Bottom Placement & Arrow Position
+// To position the tooltip card so it starts just below the icon 
+// and hangs toward the bottom-right (matching the Figma screenshot
+
 
 ::ng-deep {
-  /* Remove clipping from overlay panel */
   .mat-mdc-tooltip.suspect-tooltip-panel {
     overflow: visible !important;
+    /* Shifts the overlay box so its top-left aligns with the bottom-right of the icon */
+    transform: translate(12px, 16px) !important;
   }
 
-  /* Style the inner card surface */
   .mat-mdc-tooltip.suspect-tooltip-panel .mdc-tooltip__surface,
   .mat-tooltip.suspect-tooltip-panel {
     background-color: #ffffff !important;
-    color: #333333 !important;
+    color: #2b2b2b !important;
     border-radius: 6px !important;
     padding: 14px 18px !important;
-    max-width: 330px !important;
+    max-width: 320px !important;
     font-size: 13.5px !important;
     line-height: 1.45 !important;
-    white-space: pre-line !important;  /* Preserves line breaks */
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18) !important;
+    white-space: pre-line !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16) !important;
     overflow: visible !important;
     position: relative !important;
     text-align: left !important;
-    margin-top: 10px !important;       /* Shifts the card down relative to the icon */
 
     /* Bold headline */
     &::first-line {
       font-weight: 700 !important;
-      color: #111111 !important;
+      color: #000000 !important;
     }
 
-    /* Figma-style triangle pointer pointing up/left to the icon */
+    /* Arrow on top-left edge pointing UP toward the icon */
     &::before {
       content: '';
       position: absolute;
-      top: 12px;
-      left: -12px;
+      top: -10px;          /* Sits directly on the top edge */
+      left: 14px;          /* Positioned on the left corner directly under the badge */
       width: 0;
       height: 0;
-      border-top: 9px solid transparent;
-      border-bottom: 9px solid transparent;
-      border-right: 12px solid #ffffff;
-      filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.05));
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 10px solid #ffffff;
+      filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.04));
     }
   }
 }
