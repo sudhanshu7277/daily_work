@@ -100,13 +100,24 @@ export default defineConfig({
 // and hangs toward the bottom-right (matching the Figma screenshot
 
 
+
+
+
+
+
 ::ng-deep {
-  .mat-mdc-tooltip.suspect-tooltip-panel {
-    overflow: visible !important;
-    /* Shifts the overlay box so its top-left aligns with the bottom-right of the icon */
-    transform: translate(12px, 16px) !important;
+  /* Shifts the entire overlay panel to the bottom-right of the suspect icon */
+  .cdk-overlay-pane:has(.suspect-tooltip-panel) {
+    transform: translate(calc(100% + 24px), 20px) !important;
   }
 
+  /* Fallback shift if :has() is not supported */
+  .mat-mdc-tooltip.suspect-tooltip-panel {
+    transform: translate(calc(100% + 24px), 20px) !important;
+    overflow: visible !important;
+  }
+
+  /* Tooltip surface styling: white card, dark text, drop shadow */
   .mat-mdc-tooltip.suspect-tooltip-panel .mdc-tooltip__surface,
   .mat-tooltip.suspect-tooltip-panel {
     background-color: #ffffff !important;
@@ -122,24 +133,24 @@ export default defineConfig({
     position: relative !important;
     text-align: left !important;
 
-    /* Bold headline */
+    /* Bold first heading line */
     &::first-line {
       font-weight: 700 !important;
       color: #000000 !important;
     }
 
-    /* Arrow on top-left edge pointing UP toward the icon */
+    /* Left-pointing arrow connecting to the suspect icon */
     &::before {
       content: '';
       position: absolute;
-      top: -10px;          /* Sits directly on the top edge */
-      left: 14px;          /* Positioned on the left corner directly under the badge */
+      top: 14px;
+      left: -12px;
       width: 0;
       height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-bottom: 10px solid #ffffff;
-      filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.04));
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-right: 12px solid #ffffff;
+      filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.05));
     }
   }
 }
