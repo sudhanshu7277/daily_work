@@ -1,8 +1,24 @@
-//1. In selection-panel.component.html
-In selection-panel.component.html (around lines 27–32), configure the tooltip to strictly anchor to the right and disable the boundary auto-flip using
+//Step 1: Import MatTooltipModule in name-renderers.component.ts
+// In name-renderers.component.ts
+
+
+import { CommonModule } from '@angular/common';
+import { MatTooltipModule } from '@angular/material/tooltip'; // <-- Add this import
+
+@Component({
+  selector: 'app-cs-name-cell',
+  standalone: true,
+  imports: [CommonModule, MatTooltipModule], // <-- Add here
+  changeDetection: ChangeDetectionStrategy.Default,
+  ...
+
+
+  //Step 2: Replace Native title with matTooltip in Template
+// Replace lines 31–32 in image_24.png with matTooltip
 
 
 <span
+  *ngIf="isSuspect"
   class="suspect-icon"
   matTooltipPosition="right"
   [matTooltipPositionAtOrigin]="true"
@@ -10,6 +26,12 @@ In selection-panel.component.html (around lines 27–32), configure the tooltip 
   matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
 >!</span>
 
+
+
+// Step 3: Verify the Tooltip SCSS
+// Because you applied matTooltipClass="suspect-tooltip", 
+// this will automatically pick up the white card style, 
+// bold title, and top-left arrow pointer you already defined for .suspect-tooltip
 
 
 ::ng-deep {
@@ -33,7 +55,7 @@ In selection-panel.component.html (around lines 27–32), configure the tooltip 
     overflow: visible !important;
     text-align: left !important;
     margin-left: 10px !important;
-    margin-top: 18px !important; /* Moves the container down */
+    margin-top: 18px !important;
 
     /* Bold first heading line */
     &::first-line {
@@ -41,11 +63,11 @@ In selection-panel.component.html (around lines 27–32), configure the tooltip 
       color: #000000 !important;
     }
 
-    /* Left pointer notch aligned with the icon center */
+    /* Arrow on top-left edge pointing to the suspect icon */
     &::before {
       content: '';
       position: absolute;
-      top: 10px; /* Aligns notch height with the icon */
+      top: 5px;
       left: -9px;
       width: 0;
       height: 0;
