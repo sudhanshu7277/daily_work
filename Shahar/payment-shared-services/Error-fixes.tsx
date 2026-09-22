@@ -1,80 +1,82 @@
-//Step 1: Import MatTooltipModule in name-renderers.component.ts
-// In name-renderers.component.ts
+//Step 1: Define the Key Fields & Field Config Generator in PaymentParent.tsx
+// Add the list of key fields from
 
 
-import { CommonModule } from '@angular/common';
-import { MatTooltipModule } from '@angular/material/tooltip'; // <-- Add this import
+import { FormFieldConfig } from '@citi-icg-179025/payment-flow-reactjs-ui-lib';
 
-@Component({
-  selector: 'app-cs-name-cell',
-  standalone: true,
-  imports: [CommonModule, MatTooltipModule], // <-- Add here
-  changeDetection: ChangeDetectionStrategy.Default,
-  ...
-
-
-  //Step 2: Replace Native title with matTooltip in Template
-// Replace lines 31–32 in image_24.png with matTooltip
-
-
-<span
-  *ngIf="isSuspect"
-  class="suspect-icon"
-  matTooltipPosition="right"
-  [matTooltipPositionAtOrigin]="true"
-  matTooltipClass="suspect-tooltip"
-  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
->!</span>
+// The 10 dual blind rekey fields from image_68.png
+export const DUAL_BLIND_REKEY_FIELDS: string[] = [
+  'debtorName',
+  'debtorAccountNumber',
+  'debtorAgentBIC',
+  'instructedAmount',
+  'instructedAmountCurrencyCode',
+  'creditorName',
+  'creditorAccount',
+  'creditorAgentFinancialInstitutionBIC',
+  'creditorAgentFinancialInstitutionName',
+  'creditorAgentPostalAddress',
+];
 
 
-
-// Step 3: Verify the Tooltip SCSS
-// Because you applied matTooltipClass="suspect-tooltip", 
-// this will automatically pick up the white card style, 
-// bold title, and top-left arrow pointer you already defined for .suspect-tooltip
+///Inside PaymentParent:
 
 
-::ng-deep {
-  .mat-mdc-tooltip.suspect-tooltip {
-    overflow: visible !important;
+// Dynamically set disabled flag on each field based on active mode
+const dynamicFieldConfig = useMemo(() => {
+  const baseConfig = (PARENT_FIELD_CONFIG as FormFieldConfig[]) || [];
+
+  if (activeTab === 'checker') {
+    return baseConfig.map((cfg) => {
+      // Keep ONLY the dual blind fields enabled; disable everything else
+      const isRekeyField = DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+      return {
+        ...cfg,
+        disabled: !isRekeyField,
+      };
+    });
   }
 
-  .mat-mdc-tooltip.suspect-tooltip .mdc-tooltip__surface,
-  .mat-tooltip.suspect-tooltip {
-    background-color: #ffffff !important;
-    color: #2b2b2b !important;
-    border-radius: 6px !important;
-    padding: 14px 18px !important;
-    width: 260px !important;
-    max-width: 260px !important;
-    font-size: 13px !important;
-    line-height: 1.45 !important;
-    white-space: pre-line !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16) !important;
-    position: relative !important;
-    overflow: visible !important;
-    text-align: left !important;
-    margin-left: 10px !important;
-    margin-top: 18px !important;
+  // In maker or repair mode, keep standard permissions
+  return baseConfig;
+}, [activeTab]);
 
-    /* Bold first heading line */
-    &::first-line {
-      font-weight: 700 !important;
-      color: #000000 !important;
-    }
 
-    /* Arrow on top-left edge pointing to the suspect icon */
-    &::before {
-      content: '';
-      position: absolute;
-      top: 5px;
-      left: -9px;
-      width: 0;
-      height: 0;
-      border-top: 7px solid transparent;
-      border-bottom: 7px solid transparent;
-      border-right: 9px solid #ffffff;
-      filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.04));
-    }
-  }
-}
+//Step 2: Pass dualBlindKeyFields into dynamicPaymentInput
+// In PaymentParent.tsx (around lines 941–965):
+// Update case 'checker' to include dualBlindKeyFields matching PaymentComponentInput:
+
+
+case 'checker':
+      return {
+        applicationName: 'GAB',
+        applicationModule: 'GAB-LATAM',
+        currency: initialData?.instructedAmountCurrencyCode ?? 'USD',
+        paymentMode: 'checker',
+        dualBlindKeyFlag: 'Y',
+        dualBlindKeyFields: DUAL_BLIND_REKEY_FIELDS,
+        paymentModel: stableInitialPaymentModel,
+      };
+
+
+
+// Step 3: Pass dynamicFieldConfig to <SSPaymentFlow/>
+// Update the <SSPaymentFlow .../> JSX in PaymentParent.tsx
+
+
+<SSPaymentFlow
+  key={`${activeTab}-${initialData?.paymentId || initialData?.transactionId || initialData?.debtorAccountNumber || 'new'}`}
+  paymentInput={dynamicPaymentInput}
+  fieldConfig={dynamicFieldConfig as any}
+  initialData={initialData ?? undefined}
+  isMakerMode={activeTab === 'maker'}
+  isCheckerMode={activeTab === 'checker'}
+  isRepairMode={activeTab === 'repair'}
+  repairReviewFieldList={activeTab === 'repair' ? repairReviewFieldList : undefined}
+  repairNewlyModifyFieldList={activeTab === 'repair' ? repairNewlyModifiedFields : undefined}
+  hardcapResultReceived={activeTab === 'maker' ? makerHardcapResult : undefined}
+  onAmountChange={activeTab === 'maker' ? handleAmountChange : undefined}
+  onFailedFieldListChange={activeTab === 'checker' ? setCheckerFailedFields : undefined}
+  onFormChange={handleFormChange}
+  onPaymentOutput={handlePaymentOutput}
+/>
