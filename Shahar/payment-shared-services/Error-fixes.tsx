@@ -104,31 +104,34 @@ export default defineConfig({
 
 
 
-
 ::ng-deep {
-  /* Shifts the entire overlay panel to the bottom-right of the suspect icon */
+  /* Shift overlay pane to the right and downward */
   .cdk-overlay-pane:has(.suspect-tooltip-panel) {
-    transform: translate(calc(100% + 24px), 20px) !important;
+    transform: translate(calc(100% + 28px), 18px) !important;
   }
 
-  /* Fallback shift if :has() is not supported */
+  /* Fallback transform */
   .mat-mdc-tooltip.suspect-tooltip-panel {
-    transform: translate(calc(100% + 24px), 20px) !important;
+    transform: translate(calc(100% + 28px), 18px) !important;
     overflow: visible !important;
   }
 
-  /* Tooltip surface styling: white card, dark text, drop shadow */
   .mat-mdc-tooltip.suspect-tooltip-panel .mdc-tooltip__surface,
   .mat-tooltip.suspect-tooltip-panel {
     background-color: #ffffff !important;
     color: #2b2b2b !important;
     border-radius: 6px !important;
-    padding: 14px 18px !important;
-    max-width: 320px !important;
+
+    /* Narrow width + generous vertical padding and line-height */
+    width: 250px !important;
+    max-width: 250px !important;
+    min-height: 120px !important;
+    padding: 18px 20px !important;
     font-size: 13.5px !important;
-    line-height: 1.45 !important;
+    line-height: 1.55 !important;
+    
     white-space: pre-line !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16) !important;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16) !important;
     overflow: visible !important;
     position: relative !important;
     text-align: left !important;
@@ -137,9 +140,10 @@ export default defineConfig({
     &::first-line {
       font-weight: 700 !important;
       color: #000000 !important;
+      line-height: 1.8 !important;
     }
 
-    /* Left-pointing arrow connecting to the suspect icon */
+    /* Left pointer notch pointing toward the suspect icon */
     &::before {
       content: '';
       position: absolute;
