@@ -13,24 +13,18 @@ In selection-panel.component.html (around lines 27–32), configure the tooltip 
 
 
 ::ng-deep {
-  /* 1. Ensure the overlay container allows overflow and does not clip */
-  .cdk-overlay-pane:has(.suspect-tooltip) {
-    overflow: visible !important;
-  }
-
   .mat-mdc-tooltip.suspect-tooltip {
     overflow: visible !important;
   }
 
-  /* 2. Style the tooltip body */
   .mat-mdc-tooltip.suspect-tooltip .mdc-tooltip__surface,
   .mat-tooltip.suspect-tooltip {
     background-color: #ffffff !important;
     color: #2b2b2b !important;
     border-radius: 6px !important;
     padding: 14px 18px !important;
-    width: 250px !important;
-    max-width: 250px !important;
+    width: 260px !important;
+    max-width: 260px !important;
     font-size: 13px !important;
     line-height: 1.45 !important;
     white-space: pre-line !important;
@@ -38,8 +32,8 @@ In selection-panel.component.html (around lines 27–32), configure the tooltip 
     position: relative !important;
     overflow: visible !important;
     text-align: left !important;
-    margin-left: 10px !important; /* Spacing between the suspect icon and the tooltip */
-    margin-top: 6px !important;   /* Drops it slightly lower to sit at bottom-right */
+    margin-left: 10px !important;
+    margin-top: 18px !important; /* Moves the container down */
 
     /* Bold first heading line */
     &::first-line {
@@ -47,11 +41,11 @@ In selection-panel.component.html (around lines 27–32), configure the tooltip 
       color: #000000 !important;
     }
 
-    /* Arrow on top-left edge pointing directly toward the suspect icon */
+    /* Left pointer notch aligned with the icon center */
     &::before {
       content: '';
       position: absolute;
-      top: 14px;
+      top: 10px; /* Aligns notch height with the icon */
       left: -9px;
       width: 0;
       height: 0;
