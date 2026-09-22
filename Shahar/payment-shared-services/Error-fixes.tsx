@@ -37,66 +37,40 @@ export default defineConfig({
 
 
 
-// 1. Fix the SCSS Layout
-// Change .profile-name-wrap to hug the text instead of stretching, and add the tooltip style:
+// 1. Update Global SCSS / Stylesheet
+// Add this to your root stylesheet (e.g., src/styles.scss 
+// or wherever global overlay styles live) or inside ::ng-deep in your component SCSS:
 
-
-.profile-name-wrap {
-  /* Remove or unset flex: 1 if you don't want it expanding across columns */
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  width: fit-content; /* Keeps the name + icon clustered together */
-}
-
-/* Ensure suspect-icon sits snug without flex-grow */
-.suspect-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: #e68a00;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-
-//2. Add the Popover/Tooltip Styling
-// Add this block at the bottom of selection-panel.component.scss 
-// (or inside your root styles.scss) to style the black Material 
-// tooltip into the white card shown in Figma:
 
 ::ng-deep {
-  /* Targets both Material 15+ MDC tooltips and older legacy tooltips */
-  .mat-mdc-tooltip.suspect-tooltip-panel,
-  .mat-tooltip.suspect-tooltip-panel {
+  /* 1. Reset MDC Tooltip wrapper */
+  .mat-mdc-tooltip.suspect-tooltip {
+    overflow: visible !important;
+  }
+
+  /* 2. Style the actual surface containing the text */
+  .mat-mdc-tooltip.suspect-tooltip .mdc-tooltip__surface,
+  .mat-tooltip.suspect-tooltip {
     background-color: #ffffff !important;
-    color: #1a1a1a !important;
+    color: #212121 !important;
     border-radius: 4px !important;
-    padding: 12px 16px !important;
-    max-width: 320px !important;
-    font-size: 13px !important;
+    padding: 14px 18px !important;
+    max-width: 310px !important;
+    font-size: 13.5px !important;
     line-height: 1.45 !important;
-    letter-spacing: 0.1px !important;
-    white-space: pre-line !important; /* Preserves the line break */
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16) !important;
+    white-space: pre-line !important; /* Preserves newline between title & body */
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16) !important;
     overflow: visible !important;
     position: relative !important;
+    text-align: left !important;
 
-    /* Bold only the first sentence/line */
+    /* Bold first line (Suspect profile(s) found for this profile) */
     &::first-line {
-      font-weight: 700;
-      color: #000000;
+      font-weight: 700 !important;
+      color: #000000 !important;
     }
 
-    /* Left pointing pointer triangle */
+    /* Left-pointing arrow tail pointing directly to the icon */
     &::before {
       content: '';
       position: absolute;
@@ -107,21 +81,30 @@ export default defineConfig({
       border-top: 6px solid transparent;
       border-bottom: 6px solid transparent;
       border-right: 6px solid #ffffff;
-      filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.04));
+      filter: drop-shadow(-1px 0 1px rgba(0, 0, 0, 0.04));
     }
   }
 }
 
 
-// 3. Update the Template Verbiage & Position
-// In your template (selection-panel.component.html), 
-// update the text from "are placed on hold" to "are selected." 
-// and add matTooltipPosition="right"
+// 2. Verify Template (selection-panel.component.html)
+// Make sure your template uses matTooltipClass="suspect-tooltip" 
+// and explicitly sets matTooltipPosition="right":
 
 
 <span
   class="suspect-icon"
   matTooltipPosition="right"
-  matTooltipClass="suspect-tooltip-panel"
+  matTooltipClass="suspect-tooltip"
   matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
 >!</span>
+
+
+// 3. Move the Icon Beside the Name (Fix Overlap on ID)
+
+.profile-name-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content; /* Hug the name and icon together instead of expanding */
+}
