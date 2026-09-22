@@ -74,21 +74,29 @@ export default defineConfig({
 // tooltip into the white card shown in Figma:
 
 ::ng-deep {
-  .mat-mdc-tooltip.suspect-tooltip,
-  .mat-tooltip.suspect-tooltip {
+  /* Targets both Material 15+ MDC tooltips and older legacy tooltips */
+  .mat-mdc-tooltip.suspect-tooltip-panel,
+  .mat-tooltip.suspect-tooltip-panel {
     background-color: #ffffff !important;
-    color: #333333 !important;
-    font-size: 13px !important;
-    line-height: 1.4 !important;
+    color: #1a1a1a !important;
     border-radius: 4px !important;
-    padding: 12px 14px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
-    white-space: pre-line !important; /* Ensures the newline renders */
-    max-width: 270px !important;
-    position: relative !important;
+    padding: 12px 16px !important;
+    max-width: 320px !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    letter-spacing: 0.1px !important;
+    white-space: pre-line !important; /* Preserves the line break */
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16) !important;
     overflow: visible !important;
+    position: relative !important;
 
-    /* Little left speech-bubble pointer */
+    /* Bold only the first sentence/line */
+    &::first-line {
+      font-weight: 700;
+      color: #000000;
+    }
+
+    /* Left pointing pointer triangle */
     &::before {
       content: '';
       position: absolute;
@@ -99,6 +107,7 @@ export default defineConfig({
       border-top: 6px solid transparent;
       border-bottom: 6px solid transparent;
       border-right: 6px solid #ffffff;
+      filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.04));
     }
   }
 }
@@ -112,7 +121,7 @@ export default defineConfig({
 
 <span
   class="suspect-icon"
-  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
   matTooltipPosition="right"
-  matTooltipClass="suspect-tooltip"
+  matTooltipClass="suspect-tooltip-panel"
+  matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected."
 >!</span>
