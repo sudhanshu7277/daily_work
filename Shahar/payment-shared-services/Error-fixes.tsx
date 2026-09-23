@@ -80,3 +80,57 @@ case 'checker':
   onFormChange={handleFormChange}
   onPaymentOutput={handlePaymentOutput}
 />
+
+
+
+
+// proxy OCIF id style fix
+
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+  min-height: 44px;
+
+  .profile-name-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* Fixed or base column width matching your 'Name' header */
+    flex: 0 0 160px;
+    max-width: 160px;
+    min-width: 0;
+
+    .profile-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .suspect-icon,
+    .invalid-profile-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+  }
+
+  .profile-id {
+    /* Takes the remaining space directly under the 'Proxy OCIF ID' header */
+    flex: 1 1 auto;
+    padding: 0 16px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #333333;
+    word-break: break-all;
+    min-width: 0;
+  }
+
+  .delete-btn {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+}
