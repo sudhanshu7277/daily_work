@@ -116,3 +116,47 @@ const dynamicPaymentInput: PaymentComponentInput = useMemo(() => {
   onPaymentOutput={handlePaymentOutput}
 />
 
+
+
+
+
+
+const dynamicPaymentInput: PaymentComponentInput = useMemo(() => {
+  const rawData = initialData as any;
+  const resolvedCurrency = String(
+    rawData?.instructedAmountCurrencyCode ||
+    rawData?.currency ||
+    'USD'
+  );
+
+  const baseInput = {
+    applicationName: 'GAB',
+    applicationModule: 'GAB-LATAM',
+    currency: resolvedCurrency,
+    paymentModel: stableInitialPaymentModel,
+  };
+
+  switch (activeTab) {
+    case 'repair':
+      return {
+        ...baseInput,
+        paymentMode: 'repair',
+        dualBlindKeyFlag: 'N',
+      };
+    case 'checker':
+      return {
+        ...baseInput,
+        paymentMode: 'checker',
+        dualBlindKeyFlag: 'Y',
+        dualBlindKeyFields: DUAL_BLIND_REKEY_FIELDS,
+      };
+    case 'maker':
+    default:
+      return {
+        ...baseInput,
+        paymentMode: 'maker',
+        dualBlindKeyFlag: 'N',
+      };
+  }
+}, [activeTab, initialData, stableInitialPaymentModel]);
+
