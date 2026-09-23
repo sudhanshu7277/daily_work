@@ -1,105 +1,118 @@
-// Here is how to set paymentId: resolvedAccountId inside PaymentParent.tsx:
+// Looking at image_50.png, the exact reason the data isn't populating into the form is found on lines 970–973:
 
-// Step 1: In PaymentParent.tsx, Update handlePaymentOutput (around line 1045)
-// Make sure resolvedAccountId is retrieved from initialData or 
-// instruction.accounts, and assigned to paymentId:
+const stableInitialPaymentModel = useMemo(() => 
+  return initialData ? { ...createEmptyPain001(), ...initialData } : null;
+// // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [initialData?.debtorAccountNumber, initialData?.instructedAmount]);
 
 
-const handlePaymentOutput = useCallback(
-  (output: PaymentComponentOutput) => {
-    const newValid = Boolean(output?.isValid);
-    const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
-    setIsCurrentFormValid((prev) => (prev !== newValid ? newValid : prev));
-    setCheckerDualBlindPassed((prev) => (prev !== newDualBlind ? newDualBlind : prev));
+// The Fix
+// Step 1: In PaymentParent.tsx, Update stableInitialPaymentModel (around line 970)
+// Flatten all incoming stages (initialData, matchedAction, actionDetails, 
+// paymentDetailsRequest) into stableInitialPaymentModel, and depend directly on initialData:
 
-    const pData: any = output?.paymentData;
-    if (!pData) return;
 
-    // 1. Clean the account number to find the exact account record
-    const cleanFormAccount = String(pData.debtorAccountNumber || '')
-      .replace(/\//g, '')
-      .trim();
+const stableInitialPaymentModel = useMemo(() => {
+  if (!initialData) return null;
 
-    // 2. Find the matched account object from instruction.accounts or actionDetailsList
-    const matchedAccount =
-      (instruction?.accounts as any[])?.find(
-        (acc: any) =>
-          String(acc?.debitAccountNumber || acc?.debtorAccountNumber || '')
-            .replace(/\//g, '')
-            .trim() === cleanFormAccount
-      ) ||
-      actionDetailsList?.find(
-        (action: any) =>
-          String(action?.debitAccountNumber || action?.debtorAccountNumber || '')
-            .replace(/\//g, '')
-            .trim() === cleanFormAccount
-      );
+  const raw = initialData as any;
+  const nestedDetails =
+    raw.paymentDetailsRequest ||
+    raw.actionDetails ||
+    raw.matchedAction ||
+    {};
 
-    // 3. Resolve accountId (as a string)
-    const resolvedAccountId = String(
-      initialData?.accountId ??
-      (initialData as any)?.actionDetails?.accountId ??
-      matchedAccount?.accountId ??
-      pData?.accountId ??
+  return {
+    ...createEmptyPain001(),
+    // 1. Base row/account properties
+    ...raw,
+    // 2. Extracted action/stage properties from API
+    ...nestedDetails,
+    // 3. Normalized critical fields
+    debtorAccountNumber: String(
+      raw.debtorAccountNumber ||
+      raw.debitAccountNumber ||
+      nestedDetails.debtorAccountNumber ||
       ''
-    ).trim();
-
-    console.log('Resolved accountId for paymentId:', resolvedAccountId);
-
-    // 4. Construct payload ensuring paymentId is set to resolvedAccountId
-    const makerSSPaymentPayload = {
-      txnId: instructionId_ ? String(instructionId_) : undefined,
-      maker: 'SS47983',
-      dupValidityCheckDays: 30,
-      overrideDuplicate: false,
-      paymentId: resolvedAccountId, // Root-level paymentId
-      accountId: resolvedAccountId,
-      duplicateCheckFieldList: ['debtorAccountNumber', 'instructedAmount'],
-      duplicateInputDataModel: {},
-      duplicateRefId: '',
-      paymentDetailsRequest: {
-        ...pData,
-        // CRITICAL: paymentId set to accountId
-        paymentId: resolvedAccountId,
-        accountId: resolvedAccountId,
-        requestedExecutionDate:
-          pData.requestedExecutionDate || pData.valueDate || new Date().toISOString().split('T')[0],
-        debtorName: pData.debtorName || '',
-        source: 'UI',
-        debtorAccountNumber: cleanFormAccount,
-        debtorAgentBIC: pData.debtorAgentBIC || '',
-        debtorAgentBank: pData.debtorAgentBank || '',
-        chargeBearer: pData.chargeBearer || 'DEBT',
-        chargesAmount: pData.chargesAmount || 200,
-        chargesAgentBIC: pData.chargesAgentBIC || '',
-        instructedAmount: String(pData.instructedAmount ?? ''),
-        instructedAmountCurrencyCode: pData.instructedAmountCurrencyCode || 'USD',
-        taxIdNumber: instructionId_ ? String(instructionId_) : '',
-        taxIdType: instructionId_ ? String(instructionId_) : '',
-        txnId: instructionId_ ? String(instructionId_) : '',
-      },
-    };
-
-    currentFormPayload.current = makerSSPaymentPayload;
-  },
-  [instruction, actionDetailsList, initialData, instructionId_]
-);
+    ).replace(/\//g, '').trim(),
+    instructedAmount: String(
+      raw.instructedAmount ??
+      raw.amount ??
+      nestedDetails.instructedAmount ??
+      ''
+    ),
+    instructedAmountCurrencyCode:
+      raw.instructedAmountCurrencyCode ||
+      raw.currency ||
+      nestedDetails.instructedAmountCurrencyCode ||
+      'USD',
+    paymentId: String(
+      raw.accountId ||
+      raw.paymentId ||
+      nestedDetails.paymentId ||
+      ''
+    ),
+  };
+}, [initialData]);
 
 
+// Step 2: Ensure dynamicPaymentInput Always Hands Over stableInitialPaymentModelIn 
+// PaymentParent.tsx (lines 976–1004 in image_50.png / image_51.png), 
+// ensure every mode (maker, checker, repair) feeds paymentModel: stableInitialPaymentModel:   
 
-// Step 2: In handleMakerSubmit (where fetch('/.../createMakerPayment') is called)
-//Verify that the payload sent to the backend includes paymentId inside paymentDetailsRequest
+const dynamicPaymentInput: PaymentComponentInput = useMemo(() => {
+  const baseInput = {
+    applicationName: 'GAB',
+    applicationModule: 'GAB-LATAM',
+    currency: initialData?.instructedAmountCurrencyCode ?? initialData?.currency ?? 'USD',
+    paymentModel: stableInitialPaymentModel,
+  };
+
+  switch (activeTab) {
+    case 'repair':
+      return {
+        ...baseInput,
+        paymentMode: 'repair',
+        dualBlindKeyFlag: 'N',
+      };
+    case 'checker':
+      return {
+        ...baseInput,
+        paymentMode: 'checker',
+        dualBlindKeyFlag: 'Y',
+        dualBlindKeyFields: DUAL_BLIND_REKEY_FIELDS,
+      };
+    case 'maker':
+    default:
+      return {
+        ...baseInput,
+        paymentMode: 'maker',
+        dualBlindKeyFlag: 'N',
+      };
+  }
+}, [activeTab, initialData, stableInitialPaymentModel]);
 
 
-// Ensure the payload ref has the paymentId before dispatching
-const finalPayload = {
-  ...currentFormPayload.current,
-  paymentId: currentFormPayload.current?.paymentId || (initialData as any)?.accountId,
-  paymentDetailsRequest: {
-    ...currentFormPayload.current?.paymentDetailsRequest,
-    paymentId:
-      currentFormPayload.current?.paymentDetailsRequest?.paymentId ||
-      currentFormPayload.current?.paymentId ||
-      String((initialData as any)?.accountId || ''),
-  },
-};
+// Step 3: Verify the <SSPaymentFlow .../> Mount Call
+// In PaymentParent.tsx lines 1448–1453 (image_48.png / image_52.png), 
+// pass stableInitialPaymentModel directly to initialData so SSPaymentFlow 
+// gets the merged dataset regardless of mode:
+
+
+<SSPaymentFlow
+  key={`${activeTab}-${initialData?.accountId || initialData?.paymentId || initialData?.transactionId || initialData?.debtorAccountNumber || 'new'}`}
+  paymentInput={dynamicPaymentInput}
+  fieldConfig={dynamicFieldConfig as any}
+  initialData={(stableInitialPaymentModel ?? initialData) as any}
+  isMakerMode={activeTab === 'maker'}
+  isCheckerMode={activeTab === 'checker'}
+  isRepairMode={activeTab === 'repair'}
+  repairReviewFieldList={activeTab === 'repair' ? repairReviewFieldList : undefined}
+  repairNewlyModifyFieldList={activeTab === 'repair' ? repairNewlyModifiedFields : undefined}
+  hardcapResultReceived={activeTab === 'maker' ? makerHardcapResult : undefined}
+  onAmountChange={activeTab === 'maker' ? handleAmountChange : undefined}
+  onFailedFieldListChange={activeTab === 'checker' ? setCheckerFailedFields : undefined}
+  onFormChange={handleFormChange}
+  onPaymentOutput={handlePaymentOutput}
+/>
+
