@@ -1,136 +1,227 @@
-//Step 1: Define the Key Fields & Field Config Generator in PaymentParent.tsx
-// Add the list of key fields from
+// Step 1: Ensure accountId is Preserved in mergeAccountsWithActionDetails
+// In PaymentParent.tsx lines 297–302 (image_60.png), 
+// confirm accountId from account is kept on the merged object:
 
 
-import { FormFieldConfig } from '@citi-icg-179025/payment-flow-reactjs-ui-lib';
-
-// The 10 dual blind rekey fields from image_68.png
-export const DUAL_BLIND_REKEY_FIELDS: string[] = [
-  'debtorName',
-  'debtorAccountNumber',
-  'debtorAgentBIC',
-  'instructedAmount',
-  'instructedAmountCurrencyCode',
-  'creditorName',
-  'creditorAccount',
-  'creditorAgentFinancialInstitutionBIC',
-  'creditorAgentFinancialInstitutionName',
-  'creditorAgentPostalAddress',
-];
+return {
+  ...account,
+  accountId: account?.accountId ?? matchedAction?.accountId ?? null,
+  status: isMakerState ? 'Payment Checker' : (account?.status || 'Payment Maker'),
+  actionText: isMakerState ? 'Review' : 'Edit',
+  actionDetails: matchedAction || null,
+  ...(matchedAction || {}),
+};
 
 
-///Inside PaymentParent:
+/// Step 2: Extract accountId in handlePaymentOutput
+//In PaymentParent.tsx around lines 1045–1055 (image_64.png), extract accountId by looking up the active record from:
+
+//initialData?.accountId (passed down when clicking Edit/Review)
+
+// Matching against actionDetailsList or instruction?.accounts using debtorAccountNumber
 
 
-// Dynamically set disabled flag on each field based on active mode
-const dynamicFieldConfig = useMemo(() => {
-  const baseConfig = (PARENT_FIELD_CONFIG as FormFieldConfig[]) || [];
+const handlePaymentOutput = useCallback((output: PaymentComponentOutput) => {
+  const newValid = Boolean(output?.isValid);
+  const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
+  setIsCurrentFormValid((prev) => (prev !== newValid ? newValid : prev));
+  setCheckerDualBlindPassed((prev) => (prev !== newDualBlind ? newDualBlind : prev));
 
-  if (activeTab === 'checker') {
-    return baseConfig.map((cfg) => {
-      // Keep ONLY the dual blind fields enabled; disable everything else
-      const isRekeyField = DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
-      return {
-        ...cfg,
-        disabled: !isRekeyField,
-      };
+  const pData: any = output?.paymentData;
+  if (!pData) return;
+
+  // 1. Extract accountId from initialData or find matching account record
+  const cleanFormAccount = String(pData.debtorAccountNumber || '').replace(/\//g, '').trim();
+
+  const matchedAccount =
+    (instruction?.accounts as any[])?.find(
+      (acc: any) =>
+        String(acc?.debitAccountNumber || acc?.debtorAccountNumber || '').replace(/\//g, '').trim() === cleanFormAccount
+    ) ||
+    actionDetailsList?.find(
+      (action: any) =>
+        String(action?.debtorAccountNumber || '').replace(/\//g, '').trim() === cleanFormAccount
+    );
+
+  const resolvedAccountId =
+    initialData?.accountId ??
+    (initialData as any)?.actionDetails?.accountId ??
+    matchedAccount?.accountId ??
+    pData?.accountId ??
+    '';
+
+  console.log('checking payload values per record when clicking submit : ', pData, 'accountId:', resolvedAccountId);
+
+  const makerSSPaymentPayload = {
+    txnId: instructionId_ ? String(instructionId_) : undefined,
+    maker: 'SS47983',
+    // If accountId is required at the root level of the payload:
+    accountId: resolvedAccountId,
+    paymentDetailsRequest: {
+      // Included in paymentDetailsRequest per record
+      accountId: resolvedAccountId,
+      paymentId: pData.paymentId || (initialData as any)?.paymentId || '',
+      requestedExecutionDate: pData.requestedExecutionDate || pData.valueDate || '',
+      debtorName: pData.debtorName || '',
+      source: 'UI',
+      debtorAccountNumber: pData.debtorAccountNumber || '',
+      debtorAgentBIC: pData.debtorAgentBIC || '',
+      debtorAgentBank: pData.debtorAgentBank || '',
+      chargeBearer: pData.chargeBearer || 'DEBT',
+      chargesAmount: pData.chargesAmount || '',
+      chargesAgentBIC: pData.chargesAgentBIC || '',
+      debtorAddressLines: pData.debtorAddressLines || '',
+      debtorStreetName: pData.debtorStreetName || '',
+      debtorBuildingNumber: pData.debtorBuildingNumber || '',
+      debtorPostalCode: pData.debtorPostalCode || '',
+      debtorTownName: pData.debtorTownName || '',
+      debtorCountrySubDivision: pData.debtorCountrySubDivision || '',
+      debtorCountryCode: pData.debtorCountryCode || '',
+      debtorSortCodeUK: pData.debtorSortCodeUK || '',
+      debtorSortCodeUS: pData.debtorSortCodeUS || '',
+      // ... rest of the fields
+    },
+  };
+
+  currentFormPayload.current = makerSSPaymentPayload;
+}, [instruction, actionDetailsList, initialData, instructionId_]);
+
+
+// Step 1: Update mergeAccountsWithActionDetails in PaymentParent.tsx
+// In PaymentParent.tsx (around line 280), ensure matching checks 
+// debitAccountNumber with stripped slashes, and explicitly forward a
+// ccountId, statusCode, and statusDescription
+
+
+export const mergeAccountsWithActionDetails = (
+  accountsList: any[] = [],
+  actionDetailsList: any[] = []
+) => {
+  return accountsList.map((account) => {
+    const accInstId = String(account?.instructionId ?? '').trim();
+    const accDebitNo = String(account?.debitAccountNumber ?? account?.debtorAccountNumber ?? '')
+      .replace(/\//g, '')
+      .trim();
+
+    // Match either by accountId directly, or by instructionId + debitAccountNumber
+    const matchedAction = actionDetailsList.find((action) => {
+      if (account?.accountId && action?.accountId && String(account.accountId) === String(action.accountId)) {
+        return true;
+      }
+      const actionInstId = String(action?.instructionId ?? action?.parentReferenceId ?? '').trim();
+      const actionDebitNo = String(action?.debitAccountNumber ?? action?.debtorAccountNumber ?? '')
+        .replace(/\//g, '')
+        .trim();
+      return accInstId === actionInstId && accDebitNo === actionDebitNo;
     });
-  }
 
-  // In maker or repair mode, keep standard permissions
-  return baseConfig;
-}, [activeTab]);
+    const isMakerState = matchedAction?.state === 'MAKER' || matchedAction?.statusCode === 'MAKER';
 
+    return {
+      // 1. Existing row data
+      ...account,
 
-//Step 2: Pass dualBlindKeyFields into dynamicPaymentInput
-// In PaymentParent.tsx (around lines 941–965):
-// Update case 'checker' to include dualBlindKeyFields matching PaymentComponentInput:
+      // 2. Extracted new properties from details-for-action
+      accountId: matchedAction?.accountId ?? account?.accountId ?? null,
+      statusCode: matchedAction?.statusCode ?? account?.statusCode ?? null,
+      statusDescription: matchedAction?.statusDescription ?? account?.statusDescription ?? null,
 
+      // 3. Grid status & action text
+      status: isMakerState ? 'Payment Checker' : (matchedAction?.statusDescription || account?.status || 'Payment Maker'),
+      actionText: isMakerState ? 'Review' : 'Edit',
 
-case 'checker':
-      return {
-        applicationName: 'GAB',
-        applicationModule: 'GAB-LATAM',
-        currency: initialData?.instructedAmountCurrencyCode ?? 'USD',
-        paymentMode: 'checker',
-        dualBlindKeyFlag: 'Y',
-        dualBlindKeyFields: DUAL_BLIND_REKEY_FIELDS,
-        paymentModel: stableInitialPaymentModel,
-      };
+      // 4. Retain full raw payload for reference
+      actionDetails: matchedAction || null,
+      matchedAction: matchedAction || null,
 
-
-
-// Step 3: Pass dynamicFieldConfig to <SSPaymentFlow/>
-// Update the <SSPaymentFlow .../> JSX in PaymentParent.tsx
+      // 5. Spread all remaining action fields
+      ...(matchedAction || {}),
+    };
+  });
+};
 
 
-<SSPaymentFlow
-  key={`${activeTab}-${initialData?.paymentId || initialData?.transactionId || initialData?.debtorAccountNumber || 'new'}`}
-  paymentInput={dynamicPaymentInput}
-  fieldConfig={dynamicFieldConfig as any}
-  initialData={initialData ?? undefined}
-  isMakerMode={activeTab === 'maker'}
-  isCheckerMode={activeTab === 'checker'}
-  isRepairMode={activeTab === 'repair'}
-  repairReviewFieldList={activeTab === 'repair' ? repairReviewFieldList : undefined}
-  repairNewlyModifyFieldList={activeTab === 'repair' ? repairNewlyModifiedFields : undefined}
-  hardcapResultReceived={activeTab === 'maker' ? makerHardcapResult : undefined}
-  onAmountChange={activeTab === 'maker' ? handleAmountChange : undefined}
-  onFailedFieldListChange={activeTab === 'checker' ? setCheckerFailedFields : undefined}
-  onFormChange={handleFormChange}
-  onPaymentOutput={handlePaymentOutput}
+//Step 2: Propagate in SplitPaymentMakerModal.tsx
+// Ensure SplitPaymentMakerModal.tsx passes the updated accounts
+//  list through to onAccountsUpdate:
+
+
+<PaymentParent
+  instruction={instruction}
+  instructionId={instructionId}
+  // ... other props
+  onAccountsUpdate={(updatedAccounts) => {
+    onAccountsUpdate?.(updatedAccounts);
+  }}
 />
 
 
+//Step 3: Handle in InstructionDetailPage.tsx
+// In InstructionDetailPage.tsx, make sure the callback
+//  handler captures the updated accounts list and saves it into the page state:
+
+const handleAccountsUpdate = (updatedAccounts: any[]) => {
+  setInstructionAccounts(updatedAccounts);
+  
+  // If instruction object holds an accounts array, update it as well
+  setInstruction((prev: any) => {
+    if (!prev) return prev;
+    return {
+      ...prev,
+      accounts: updatedAccounts,
+    };
+  });
+
+  // If a row is currently selected, keep its reference in sync with latest details
+  setSelectedRowData((prevRow: any) => {
+    if (!prevRow) return null;
+    const freshRow = updatedAccounts.find(
+      (acc: any) =>
+        (acc.accountId && prevRow.accountId && String(acc.accountId) === String(prevRow.accountId)) ||
+        String(acc.debitAccountNumber || '').replace(/\//g, '') ===
+          String(prevRow.debitAccountNumber || '').replace(/\//g, '')
+    );
+    return freshRow || prevRow;
+  });
+};
 
 
-// proxy OCIF id style fix
+// In the JSX for <SplitPaymentMakerModal>:
 
 
-.profile-row {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
-  min-height: 44px;
+<SplitPaymentMakerModal
+  isOpen={showSplitMakerModal}
+  instructionId={instructionId}
+  instruction={instruction}
+  // ...
+  onAccountsUpdate={handleAccountsUpdate}
+  onClose={() => {
+    setShowSplitMakerModal(false);
+    setSelectedRowData(null);
+  }}
+/>
 
-  .profile-name-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    /* Fixed or base column width matching your 'Name' header */
-    flex: 0 0 160px;
-    max-width: 160px;
-    min-width: 0;
 
-    .profile-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+//Step 4: Include in Modal initialData
+// When selectedRowData is passed to the modal for Review or Edit,
+//  accountId, statusCode, and statusDescription will be accessible directly:
 
-    .suspect-icon,
-    .invalid-profile-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-  }
 
-  .profile-id {
-    /* Takes the remaining space directly under the 'Proxy OCIF ID' header */
-    flex: 1 1 auto;
-    padding: 0 16px;
-    font-family: inherit;
-    font-size: 13px;
-    color: #333333;
-    word-break: break-all;
-    min-width: 0;
-  }
-
-  .delete-btn {
-    flex: 0 0 auto;
-    margin-left: auto;
-  }
+initialData={
+  selectedRowData
+    ? {
+        ...((selectedRowData as any).actionDetails || {}),
+        ...selectedRowData,
+        accountId: (selectedRowData as any).accountId,
+        statusCode: (selectedRowData as any).statusCode,
+        statusDescription: (selectedRowData as any).statusDescription,
+        debtorAccountNumber: String(
+          (selectedRowData as any).debtorAccountNumber ||
+            selectedRowData.debitAccountNumber ||
+            ""
+        )
+          .replace(/\//g, "")
+          .trim(),
+      }
+    : null
 }
