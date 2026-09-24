@@ -298,3 +298,27 @@ const handleEditRow = async (rowData: any) => {
     margin: -12px;
   }
 }
+
+
+
+// In search-customer.component.html
+// Replace lines 127 to 132 (image_44.png / image_46.png) with:
+
+@if ((searchForm.get('entityTradeName')?.hasError('pattern') && searchForm.get('entityTradeName')?.dirty) ||
+     searchForm.get('entityTradeName')?.hasError('maxlength')) {
+  <div style="position: absolute; top: 100%; margin-top: -6px; left: 0; display: flex; flex-direction: column; gap: 1px;">
+    @if (searchForm.get('entityTradeName')?.hasError('pattern') && searchForm.get('entityTradeName')?.dirty) {
+      <small class="error-text" style="position: static;">Invalid characters in Entity/Trade Name</small>
+    }
+    @if (searchForm.get('entityTradeName')?.hasError('maxlength')) {
+      <small class="error-text" style="position: static;">{{searchCustomerVerbiage.entityNameError | translate}}</small>
+    }
+  </div>
+}
+
+
+//And also change line 122:
+
+maxlength="35"
+
+
