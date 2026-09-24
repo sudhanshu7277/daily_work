@@ -261,39 +261,13 @@ const handleEditRow = async (rowData: any) => {
 
 /////////////////////////////////////////////
 
-// Form Error Messages Overlap Fix in search-customer.component.html & .scss
-// Grouped error messages into a flex column container so multiple active errors 
-// stack vertically instead of colliding at the same absolute position:
-
-@if ((searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.dirty) ||
-     searchForm.get('lastName')?.hasError('maxlength')) {
-  <div class="error-container">
-    @if (searchForm.get('lastName')?.hasError('pattern') && searchForm.get('lastName')?.dirty) {
-      <small class="error-text">
-        {{ 'Invalid characters entered in Last Name' }}
-      </small>
-    }
-    @if (searchForm.get('lastName')?.hasError('maxlength')) {
-      <small class="error-text">
-        {{ searchCustomerVerbiage.lastNameError | translate }}
-      </small>
-    }
-  </div>
-}
-
-// SCSS (lines 60–71):
-
-.error-container {
-  position: absolute;
-  bottom: 2px;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  white-space: nowrap;
-}
 
 .error-text {
+  /* REMOVE: position: absolute; */
+  /* REMOVE: bottom: 2px; */
+  /* REMOVE: left: 0; */
+  
+  position: static; /* or relative */
   color: #a12000;
   font-size: 14px;
   font-weight: 500;
