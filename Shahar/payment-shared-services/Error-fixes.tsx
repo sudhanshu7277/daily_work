@@ -261,18 +261,29 @@ const handleEditRow = async (rowData: any) => {
 
 /////////////////////////////////////////////
 
+.form-field-group {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Increase padding-bottom so 2 stacked error messages don't collide with elements below */
+  padding-bottom: 34px !important; 
+  box-sizing: border-box;
 
-.error-text {
-  /* REMOVE: position: absolute; */
-  /* REMOVE: bottom: 2px; */
-  /* REMOVE: left: 0; */
-  
-  position: static; /* or relative */
-  color: #a12000;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 14px;
-  margin: 0;
-  display: block;
-  animation: fadeInError 0.15s ease-in-out forwards;
+  /* Target the error div container directly from SCSS */
+  > div[style*="position: absolute"] {
+    /* Override inline bottom:-8px to anchor below the input instead of bottom-up */
+    top: calc(100% - 32px) !important;
+    bottom: auto !important;
+  }
+
+  .error-text {
+    position: static !important;
+    color: #a12000;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 16px;
+    margin: 0 0 2px 0;
+    display: block;
+    animation: fadeInError 0.15s ease-in-out forwards;
+  }
 }
