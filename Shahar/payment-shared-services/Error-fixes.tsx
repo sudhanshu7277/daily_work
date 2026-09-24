@@ -265,25 +265,36 @@ const handleEditRow = async (rowData: any) => {
   display: flex;
   flex-direction: column;
   position: relative;
-  /* Increase padding-bottom so 2 stacked error messages don't collide with elements below */
-  padding-bottom: 34px !important; 
+  padding-bottom: 36px;
   box-sizing: border-box;
 
-  /* Target the error div container directly from SCSS */
-  > div[style*="position: absolute"] {
-    /* Override inline bottom:-8px to anchor below the input instead of bottom-up */
-    top: calc(100% - 32px) !important;
+  .input-error {
+    border-color: #a12000 !important;
+    box-shadow: 0 0 0 1px #a12000;
+  }
+
+  /* Override the inline style from the error wrapper div (line 30 in HTML) */
+  > div[style] {
+    top: 100% !important;
     bottom: auto !important;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
   }
 
   .error-text {
-    position: static !important;
+    position: static;
     color: #a12000;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
-    line-height: 16px;
-    margin: 0 0 2px 0;
+    line-height: 14px;
+    margin: 0;
     display: block;
     animation: fadeInError 0.15s ease-in-out forwards;
+  }
+
+  .phone-error-margin {
+    margin: -12px;
   }
 }
