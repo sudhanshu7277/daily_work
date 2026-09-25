@@ -202,7 +202,7 @@ const handlePaymentOutput = useCallback(
     if (!pData) return;
 
     // ==============================================================
-    // 1. DUAL-BLIND REKEY VALIDATION (Checker Mode Comparison)
+    // 1. ACTIVE PER-RECORD DUAL-BLIND REKEY VALIDATION
     // ==============================================================
     if (activeTab === 'checker') {
       const rawMaker =
@@ -211,21 +211,16 @@ const handlePaymentOutput = useCallback(
         initialData ||
         {};
 
-      const normalize = (v: any) =>
-        v === null || v === undefined
-          ? ''
-          : String(v).replace(/\//g, '').replace(/,/g, '').trim().toLowerCase();
-
       const failed: string[] = [];
 
       DUAL_BLIND_REKEY_FIELDS.forEach((field) => {
         const makerRaw = rawMaker[field] ?? rawMaker?.paymentDetailsRequest?.[field];
         const checkerRaw = pData[field];
 
-        const makerVal = normalize(makerRaw);
-        const checkerVal = normalize(checkerRaw);
+        // Use normalizeValue to eliminate false negatives from formatting
+        const makerVal = normalizeValue(makerRaw);
+        const checkerVal = normalizeValue(checkerRaw);
 
-        // Numeric comparison for amount (e.g., 20000 vs 20000.00)
         if (field === 'instructedAmount') {
           const mNum = parseFloat(makerVal);
           const cNum = parseFloat(checkerVal);
@@ -233,32 +228,29 @@ const handlePaymentOutput = useCallback(
             failed.push(field);
           }
         } else {
-          // General string comparison
           if (!checkerVal || makerVal !== checkerVal) {
             failed.push(field);
           }
         }
       });
 
-      // Rekey passes if our explicit comparison finds 0 mismatches OR library says true
-      const passed = (failed.length === 0 && Boolean(pData.debtorAccountNumber)) || newDualBlind;
+      // Passes if 0 mismatches exist and basic fields are keyed, or library flag is true
+      const isManualPassed = failed.length === 0 && Boolean(pData.debtorAccountNumber);
+      const isPassed = isManualPassed || newDualBlind;
 
-      setCheckerDualBlindPassed(passed);
+      setCheckerDualBlindPassed(isPassed);
       setCheckerFailedFields(failed);
     } else {
       setCheckerDualBlindPassed(newDualBlind);
     }
 
     // ==============================================================
-    // 2. EXISTING ACCOUNT MATCHING & PAYLOAD CONSTRUCTION
-    // (Lines 1110 - 1217 remain completely as you wrote them)
+    // 2. ACCOUNT RESOLUTION FOR paymentId (Nested)
     // ==============================================================
-    // 1. Clean the account number to find the exact account record
     const cleanFormAccount = String(pData.debtorAccountNumber || '')
       .replace(/\//g, '')
       .trim();
 
-    // 2. Find the matched account object
     const matchedAccount =
       (instruction?.accounts as any[])?.find(
         (acc: any) =>
@@ -273,7 +265,6 @@ const handlePaymentOutput = useCallback(
             .trim() === cleanFormAccount
       );
 
-    // 3. Resolve accountId (as a string)
     const resolvedAccountId = String(
       initialData?.accountId ??
       (initialData as any)?.actionDetails?.accountId ??
@@ -282,9 +273,17 @@ const handlePaymentOutput = useCallback(
       ''
     ).trim();
 
+    // ==============================================================
+    // 3. PAYLOAD CONSTRUCTION FOR SUBMISSION / APPROVAL
+    // ==============================================================
     const makerSSPaymentPayload = {
       txnId: instructionId_ ? String(instructionId_) : undefined,
       maker: 'SS47983',
+      dupValidityCheckDays: 30,
+      duplicateCheckFieldList: ['debtorAccountNumber', 'instructedAmount'],
+      overrideDuplicate: false,
+      duplicateRefId: '',
+      duplicateInputDataModel: {},
       paymentDetailsRequest: {
         ...pData,
         paymentId: resolvedAccountId,
@@ -352,11 +351,6 @@ const handlePaymentOutput = useCallback(
         regulatoryReportingCode: pData.regulatoryReportingCode || '',
         invoiceReferenceNumber: pData.invoiceReferenceNumber || '',
       },
-      dupValidityCheckDays: 30,
-      duplicateCheckFieldList: ['debtorAccountNumber', 'instructedAmount'],
-      overrideDuplicate: false,
-      duplicateRefId: '',
-      duplicateInputDataModel: {},
     };
 
     currentFormPayload.current = makerSSPaymentPayload;
