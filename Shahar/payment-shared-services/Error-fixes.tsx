@@ -75,3 +75,68 @@ if (activeTab === 'checker') {
     </span>
   </div>
 )}
+
+
+
+
+
+
+
+
+// To guarantee the maker's actual record values are read for every field, check for non-null/non-empty values across all levels:
+
+Replace lines 1125–1135
+
+
+const rawInitial = (initialData as any) || {};
+        const pdr = rawInitial.paymentDetailsRequest || {};
+        const act = rawInitial.actionDetails || {};
+
+        const failed: string[] = [];
+
+        DUAL_BLIND_REKEY_FIELDS.forEach((field) => {
+          // Resolve maker value: check nested paymentDetailsRequest first, then actionDetails, then root
+          const makerRaw =
+            pdr[field] != null && pdr[field] !== ''
+              ? pdr[field]
+              : act[field] != null && act[field] !== ''
+              ? act[field]
+              : rawInitial[field] != null && rawInitial[field] !== ''
+              ? rawInitial[field]
+              : '';
+
+          // User inputted value in checker mode:
+          let checkerRaw = pData[field];
+          if (field === 'instructedAmountCurrencyCode') {
+            checkerRaw = pData.instructedAmountCurrencyCode || pData.currency || makerRaw;
+          }
+
+          const makerVal = normalizeValue(makerRaw);
+          const checkerVal = normalizeValue(checkerRaw);
+
+          if (field === 'instructedAmount') {
+            const mNum = parseFloat(makerVal);
+            const cNum = parseFloat(checkerVal);
+            if (!checkerVal || isNaN(cNum) || mNum !== cNum) {
+              failed.push(field);
+            }
+          } else {
+            if (!checkerVal || makerVal !== checkerVal) {
+              failed.push(field);
+            }
+          }
+        });
+
+
+        // Right after line 1157
+
+
+        console.log('--- CHECKER DUAL-BLIND COMPARISON ---');
+console.log('Maker Payment ID:', rawInitial?.paymentId || rawInitial?.accountId);
+console.log('Checker Input (pData):', {
+  amount: pData.instructedAmount,
+  debtorAcc: pData.debtorAccountNumber,
+  debtorName: pData.debtorName,
+  creditorAcc: pData.creditorAccount
+});
+console.log('Failed Fields count:', failed.length, failed);
