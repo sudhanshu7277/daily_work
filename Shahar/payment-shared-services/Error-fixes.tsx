@@ -1,41 +1,34 @@
-//1. Fix Currency Matching in handlePaymentOutput
-// Inside the DUAL_BLIND_REKEY_FIELDS.forEach((field) => { ... }) loop in PaymentParent.tsx
 
 
-DUAL_BLIND_REKEY_FIELDS.forEach((field) => {
-  const makerRaw =
-    pdr[field] !== undefined
-      ? pdr[field]
-      : rawInitial[field] !== undefined
-      ? rawInitial[field]
-      : act[field];
+<SSPaymentFlow
+  key={`${activeTab}-${initialData?.accountId || initialData?.paymentId || initialData?.transactionId || initialData?.debtorAccountNumber || 'new'}`}
+  paymentInput={dynamicPaymentInput}
+  fieldConfig={dynamicFieldConfig as any}
+  initialData={(stableInitialPaymentModel ?? initialData) as any}
+  isMakerMode={activeTab === 'maker'}
+  isCheckerMode={activeTab === 'checker'}
+  isRepairMode={activeTab === 'repair'}
+  repairReviewFieldList={activeTab === 'repair' ? repairReviewFieldList : undefined}
+  repairNewlyModifyFieldList={activeTab === 'repair' ? repairNewlyModifyFieldList : undefined}
+  
+  // REMOVE 'checker' HERE (Only run for maker and repair):
+  hardcapResultReceived={(activeTab === 'maker' || activeTab === 'repair') ? makerHardcapResult : undefined}
+  onAmountChange={(activeTab === 'maker' || activeTab === 'repair') ? handleAmountChange : undefined}
 
-  // If field is currency, read from either property or fallback to maker's locked currency
-  let checkerRaw = pData[field];
-  if (field === 'instructedAmountCurrencyCode') {
-    checkerRaw = pData.instructedAmountCurrencyCode || pData.currency || makerRaw;
+  onFailedFieldListChange={activeTab === 'checker' ? setCheckerFailedFields : undefined}
+  onFormChange={handleFormChange}
+  onPaymentOutput={handlePaymentOutput}
+/>
+
+
+//Step 2: Ensure Checker Mode Does Not Run Verification on Amount
+// Find the definition of handleAmountChange (usually located around line 1250–1350 in PaymentParent.tsx) and add an immediate early exit guard at the very top:
+
+const handleAmountChange = async (amount: any, currency: any) => {
+  // Never invoke backend verify in checker mode:
+  if (activeTab === 'checker') {
+    return;
   }
 
-  const makerVal = normalizeValue(makerRaw);
-  const checkerVal = normalizeValue(checkerRaw);
-
-  if (field === 'instructedAmount') {
-    const mNum = parseFloat(makerVal);
-    const cNum = parseFloat(checkerVal);
-    if (!checkerVal || isNaN(cNum) || mNum !== cNum) {
-      failed.push(field);
-    }
-  } else {
-    if (!checkerVal || makerVal !== checkerVal) {
-      failed.push(field);
-    }
-  }
-});
-
-
-
-//2. Ensure isCheckerApproveDisabled Only Depends on the Rekey MatchLines 1519–1520 previously included flags like !activeSubmittedTransaction or library form validity checks that can stay false due to disabled fields.   Set line 1519 strictly to:
-
-const isCheckerApproveDisabled =
-  isSubmitting ||
-  checkerFailedFields.length > 0;
+  // ... keep existing maker verify API call here ...
+};
