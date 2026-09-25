@@ -1,62 +1,85 @@
-//1. In search-customer.component.ts
-// Add this helper method inside SearchCustomerComponent 
-// to block input beyond the limit and trigger the Angular error state instantly:
+//Step 1: In bulk-upload.component.html
+// Update the success banner template (lines 43–52 in image_45.png) 
+// to ensure the text is populated with fallback to Figma's exact copy
 
 
-onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
-  const inputEvent = event as InputEvent;
-
-  // When deleting or clearing text, clear the custom maxlength error if length drops below limit
-  if (!inputEvent.data) {
-    const ctrl = this.searchForm.get(controlName);
-    if (ctrl?.hasError('maxlength')) {
-      const { maxlength, ...rest } = ctrl.errors || {};
-      ctrl.setErrors(Object.keys(rest).length ? rest : null);
-    }
-    return;
-  }
-
-  const target = inputEvent.target as HTMLInputElement;
-  const currentVal = target.value || '';
-  const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
-  const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
-
-  // When attempting to exceed the limit:
-  if (newTotalLength > maxLen) {
-    // Prevent the character from appearing in the input element
-    inputEvent.preventDefault();
-
-    // Immediately set the maxlength error so the UI error message displays
-    const ctrl = this.searchForm.get(controlName);
-    ctrl?.setErrors({ ...(ctrl.errors || {}), maxlength: true });
-    ctrl?.markAsDirty();
-  }
+@if (showSuccessBanner()) {
+  <div class="success-banner" role="status">
+    <div class="success-banner__left">
+      <mat-icon class="success-banner__icon">check_circle</mat-icon>
+      <span class="success-banner__text">
+        {{ successMessage() || 'Successfully uploaded for processing.' }}
+      </span>
+    </div>
+    <button class="success-banner__close" (click)="dismissBanner()" aria-label="Dismiss success message">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 }
 
 
 
-// 2. In search-customer.component.html
-// Replace the native maxlength attributes with (beforeinput) on all three inputs:
-
-// 1. Last Name (lines 22–24)
+//Step 2: In bulk-upload.component.scss
+// Replace lines 60 to 102 in bulk-upload.component.scss (image_46.png / image_47.png) with:
 
 
-(focus)="sharedDataInternally()"
-          (beforeinput)="onBeforeInputCheck($event, 'lastName', 90)"
-          [placeholder]="searchCustomerVerbiage.lastNamePlaceholder | translate" />
-
-
-//2. First Name (lines 83–85)
-
-
-(focus)="sharedDataInternally()"
-          (beforeinput)="onBeforeInputCheck($event, 'firstName', 30)"
-          [placeholder]="searchCustomerVerbiage.firstNamePlaceholder | translate" />
-
-
-//3. Entity/Trade Name (lines 121–123)
-
-
-(focus)="sharedDataInternally()"
-          (beforeinput)="onBeforeInputCheck($event, 'entityTradeName', 255)"
-          [placeholder]="searchCustomerVerbiage.entityTradeNamePlaceholder | translate" />
+/* ==========================================================================
+   Success Banner (Figma Spec)
+   ========================================================================== */
+   .success-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    margin: 16px 24px;
+    background-color: #f1f8f1;
+    border: 1px solid #b8dfb8;
+    border-radius: 4px;
+    box-sizing: border-box;
+  
+    &__left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+  
+    &__icon {
+      color: #2e7d32;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  
+    &__text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a1a;
+      line-height: 20px;
+    }
+  
+    &__close {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555555;
+      transition: color 0.15s ease-in-out;
+  
+      &:hover {
+        color: #1a1a1a;
+      }
+  
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
