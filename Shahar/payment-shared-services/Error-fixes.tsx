@@ -1,61 +1,56 @@
-// Step 1: Supply an Instant Bypassed Hardcap Result in Checker Mode
-// In PaymentParent.tsx (around lines 1805–1810 in image_55.png), 
-// change hardcapResultReceived so that when activeTab === 'checker',
-//  it receives a passed mock result instead of undefined
+// Step 1: Ensure makerRaw Pulls from pdr First
+// In PaymentParent.tsx around line 1130 (from image_32.png / 
+// image_33.png), check pdr[field] for an actual truthy/non-empty value first:
+
+const rawInitial = (initialData as any) || {};
+const pdr = rawInitial.paymentDetailsRequest || {};
+const act = rawInitial.actionDetails || {};
+
+const failed: string[] = [];
+
+DUAL_BLIND_REKEY_FIELDS.forEach((field) => {
+  // 1. Read from maker's paymentDetailsRequest first, then actionDetails, then root
+  const makerRaw =
+    pdr[field] !== undefined && pdr[field] !== null && pdr[field] !== ''
+      ? pdr[field]
+      : act[field] !== undefined && act[field] !== null && act[field] !== ''
+      ? act[field]
+      : rawInitial[field] !== undefined && rawInitial[field] !== null && rawInitial[field] !== ''
+      ? rawInitial[field]
+      : '';
+
+  // 2. Read what checker typed
+  let checkerRaw = pData[field];
+  if (field === 'instructedAmountCurrencyCode') {
+    checkerRaw = pData.instructedAmountCurrencyCode || pData.currency || makerRaw;
+  }
+
+  const makerVal = normalizeValue(makerRaw);
+  const checkerVal = normalizeValue(checkerRaw);
+
+  if (field === 'instructedAmount') {
+    const mNum = parseFloat(makerVal);
+    const cNum = parseFloat(checkerVal);
+    if (!checkerVal || isNaN(cNum) || mNum !== cNum) {
+      failed.push(field);
+    }
+  } else {
+    if (!checkerVal || makerVal !== checkerVal) {
+      failed.push(field);
+    }
+  }
+});
 
 
-hardcapResultReceived={
-  activeTab === 'checker'
-    ? { isHardcapExceeded: false, hardCapLimit: 0, status: 'SUCCESS' }
-    : activeTab === 'maker' || activeTab === 'repair'
-    ? makerHardcapResult
-    : undefined
-}
+//Step 2: Render the Comparison Note on the UIAdd the UI message 
+// directly above the action container buttons (around line 1895 in image_45.png): 
 
 
-// Step 2: Track Amount Match State in PaymentParent.tsx
-// Add a state variable near your other checker states (around lines 150–165 in 
-// PaymentParent.tsx)
-
-
-const [isAmountMatched, setIsAmountMatched] = useState<boolean>(false);
-
-
-//In handlePaymentOutput, update setIsAmountMatched during the comparison loop:
-
-// Inside handlePaymentOutput:
-if (activeTab === 'checker') {
-  const rawMaker =
-    (initialData as any)?.paymentDetailsRequest ||
-    (initialData as any)?.actionDetails ||
-    initialData ||
-    {};
-
-  const makerAmount = normalizeValue(
-    rawMaker.instructedAmount ?? rawMaker?.paymentDetailsRequest?.instructedAmount
-  );
-  const checkerAmount = normalizeValue(pData.instructedAmount);
-
-  const mNum = parseFloat(makerAmount);
-  const cNum = parseFloat(checkerAmount);
-  const amountMatches = Boolean(checkerAmount) && !isNaN(cNum) && mNum === cNum;
-
-  setIsAmountMatched(amountMatches);
-
-  // ... keep the rest of your DUAL_BLIND_REKEY_FIELDS comparison loop ...
-}
-
-
-// Step 3: Display the Confirmation Note on the UI
-//In PaymentParent.tsx, directly below <SSPaymentFlow .../> (
-// or right above the footer buttons around line 1840 in
-
-
-{activeTab === 'checker' && checkerDualBlindPassed && checkerFailedFields.length === 0 && (
+{activeTab === 'checker' && checkerFailedFields.length === 0 && (
   <div
     style={{
-      margin: '12px 16px 0',
-      padding: '8px 14px',
+      marginBottom: '14px',
+      padding: '10px 14px',
       backgroundColor: '#e6f4ea',
       border: '1px solid #34a853',
       borderRadius: '4px',
@@ -69,74 +64,7 @@ if (activeTab === 'checker') {
   >
     <span style={{ fontSize: '16px' }}>✓</span>
     <span>
-      Comparison successful: All dual-blind fields and instructed amount match the maker record (
-      {initialData?.paymentDetailsRequest?.instructedAmount ?? initialData?.instructedAmount} {initialData?.paymentDetailsRequest?.instructedAmountCurrencyCode ?? initialData?.instructedAmountCurrencyCode ?? 'USD'}
-    ).
+      Comparison successful: Rekeyed details and instructed amount match maker record ({initialData?.paymentDetailsRequest?.instructedAmount ?? initialData?.instructedAmount}).
     </span>
   </div>
 )}
-
-
-
-
-
-
-
-
-// To guarantee the maker's actual record values are read for every field, check for non-null/non-empty values across all levels:
-
-Replace lines 1125–1135
-
-
-const rawInitial = (initialData as any) || {};
-        const pdr = rawInitial.paymentDetailsRequest || {};
-        const act = rawInitial.actionDetails || {};
-
-        const failed: string[] = [];
-
-        DUAL_BLIND_REKEY_FIELDS.forEach((field) => {
-          // Resolve maker value: check nested paymentDetailsRequest first, then actionDetails, then root
-          const makerRaw =
-            pdr[field] != null && pdr[field] !== ''
-              ? pdr[field]
-              : act[field] != null && act[field] !== ''
-              ? act[field]
-              : rawInitial[field] != null && rawInitial[field] !== ''
-              ? rawInitial[field]
-              : '';
-
-          // User inputted value in checker mode:
-          let checkerRaw = pData[field];
-          if (field === 'instructedAmountCurrencyCode') {
-            checkerRaw = pData.instructedAmountCurrencyCode || pData.currency || makerRaw;
-          }
-
-          const makerVal = normalizeValue(makerRaw);
-          const checkerVal = normalizeValue(checkerRaw);
-
-          if (field === 'instructedAmount') {
-            const mNum = parseFloat(makerVal);
-            const cNum = parseFloat(checkerVal);
-            if (!checkerVal || isNaN(cNum) || mNum !== cNum) {
-              failed.push(field);
-            }
-          } else {
-            if (!checkerVal || makerVal !== checkerVal) {
-              failed.push(field);
-            }
-          }
-        });
-
-
-        // Right after line 1157
-
-
-        console.log('--- CHECKER DUAL-BLIND COMPARISON ---');
-console.log('Maker Payment ID:', rawInitial?.paymentId || rawInitial?.accountId);
-console.log('Checker Input (pData):', {
-  amount: pData.instructedAmount,
-  debtorAcc: pData.debtorAccountNumber,
-  debtorName: pData.debtorName,
-  creditorAcc: pData.creditorAccount
-});
-console.log('Failed Fields count:', failed.length, failed);
