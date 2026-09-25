@@ -24,17 +24,21 @@
 
 
 /* ==========================================================================
-   Success Banner (Figma Spec)
+   Success Banner (Exact Figma Spec)
    ========================================================================== */
    .success-banner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
-    margin: 16px 24px;
-    background-color: #f1f8f1;
-    border: 1px solid #b8dfb8;
-    border-radius: 4px;
+    min-height: 54px;
+    padding: 14px 20px;
+    /* Top touches close to header, standard side margins, breathing room below */
+    margin: 6px 24px 24px 24px;
+    background-color: #eaf5ea;
+    /* Light borders on top and sides, thick prominent dark green bottom accent */
+    border: 1px solid #c8e6c9;
+    border-bottom: 2.5px solid #2e7d32;
+    border-radius: 4px 4px 0 0; /* subtle top rounding, flat bottom along accent line */
     box-sizing: border-box;
   
     &__left {
@@ -58,6 +62,7 @@
       font-weight: 500;
       color: #1a1a1a;
       line-height: 20px;
+      letter-spacing: 0.1px;
     }
   
     &__close {
@@ -69,11 +74,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #555555;
-      transition: color 0.15s ease-in-out;
+      color: #333333;
+      transition: opacity 0.15s ease-in-out;
   
       &:hover {
-        color: #1a1a1a;
+        opacity: 0.7;
       }
   
       mat-icon {
