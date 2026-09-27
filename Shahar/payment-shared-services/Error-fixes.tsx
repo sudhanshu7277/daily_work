@@ -1,27 +1,63 @@
-// Step 1: Add the new dedicated function in history.component.ts
-// Add this new standalone method right above or below formatAccountNumbersInText:
+// In selection-panel.component.scss (or your modal dialog SCSS file)
+// Locate the .bmo-apply-hold-dialog .bmo-modal-container 
+// .table-scroll-viewport ruleset and apply the standard 8px 
+// scrollbar styles matching the rest of the app:
 
 
-formatHoldingAccountNumber(accountNumber: string, accountType?: string): string {
-  if (!accountNumber) return '';
+.bmo-apply-hold-dialog .bmo-modal-container .table-scroll-viewport {
+  max-height: 210px;
+  overflow-y: auto;
+  overflow-x: hidden;
 
-  const cleanNum = accountNumber.trim();
+  /* Firefox standard width */
+  scrollbar-width: auto;
+  scrollbar-color: #888888 #f1f1f1;
 
-  // If already formatted with sub-account/branch parens like "23970666(10)" (RIS profile accounts)
-  // or specifically an InvestorLine/RIS type, preserve it as-is without hyphenating:
-  if (/\(\d+\)$/.test(cleanNum) || /investorline|ris/i.test(accountType || '')) {
-    return cleanNum;
+  /* WebKit / Chromium (Chrome, Edge) */
+  &::-webkit-scrollbar {
+    width: 8px; /* Increases thickness from thin hairline to standard visible bar */
   }
 
-  // Fallback to existing format logic for other standard accounts
-  return this.formatAccountNumbersInText(cleanNum);
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888888;
+    border-radius: 4px;
+
+    &:hover {
+      background: #555555;
+    }
+  }
 }
 
 
-//Step 2: Use it inside formatAccountListIn history.component.ts, 
-// replace line 511 in formatAccountList (image_35.png):   
 
-// Replace line 511:
-// acNumber = this.formatAccountNumbersInText(a.accountNumber);
+// If the dialog is rendered inside an overlay outside the 
+// component's encapsulated scope, wrap it in ::ng-deep:
 
-acNumber = this.formatHoldingAccountNumber(a.accountNumber, rawType);
+
+::ng-deep .bmo-apply-hold-dialog .bmo-modal-container .table-scroll-viewport {
+  scrollbar-width: auto;
+  scrollbar-color: #888888 #f1f1f1;
+
+  &::-webkit-scrollbar {
+    width: 8px !important;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888888 !important;
+    border-radius: 4px !important;
+
+    &:hover {
+      background: #555555 !important;
+    }
+  }
+}
