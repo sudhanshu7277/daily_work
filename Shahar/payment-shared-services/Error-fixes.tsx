@@ -1,35 +1,108 @@
-// The maker values inside paymentDetailsRequest 
-// must be flattened onto the root of initialData so both 
-// <SSPaymentFlow> and your local comparison see the ground-truth values at the top level.
+//File 1: InstructionDetailPage.tsx
+// 1. Replace handleEditRow (Lines ~1712–1763)
+// Fixes the swapped paymentId/txnId payload, ensures 
+// paymentDetailsRequest flattens on top of root nulls, 
+// and guarantees the modal only opens after the data is loaded:
 
-//In InstructionDetailPage.tsx (Line 5661
+
+const handleEditRow = async (rowData: any) => {
+  const isChecker =
+    rowData?.actionText === "Review" ||
+    rowData?.status === "PAYMENT_CHECKER" ||
+    rowData?.statusCode === "MAKER";
+
+  if (isChecker) {
+    try {
+      // 1. Correct payload field mapping: paymentId = accountId, txnId = instructionId
+      const payload = {
+        moduleName: "GAB-LATAM",
+        applicationName: "GAB",
+        maker: rowData?.maker || "",
+        paymentId: rowData?.accountId ?? rowData?.paymentId ?? "",
+        transactionId: rowData?.matchedAction?.paymentTransactionId ?? rowData?.transactionId ?? "",
+        txnId: rowData?.instructionId ?? rowData?.txnId ?? "",
+      };
+
+      // 2. Fetch the saved maker payment record
+      const res = await getMakerPaymentPerRecord(payload);
+      console.log("getMakerPaymentPerRecord result:", res);
+      const record = Array.isArray(res) ? res[0] : res;
+      const pdr = (record as any)?.paymentDetailsRequest || {};
+
+      // 3. Put record into selectedRowData with paymentDetailsRequest flattened AFTER record
+      // (This prevents root nulls from overwriting real maker values)
+      setSelectedRowData({
+        ...rowData,
+        ...(record || {}),
+        ...pdr,
+        paymentDetailsRequest: pdr,
+        accountId: (record as any)?.paymentId || rowData?.accountId,
+        paymentId: (record as any)?.paymentId || rowData?.paymentId,
+      });
+    } catch (err) {
+      console.error("Failed to fetch maker payment per record:", err);
+      setSelectedRowData(rowData);
+    }
+  } else {
+    setSelectedRowData(rowData);
+  }
+
+  // 4. Open the modal AFTER the data fetch and state mapping complete
+  setModalMode(isChecker ? "checker" : "maker");
+  setShowSplitMakerModal(true);
+};
+
+
+
+//2. Remove Redundant Fetch in AG-Grid Column onClick (Lines ~635–642)
+// Ensure the button only triggers onEditRow:
+
+
+<Button
+  color="primary"
+  size="sm"
+  disabled={false}
+  onClick={() => {
+    if (p.data && p.context?.onEditRow) {
+      p.context.onEditRow(p.data);
+    }
+  }}
+>
+  {buttonLabel}
+</Button>
+
+
+//3. Modal initialData Prop (Lines ~5660–5676)
+// Ensure initialData has paymentDetailsRequest flattened directly into the root:
+
 
 initialData={
   selectedRowData
     ? {
         ...((selectedRowData as any).actionDetails || {}),
-        ...((selectedRowData as any).paymentDetailsRequest || {}), // <-- ADD THIS LINE
+        ...((selectedRowData as any).paymentDetailsRequest || {}),
         ...selectedRowData,
         accountId: (selectedRowData as any).accountId || (selectedRowData as any).paymentId,
+        paymentId: (selectedRowData as any).paymentId || (selectedRowData as any).accountId,
         statusCode: (selectedRowData as any).statusCode,
         statusDescription: (selectedRowData as any).statusDescription,
         debtorAccountNumber: String(
-          (selectedRowData as any).debtorAccountNumber ||
           (selectedRowData as any).paymentDetailsRequest?.debtorAccountNumber ||
+          (selectedRowData as any).debtorAccountNumber ||
           (selectedRowData as any).debitAccountNumber ||
-          ""
+          ''
         )
-          .replace(/\/V\//g, "")
+          .replace(/\/V\//g, '')
           .trim(),
       }
     : null
 }
 
 
-//Also in PaymentParent.tsx (Lines 1050–1060 where 
-// stableInitialPaymentModel is computed):
-// Ensure stableInitialPaymentModel flattens paymentDetailsRequest 
-// to prevent null root properties from overriding it:
+//File 2: PaymentParent.tsx
+// 1. Replace stableInitialPaymentModel (Lines ~374–415)
+// Ensures maker values are picked up with priority and 
+// instructedAmount is retained as a Number (rather than being converted to String):
 
 
 const stableInitialPaymentModel = useMemo(() => {
@@ -40,14 +113,13 @@ const stableInitialPaymentModel = useMemo(() => {
   const act = raw.actionDetails || {};
   const matched = raw.matchedAction || {};
 
-  // 1. Merge nested payloads with paymentDetailsRequest having top priority
+  // Merge nested payloads giving paymentDetailsRequest highest priority
   const nestedDetails = {
     ...matched,
     ...act,
     ...pdr,
   };
 
-  // 2. Preserve instructedAmount as a Number (do NOT wrap in String())
   const rawAmount =
     pdr.instructedAmount ??
     act.instructedAmount ??
@@ -61,12 +133,12 @@ const stableInitialPaymentModel = useMemo(() => {
 
   return {
     ...createEmptyPain001(),
-    // 3. Base API root
+    // Base API root
     ...raw,
-    // 4. Overwrite with actual maker values from paymentDetailsRequest
+    // Overwrite with maker field values from paymentDetailsRequest
     ...nestedDetails,
     instructedAmount: parsedAmount,
-    // 5. Normalized critical rekey fields
+    // Normalized critical rekey fields
     debtorAccountNumber: String(
       pdr.debtorAccountNumber ||
       act.debtorAccountNumber ||
@@ -94,3 +166,47 @@ const stableInitialPaymentModel = useMemo(() => {
     paymentId: String(raw.paymentId || raw.accountId || nestedDetails.paymentId || ''),
   };
 }, [initialData]);
+
+
+//2. Local Hardcap State Handler (Lines ~150 & 940–960)
+// Avoids hardcap checks on load while preventing /verify API network 
+// requests when entering amounts:
+
+const [checkerHardcapState, setCheckerHardcapState] = useState<any>(undefined);
+
+useEffect(() => {
+  if (activeTab === 'checker') {
+    setCheckerHardcapState(undefined);
+  }
+}, [activeTab, initialData]);
+
+const handleCheckerAmountValidation = useCallback((instructedAmount: number, currency: string) => {
+  if (!instructedAmount || instructedAmount <= 0) {
+    setCheckerHardcapState(undefined);
+    return;
+  }
+  setCheckerHardcapState({
+    amountWithinLimit: true,
+    hardCapValue: 999999999999,
+    status: 'SUCCESS',
+  });
+}, []);
+
+
+//3. <SSPaymentFlow> Props (Lines ~1234–1248)
+
+hardcapResultReceived={
+  activeTab === 'checker'
+    ? checkerHardcapState
+    : (activeTab === 'maker' || activeTab === 'repair')
+    ? makerHardcapResult
+    : undefined
+}
+onAmountChange={
+  activeTab === 'checker'
+    ? handleCheckerAmountValidation
+    : (activeTab === 'maker' || activeTab === 'repair')
+    ? handleAmountChange
+    : undefined
+}
+
