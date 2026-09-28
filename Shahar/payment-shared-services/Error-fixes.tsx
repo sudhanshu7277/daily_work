@@ -1,63 +1,44 @@
-// In selection-panel.component.scss (or your modal dialog SCSS file)
-// Locate the .bmo-apply-hold-dialog .bmo-modal-container 
-// .table-scroll-viewport ruleset and apply the standard 8px 
-// scrollbar styles matching the rest of the app:
+// The maker values inside paymentDetailsRequest 
+// must be flattened onto the root of initialData so both 
+// <SSPaymentFlow> and your local comparison see the ground-truth values at the top level.
 
+//In InstructionDetailPage.tsx (Line 5661
 
-.bmo-apply-hold-dialog .bmo-modal-container .table-scroll-viewport {
-  max-height: 210px;
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  /* Firefox standard width */
-  scrollbar-width: auto;
-  scrollbar-color: #888888 #f1f1f1;
-
-  /* WebKit / Chromium (Chrome, Edge) */
-  &::-webkit-scrollbar {
-    width: 8px; /* Increases thickness from thin hairline to standard visible bar */
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #888888;
-    border-radius: 4px;
-
-    &:hover {
-      background: #555555;
-    }
-  }
+initialData={
+  selectedRowData
+    ? {
+        ...((selectedRowData as any).actionDetails || {}),
+        ...((selectedRowData as any).paymentDetailsRequest || {}), // <-- ADD THIS LINE
+        ...selectedRowData,
+        accountId: (selectedRowData as any).accountId || (selectedRowData as any).paymentId,
+        statusCode: (selectedRowData as any).statusCode,
+        statusDescription: (selectedRowData as any).statusDescription,
+        debtorAccountNumber: String(
+          (selectedRowData as any).debtorAccountNumber ||
+          (selectedRowData as any).paymentDetailsRequest?.debtorAccountNumber ||
+          (selectedRowData as any).debitAccountNumber ||
+          ""
+        )
+          .replace(/\/V\//g, "")
+          .trim(),
+      }
+    : null
 }
 
 
+//Also in PaymentParent.tsx (Lines 1050–1060 where 
+// stableInitialPaymentModel is computed):
+// Ensure stableInitialPaymentModel flattens paymentDetailsRequest 
+// to prevent null root properties from overriding it:
 
-// If the dialog is rendered inside an overlay outside the 
-// component's encapsulated scope, wrap it in ::ng-deep:
 
-
-::ng-deep .bmo-apply-hold-dialog .bmo-modal-container .table-scroll-viewport {
-  scrollbar-width: auto;
-  scrollbar-color: #888888 #f1f1f1;
-
-  &::-webkit-scrollbar {
-    width: 8px !important;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1 !important;
-    border-radius: 4px !important;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #888888 !important;
-    border-radius: 4px !important;
-
-    &:hover {
-      background: #555555 !important;
-    }
-  }
-}
+const stableInitialPaymentModel = useMemo(() => {
+  if (!initialData) return null;
+  const pdr = (initialData as any).paymentDetailsRequest || {};
+  const act = (initialData as any).actionDetails || {};
+  return {
+    ...initialData,
+    ...act,
+    ...pdr, // Flattens debtorName, debtorAgentBIC, creditorAccount, etc. to root
+  };
+}, [initialData]);
