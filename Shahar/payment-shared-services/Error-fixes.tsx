@@ -1,96 +1,119 @@
-//Step 1: Update handleEditRow in InstructionDetailPage.tsx
-// In InstructionDetailPage.tsx (around lines 1712–1763):
+// Here are the final, complete code changes for SSPaymentFlow.tsx.
+
+// 1. Update instructedAmountChange and onAmountBlur
+//  (Lines 384–414 in image_39.png)
+// Add the if (isChecker) return; guard at the top of both functions 
+// so no hardcap states are set and onAmountChange is never dispatched in checker mode:
 
 
-const handleEditRow = async (rowData: any) => {
-  const isChecker =
-    rowData?.actionText === "Review" ||
-    rowData?.status === "PAYMENT_CHECKER" ||
-    rowData?.statusCode === "MAKER";
+const instructedAmountChange = (rawInputVal?: string) => {
+  if (isChecker) return;
 
-  if (isChecker) {
-    try {
-      // 1. Correct payload field mapping (paymentId is accountId, txnId is instructionId)
-      const payload = {
-        moduleName: "GAB-LATAM",
-        applicationName: "GAB",
-        maker: rowData?.maker || "",
-        paymentId: rowData?.accountId ?? rowData?.paymentId ?? "",
-        transactionId: rowData?.matchedAction?.paymentTransactionId ?? rowData?.transactionId ?? "",
-        txnId: rowData?.instructionId ?? rowData?.txnId ?? "",
-      };
+  if (amountDebouncer.current) clearTimeout(amountDebouncer.current);
+  amountDebouncer.current = setTimeout(() => {
+    const valToParse =
+      rawInputVal !== undefined ? rawInputVal : String(formValues.instructedAmount ?? '');
+    const parsedAmount = parseFloat(valToParse);
 
-      // 2. Fetch the maker record
-      const res = await getMakerPaymentPerRecord(payload);
-      const record = Array.isArray(res) ? res[0] : res;
-      const pdr = record?.paymentDetailsRequest || {};
-
-      // 3. Format data exactly like the old working structure
-      setSelectedRowData({
-        ...rowData,
-        ...record,
-        ...pdr, // Flattens debtorName, debtorAgentBIC, creditorAccount, etc.
-        paymentDetailsRequest: pdr,
-        paymentTransactionWorkflow: null, // Neutralize the new workflow object to match old response
-        accountId: record?.paymentId || rowData?.accountId,
-        paymentId: record?.paymentId || rowData?.paymentId,
-      });
-    } catch (err) {
-      console.error("Failed to fetch maker payment per record:", err);
-      setSelectedRowData(rowData);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setHardcapChecking(false);
+      setHardcapError('');
+      setHardcapSuccessMessage('');
+      return;
     }
-  } else {
-    setSelectedRowData(rowData);
-  }
 
-  // 4. Open modal only after data preparation completes
-  setModalMode(isChecker ? "checker" : "maker");
-  setShowSplitMakerModal(true);
+    setHardcapChecking(true);
+    onAmountChange?.({
+      instructedAmountCurrencyCode: formValues.instructedAmountCurrencyCode || 'USD',
+      instructedAmount: parsedAmount,
+    });
+  }, 400);
+};
+
+const onAmountBlur = () => {
+  if (isChecker) return;
+
+  const parsedAmount = parseFloat(String(formValues.instructedAmount ?? ''));
+  if (!isNaN(parsedAmount) && parsedAmount > 0) {
+    onAmountChange?.({
+      instructedAmountCurrencyCode: formValues.instructedAmountCurrencyCode || 'USD',
+      instructedAmount: parsedAmount,
+    });
+  }
 };
 
 
-//Step 2: Ensure the Modal's initialData Prop Pass-Through is Flattened
-// In InstructionDetailPage.tsx where <PaymentParent> or the modal is 
-// rendered (around line 5660)
+// 2. Update validateSingleDualBlindKeyField (Lines 219–236 in image_37.png)
+// Normalize instructedAmount using parseFloat to ensure numeric 
+// match comparisons work regardless of number vs. string formats:
 
 
-initialData={
-  selectedRowData
-    ? {
-        ...((selectedRowData as any).actionDetails || {}),
-        ...((selectedRowData as any).paymentDetailsRequest || {}),
-        ...selectedRowData,
-        accountId: (selectedRowData as any).accountId || (selectedRowData as any).paymentId,
-        paymentId: (selectedRowData as any).paymentId || (selectedRowData as any).accountId,
-        debtorAccountNumber: String(
-          (selectedRowData as any).paymentDetailsRequest?.debtorAccountNumber ||
-          (selectedRowData as any).debtorAccountNumber ||
-          (selectedRowData as any).debitAccountNumber ||
-          ""
-        )
-          .replace(/\/V\//g, "")
-          .trim(),
+const validateSingleDualBlindKeyField = useCallback(
+  (fieldName: string) => {
+    if (!isDualBlindEnabled || !paymentInput?.dualBlindKeyFields?.includes(fieldName)) return;
+
+    const rawOriginal = dualBlindCache.current.get(fieldName) ?? '';
+    const rawCurrent = (formValues as any)[fieldName] ?? '';
+
+    let isMismatch = false;
+
+    if (fieldName === 'instructedAmount') {
+      const numOriginal =
+        rawOriginal !== '' && rawOriginal !== null && rawOriginal !== undefined
+          ? parseFloat(String(rawOriginal))
+          : NaN;
+      const numCurrent =
+        rawCurrent !== '' && rawCurrent !== null && rawCurrent !== undefined
+          ? parseFloat(String(rawCurrent))
+          : NaN;
+
+      if (isNaN(numCurrent) || isNaN(numOriginal)) {
+        isMismatch = true;
+      } else {
+        isMismatch = numOriginal !== numCurrent;
       }
-    : null
-}
-
-
-//Step 3: AG-Grid Column Button onClick Cleanup
-// In InstructionDetailPage.tsx (around lines 635–642), 
-// ensure onEditRow handles the workflow alone without the second 
-// un-awaited getMakerPaymentPerRecord call:
-
-
-
-<Button
-  color="primary"
-  size="sm"
-  disabled={false}
-  onClick={() => {
-    if (p.data && p.context?.onEditRow) {
-      p.context.onEditRow(p.data);
+    } else {
+      const original = String(rawOriginal).trim();
+      const current = String(rawCurrent).trim();
+      isMismatch = original !== current;
     }
-  }}
->
-  {buttonLabel}
-</Button>
+
+    setDualBlindErrors(prev => {
+      const next = new Map(prev);
+      if (isMismatch) {
+        next.set(fieldName, 'Data does not match');
+      } else {
+        next.delete(fieldName);
+      }
+      return next;
+    });
+  },
+  [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]
+);
+
+
+//3. Update the JSX under instructedAmount (Lines 767–774 in image_33.png)
+// Hide hardcap messages in checker mode and render the dual-blind error from dualBlindErrors
+
+
+{/* 1. In Maker / Repair mode, show the hardcap status messages */}
+{!isChecker && (
+  <>
+    {hardcapChecking && (
+      <div className="hint">
+        {pacsFormVerbiages?.ValidatingHardcapLimit || 'Validating hardcap limit...'}
+      </div>
+    )}
+    {hardcapError && <div className="field-error">{hardcapError}</div>}
+    {hardcapSuccessMessage && (
+      <div className="success-message">{hardcapSuccessMessage}</div>
+    )}
+  </>
+)}
+
+{/* 2. In Checker mode, show the Dual-Blind comparison error */}
+{isChecker && dualBlindErrors?.has('instructedAmount') && (
+  <div className="field-error">
+    {dualBlindErrors.get('instructedAmount')}
+  </div>
+)}
