@@ -1,36 +1,31 @@
-//Exact Lines to Change in selection-panel.component.scss
-//1. Lines 80–81 (image_35.png)
-// Change:
+//1. In updatePagination() (lines 150–152)
 
-flex: 0 0 160px;
-    max-width: 160px;
-
-    // to:
-
-    flex: 1;
+//Replace lines 150–152: 
+const sortedRecords = this.getSortedRecords(this.records());
+    const start = (this.currentPage() - 1) * this.pageSize();
+    this.displayedRecords.set(sortedRecords.slice(start, start + this.pageSize()));
 
 
-    //2. Lines 129–130 (image_37.png)
-// Change:
+    //with:
 
-flex: 1 1 auto;
-    padding: 0 16px;
+    const start = (this.currentPage() - 1) * this.pageSize();
+    const currentPageSlice = this.records().slice(start, start + this.pageSize());
+    this.displayedRecords.set(this.getSortedRecords(currentPageSlice));
 
-    // to:
+    //2. In onSort() (line 164)
 
-    flex: 1;
-    padding: 0 4px;
+    //Remove or comment out line 164 so sorting stays on the active page instead of resetting to page 1:
 
-
-    //3. Lines 139–140 (image_37.png)
-// Change:
-
-flex: 0 0 auto;
-    margin-left: auto;
-
-    // to: 
-
-    flex: 0 0 48px;
-    width: 48px;
-    display: flex;
-    justify-content: center;
+    onSort(column: SortColumn): void {
+        if (this.sortColumn() === column) {
+          this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+        } else {
+          this.sortColumn.set(column);
+          this.sortDirection.set('asc');
+        }
+    
+        // Remove or comment out this line:
+        // this.currentPage.set(1);
+    
+        this.updatePagination();
+      }
