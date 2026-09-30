@@ -76,3 +76,92 @@ const dynamicFieldConfig = useMemo(() => {
       )}
     </div>
   ))}
+
+
+
+
+
+
+
+  // Step 1: Move isNonUsPayment Above Line 231 in PaymentParent.tsx
+// Move the isNonUsPayment hook (from lines 404–413) 
+// so it sits directly above dynamicFieldConfig (around line 230):
+
+const isNonUsPayment = useMemo(() => {
+    const raw = (stableInitialPaymentModel ?? initialData) as any;
+    const bic = String(
+      raw?.debtorAgentBIC ??
+      raw?.paymentDetailsRequest?.debtorAgentBIC ??
+      ''
+    ).toUpperCase().trim();
+
+    return bic.length > 0 && !bic.includes('US');
+  }, [stableInitialPaymentModel, initialData]);
+
+
+
+
+  //Step 2: Replace Lines 231–245 with the Dynamic Config
+// Replace dynamicFieldConfig with:
+
+
+const dynamicFieldConfig = useMemo(() => {
+    const baseConfig = (PARENT_FIELD_CONFIG as FormFieldConfig[]) || [];
+
+    // 10 base fields for US, 16 fields (10 + 6 tax) for Non-US
+    const activeRekeyFields = isNonUsPayment
+      ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS]
+      : DUAL_BLIND_REKEY_FIELDS;
+
+    if (activeTab === 'checker') {
+      return baseConfig.map((cfg) => {
+        const isRekeyField = activeRekeyFields.includes(cfg.fieldName);
+        const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+
+        return {
+          ...cfg,
+          // If non-US payment, tax detail fields become mandatory and visible
+          required: isNonUsPayment && isTaxField ? true : cfg.required,
+          hidden: isNonUsPayment && isTaxField ? false : cfg.hidden,
+          disabled: !isRekeyField,
+        };
+      });
+    }
+
+    // In Maker / Repair mode: if non-US, mark tax details required
+    if (isNonUsPayment) {
+      return baseConfig.map((cfg) => {
+        if (TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName)) {
+          return {
+            ...cfg,
+            required: true,
+            hidden: false,
+          };
+        }
+        return cfg;
+      });
+    }
+
+    return baseConfig;
+  }, [activeTab, isNonUsPayment]);
+
+
+
+  //Step 3: In dynamicPaymentInput (Lines 437–443 & 452)
+// Ensure the checker mode branch in dynamicPaymentInput passes the matching 16 fields:
+
+
+case 'checker':
+        return {
+          ...baseInput,
+          paymentMode: 'checker',
+          dualBlindKeyFlag: 'Y',
+          dualBlindKeyFields: isNonUsPayment
+            ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS]
+            : DUAL_BLIND_REKEY_FIELDS,
+        };
+
+
+        //And update the dependency array on line 452:
+
+    }, [activeTab, initialData, stableInitialPaymentModel, isNonUsPayment]);
