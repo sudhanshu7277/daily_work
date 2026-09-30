@@ -1,6 +1,22 @@
-//1. In updatePagination() (lines 150–152)
+//File 1: bulk-upload.component.html
+// Find line 132 (the @for loop over displayedRecords()):
 
-//Replace lines 150–152: 
+///Change Line 132:
+
+@for (record of displayedRecords(); track $index) {
+
+    //to:
+
+    @for (record of displayedRecords(); track (record.inputFilePath || record.fileName + $index)) {
+
+
+
+//File 2: bulk-upload.component.ts
+
+//Change 1: In updatePagination() (around lines 150–154)
+
+//Replace:
+
 const sortedRecords = this.getSortedRecords(this.records());
     const start = (this.currentPage() - 1) * this.pageSize();
     this.displayedRecords.set(sortedRecords.slice(start, start + this.pageSize()));
@@ -10,38 +26,39 @@ const sortedRecords = this.getSortedRecords(this.records());
 
     const start = (this.currentPage() - 1) * this.pageSize();
     const currentPageSlice = this.records().slice(start, start + this.pageSize());
-    this.displayedRecords.set(this.getSortedRecords(currentPageSlice));
-
-    //2. In onSort() (line 164)
-
-    //Remove or comment out line 164 so sorting stays on the active page instead of resetting to page 1:
-
-    onSort(column: SortColumn): void {
-        if (this.sortColumn() === column) {
-          this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
-        } else {
-          this.sortColumn.set(column);
-          this.sortDirection.set('asc');
-        }
-    
-        // Remove or comment out this line:
-        // this.currentPage.set(1);
-    
-        this.updatePagination();
-      }
-
-
-      // The Exact 2 Changes to Fix This:
-//Change 1: In bulk-upload.component.html (line 132 in image_40.png / image_41.png)
-// Change track $index to track the unique file name:
-
-
-@for (record of displayedRecords(); track record.fileName) {
-
-
-    //Change 2: In bulk-upload.component.ts (lines 153–155 in image_33.png)
-
-    //Ensure displayedRecords gets a fresh array reference so Angular's signal triggers UI updates:
-    const start = (this.currentPage() - 1) * this.pageSize();
-    const currentPageSlice = this.records().slice(start, start + this.pageSize());
     this.displayedRecords.set([...this.getSortedRecords(currentPageSlice)]);
+
+    //Change 2: In onSort() (around lines 164–165)
+:
+
+// Do not reset to page 1 when sorting the current page. Remove or comment out:
+// this.currentPage.set(1);
+
+
+//Change 3: In parseDateForSort() (around lines 213–216)
+/// Replace:
+
+
+private parseDateForSort(value: string): number {
+    const parsed = Date.parse(String(value ?? ''));
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+
+  //with:
+
+  private parseDateForSort(value: string): number {
+    if (!value) return 0;
+    const str = String(value).trim();
+    if (str.includes('/')) {
+      const parts = str.split('/');
+      if (parts.length === 3) {
+        const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        const d = Date.parse(iso);
+        return Number.isNaN(d) ? 0 : d;
+      }
+    }
+    const parsed = Date.parse(str);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
