@@ -1,167 +1,153 @@
-//1. In PaymentParent.tsx, export TAX_DUAL_BLIND_REKEY_FIELDS
-// Right beneath DUAL_BLIND_REKEY_FIELDS (around lines 114–125)
-
-export const TAX_DUAL_BLIND_REKEY_FIELDS: string[] = [
-    'taxIdNumber',
-    'taxIdType',
-    'purposeOfPayment',
-    'taxPurposeCode',
-    'regulatoryReportingCode',
-    'invoiceReferenceNumber',
-  ];
+//Change 1: Lines 201–217 (dualBlindCache Initialization & Masking)
+// In image_30.png (lines 201–217), update the effect so it searches 
+// both root and paymentDetailsRequest (where tax details are stored), 
+// and does not convert null into literal 'null'
 
 
-  //2. Update case 'checker' in dynamicPaymentInput (Lines 437–443 & Line 452)
-// Locate lines 437–443 in
+useEffect(() => {
+    if (isDualBlindEnabled && paymentInput?.paymentModel) {
+      dualBlindCache.current.clear();
+      const model = paymentInput.paymentModel as any;
+      const pdr = model.paymentDetailsRequest || {};
 
-case 'checker':
-        return {
-          ...baseInput,
-          paymentMode: 'checker',
-          dualBlindKeyFlag: 'Y',
-          dualBlindKeyFields: isNonUsPayment
-            ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS] // 16 fields for non-US
-            : DUAL_BLIND_REKEY_FIELDS,                                    // 10 fields for US
-        };
+      paymentInput.dualBlindKeyFields?.forEach((field) => {
+        // Look up maker value from root first, fallback to paymentDetailsRequest
+        const raw = model[field] ?? pdr[field] ?? '';
+        dualBlindCache.current.set(
+          field,
+          String(raw === null || raw === 'null' ? '' : raw).trim()
+        );
+      });
 
-
-        //And update the dependency array on line 452:   
-
-    }, [activeTab, initialData, stableInitialPaymentModel, isNonUsPayment]);
-
-
-    // 3. Update dynamicFieldConfig to make the 6 Tax Fields mandatory for Non-US
-// Right below dynamicPaymentInput where dynamicFieldConfig is defined:
-
-const dynamicFieldConfig = useMemo(() => {
-    return PARENT_FIELD_CONFIG.map((field) => {
-      if (isNonUsPayment && TAX_DUAL_BLIND_REKEY_FIELDS.includes(field.fieldName)) {
-        return {
-          ...field,
-          required: true,
-          hidden: false,
-        };
-      }
-      return field;
-    });
-  }, [isNonUsPayment]);
-
-
-  //4. In SSPaymentFlow.tsx, add blur validation and error display 
-  // to the 6 Tax InputsIn the Tax Details section of SSPaymentFlow.tsx (around Section 8):   
-
-  {[
-    { key: 'taxIdNumber', label: 'Tax ID Number' },
-    { key: 'taxIdType', label: 'Tax ID Type' },
-    { key: 'purposeOfPayment', label: 'Purpose of Payment' },
-    { key: 'taxPurposeCode', label: 'Tax Purpose Code' },
-    { key: 'regulatoryReportingCode', label: 'Regulatory Reporting Code' },
-    { key: 'invoiceReferenceNumber', label: 'Invoice / Reference Number' },
-  ].map((item) => (
-    <div key={item.key} className="form-group">
-      <label>
-        {item.label}
-        {fieldConfigMap?.[item.key]?.required && <span className="mandatory">*</span>}
-      </label>
-      <input
-        type="text"
-        name={item.key}
-        placeholder={`Enter ${item.label}`}
-        value={(formValues as any)[item.key] ?? ''}
-        onChange={(e) => setField(item.key, e.target.value)}
-        onBlur={() => validateSingleDualBlindKeyField(item.key)}
-      />
-      {isChecker && dualBlindErrors?.has(item.key) && (
-        <div className="field-error">{dualBlindErrors.get(item.key)}</div>
-      )}
-    </div>
-  ))}
-
-
-
-
-
-
-
-  // Step 1: Move isNonUsPayment Above Line 231 in PaymentParent.tsx
-// Move the isNonUsPayment hook (from lines 404–413) 
-// so it sits directly above dynamicFieldConfig (around line 230):
-
-const isNonUsPayment = useMemo(() => {
-    const raw = (stableInitialPaymentModel ?? initialData) as any;
-    const bic = String(
-      raw?.debtorAgentBIC ??
-      raw?.paymentDetailsRequest?.debtorAgentBIC ??
-      ''
-    ).toUpperCase().trim();
-
-    return bic.length > 0 && !bic.includes('US');
-  }, [stableInitialPaymentModel, initialData]);
-
-
-
-
-  //Step 2: Replace Lines 231–245 with the Dynamic Config
-// Replace dynamicFieldConfig with:
-
-
-const dynamicFieldConfig = useMemo(() => {
-    const baseConfig = (PARENT_FIELD_CONFIG as FormFieldConfig[]) || [];
-
-    // 10 base fields for US, 16 fields (10 + 6 tax) for Non-US
-    const activeRekeyFields = isNonUsPayment
-      ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS]
-      : DUAL_BLIND_REKEY_FIELDS;
-
-    if (activeTab === 'checker') {
-      return baseConfig.map((cfg) => {
-        const isRekeyField = activeRekeyFields.includes(cfg.fieldName);
-        const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
-
-        return {
-          ...cfg,
-          // If non-US payment, tax detail fields become mandatory and visible
-          required: isNonUsPayment && isTaxField ? true : cfg.required,
-          hidden: isNonUsPayment && isTaxField ? false : cfg.hidden,
-          disabled: !isRekeyField,
-        };
+      setFormValues((prev) => {
+        const masked = { ...prev };
+        paymentInput.dualBlindKeyFields?.forEach((field) => {
+          (masked as any)[field] = '';
+        });
+        return masked;
       });
     }
+  }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, paymentInput?.paymentModel]);
 
-    // In Maker / Repair mode: if non-US, mark tax details required
-    if (isNonUsPayment) {
-      return baseConfig.map((cfg) => {
-        if (TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName)) {
-          return {
-            ...cfg,
-            required: true,
-            hidden: false,
-          };
+
+  //Change 2: Lines 239–280 (validateSingleDualBlindKeyField)
+// In image_31.png (lines 239–280), replace the validation hook with 
+// numeric normalization for instructedAmount and safe handling for empty/null values:
+
+const validateSingleDualBlindKeyField = useCallback(
+    (fieldName: string) => {
+      if (!isDualBlindEnabled || !paymentInput?.dualBlindKeyFields?.includes(fieldName)) return;
+
+      const rawOriginal = dualBlindCache.current.get(fieldName) ?? '';
+      const rawCurrent = (formValues as any)[fieldName] ?? '';
+
+      const normalizeStr = (val: any) => {
+        if (val === null || val === undefined || val === 'null' || val === '') return '';
+        return String(val).trim();
+      };
+
+      const original = normalizeStr(rawOriginal);
+      const current = normalizeStr(rawCurrent);
+
+      let isMismatch = false;
+
+      if (fieldName === 'instructedAmount') {
+        const numOriginal = original !== '' ? parseFloat(original) : NaN;
+        const numCurrent = current !== '' ? parseFloat(current) : NaN;
+
+        if (isNaN(numCurrent) || isNaN(numOriginal)) {
+          isMismatch = true;
+        } else {
+          isMismatch = numOriginal !== numCurrent;
         }
-        return cfg;
+      } else {
+        // If both maker record and checker input are empty/null, they match
+        if (original === '' && current === '') {
+          isMismatch = false;
+        } else {
+          isMismatch = original !== current;
+        }
+      }
+
+      setDualBlindErrors((prev) => {
+        const next = new Map(prev);
+        if (isMismatch) {
+          next.set(fieldName, 'Data does not match');
+        } else {
+          next.delete(fieldName);
+        }
+        return next;
       });
+    },
+    [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues]
+  );
+
+
+  //Change 3: Lines 283–295 (isDualBlindPassed Form Gate)
+// In image_32.png (lines 283–295), replace with:
+
+
+useEffect(() => {
+    if (!isDualBlindEnabled) {
+      setIsDualBlindPassed(true);
+      return;
     }
 
-    return baseConfig;
-  }, [activeTab, isNonUsPayment]);
+    const fields = paymentInput?.dualBlindKeyFields || [];
+    if (fields.length === 0) {
+      setIsDualBlindPassed(true);
+      return;
+    }
+
+    // Block if any field has an active mismatch error
+    if (dualBlindErrors.size > 0) {
+      setIsDualBlindPassed(false);
+      return;
+    }
+
+    const allMatched = fields.every((f) => {
+      const orig = dualBlindCache.current.get(f) ?? '';
+      const curr = String((formValues as any)[f] ?? '').trim();
+
+      if (f === 'instructedAmount') {
+        const numOrig = parseFloat(orig);
+        const numCurr = parseFloat(curr);
+        return !isNaN(numOrig) && !isNaN(numCurr) && numOrig === numCurr;
+      }
+
+      // If both maker record and checker input are empty, it's valid
+      if (orig === '' && curr === '') return true;
+
+      return curr !== '' && orig === curr;
+    });
+
+    setIsDualBlindPassed(allMatched);
+  }, [isDualBlindEnabled, paymentInput?.dualBlindKeyFields, formValues, dualBlindErrors]);
 
 
-
-  //Step 3: In dynamicPaymentInput (Lines 437–443 & 452)
-// Ensure the checker mode branch in dynamicPaymentInput passes the matching 16 fields:
-
-
-case 'checker':
-        return {
-          ...baseInput,
-          paymentMode: 'checker',
-          dualBlindKeyFlag: 'Y',
-          dualBlindKeyFields: isNonUsPayment
-            ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS]
-            : DUAL_BLIND_REKEY_FIELDS,
-        };
+  //Change 4: Lines 752–754 (showTaxDetails in Checker Mode)
+// In image_53.png (lines 752–754), debtorAgentBIC starts masked to "
+// " in Checker mode. To prevent the Tax Details section from being 
+// hidden before the checker types the BIC, inspect dualBlindCache or fallback to formValue
 
 
-        //And update the dependency array on line 452:
+const debtorBicCountry = (
+    (isChecker
+      ? dualBlindCache.current.get('debtorAgentBIC') || formValues.debtorAgentBIC
+      : formValues.debtorAgentBIC) || ''
+  )
+    .substring(4, 6)
+    .toUpperCase();
 
-    }, [activeTab, initialData, stableInitialPaymentModel, isNonUsPayment]);
+  const showTaxDetails = LATAM_COUNTRIES.includes(debtorBicCountry);
+
+
+  //Change 5: Line 958 (creditorAgentAccountNumber Name Discrepancy)
+// In image_62.png (line 958):
+
+
+// Change line 958 from:
+{renderField('creditorAgentPostalAddress', 'Creditor Agent Account Number')}
+
+// To:
+{renderField('creditorAgentAccountNumber', 'Creditor Agent Account Number')}
