@@ -29,3 +29,19 @@ const sortedRecords = this.getSortedRecords(this.records());
     
         this.updatePagination();
       }
+
+
+      // The Exact 2 Changes to Fix This:
+//Change 1: In bulk-upload.component.html (line 132 in image_40.png / image_41.png)
+// Change track $index to track the unique file name:
+
+
+@for (record of displayedRecords(); track record.fileName) {
+
+
+    //Change 2: In bulk-upload.component.ts (lines 153–155 in image_33.png)
+
+    //Ensure displayedRecords gets a fresh array reference so Angular's signal triggers UI updates:
+    const start = (this.currentPage() - 1) * this.pageSize();
+    const currentPageSlice = this.records().slice(start, start + this.pageSize());
+    this.displayedRecords.set([...this.getSortedRecords(currentPageSlice)]);
