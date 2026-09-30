@@ -1,39 +1,84 @@
-//Step 1: Update handleDoubleClickFailedField (Lines 553–563 in image_44.png)
-// In SSPaymentFlow.tsx, update lines 553–563 to ensure it only 
-// activates in Checker mode for non-dual-blind fields, toggles 
-// the item in failedFields, and notifies the parent (onFailedFieldListChange):
+//File 1: SSPaymentFlow.tsx
+//1. Update Props Destructuring (Lines 36–52)
+// Ensure onFailedFieldListChange is destructured from props:
 
 
-const handleDoubleClickFailedField = (fieldName: string, e: MouseEvent) => {
-    e.stopPropagation();
+export const SSPaymentFlow: FC<SSPaymentFlowProps> = ({
+    paymentInput,
+    fieldConfig = [],
+    initialData,
+    pacsFormVerbiages = {},
+    isMakerMode,
+    isCheckerMode,
+    isRepairMode,
+    repairReviewFieldList = [],
+    repairNewlyModifyFieldList = [],
+    hardcapResultReceived,
+    onPaymentOutput,
+    onFormChange,
+    onFormValidityChange,
+    onFailedFieldListChange, // <-- Ensure this is present
+    onAmountChange,
+  }) => {
+
+
+    //2. Update handleDoubleClickFailedField (Around Lines 553–563)Replace
+    //  handleDoubleClickFailedField so that:It only triggers in Checker mode. 
+    //   Dual-blind rekey fields are protected from flagging (they must be
+    //  retyped and matched).   Toggling a field updates local state and immediately
+    //  calls onFailedFieldListChange with the updated array. 
+
+
+    const handleDoubleClickFailedField = (fieldName: string, e: MouseEvent) => {
+        e.stopPropagation();
     
-    // Only allowed in Checker mode
-    if (!isChecker) return;
+        // Only enabled for Checker mode
+        if (!isChecker) return;
+    
+        // Dual-blind rekey fields cannot be flagged — checker must rekey them
+        if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName)) {
+          return;
+        }
+    
+        setFailedFields((prev) => {
+          const exists = prev.includes(fieldName);
+          const next = exists ? prev.filter((f) => f !== fieldName) : [...prev, fieldName];
+          
+          // Immediately notify parent component (PaymentParent)
+          onFailedFieldListChange?.(next);
+          return next;
+        });
+      };
 
-    // Do NOT allow flagging dual blind rekey fields (those must be retyped and matched)
-    if (isDualBlindEnabled && paymentInput?.dualBlindKeyFields?.includes(fieldName)) {
-      return;
-    }
 
-    setFailedFields((prev) => {
-      const exists = prev.includes(fieldName);
-      const next = exists ? prev.filter((f) => f !== fieldName) : [...prev, fieldName];
-      
-      // Notify parent component so CheckerFailedFields stays synchronized
-      onFailedFieldListChange?.(next);
-      return next;
+      //3. Fix Lines 715–728 (useEffect Payload Dispatcher)
+// Remove failedFields from onFormValidityChange to fix 
+// TypeScript error ts(2353), dispatch it via onFailedFieldListChange,
+//  and add the dependencies:
+
+
+queueMicrotask(() => {
+    onPaymentOutput?.(payload);
+    onFormValidityChange?.({
+      validForm: isFormValid,
+      makerPayload: formValues as unknown as Record<string, unknown>,
     });
-  };
+    onFailedFieldListChange?.(failedFields);
+  });
+}, [
+  isFormValid,
+  formValues,
+  isDualBlindEnabled,
+  isDualBlindPassed,
+  onPaymentOutput,
+  onFormValidityChange,
+  onFailedFieldListChange,
+  failedFields,
+]);
 
 
-  //Step 2: Ensure Double Click Fires on Disabled Elements (renderField)
-// In HTML/React, when an <input disabled> is inside a container,
-//  browsers often block mouse events from bubbling up.
-
-// In renderField (lines 678–680 in image_49.png), ensure the wrapper div 
-// captures the double click and has userSelect: 'none' so rapid clicking 
-// does not highlight text:
-
+//4. Ensure Wrapper Div Captures Double-Click (renderField, Lines 678–684)
+// In renderField, ensure the wrapper div has the double-click handler and title tooltip:
 
 return (
     <div
@@ -57,12 +102,15 @@ return (
 
 
 
-      //Step 3: Add CSS / SCSS for .failed-fieldIn your stylesheet (e.g. index.css or component SCSS):   
+      //File 2: Stylesheet (index.css or component SCSS)
+      // Add the red highlight styling for .failed-field. Using pointer-events: none on 
+      disabled inputs ensures that double-clicking anywhere inside 
+      the disabled box or label reliably bubbles up to trigger the container's onDoubleClick
 
-
-      .form-field.failed-field,
+      /* Flagged / Failed Fields in Checker Mode */
+.form-field.failed-field,
 .field-invalid.failed-field {
-  background-color: #ffebee !important; // Light red container background
+  background-color: #ffebee !important; /* Soft red container background */
   border: 1px solid #d32f2f !important;
   border-radius: 4px;
   padding: 4px 6px;
@@ -70,46 +118,22 @@ return (
 
   label,
   .field-label {
-    color: #c62828 !important; // Dark red label
+    color: #c62828 !important; /* Prominent red text for the label */
     font-weight: 600;
   }
 
   input,
   select,
   textarea {
-    background-color: #ffcdd2 !important; // Visible soft-red input background
+    background-color: #ffcdd2 !important; /* Soft red input background */
     border-color: #ef5350 !important;
     color: #b71c1c !important;
-    cursor: pointer; // Indicates interactivity despite being readonly/disabled
   }
 
-  // Allow mouse events to bubble through disabled inputs so dblclick always triggers
+  /* Allow dblclick to pass through disabled controls to the container handler */
   input:disabled,
   select:disabled,
   textarea:disabled {
-    pointer-events: none; // Allows container onDoubleClick to trigger reliably!
+    pointer-events: none;
   }
 }
-
-
-
-// Step 4: Parent Output Synchronization
-//In lines 590–606 (image_46.png), verify that failedFields is forwarded via 
-//onPaymentOutput or onFormValidityChange
-
-
-onFormValidityChange?.({
-        validForm: isFormValid,
-        failedFields, // Array of flagged field names
-        makerPayload: formValues as unknown as Record<string, unknown>,
-      });
-
-
-      //And in PaymentParent.tsx, your existing onFailedFieldListChange prop
-      // (line 862 in image_14.png
-
-        onFailedFieldListChange={activeTab === 'checker' ? setCheckerFailedFields : undefined}
-
-
-
-
