@@ -131,3 +131,43 @@ if (activeTab === 'maker' || activeTab === 'repair') {
   }
 
 
+
+
+  //1. In PaymentParentProps (around lines 160–168)
+//Add onCheckerDecision to the interface
+
+
+
+export interface PaymentParentProps {
+    instructionId: string;
+    initialData?: any;
+    activeTab?: 'maker' | 'checker' | 'repair';
+    isNonUsPayment?: boolean;
+    onClose?: () => void;
+    onCheckerDecision?: (decision: 'Approved' | 'Rejected', payload: any) => Promise<void> | void;
+    onSubmitPayment?: (paymentPayload: any) => Promise<void> | void;
+    onAccountsUpdate?: (accounts: any[]) => void;
+    isSubmitting?: boolean;
+  }
+
+
+
+  //2. In Component Destructuring (Line 169)
+//Look at line 169 in
+
+
+export const PaymentParent: FC<PaymentParentProps> = ({
+
+    //Ensure onCheckerDecision is destructured there:
+
+    export const PaymentParent: FC<PaymentParentProps> = ({
+        instructionId,
+        initialData,
+        activeTab,
+        isNonUsPayment,
+        onClose,
+        onCheckerDecision,
+        onSubmitPayment,
+        onAccountsUpdate,
+        // ... any other existing destructured props
+      }) => {
