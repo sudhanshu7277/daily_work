@@ -1,116 +1,221 @@
-//The Fix
-Step 1: Update the Button Click in InstructionDetailPage.tsx (Lines 608–612 in image_22.png)
-Pass actionText: buttonLabel along with
+//1. Fix stableInitialPaymentModel (Lines 402–440 in image_66.png & image_67.png)
+
+//Problem: stableInitialPaymentModel did not include BICs, payment methods, or Peru tax IDs, and hardcoded currency fallback to 'USD'. 
+//   Replace lines 402–440 with:
 
 
-
-// image_22.png, around line 608:
-onClick={() => {
-    if (p.data && p.context?.onEditRow) {
-      p.context.onEditRow({
-        ...p.data,
-        actionText: buttonLabel, // Explicitly pass "Edit" or "Review"
-      });
-    }
-  }}
-
-
-
-  // Step 2: Make handleEditRow Prioritize "Edit" (Lines 1682–1687 in image_24.png)
-If the user clicked an "Edit" button, or if the status is "NEW" or "Payment Not Created", it is always Maker mode. Never treat it as Checker:
-
-
-const handleEditRow = async (rowData: any) => {
-    if (!rowData) return;
+const stableInitialPaymentModel = useMemo(() => {
+    if (!initialData) return null;
   
-    // 1. Prioritize explicit Edit action or NEW items for Maker mode
-    const isExplicitEdit =
-      rowData?.actionText === 'Edit' ||
-      rowData?.statusCode === 'NEW' ||
-      rowData?.status === 'Payment Not Created';
+    const raw = initialData as any;
+    const nestedDetails =
+      raw.paymentDetailsRequest ||
+      raw.actionDetails ||
+      raw.matchedAction ||
+      raw.paymentInitPayload ||
+      {};
   
-    // 2. Identify if this is Checker mode
-    const isChecker =
-      !isExplicitEdit &&
-      (rowData?.actionText === 'Review' ||
-        rowData?.status === 'PAYMENT_CHECKER' ||
-        rowData?.status === 'Payment Created' ||
-        rowData?.status === 'Checker1 Approved' ||
-        rowData?.statusCode === 'CHECKER1' ||
-        rowData?.statusCode === 'CHECKER2' ||
-        rowData?.statusCode === 'CHECKER3' ||
-        (rowData?.statusCode === 'MAKER' && rowData?.actionText !== 'Edit'));
+    return {
+      ...createEmptyPain001(),
+      ...raw,
+      ...nestedDetails,
+      debtorAccountNumber: String(
+        raw.debtorAccountNumber ||
+        raw.debitAccountNumber ||
+        nestedDetails.debtorAccountNumber ||
+        nestedDetails.debitAccountNumber ||
+        ''
+      ).replace(/\//g, '').trim(),
   
-    if (isChecker) {
-      try {
-        // Prioritize paymentId over accountId to prevent backend lookup failures
-        const resolvedPaymentId =
-          rowData?.paymentId ||
-          rowData?.stageDetails?.paymentId ||
-          rowData?.paymentTransactionId ||
-          rowData?.matchedAction?.paymentId ||
-          rowData?.accountId ||
-          '';
+      instructedAmount: String(
+        raw.instructedAmount ??
+        raw.amount ??
+        nestedDetails.instructedAmount ??
+        nestedDetails.amount ??
+        ''
+      ),
   
-        const resolvedTxnId =
-          rowData?.matchedAction?.paymentTransactionId ||
-          rowData?.transactionId ||
-          rowData?.stageDetails?.transactionId ||
-          '';
+      instructedAmountCurrencyCode:
+        raw.instructedAmountCurrencyCode ||
+        raw.currency ||
+        nestedDetails.instructedAmountCurrencyCode ||
+        nestedDetails.currency ||
+        'PEN',
   
-        const resolvedInstructionId =
-          rowData?.instructionId ||
-          (instruction as any)?.instructionId ||
-          (instruction as any)?.id ||
-          rowData?.txnid ||
-          '';
+      painPaymentMethodType:
+        raw.painPaymentMethodType ||
+        nestedDetails.painPaymentMethodType ||
+        raw.paymentType ||
+        'DFT',
   
-        const payload = {
-          moduleName: 'GAB-LATAM',
-          applicationName: 'GAB',
-          maker: rowData?.maker || '',
-          paymentId: String(resolvedPaymentId),
-          transactionId: String(resolvedTxnId),
-          txnid: String(resolvedInstructionId),
+      debtorName: raw.debtorName || nestedDetails.debtorName || '',
+      debtorAgentBIC: raw.debtorAgentBIC || nestedDetails.debtorAgentBIC || '',
+      debtorCountryCode: raw.debtorCountryCode || nestedDetails.debtorCountryCode || '',
+  
+      creditorName: raw.creditorName || nestedDetails.creditorName || '',
+      creditorAccount: raw.creditorAccount || raw.creditorAccountNumber || nestedDetails.creditorAccount || '',
+      creditorAgentFinancialInstitutionBIC:
+        raw.creditorAgentFinancialInstitutionBIC ||
+        raw.creditorAgentBIC ||
+        nestedDetails.creditorAgentFinancialInstitutionBIC ||
+        nestedDetails.creditorAgentBIC ||
+        '',
+      creditorCountryCode: raw.creditorCountryCode || nestedDetails.creditorCountryCode || '',
+  
+      taxIdNumber:
+        raw.taxIdNumber ||
+        raw.creditorOrgTaxId ||
+        raw.creditorPersonTaxId ||
+        nestedDetails.creditorOrgTaxId ||
+        nestedDetails.creditorPersonTaxId ||
+        '',
+      taxIdType:
+        raw.taxIdType ||
+        raw.creditorOrgTaxCode ||
+        raw.creditorPersonTaxCode ||
+        nestedDetails.creditorOrgTaxCode ||
+        nestedDetails.creditorPersonTaxCode ||
+        'TXID',
+      taxPurposeCode: raw.taxPurposeCode || nestedDetails.taxPurposeCode || '',
+  
+      paymentId: String(raw.paymentId || raw.accountId || nestedDetails.paymentId || ''),
+    };
+  }, [initialData]);
+
+
+  //2. Fix isNonUsPayment (Lines 442–452 in image_68.png)Problem: It only checked debtorAgentBIC 
+  // and failed to detect Peru (PE) or ISO country codes. 
+  //   Replace lines 442–452 with:
+
+
+  const isNonUsPayment = useMemo(() => {
+    const raw = (initialData ?? stableInitialPaymentModel) as any;
+    const pdr = raw?.paymentDetailsRequest || raw?.paymentInitPayload || {};
+  
+    const bic = String(
+      raw?.debtorAgentBIC ||
+      pdr?.debtorAgentBIC ||
+      raw?.creditorAgentFinancialInstitutionBIC ||
+      pdr?.creditorAgentFinancialInstitutionBIC ||
+      ''
+    ).toUpperCase().trim();
+  
+    const country = String(
+      raw?.debtorCountryCode ||
+      pdr?.debtorCountryCode ||
+      raw?.creditorCountryCode ||
+      pdr?.creditorCountryCode ||
+      ''
+    ).toUpperCase().trim();
+  
+    const LATAM_CODES = ['AR', 'BR', 'CO', 'CL', 'MX', 'PE', 'UY', 'PY', 'PA', 'CR', 'DO', 'EC', 'GT'];
+  
+    if (country && LATAM_CODES.includes(country)) return true;
+    if (bic.length >= 6 && LATAM_CODES.includes(bic.substring(4, 6))) return true;
+  
+    return bic.length > 0 && !bic.includes('US');
+  }, [initialData, stableInitialPaymentModel]);
+
+
+  //3. Fix dynamicFieldConfig (Lines 454–492 
+  // in image_68.png to image_70.png)Problem: In 
+  // Maker mode, fields were remaining locked or not explicitly 
+  // set to editable (disabled: false).   
+  // Replace lines 454–492 with:
+
+  const dynamicFieldConfig = useMemo(() => {
+    const baseConfig = (PARENT_FIELD_CONFIG as FormFieldConfig[]) || [];
+  
+    const activeRekeyFields = isNonUsPayment
+      ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS]
+      : DUAL_BLIND_REKEY_FIELDS;
+  
+    if (activeTab === 'checker') {
+      return baseConfig.map((cfg) => {
+        const isRekeyField = activeRekeyFields.includes(cfg.fieldName);
+        const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+  
+        return {
+          ...cfg,
+          required: isNonUsPayment && isTaxField ? true : cfg.required,
+          hidden: isNonUsPayment && isTaxField ? false : cfg.hidden,
+          disabled: !isRekeyField,
         };
-  
-        console.log('Fetching maker payment for checker review with payload:', payload);
-  
-        const res = await getMakerPaymentPerRecord(payload);
-        const record = Array.isArray(res) ? res[0] : res;
-        const pdr = record?.paymentDetailsRequest || {};
-  
-        setSelectedRowData({
-          ...rowData,
-          ...record,
-          ...pdr,
-          paymentDetailsRequest: pdr,
-          paymentTransactionWorkflow:
-            record?.paymentTransactionWorkflow ??
-            rowData?.paymentTransactionWorkflow ??
-            null,
-          accountId: rowData?.accountId || record?.accountId,
-          paymentId: record?.paymentId || rowData?.paymentId || resolvedPaymentId,
-        });
-      } catch (err) {
-        console.error('Failed to fetch maker payment per record:', err);
-        setSelectedRowData(rowData);
-      }
-    } else {
-      // Maker Mode: Use rowData directly without fetching checker review payloads
-      setSelectedRowData(rowData);
-    }
-  
-    // 3. Set the resolved mode and open the modal
-    setModalMode(isChecker ? 'checker' : 'maker');
-    setShowSplitMakerModal(true);
-  };
-
-  onClick={() => {
-    if (p.data && p.context?.onEditRow) {
-      p.context.onEditRow({
-        ...p.data,
-        actionText: buttonLabel, // Explicitly forwards "Edit" or "Review"
       });
     }
-  }}
+  
+    // Maker or Repair mode: Ensure all fields are enabled and editable
+    return baseConfig.map((cfg) => {
+      const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+      return {
+        ...cfg,
+        disabled: false,
+        required: isNonUsPayment && isTaxField ? true : cfg.required,
+        hidden: isNonUsPayment && isTaxField ? false : cfg.hidden,
+      };
+    });
+  }, [activeTab, isNonUsPayment]);
+
+
+  //4. Fix Dual-Blind Checker Rekey Comparison (Lines 560–596 in image_73.png 
+  // & image_74.png)Problem: Line 562 only iterated DUAL_BLIND_REKEY_FIELDS, 
+  // skipping the tax fields, and line 574 had a currency mismatch.   
+  // Replace lines 560–575 with:
+
+  const failed: string[] = [];
+
+    const rekeyFieldsToCheck = isNonUsPayment
+      ? [...DUAL_BLIND_REKEY_FIELDS, ...TAX_DUAL_BLIND_REKEY_FIELDS]
+      : DUAL_BLIND_REKEY_FIELDS;
+
+    rekeyFieldsToCheck.forEach((field) => {
+      const makerRaw =
+        pdr[field] !== undefined && pdr[field] !== null && pdr[field] !== ''
+          ? pdr[field]
+          : act[field] !== undefined && act[field] !== null && act[field] !== ''
+          ? act[field]
+          : rawInitial[field] !== undefined && rawInitial[field] !== null && rawInitial[field] !== ''
+          ? rawInitial[field]
+          : '';
+
+      let checkerRaw = pData[field];
+      if (field === 'instructedAmountCurrencyCode') {
+        checkerRaw = pData.instructedAmountCurrencyCode || pData.currency || makerRaw;
+      }
+
+
+      //5. Fix Leaked Instruction ID in Maker Submission Payload (Lines 682–704 in image_78.png & image_79.png)Problem: Lines 697 and 699 forced taxIdNumber and taxIdType to instructionId_ 
+      // (sending 500015), and line 683 hardcoded 'CBT'.  
+      //  Replace lines 682–704 with:
+
+
+      ustrdPaymentDetails: pData.ustrdPaymentDetails || '',
+      painPaymentMethodType:
+        pData.painPaymentMethodType ||
+        pData.paymentType ||
+        (initialData as any)?.painPaymentMethodType ||
+        'DFT',
+      firstIntermediaryBankBIC: pData.firstIntermediaryBankBIC || '',
+      firstIntermediaryBankRoutingCode: pData.firstIntermediaryBankRoutingCode || '',
+      firstIntermediaryBankName: pData.firstIntermediaryBankName || '',
+      firstIntermediaryBankCountryCode: pData.firstIntermediaryBankCountryCode || '',
+      firstIntermediaryBankAccountID: pData.firstIntermediaryBankAccountID || '',
+      secondIntermediaryBankBIC: pData.secondIntermediaryBankBIC || '',
+      secondIntermediaryBankRoutingCode: pData.secondIntermediaryBankRoutingCode || '',
+      secondIntermediaryBankName: pData.secondIntermediaryBankName || '',
+      secondIntermediaryBankCountryCode: pData.secondIntermediaryBankCountryCode || '',
+      secondIntermediaryBankAccountID: pData.secondIntermediaryBankAccountID || '',
+      applicationName: 'GAB',
+      applicationModule: 'GAB-LATAM',
+      region: 'LATAM',
+      taxIdNumber: isNonUsPayment
+        ? (pData.taxIdNumber || pData.creditorOrgTaxId || pData.creditorPersonTaxId || '')
+        : '',
+      purposeOfPayment: pData.purposeOfPayment || '',
+      taxIdType: isNonUsPayment
+        ? (pData.taxIdType || pData.creditorOrgTaxCode || pData.creditorPersonTaxCode || 'TXID')
+        : '',
+      taxPurposeCode: isNonUsPayment ? (pData.taxPurposeCode || '') : '',
+      regulatoryReportingCode: pData.regulatoryReportingCode || '',
+      invoiceReferenceNumber: pData.invoiceReferenceNumber || '',
+    };
