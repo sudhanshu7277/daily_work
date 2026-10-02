@@ -1,126 +1,115 @@
-//The Exact Replacement for Lines 575–630 of PaymentParent.tsx:
-// Replace lines 575–630 with this clean block:
+//3. The Fix in InstructionDetailPage.tsx
+// Filter the accessible list first, and run navigation strictly across the filtered records.
+
+//A. Define the Accessibility Filter Helper
+// In InstructionDetailPage.tsx, define which records the 
+// current user is permitted to act on (using the exact same 
+// logic already in your grid cellRenderer from lines 578–606 in image_13.png to image_15.png):
 
 
-rekeyFieldsToCheck.forEach((field) => {
-    // 1. Resolve Maker Value (prioritize root, then nested pdr, then act)
-    let makerRaw =
-      rawInitial[field] !== undefined && rawInitial[field] !== null && rawInitial[field] !== ''
-        ? rawInitial[field]
-        : pdr[field] !== undefined && pdr[field] !== null && pdr[field] !== ''
-        ? pdr[field]
-        : act[field] !== undefined && act[field] !== null && act[field] !== ''
-        ? act[field]
-        : '';
-
-    // Field Aliases for Maker
-    if (field === 'debtorAccountNumber') {
-      makerRaw =
-        rawInitial.debtorAccountNumber ||
-        rawInitial.debitAccountNumber ||
-        pdr.debtorAccountNumber ||
-        pdr.debitAccountNumber ||
-        makerRaw;
+const isRowActionableForUser = (row: any, userSoeId: string, mode: 'checker' | 'maker' = 'checker'): boolean => {
+    if (!row) return false;
+  
+    const currentUserId = String(userSoeId || '').trim().toUpperCase();
+  
+    const recordMaker = String(
+      row?.maker ||
+      row?.stageDetails?.maker ||
+      row?.makerId ||
+      row?.paymentTransactionWorkflow?.maker ||
+      ''
+    ).trim().toUpperCase();
+  
+    const recordChecker1 = String(row?.checker1 || row?.stageDetails?.checker1 || '').trim().toUpperCase();
+    const recordChecker2 = String(row?.checker2 || row?.stageDetails?.checker2 || '').trim().toUpperCase();
+  
+    const isUserTheMaker = Boolean(currentUserId && recordMaker && currentUserId === recordMaker);
+    const hasUserAlreadyChecked = Boolean(
+      currentUserId && (currentUserId === recordChecker1 || currentUserId === recordChecker2)
+    );
+  
+    const statusCode = String(row?.statusCode || row?.status || '').toUpperCase();
+    const isCompleted = statusCode === 'COMPLETED';
+  
+    if (isCompleted) return false;
+  
+    if (mode === 'checker') {
+      // Segregation of Duties: Maker cannot check, and user cannot check twice
+      if (isUserTheMaker || hasUserAlreadyChecked) return false;
+  
+      const isCheckerStage =
+        row?.statusCode === 'MAKER' ||
+        row?.statusCode === 'CHECKER1' ||
+        row?.statusCode === 'CHECKER2' ||
+        row?.status === 'Payment Created' ||
+        row?.status === 'Checker1 Approved';
+  
+      return Boolean(isCheckerStage);
     }
-
-    if (field === 'creditorAccount') {
-      makerRaw =
-        rawInitial.creditorAccount ||
-        rawInitial.creditorAccountNumber ||
-        pdr.creditorAccount ||
-        makerRaw;
-    }
-
-    if (field === 'creditorAgentAccountNumber') {
-      makerRaw =
-        rawInitial.creditorAgentAccountNumber ||
-        rawInitial.creditorAgentPostalAddress ||
-        pdr.creditorAgentAccountNumber ||
-        pdr.creditorAgentPostalAddress ||
-        makerRaw;
-    }
-
-    if (field === 'taxIdNumber') {
-      makerRaw =
-        rawInitial.taxIdNumber ||
-        rawInitial.creditorOrgTaxId ||
-        rawInitial.creditorPersonTaxId ||
-        rawInitial.invoiceReferenceNumber ||
-        makerRaw;
-    }
-
-    // 2. Resolve Checker Input
-    let checkerRaw = pData[field];
-    if (field === 'creditorAgentAccountNumber') {
-      checkerRaw = pData.creditorAgentAccountNumber || pData.creditorAgentPostalAddress || '';
-    }
-    if (field === 'instructedAmountCurrencyCode') {
-      checkerRaw = pData.instructedAmountCurrencyCode || pData.currency || makerRaw;
-    }
-
-    const makerVal = normalizeValue(makerRaw);
-    const checkerVal = normalizeValue(checkerRaw);
-
-    // If both maker and checker are empty (optional field not populated), it's a MATCH
-    if (!makerVal && !checkerVal) {
-      return;
-    }
-
-    // Numerical comparison for instructedAmount
-    if (field === 'instructedAmount') {
-      const mNum = parseFloat(makerVal);
-      const cNum = parseFloat(checkerVal);
-      if (!checkerVal || isNaN(cNum) || mNum !== cNum) {
-        failed.push(field);
-      }
-    } else {
-      if (!checkerVal || makerVal !== checkerVal) {
-        failed.push(field);
-      }
-    }
-  });
-
-  const isManualPassed = failed.length === 0;
-  const isPassed = isManualPassed || Boolean(newDualBlind);
-  setCheckerDualBlindPassed(isPassed);
-  setCheckerFailedFields(failed);
-
-  // If Checker mode, we are done - do not execute Maker payload generation below!
-  if (activeTab === 'checker') {
-    return;
-  }
-
-
-  //2. In InstructionDetailPage.tsx — Fix Payload in handleEditRow
-// In image_21.png and image_22.png (lines 1742–1768), 
-// update handleEditRow so it uses resolvedPaymentId and spreads the root record fields:
-
-
-const getMakerPayload = {
-    moduleName: "GAB-LATAM",
-    applicationName: "GAB",
-    maker: rowData?.maker || "",
-    paymentId: resolvedPaymentId,
-    transactionId: resolvedTxnId,
-    txnid: String(rowData?.instructionId || rowData?.txnid || ""),
+  
+    return true;
   };
 
-  console.log('Fetching maker payment for checker review with payload:', getMakerPayload);
+  //B. Compute Accessible Records List & Indices
+// In InstructionDetailPage.tsx, compute the list of accessible items and pass them to the modal:
 
-  const res = await getMakerPaymentPerRecord(getMakerPayload);
-  const record = Array.isArray(res) ? res[0] : res;
-  const pdr = record?.paymentDetailsRequest || {};
+// 1. Get only the records current user has permission to review/edit
+const accessibleRows = useMemo(() => {
+    const allRows = instructionAccounts || instruction?.accounts || [];
+    return allRows.filter((r: any) => isRowActionableForUser(r, soeId, modalMode));
+  }, [instructionAccounts, instruction?.accounts, soeId, modalMode]);
+  
+  // 2. Find current position within ONLY accessible records
+  const currentAccessibleIndex = useMemo(() => {
+    if (!selectedRowData || !accessibleRows.length) return 0;
+    const currTxnId = String(
+      selectedRowData?.transactionId ||
+      selectedRowData?.paymentTransactionWorkflow?.transactionId ||
+      selectedRowData?.actionDetails?.transactionId ||
+      selectedRowData?.accountId ||
+      ''
+    );
+    const idx = accessibleRows.findIndex((r: any) => {
+      const rTxnId = String(
+        r?.transactionId ||
+        r?.paymentTransactionWorkflow?.transactionId ||
+        r?.actionDetails?.transactionId ||
+        r?.accountId ||
+        ''
+      );
+      return rTxnId === currTxnId;
+    });
+    return idx >= 0 ? idx : 0;
+  }, [selectedRowData, accessibleRows]);
+  
+  // 3. Navigation handler that only steps between accessible records
+  const handleModalNavigate = async (direction: 'prev' | 'next') => {
+    const targetIndex = direction === 'next' ? currentAccessibleIndex + 1 : currentAccessibleIndex - 1;
+    
+    if (targetIndex >= 0 && targetIndex < accessibleRows.length) {
+      const targetRow = accessibleRows[targetIndex];
+      // Re-use your handleEditRow / fetch maker workflow so targetRow loads cleanly
+      await handleEditRow(targetRow);
+    }
+  };
 
-  setSelectedRowData({
-    ...rowData,
-    ...pdr,
-    ...(record || {}), // Spread root fields directly so debtorName, instructedAmount, etc. exist
-    paymentDetailsRequest: pdr,
-    paymentTransactionWorkflow:
-      record?.paymentTransactionWorkflow ??
-      rowData?.paymentTransactionWorkflow ??
-      null,
-    accountId: rowData?.accountId || record?.accountId,
-    paymentId: resolvedPaymentId,
-    transactionId: resolvedTxnId,
-  });
+  //C. Pass Navigation Props to SplitPaymentMakerModal
+// In InstructionDetailPage.tsx JSX where <SplitPaymentMakerModal> is rendered:
+
+
+<SplitPaymentMakerModal
+  isOpen={isSplitPaymentModalOpen}
+  mode={modalMode}
+  initialData={selectedRowData}
+  instructionId={instructionId}
+  onClose={() => {
+    setIsSplitPaymentModalOpen(false);
+    setSelectedRowData(null);
+  }}
+  // Navigation strictly driven by accessibleRows
+  onNavigate={accessibleRows.length > 1 ? handleModalNavigate : undefined}
+  hasPrev={currentAccessibleIndex > 0}
+  hasNext={currentAccessibleIndex < accessibleRows.length - 1}
+  currentIndex={currentAccessibleIndex + 1}
+  totalCount={accessibleRows.length}
+/>
