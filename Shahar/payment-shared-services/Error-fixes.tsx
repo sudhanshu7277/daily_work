@@ -1,119 +1,68 @@
-//Step 1: Update PaymentInfoCard Props in InstructionDetailPage.tsx
-// In PaymentInfoCard (around line 851 in image_33.png), 
-// add allStagesData to the destructured props:
+//Step 1: Re-fetching details-all-stage on Maker Submit, Checker Approve, and Checker Reject
+// Let's start with Issue 1.
+
+// In InstructionDetailPage.tsx, define refreshStageDetails 
+// and pass it down as an onSuccess callback to the modal.
 
 
-
-const PaymentInfoCard = ({
-    loadingAccounts,
-    instructionAccounts,
-    instruction,
-    handleEditRow,
-    getMakerPaymentPerRecord,
-    allStagesData = [], // <-- 1. Add allStagesData here
-  }: {
-    loadingAccounts: boolean;
-    instructionAccounts: InstructionAccountResponse[];
-    instruction: any;
-    onEditRow?: (row: InstructionAccountResponse) => Promise<void> | void;
-    onAddPayment?: () => void;
-    activePaymentMode: any;
-    handleEditRow: any;
-    getMakerPaymentPerRecord: any;
-    allStagesData?: any[]; // <-- 2. Add to type definition
-  }) => {
-
-
-    //Step 2: Merge the Rows Dynamically Before Rendering the Grid
-//Right above line 867 (let content: React.ReactNode; in image_33.png),
-//  create a useMemo that dynamically attaches the stage status to each row
-
-
-const rowsWithDynamicStatus = useMemo(() => {
-    if (!Array.isArray(instructionAccounts)) return [];
-    if (!Array.isArray(allStagesData) || allStagesData.length === 0) {
-      return instructionAccounts;
-    }
-
-    return instructionAccounts.map((account: any) => {
-      // Find matching stage detail by accountId or debitAccountNumber
-      const stageMatch = allStagesData.find((stage: any) => {
-        const idMatches =
-          stage.accountId != null &&
-          account.accountId != null &&
-          String(stage.accountId).trim() === String(account.accountId).trim();
-
-        const debitMatches =
-          stage.debitAccountNumber != null &&
-          account.debitAccountNumber != null &&
-          String(stage.debitAccountNumber).trim() === String(account.debitAccountNumber).trim();
-
-        return idMatches || debitMatches;
+// 1. Centralized Refresh Function
+const refreshStageDetails = useCallback(async () => {
+    const currentId =
+      instructionId ||
+      (instruction as any)?.instructionId ||
+      (instruction as any)?.id;
+  
+    if (!currentId) return;
+  
+    const endpoint = '/nextgengab/api/api/v1/gab/payments/payment/details-all-stage';
+  
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          SOEID: loggedInUser || '',
+        },
+        body: JSON.stringify({
+          instructionId: String(currentId),
+          applicationName: 'GAB',
+          moduleName: 'GAB-LATAM',
+        }),
       });
-
-      if (!stageMatch) return account;
-
-      // Status resolution fallback
-      const resolvedStatus =
-        stageMatch.statusDescription ||
-        (stageMatch.statusCode === 'CHECKER1' ? 'Checker1 Approved' :
-         stageMatch.statusCode === 'MAKER' ? 'Payment Created' :
-         stageMatch.statusCode === 'NEW' ? 'Payment Not Created' :
-         stageMatch.statusCode) ||
-        account.status;
-
-      return {
-        ...account,
-        status: resolvedStatus,
-        statusDescription: stageMatch.statusDescription || resolvedStatus,
-        statusCode: stageMatch.statusCode,
-        stageDetails: stageMatch, // Store stage data inside the row object
-      };
-    });
-  }, [instructionAccounts, allStagesData]);
-
-
-  //Step 3: Update rowData in <AgGridReact>
-//In image_34.png at line 891, replace instructionAccounts with rowsWithDynamicStatus:
+  
+      if (!res.ok) {
+        console.warn(`details-all-stage refresh failed with status: ${res.status}`);
+        return;
+      }
+  
+      const json = await res.json();
+      const details = Array.isArray(json) ? json : [json];
+      setAllStagesData(details);
+    } catch (err) {
+      console.error('Error refreshing details-all-stage:', err);
+    }
+  }, [instructionId, instruction, loggedInUser]);
+  
+  // 2. Handler triggered when Maker submits or Checker completes an action
+  const handlePaymentActionSuccess = async () => {
+    // Close the modal
+    setIsModalOpen(false);
+  
+    // Immediately re-fetch stage status so AG Grid reflects updated status
+    await refreshStageDetails();
+  };
 
 
-<AgGridReact
-  rowData={rowsWithDynamicStatus}
-  columnDefs={getAdditionalInfoColumns(instruction) as any}
-  defaultColDef={{
-    resizable: true,
-    sortable: true,
-    filter: true,
-    flex: 1,
-    minWidth: 100,
-  }}
-  animateRows
-  pagination
-  paginationPageSize={5}
-  paginationPageSizeSelector={[5, 10, 20]}
-  rowHeight={46}
-  headerHeight={40}
-  context={{
-    status: instruction?.status,
-    onEditRow: handleEditRow,
-    getMakerPaymentPerRecord,
-    allStagesData,
-  }}
+  //Pass this to the Modal in JSX:
+
+  <SplitPaymentMakerModal
+  isOpen={isModalOpen}
+  instructionId={currentId}
+  selectedRecord={selectedRecord}
+  onClose={() => setIsModalOpen(false)}
+  onSuccess={handlePaymentActionSuccess} // <-- Triggers on Submit, Approve, or Reject
 />
 
 
-//Step 4: Pass allStagesData Where <PaymentInfoCard> is Rendered
-// Scroll down to where <PaymentInfoCard .../> 
-// is invoked in InstructionDetailPage.tsx (usually around line 1500–1700):
-
-
-
-<PaymentInfoCard
-  loadingAccounts={loadingAccounts}
-  instructionAccounts={instructionAccounts}
-  instruction={instruction}
-  handleEditRow={handleEditRow}
-  getMakerPaymentPerRecord={getMakerPaymentPerRecord}
-  allStagesData={allStagesData} // <-- Pass the state holding details-all-stage
-  activePaymentMode={activePaymentMode}
-/>
