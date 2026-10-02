@@ -1,68 +1,200 @@
-//Step 1: Re-fetching details-all-stage on Maker Submit, Checker Approve, and Checker Reject
-// Let's start with Issue 1.
+//The Clean, Concrete Fix for handleEditRow
+//Replace lines 1682–1722 with this robust implementation:
 
-// In InstructionDetailPage.tsx, define refreshStageDetails 
-// and pass it down as an onSuccess callback to the modal.
+const handleEditRow = async (rowData: any) => {
+    // 1. Robust Checker detection
+    const isChecker =
+      rowData?.actionText === "Review" ||
+      rowData?.status === "PAYMENT_CHECKER" ||
+      rowData?.status === "Payment Created" ||
+      rowData?.statusCode === "MAKER" ||
+      rowData?.statusCode === "CHECKER1" ||
+      rowData?.statusCode === "CHECKER2" ||
+      rowData?.statusCode === "CHECKER3" ||
+      Boolean(rowData?.stageDetails && rowData?.stageDetails?.statusCode !== "NEW");
 
+    if (isChecker) {
+      try {
+        // Resolve IDs properly: NEVER prioritize accountId over paymentId!
+        const resolvedPaymentId =
+          rowData?.paymentId ||
+          rowData?.stageDetails?.paymentId ||
+          rowData?.paymentTransactionId ||
+          rowData?.accountId ||
+          "";
 
-// 1. Centralized Refresh Function
-const refreshStageDetails = useCallback(async () => {
-    const currentId =
-      instructionId ||
-      (instruction as any)?.instructionId ||
-      (instruction as any)?.id;
-  
-    if (!currentId) return;
-  
-    const endpoint = '/nextgengab/api/api/v1/gab/payments/payment/details-all-stage';
-  
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          SOEID: loggedInUser || '',
-        },
-        body: JSON.stringify({
-          instructionId: String(currentId),
-          applicationName: 'GAB',
-          moduleName: 'GAB-LATAM',
-        }),
-      });
-  
-      if (!res.ok) {
-        console.warn(`details-all-stage refresh failed with status: ${res.status}`);
-        return;
+        const resolvedTxnId =
+          rowData?.matchedAction?.paymentTransactionId ||
+          rowData?.transactionId ||
+          rowData?.stageDetails?.transactionId ||
+          "";
+
+        const resolvedInstructionId =
+          rowData?.instructionId ||
+          (instruction as any)?.instructionId ||
+          (instruction as any)?.id ||
+          rowData?.txnid ||
+          "";
+
+        const payload = {
+          moduleName: "GAB-LATAM",
+          applicationName: "GAB",
+          maker: rowData?.maker || "",
+          paymentId: String(resolvedPaymentId),
+          transactionId: String(resolvedTxnId),
+          txnid: String(resolvedInstructionId),
+        };
+
+        console.log("Calling getMakerPaymentPerRecord with payload:", payload);
+
+        const res = await getMakerPaymentPerRecord(payload);
+        const record = Array.isArray(res) ? res[0] : res;
+        const pdr = record?.paymentDetailsRequest || {};
+
+        if (!record) {
+          console.warn("getMakerPaymentPerRecord returned empty response");
+        }
+
+        // Merge rowData, record, and nested paymentDetailsRequest cleanly
+        setSelectedRowData({
+          ...rowData,
+          ...record,
+          ...pdr,
+          paymentDetailsRequest: pdr,
+          paymentTransactionWorkflow: record?.paymentTransactionWorkflow ?? null,
+          accountId: rowData?.accountId || record?.accountId,
+          paymentId: record?.paymentId || rowData?.paymentId || resolvedPaymentId,
+        });
+      } catch (err) {
+        console.error("Failed to fetch maker payment per record:", err);
+        // Retain original rowData so modal at least has basic info
+        setSelectedRowData(rowData);
       }
-  
-      const json = await res.json();
-      const details = Array.isArray(json) ? json : [json];
-      setAllStagesData(details);
-    } catch (err) {
-      console.error('Error refreshing details-all-stage:', err);
+    } else {
+      setSelectedRowData(rowData);
     }
-  }, [instructionId, instruction, loggedInUser]);
-  
-  // 2. Handler triggered when Maker submits or Checker completes an action
-  const handlePaymentActionSuccess = async () => {
-    // Close the modal
-    setIsModalOpen(false);
-  
-    // Immediately re-fetch stage status so AG Grid reflects updated status
-    await refreshStageDetails();
+
+    setModalMode(isChecker ? "checker" : "maker");
+    setShowSplitMakerModal(true);
   };
 
 
-  //Pass this to the Modal in JSX:
 
-  <SplitPaymentMakerModal
-  isOpen={isModalOpen}
-  instructionId={currentId}
-  selectedRecord={selectedRecord}
-  onClose={() => setIsModalOpen(false)}
-  onSuccess={handlePaymentActionSuccess} // <-- Triggers on Submit, Approve, or Reject
-/>
+  //1. Disable the "Review" Button in the Grid (ADDITIONAL_INFO_COLUMNS in InstructionDetailPage.tsx)
+// In lines 573–614 of InstructionDetailPage.tsx 
+// (shown in image_31.png and image_35.png):
+// If the row status is in checker stage 
+// (e.g. statusCode === 'MAKER' or status === 'Payment Created')
+//  and the current logged-in user is the maker, the user must not be allowed to check the payment.
 
 
+cellRenderer: (p: any) => {
+    const currentUserId = (typeof getUserId === 'function' ? getUserId() : '')?.trim().toUpperCase();
+  
+    // Extract maker and previous checkers from the row data or matched action
+    const recordMaker = (
+      p.data?.maker ||
+      p.data?.stageDetails?.maker ||
+      p.data?.makerId ||
+      p.data?.paymentTransactionWorkflow?.maker
+    )?.trim().toUpperCase();
+  
+    const recordChecker1 = (p.data?.checker1 || p.data?.stageDetails?.checker1)?.trim().toUpperCase();
+    const recordChecker2 = (p.data?.checker2 || p.data?.stageDetails?.checker2)?.trim().toUpperCase();
+  
+    // 1. Maker check: If current user made the payment, they CANNOT check it
+    const isUserTheMaker = Boolean(currentUserId && recordMaker && currentUserId === recordMaker);
+  
+    // 2. Checker check: If user already checked at Checker 1, they cannot check at Checker 2
+    const hasUserAlreadyChecked = Boolean(
+      currentUserId && (currentUserId === recordChecker1 || currentUserId === recordChecker2)
+    );
+  
+    const isCheckerStage =
+      p.data?.statusCode === 'MAKER' ||
+      p.data?.statusCode === 'CHECKER1' ||
+      p.data?.statusCode === 'CHECKER2' ||
+      p.data?.status === 'Payment Created' ||
+      p.data?.status === 'Checker1 Approved';
+  
+    // Determine button label
+    let buttonLabel = 'Edit';
+    if (isCheckerStage) {
+      buttonLabel = 'Review';
+    }
+  
+    // Four-Eyes Segregation of Duties:
+    // If in a checker stage and the user is the maker (or already checked), disable action!
+    let isDisabled = false;
+    let tooltipMessage = '';
+  
+    if (isCheckerStage && isUserTheMaker) {
+      isDisabled = true;
+      tooltipMessage = 'Maker cannot be Checker (Segregation of Duties)';
+    } else if (isCheckerStage && hasUserAlreadyChecked) {
+      isDisabled = true;
+      tooltipMessage = 'User has already acted on this payment';
+    } else if (p.data?.statusCode === 'COMPLETED' || p.data?.status === 'Completed') {
+      isDisabled = true;
+    }
+  
+    return (
+      <Button
+        color="primary"
+        size="sm"
+        disabled={isDisabled}
+        title={tooltipMessage}
+        onClick={() => {
+          if (!isDisabled && p.data && p.context?.onEditRow) {
+            p.context.onEditRow(p.data);
+          }
+        }}
+      >
+        {buttonLabel}
+      </Button>
+    );
+  };
+
+
+  //2. Guard Inside handleEditRow (InstructionDetailPage.tsx)
+// Prevent opening the modal in Checker mode if the current user is the Maker:
+
+
+const currentUserId = (typeof getUserId === 'function' ? getUserId() : '')?.trim().toUpperCase();
+const makerId = (
+  rowData?.maker ||
+  rowData?.stageDetails?.maker ||
+  rowData?.paymentTransactionWorkflow?.maker
+)?.trim().toUpperCase();
+
+if (isChecker && currentUserId && makerId && currentUserId === makerId) {
+  alert('Access Denied: The maker of this payment cannot act as the checker.');
+  return;
+}
+
+
+//3. Disable the "Approve Payment" Button Inside 
+// the Checker Modal (PaymentParent.tsx / VerifyPaymentDetailModal.tsx)
+// In the Checker modal footer (where Approve Payment and Reject are 
+// rendered, as seen in image_24.png):   Ensure the Approve Payment 
+// button is disabled if loggedInUser === maker:
+
+
+const isMakerTheChecker = Boolean(
+    loggedInUser &&
+    makerPaymentData?.maker &&
+    loggedInUser.trim().toUpperCase() === makerPaymentData.maker.trim().toUpperCase()
+  );
+  
+  <Button
+    color="primary"
+    disabled={
+      isSubmitting ||
+      !isDualBlindValid ||
+      isMakerTheChecker // 🚫 Block approval if Maker is Checker
+    }
+    title={isMakerTheChecker ? "Maker cannot approve their own payment" : undefined}
+    onClick={handleCheckerApprove}
+  >
+    Approve Payment
+  </Button>
