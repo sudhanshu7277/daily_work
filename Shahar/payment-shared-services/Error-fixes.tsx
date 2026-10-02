@@ -1,26 +1,35 @@
-//Step 1: Update handleModalNavigate
-// Near line 1860 (where accessibleRows and 
-// currentAccessibleIndex were declared), add this navigation function:
+//The Fix
+//In InstructionDetailPage.tsx:
 
-const handleModalNavigate = async (direction: 'prev' | 'next') => {
-    const targetIndex = direction === 'next' ? currentAccessibleIndex + 1 : currentAccessibleIndex - 1;
-    if (targetIndex >= 0 && targetIndex < accessibleRows.length) {
-      const targetRow = accessibleRows[targetIndex];
-      await handleEditRow(targetRow);
-    }
-  };
+// 1. Update accessibleRows to include instructionAccounts
 
 
-  //Step 2: Update <SplitPaymentMakerModal> in JSX
-  //  (Lines 5923–5956)Replace lines 5923 to 5956 in 
-  // image_43.png and image_44.png with this clean block:  
-  
-  
-  hasPrev={currentAccessibleIndex > 0}
-          hasNext={currentAccessibleIndex < accessibleRows.length - 1}
+const accessibleRows = useMemo(() => {
+    // Read from instructionAccounts state first, then fallback to instruction object
+    const allRows: any[] =
+      (typeof instructionAccounts !== 'undefined' && Array.isArray(instructionAccounts) && instructionAccounts.length > 0)
+        ? instructionAccounts
+        : (instruction as any)?.instructionAccounts ||
+          (instruction as any)?.accounts ||
+          [];
+
+    const activeUserId = typeof getUserId === 'function' ? getUserId() : '';
+
+    const filtered = allRows.filter((r: any) => isRowActionableForUser(r, activeUserId, modalMode));
+    
+    // Fallback: If filter returns empty (e.g. while permissions/auth are hydrating), don't collapse to 0
+    return filtered.length > 0 ? filtered : allRows;
+  }, [instructionAccounts, instruction, modalMode]);
+
+
+  //2. In the JSX of <SplitPaymentMakerModal>:
+// Pass onNavigate={handleModalNavigate} unconditionally so the footer never vanishes:
+
+hasPrev={currentAccessibleIndex > 0}
+          hasNext={currentAccessibleIndex < (accessibleRows.length || 1) - 1}
           currentIndex={currentAccessibleIndex + 1}
           totalCount={accessibleRows.length || 1}
-          onNavigate={accessibleRows.length > 1 ? handleModalNavigate : undefined}
+          onNavigate={handleModalNavigate}
           onClose={() => {
             setShowSplitMakerModal(false);
             setSelectedRowData(null);
