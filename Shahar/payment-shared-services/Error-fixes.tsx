@@ -54,10 +54,19 @@ const isRowActionableForUser = (row: any, userSoeId: string, mode: 'checker' | '
 // In InstructionDetailPage.tsx, compute the list of accessible items and pass them to the modal:
 
 // 1. Get only the records current user has permission to review/edit
+// 1. Get only the records current user has permission to review/edit
 const accessibleRows = useMemo(() => {
-    const allRows = instructionAccounts || instruction?.accounts || [];
-    return allRows.filter((r: any) => isRowActionableForUser(r, soeId, modalMode));
-  }, [instructionAccounts, instruction?.accounts, soeId, modalMode]);
+    // Read from instruction accounts safely
+    const allRows = 
+      (instruction as any)?.accounts || 
+      (instruction as any)?.instructionAccounts || 
+      [];
+    
+    // Resolve user ID using getUserId() or existing auth in this file
+    const activeUserId = typeof getUserId === 'function' ? getUserId() : '';
+
+    return allRows.filter((r: any) => isRowActionableForUser(r, activeUserId, (typeof modalMode !== 'undefined' ? modalMode : (mode as any))));
+  }, [instruction, typeof modalMode !== 'undefined' ? modalMode : (mode as any)]);
   
   // 2. Find current position within ONLY accessible records
   const currentAccessibleIndex = useMemo(() => {
