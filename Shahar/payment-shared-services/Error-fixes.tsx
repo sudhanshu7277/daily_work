@@ -67,3 +67,32 @@ const accessibleRows = useMemo(() => {
 
 setModalMode(isChecker ? 'checker' : 'maker');
 setShowSplitMakerModal(true);
+
+
+
+//3. Ensure handleModalNavigate Passes the Filtered Record
+// Right below currentAccessibleIndex:
+
+const handleModalNavigate = async (direction: 'prev' | 'next') => {
+    const targetIndex = direction === 'next' ? currentAccessibleIndex + 1 : currentAccessibleIndex - 1;
+    if (targetIndex >= 0 && targetIndex < accessibleRows.length) {
+      const targetRow = accessibleRows[targetIndex];
+      await handleEditRow(targetRow);
+    }
+  };
+
+
+  //4. <SplitPaymentMakerModal> JSX (Lines 5923–5935)Ensure 
+  // the navigation props point to accessibleRows:   
+
+
+  hasPrev={currentAccessibleIndex > 0}
+          hasNext={currentAccessibleIndex < accessibleRows.length - 1}
+          currentIndex={currentAccessibleIndex + 1}
+          totalCount={accessibleRows.length}
+          onNavigate={accessibleRows.length > 1 ? handleModalNavigate : undefined}
+          onClose={() => {
+            setShowSplitMakerModal(false);
+            setSelectedRowData(null);
+          }}
+          initialData={selectedRowData}
