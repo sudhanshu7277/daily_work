@@ -1,84 +1,3 @@
-//The Clean, Concrete Fix for handleEditRow
-//Replace lines 1682–1722 with this robust implementation:
-
-const handleEditRow = async (rowData: any) => {
-    // 1. Robust Checker detection
-    const isChecker =
-      rowData?.actionText === "Review" ||
-      rowData?.status === "PAYMENT_CHECKER" ||
-      rowData?.status === "Payment Created" ||
-      rowData?.statusCode === "MAKER" ||
-      rowData?.statusCode === "CHECKER1" ||
-      rowData?.statusCode === "CHECKER2" ||
-      rowData?.statusCode === "CHECKER3" ||
-      Boolean(rowData?.stageDetails && rowData?.stageDetails?.statusCode !== "NEW");
-
-    if (isChecker) {
-      try {
-        // Resolve IDs properly: NEVER prioritize accountId over paymentId!
-        const resolvedPaymentId =
-          rowData?.paymentId ||
-          rowData?.stageDetails?.paymentId ||
-          rowData?.paymentTransactionId ||
-          rowData?.accountId ||
-          "";
-
-        const resolvedTxnId =
-          rowData?.matchedAction?.paymentTransactionId ||
-          rowData?.transactionId ||
-          rowData?.stageDetails?.transactionId ||
-          "";
-
-        const resolvedInstructionId =
-          rowData?.instructionId ||
-          (instruction as any)?.instructionId ||
-          (instruction as any)?.id ||
-          rowData?.txnid ||
-          "";
-
-        const payload = {
-          moduleName: "GAB-LATAM",
-          applicationName: "GAB",
-          maker: rowData?.maker || "",
-          paymentId: String(resolvedPaymentId),
-          transactionId: String(resolvedTxnId),
-          txnid: String(resolvedInstructionId),
-        };
-
-        console.log("Calling getMakerPaymentPerRecord with payload:", payload);
-
-        const res = await getMakerPaymentPerRecord(payload);
-        const record = Array.isArray(res) ? res[0] : res;
-        const pdr = record?.paymentDetailsRequest || {};
-
-        if (!record) {
-          console.warn("getMakerPaymentPerRecord returned empty response");
-        }
-
-        // Merge rowData, record, and nested paymentDetailsRequest cleanly
-        setSelectedRowData({
-          ...rowData,
-          ...record,
-          ...pdr,
-          paymentDetailsRequest: pdr,
-          paymentTransactionWorkflow: record?.paymentTransactionWorkflow ?? null,
-          accountId: rowData?.accountId || record?.accountId,
-          paymentId: record?.paymentId || rowData?.paymentId || resolvedPaymentId,
-        });
-      } catch (err) {
-        console.error("Failed to fetch maker payment per record:", err);
-        // Retain original rowData so modal at least has basic info
-        setSelectedRowData(rowData);
-      }
-    } else {
-      setSelectedRowData(rowData);
-    }
-
-    setModalMode(isChecker ? "checker" : "maker");
-    setShowSplitMakerModal(true);
-  };
-
-
 
   //1. Disable the "Review" Button in the Grid (ADDITIONAL_INFO_COLUMNS in InstructionDetailPage.tsx)
 // In lines 573–614 of InstructionDetailPage.tsx 
@@ -159,19 +78,107 @@ cellRenderer: (p: any) => {
   //2. Guard Inside handleEditRow (InstructionDetailPage.tsx)
 // Prevent opening the modal in Checker mode if the current user is the Maker:
 
-
-const currentUserId = (typeof getUserId === 'function' ? getUserId() : '')?.trim().toUpperCase();
-const makerId = (
-  rowData?.maker ||
-  rowData?.stageDetails?.maker ||
-  rowData?.paymentTransactionWorkflow?.maker
-)?.trim().toUpperCase();
-
-if (isChecker && currentUserId && makerId && currentUserId === makerId) {
-  alert('Access Denied: The maker of this payment cannot act as the checker.');
-  return;
-}
-
+const handleEditRow = async (rowData: any) => {
+    if (!rowData) return;
+  
+    // 1. Determine if this record is currently in Checker mode
+    const isChecker =
+      rowData?.actionText === 'Review' ||
+      rowData?.status === 'PAYMENT_CHECKER' ||
+      rowData?.status === 'Payment Created' ||
+      rowData?.status === 'Checker1 Approved' ||
+      rowData?.statusCode === 'MAKER' ||
+      rowData?.statusCode === 'CHECKER1' ||
+      rowData?.statusCode === 'CHECKER2' ||
+      rowData?.statusCode === 'CHECKER3' ||
+      Boolean(rowData?.stageDetails && rowData?.stageDetails?.statusCode !== 'NEW');
+  
+    // 2. Enforce Four-Eyes Principle: Maker cannot be Checker
+    const currentUserId = (typeof getUserId === 'function' ? getUserId() : '')?.trim().toUpperCase();
+    const recordMaker = (
+      rowData?.maker ||
+      rowData?.stageDetails?.maker ||
+      rowData?.paymentTransactionWorkflow?.maker ||
+      rowData?.matchedAction?.maker
+    )?.trim().toUpperCase();
+  
+    if (isChecker && currentUserId && recordMaker && currentUserId === recordMaker) {
+      alert('Access Denied: The maker of this payment cannot act as the checker (Segregation of Duties).');
+      return;
+    }
+  
+    // 3. Fetch Maker submission details if in Checker mode
+    if (isChecker) {
+      try {
+        // Resolve IDs: Never prioritize accountId over actual paymentId
+        const resolvedPaymentId =
+          rowData?.paymentId ||
+          rowData?.stageDetails?.paymentId ||
+          rowData?.paymentTransactionId ||
+          rowData?.matchedAction?.paymentId ||
+          rowData?.accountId ||
+          '';
+  
+        const resolvedTxnId =
+          rowData?.matchedAction?.paymentTransactionId ||
+          rowData?.transactionId ||
+          rowData?.stageDetails?.transactionId ||
+          '';
+  
+        const resolvedInstructionId =
+          rowData?.instructionId ||
+          (instruction as any)?.instructionId ||
+          (instruction as any)?.id ||
+          rowData?.txnid ||
+          '';
+  
+        const payload = {
+          moduleName: 'GAB-LATAM',
+          applicationName: 'GAB',
+          maker: rowData?.maker || '',
+          paymentId: String(resolvedPaymentId),
+          transactionId: String(resolvedTxnId),
+          txnid: String(resolvedInstructionId),
+        };
+  
+        console.log('Fetching maker payment for checker review with payload:', payload);
+  
+        const res = await getMakerPaymentPerRecord(payload);
+        const record = Array.isArray(res) ? res[0] : res;
+        const pdr = record?.paymentDetailsRequest || {};
+  
+        // Secondary check: verify maker identity returned directly from the backend
+        const backendMaker = (record?.maker || record?.paymentTransactionWorkflow?.maker)?.trim().toUpperCase();
+        if (currentUserId && backendMaker && currentUserId === backendMaker) {
+          alert('Access Denied: The maker of this payment cannot act as the checker (Segregation of Duties).');
+          return;
+        }
+  
+        // Merge rowData, root record, and nested paymentDetailsRequest
+        setSelectedRowData({
+          ...rowData,
+          ...record,
+          ...pdr,
+          paymentDetailsRequest: pdr,
+          paymentTransactionWorkflow: record?.paymentTransactionWorkflow ?? rowData?.paymentTransactionWorkflow ?? null,
+          accountId: rowData?.accountId || record?.accountId,
+          paymentId: record?.paymentId || rowData?.paymentId || resolvedPaymentId,
+          maker: backendMaker || recordMaker || rowData?.maker,
+        });
+      } catch (err) {
+        console.error('Failed to fetch maker payment per record:', err);
+        // Fallback: preserve base rowData so modal has context
+        setSelectedRowData(rowData);
+      }
+    } else {
+      // Maker mode: load existing rowData directly
+      setSelectedRowData(rowData);
+    }
+  
+    // 4. Open modal in the resolved mode
+    setModalMode(isChecker ? 'checker' : 'maker');
+    setShowSplitMakerModal(true);
+  };
 
 //3. Disable the "Approve Payment" Button Inside 
 // the Checker Modal (PaymentParent.tsx / VerifyPaymentDetailModal.tsx)
