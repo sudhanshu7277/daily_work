@@ -1,10 +1,69 @@
-//Option B: Or use AllCommunityModule (Easiest one-liner)
-// If your ag-grid-community version supports bundle modules:
+//Step 1: Fix accessibleRows in InstructionDetailPage.tsx
+// Remove the fallback to allRows so only enabled, reviewable rows are included:
 
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+// 1. Get ONLY the records the current user can actually review/act on
+const accessibleRows = useMemo(() => {
+    const allRows: any[] =
+      (Array.isArray(instructionAccounts) && instructionAccounts.length > 0)
+        ? instructionAccounts
+        : (instruction as any)?.instructionAccounts ||
+          (instruction as any)?.accounts ||
+          [];
 
-ModuleRegistry.registerModules([AllCommunityModule]);
+    const activeUserId = String(typeof getUserId === 'function' ? getUserId() : '').trim().toUpperCase();
 
-<AgGridReact
-  theme="legacy"
-  rowData={rowsWithDynamicStatus}
+    return allRows.filter((row: any) => {
+      // Maker ID (Segregation of Duties: Creator cannot review/approve their own record)
+      const makerId = String(
+        row?.paymentTransactionWorkflow?.makerId ||
+        row?.actionDetails?.makerSoeId ||
+        row?.makerId ||
+        ''
+      ).trim().toUpperCase();
+
+      if (activeUserId && makerId && activeUserId === makerId) {
+        return false;
+      }
+
+      // Checker IDs: If current user already approved as Checker 1, they cannot review again
+      const checker1Id = String(
+        row?.paymentTransactionWorkflow?.checker1Id ||
+        row?.actionDetails?.checker1SoeId ||
+        row?.checker1Id ||
+        ''
+      ).trim().toUpperCase();
+
+      if (activeUserId && checker1Id && activeUserId === checker1Id) {
+        return false;
+      }
+
+      // Check status: Must be pending review, not completed/rejected or uncreated
+      const status = String(
+        row?.status ||
+        row?.paymentTransactionWorkflow?.status ||
+        row?.actionDetails?.statusCode ||
+        ''
+      ).toUpperCase();
+
+      if (status.includes('NOT CREATED') || status.includes('REJECTED') || status.includes('COMPLETED')) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [instructionAccounts, instruction]);
+
+
+  // 2. Lock modalMode in handleEditRow
+  //  (No Flipping to Maker)Prevent handleEditRow from
+  //  resetting to 'maker' when you navigate between records:  
+  //  Around line 1825 in InstructionDetailPage.tsx:   
+
+  // Ensure we do not drop to maker mode if we are in the Checker stage
+  const isChecker = 
+  modalMode === 'checker' || 
+  (typeof activePaymentMode !== 'undefined' && activePaymentMode === 'checker') ||
+  Boolean(rowData?.status?.includes('Checker'));
+
+setModalMode(isChecker ? 'checker' : 'maker');
+setShowSplitMakerModal(true);
