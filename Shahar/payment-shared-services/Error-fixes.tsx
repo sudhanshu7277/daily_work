@@ -171,3 +171,45 @@ export const PaymentParent: FC<PaymentParentProps> = ({
         onAccountsUpdate,
         // ... any other existing destructured props
       }) => {
+
+
+//The Fix:Rename the incoming prop in line 184 to 
+// activeTabProp (or initialActiveTab), and seed useState with it:   Line 184: Change
+
+
+activeTab: activeTabProp,
+
+//Lines 196–204: Update the state and useEffect so they use activeTabProp instead of the undefined mode:
+
+const [activeTab, setActiveTab] = useState<'maker' | 'checker' | 'repair' | 'super-checker'>(
+    activeTabProp ?? 'maker'
+  );
+  const [instruction_id, setInstruction_id] = useState<any>('');
+  const [currentUserId, setCurrentUserId] = useState<any>('');
+
+  useEffect(() => {
+    if (activeTabProp) {
+      setActiveTab(activeTabProp);
+    }
+    setInstruction_id(instructionId);
+    setCurrentUserId(getUserId());
+  }, [activeTabProp, instructionId]);
+
+
+  ///2. Fix Duplicate identifier 'isNonUsPayment'Look at line 185: 
+  //   Line 185 destructures isNonUsPayment from props. 
+  //   But down in lines 442–448, isNonUsPayment is already 
+  // declared as an internal calculation:
+
+
+  const isNonUsPayment = useMemo(() => {
+    return hasLatamBicCountry(currentDebtorAgentBIC);
+  }, [currentDebtorAgentBIC]);
+
+
+  Because `isNonUsPayment` is calculated dynamically inside `PaymentParent` based on the BIC, it should **not** be destructured as a prop.
+
+#### The Fix:
+Simply **delete line 185**:
+```typescript
+  isNonUsPayment, // <-- DELETE THIS LINE from the props destructuring (lines 181-190)
