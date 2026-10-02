@@ -13,9 +13,12 @@ if (field === 'instructedAmount') {
 
   return String(val).replace(/\/V/g, '').replace(/,/g, '').trim().toLowerCase();
 
-  //2. Live Debugging Feedback While TypingTo see in your browser 
-  // console exactly which fields match or fail as you type in Checker
-  //  mode, add a debug log right before setCheckerDualBlindPassed (around line 653):   
+  //
+  // 
+  const isManualPassed = failed.length === 0;
+  const isPassed = isManualPassed || Boolean(newDualBlind);
+  setCheckerDualBlindPassed(isPassed);
+  setCheckerFailedFields(failed);
 
   if (activeTab === 'checker') {
     console.log('[DualBlind Rekey Check]', {
@@ -23,4 +26,5 @@ if (field === 'instructedAmount') {
       failedFields: failed,
       isPassed: failed.length === 0,
     });
+    return;
   }
