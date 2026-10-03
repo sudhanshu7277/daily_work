@@ -1,13 +1,136 @@
-//Step 1: Centralize the Actionability Check
-//In InstructionDetailPage.tsx, right above getAdditionalInfoColumns
-//  (or right above the component), define this single reusable 
-// function so the Grid and the Modal use the exact same truth:
+//Implementation in InstructionDetailPage.tsx
+// Inside getAdditionalInfoColumns, replace the button 
+// configuration block (lines 575–598) with this logic:
+
+// 1. Identify current logged-in user SOEID
+const activeUser = String(typeof getUserId === 'function' ? getUserId() : '').trim().toUpperCase();
+
+// 2. Identify workflow actors from the record
+const makerId = String(
+  p.data?.maker ||
+  p.data?.paymentTransactionWorkflow?.makerId ||
+  p.data?.actionDetails?.makerSoeId ||
+  ''
+).trim().toUpperCase();
+
+const checker1Id = String(
+  p.data?.checker1 ||
+  p.data?.paymentTransactionWorkflow?.checker1Id ||
+  p.data?.actionDetails?.checker1SoeId ||
+  ''
+).trim().toUpperCase();
+
+const checker2Id = String(
+  p.data?.checker2 ||
+  p.data?.paymentTransactionWorkflow?.checker2Id ||
+  p.data?.actionDetails?.checker2SoeId ||
+  ''
+).trim().toUpperCase();
+
+const checker3Id = String(
+  p.data?.checker3 ||
+  p.data?.paymentTransactionWorkflow?.checker3Id ||
+  p.data?.actionDetails?.checker3SoeId ||
+  ''
+).trim().toUpperCase();
+
+// 3. Normalize status and codes
+const rawStatusCode = String(
+  p.data?.statusCode ||
+  p.data?.paymentTransactionWorkflow?.statusCode ||
+  ''
+).toUpperCase();
+
+const rawStatusDesc = String(
+  p.data?.statusDescription ||
+  p.data?.status ||
+  ''
+).toUpperCase();
+
+const isCompleted =
+  rawStatusCode === 'COMPLETED' ||
+  rawStatusDesc === 'COMPLETED' ||
+  rawStatusDesc.includes('COMPLETE');
+
+const isRejected =
+  rawStatusCode.includes('REJECT') ||
+  rawStatusDesc.includes('REJECT');
+
+const isMakerInitial =
+  rawStatusCode === 'NEW' ||
+  rawStatusDesc.includes('NOT CREATED');
+
+const isCheckerStage =
+  !isCompleted &&
+  !isMakerInitial &&
+  !isRejected &&
+  (
+    rawStatusCode.startsWith('CHECKER') ||
+    rawStatusDesc.includes('CHECKER') ||
+    rawStatusDesc.includes('PAYMENT CREATED') ||
+    (rawStatusCode === 'MAKER' && rawStatusDesc.includes('CREATED'))
+  );
+
+// 4. Determine Button Label
+let buttonLabel = 'Review';
+if (isMakerInitial || isRejected) {
+  buttonLabel = 'Edit';
+}
+
+// 5. Segregation of Duties Checks
+const isUserTheMaker = Boolean(activeUser && makerId && activeUser === makerId);
+const hasUserAlreadyChecked = Boolean(
+  activeUser && (
+    activeUser === checker1Id ||
+    activeUser === checker2Id ||
+    activeUser === checker3Id
+  )
+);
+
+// 6. Compute Disabled State & Tooltip Message
+let isDisabled = false;
+let tooltipMessage = '';
+
+if (isCompleted) {
+  // Complete: Closed to all actions
+  isDisabled = true;
+  tooltipMessage = 'Payment instruction has already been fully approved and completed';
+} else if (isMakerInitial) {
+  // New wire: open to Maker
+  isDisabled = false;
+  tooltipMessage = '';
+} else if (isRejected) {
+  // Sent back to Maker for corrections
+  if (!isUserTheMaker) {
+    isDisabled = true;
+    tooltipMessage = 'Payment rejected by Checker; awaiting original Maker revision';
+  } else {
+    isDisabled = false;
+    tooltipMessage = '';
+  }
+} else if (isCheckerStage) {
+  // Wire in Checker pipeline
+  if (isUserTheMaker) {
+    isDisabled = true;
+    tooltipMessage = 'Maker cannot act as Checker (Segregation of Duties)';
+  } else if (hasUserAlreadyChecked) {
+    isDisabled = true;
+    tooltipMessage = 'User has already acted on this payment at a previous checker step';
+  } else {
+    isDisabled = false;
+    tooltipMessage = '';
+  }
+}
 
 
-export const isRowReviewableForUser = (row: any, activeUserId: string): boolean => {
+//Reusable Actionability Helper (For Grid and Modal Navigation)
+// Define this helper function so accessibleRows and the navigation 
+// handlers follow the identical rules:
+
+
+export const isRecordActionableForUser = (row: any, activeUserId: string): boolean => {
     const user = String(activeUserId || '').trim().toUpperCase();
   
-    // 1. Maker check (Segregation of Duties: Creator cannot review/approve)
     const makerId = String(
       row?.maker ||
       row?.paymentTransactionWorkflow?.makerId ||
@@ -15,91 +138,34 @@ export const isRowReviewableForUser = (row: any, activeUserId: string): boolean 
       ''
     ).trim().toUpperCase();
   
+    const c1 = String(row?.checker1 || row?.paymentTransactionWorkflow?.checker1Id || '').trim().toUpperCase();
+    const c2 = String(row?.checker2 || row?.paymentTransactionWorkflow?.checker2Id || '').trim().toUpperCase();
+    const c3 = String(row?.checker3 || row?.paymentTransactionWorkflow?.checker3Id || '').trim().toUpperCase();
+  
+    const rawStatus = String(
+      row?.statusDescription ||
+      row?.statusCode ||
+      row?.status ||
+      ''
+    ).toUpperCase();
+  
+    // 1. Never actionable if already completed
+    if (rawStatus === 'COMPLETED' || rawStatus.includes('COMPLETE')) {
+      return false;
+    }
+  
+    // 2. If rejected, only actionable by the original Maker
+    if (rawStatus.includes('REJECT')) {
+      return Boolean(user && makerId && user === makerId);
+    }
+  
+    // 3. In Checker stages: Maker cannot review, and previous checkers cannot re-check
     if (user && makerId && user === makerId) {
       return false;
     }
-  
-    // 2. Checkers check (No checker can check twice)
-    const checker1 = String(row?.checker1 || row?.paymentTransactionWorkflow?.checker1Id || '').trim().toUpperCase();
-    const checker2 = String(row?.checker2 || row?.paymentTransactionWorkflow?.checker2Id || '').trim().toUpperCase();
-    const checker3 = String(row?.checker3 || row?.paymentTransactionWorkflow?.checker3Id || '').trim().toUpperCase();
-  
-    if (user && (user === checker1 || user === checker2 || user === checker3)) {
-      return false;
-    }
-  
-    // 3. Status check: Only actionable Checker stages (e.g. Checker1 Approved waiting for Checker2, or Payment Created)
-    const statusCode = String(row?.statusCode || row?.paymentTransactionWorkflow?.statusCode || '').toUpperCase();
-    const statusDesc = String(row?.statusDescription || row?.status || '').toUpperCase();
-  
-    if (
-      statusDesc.includes('NOT CREATED') ||
-      statusCode === 'COMPLETED' ||
-      statusDesc.includes('COMPLETED') ||
-      statusDesc.includes('REJECTED')
-    ) {
+    if (user && (user === c1 || user === c2 || user === c3)) {
       return false;
     }
   
     return true;
   };
-
-
-  //Step 2: Use It in accessibleRows & Index Calculation
-// Inside InstructionDetailPage:
-
-
-// 1. Filter rows to ONLY the ones where Review is enabled for this user
-const accessibleRows = useMemo(() => {
-    // Look at rowsWithDynamicStatus or instructionAccounts (whichever AG Grid is rendering)
-    const sourceRows: any[] =
-      (Array.isArray(rowsWithDynamicStatus) && rowsWithDynamicStatus.length > 0)
-        ? rowsWithDynamicStatus
-        : (Array.isArray(instructionAccounts) && instructionAccounts.length > 0)
-        ? instructionAccounts
-        : (instruction as any)?.instructionAccounts || [];
-
-    const activeUser = typeof getUserId === 'function' ? getUserId() : '';
-
-    return sourceRows.filter((r: any) => isRowReviewableForUser(r, activeUser));
-  }, [rowsWithDynamicStatus, instructionAccounts, instruction]);
-
-  // 2. Find current position within accessibleRows
-  const currentAccessibleIndex = useMemo(() => {
-    if (!selectedRowData || accessibleRows.length === 0) return 0;
-    const currentId = String(
-      selectedRowData.accountId ||
-      selectedRowData.paymentId ||
-      selectedRowData.instructionAccountId ||
-      ''
-    );
-    const idx = accessibleRows.findIndex((r: any) => {
-      const rId = String(r.accountId || r.paymentId || r.instructionAccountId || '');
-      return rId && rId === currentId;
-    });
-    return idx >= 0 ? idx : 0;
-  }, [selectedRowData, accessibleRows]);
-
-  // 3. Navigation handler that ONLY flips across accessibleRows
-  const handleModalNavigate = async (direction: 'prev' | 'next') => {
-    const nextIdx = direction === 'next' ? currentAccessibleIndex + 1 : currentAccessibleIndex - 1;
-    if (nextIdx >= 0 && nextIdx < accessibleRows.length) {
-      const targetRow = accessibleRows[nextIdx];
-      // Keep mode locked to checker
-      setModalMode('checker');
-      await handleEditRow(targetRow);
-    }
-  };
-
-
-  // 
-  <SplitPaymentMakerModal Lock InstructionDetailPage.tsx ```tsx and block degrades hasPrev="{currentAccessibleIndex" in instruction="{instruction}" instructionId="{instructionId}" isOpen="{showSplitMakerModal}" it lines mode navigation never props: so the to update> 0}
-hasNext={currentAccessibleIndex < accessibleRows.length - 1}
-currentIndex={currentAccessibleIndex + 1}
-totalCount={accessibleRows.length}
-onNavigate={accessibleRows.length > 1 ? handleModalNavigate : undefined}
-onClose={() => {
-setShowSplitMakerModal(false);
-setSelectedRowData(null);
-}}
-initialData={selectedRowData}
