@@ -1,69 +1,51 @@
-//In bulk-upload.component.scss (lines 122–164 shown in your previous code view), replace the .upload-error-banner block with this exact SCSS:
-
-
-.upload-error-banner {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 12px 16px;
-    margin: 0 0 16px 0;
-    background: #fdf4f5;
-    border-bottom: 2px solid #d93025;
+::ng-deep .upload-error-banner {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    padding: 12px 16px !important;
+    margin: 0 0 16px 0 !important;
+    background: #fdf4f5 !important;
+    border-bottom: 2px solid #d93025 !important;
   
-    &__left {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
+    .upload-error-banner__left {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+      flex: 1 !important;
     }
   
-    &__header-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .upload-error-banner__icon {
+      color: #d93025 !important;
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+      margin-top: 1px !important;
+      flex-shrink: 0 !important;
     }
   
-    &__icon {
-      color: #d93025;
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
+    .upload-error-banner__text {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: #102333 !important;
+      line-height: 20px !important;
+      white-space: pre-line !important; // Renders bulleted/multiline error strings cleanly below the title
     }
   
-    &__text {
-      font-size: 14px;
-      font-weight: 600;
-      color: #102333;
-      line-height: 20px;
-    }
-  
-    &__subtext {
-      margin: 2px 0 0 30px;
-      font-size: 13px;
-      color: #333;
-      line-height: 1.4;
-  
-      ul {
-        margin: 4px 0 0 0;
-        padding-left: 18px;
-      }
-    }
-  
-    &__close {
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      color: #666;
-      padding: 0;
-      line-height: 1;
-      margin-left: 12px;
-      flex-shrink: 0;
+    .upload-error-banner__close {
+      border: none !important;
+      background: transparent !important;
+      cursor: pointer !important;
+      color: #666 !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+      margin-left: 12px !important;
+      flex-shrink: 0 !important;
   
       mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
       }
     }
   }
