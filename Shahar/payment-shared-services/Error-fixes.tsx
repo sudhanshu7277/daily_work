@@ -1,6 +1,5 @@
-//1. bulk-upload.component.scss
-// In lines 122–148 (from image_32.png), replace .upload-error-banner and its child 
-// selectors with:
+//In bulk-upload.component.scss (lines 122–164 shown in your previous code view), replace the .upload-error-banner block with this exact SCSS:
+
 
 .upload-error-banner {
     display: flex;
@@ -16,13 +15,12 @@
       flex-direction: column;
       gap: 4px;
       flex: 1;
+    }
   
-      // Red circle icon and title on a single line
-      .upload-error-banner__header-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
+    &__header-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
   
     &__icon {
@@ -40,14 +38,16 @@
       line-height: 20px;
     }
   
-    // The rest of the message/bullets render below the top line
-    &__subtext,
-    &__description,
-    ul {
-      margin: 4px 0 0 30px;
+    &__subtext {
+      margin: 2px 0 0 30px;
       font-size: 13px;
       color: #333;
       line-height: 1.4;
+  
+      ul {
+        margin: 4px 0 0 0;
+        padding-left: 18px;
+      }
     }
   
     &__close {
@@ -59,30 +59,11 @@
       line-height: 1;
       margin-left: 12px;
       flex-shrink: 0;
+  
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
     }
   }
-
-
-  //2. bulk-upload.component.html
-// In lines 58–64 (from image_28.png / image_29.png), update the markup inside 
-// .upload-error-banner so the icon + title are grouped on line 1, and the 
-// rest sits beneath it:
-
-
-<div class="upload-error-banner" role="alert">
-      <div class="upload-error-banner__left">
-        <!-- Line 1: Red circle icon and title in one row -->
-        <div class="upload-error-banner__header-row">
-          <mat-icon class="upload-error-banner__icon">cancel</mat-icon>
-          <span class="upload-error-banner__text">{{ uploadErrorTitle() }}</span>
-        </div>
-
-        <!-- Line 2+: Remaining error details and mandatory columns list below -->
-        @if (uploadErrorSubtext()) {
-          <div class="upload-error-banner__subtext">{{ uploadErrorSubtext() }}</div>
-        }
-      </div>
-      <button class="upload-error-banner__close" (click)="dismissUploadError()" aria-label="Dismiss upload error">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
