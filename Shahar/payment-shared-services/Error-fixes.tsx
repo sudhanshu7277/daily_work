@@ -1,51 +1,52 @@
-::ng-deep .upload-error-banner {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: space-between !important;
-    padding: 12px 16px !important;
-    margin: 0 0 16px 0 !important;
-    background: #fdf4f5 !important;
-    border-bottom: 2px solid #d93025 !important;
+.upload-error-banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 16px;
+    margin: 0 25px 12px 6px;
+    background: #fdf4f5;
+    border-bottom: 2px solid #d93025;
   
-    .upload-error-banner__left {
-      display: flex !important;
-      align-items: flex-start !important;
-      gap: 10px !important;
-      flex: 1 !important;
+    &_left {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      flex: 1;
     }
   
-    .upload-error-banner__icon {
-      color: #d93025 !important;
-      font-size: 20px !important;
-      width: 20px !important;
-      height: 20px !important;
-      line-height: 20px !important;
-      margin-top: 1px !important;
-      flex-shrink: 0 !important;
+    &_icon {
+      color: #d93025;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      margin-top: 1px;
+      flex-shrink: 0;
     }
   
-    .upload-error-banner__text {
-      font-size: 14px !important;
-      font-weight: 600 !important;
-      color: #102333 !important;
-      line-height: 20px !important;
-      white-space: pre-line !important; // Renders bulleted/multiline error strings cleanly below the title
+    &_text {
+      font-size: 14px;
+      font-weight: 600;
+      color: #102333;
+      line-height: 20px;
+      white-space: pre-line;
     }
   
-    .upload-error-banner__close {
-      border: none !important;
-      background: transparent !important;
-      cursor: pointer !important;
-      color: #666 !important;
-      padding: 0 !important;
-      line-height: 1 !important;
-      margin-left: 12px !important;
-      flex-shrink: 0 !important;
+    &_close {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      line-height: 1;
+      margin-top: 2px;
+      margin-left: 12px;
+      flex-shrink: 0;
   
       mat-icon {
-        font-size: 20px !important;
-        width: 20px !important;
-        height: 20px !important;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
       }
     }
   }
