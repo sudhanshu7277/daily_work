@@ -1,36 +1,40 @@
-//The Minimal, Regression-Free Change in history.component.ts
-//Replace only lines 164–192 (applySortAndPaginate) in history.component.ts
+// Update line 5957 in InstructionDetailPage.tsx (shown in image_24.png) so the OK button closes the modal and executes fetchDetailsForAction():   
 
-
-private applySortAndPaginate(): void {
-    const col = this.sortColumn();
-    const dir = this.sortDirection();
-
-    const calcPages = Math.ceil(this.totalRows() / this.pageSize());
-    this.totalPages.set(calcPages > 0 ? calcPages : 1);
-
-    // 1. Slice the current 10 records for the active page FIRST
-    const blockOffset = (this.currentPage() - 1) * this.pageSize() - (this.loadedBlockStart() - 1);
-    const startSlice = Math.max(0, blockOffset);
-    let pageRecords = this.records().slice(startSlice, startSlice + this.pageSize());
-
-    // 2. Sort ONLY the 10 records visible on this current page
-    if (col) {
-      pageRecords.sort((a, b) => {
-        let valA = (a as any)[col] ?? '';
-        let valB = (b as any)[col] ?? '';
-
-        if (col === 'requestDate') {
-          valA = this.parseDateForSort(this.getLatestTransactionDate(a));
-          valB = this.parseDateForSort(this.getLatestTransactionDate(b));
-        }
-
-        const cmp = String(valA).localeCompare(String(valB), undefined, { sensitivity: 'base' });
-        return dir === 'asc' ? cmp : -cmp;
-      });
+<Button
+  color="primary"
+  onClick={async () => {
+    setPaymentSuccessInfo(null);
+    try {
+      await fetchDetailsForAction();
+    } catch (err) {
+      console.error('Failed to refresh details after payment success:', err);
     }
+  }}
+>
+  OK
+</Button>
 
-    // 3. Update the view signal with the sorted page records
-    this.displayedRecords.set(pageRecords);
-    this.pageNumbers.set(this.buildPageNumbers());
+
+//Also update onClose and onCancel (Lines 5952–5953)If the user dismisses the modal using the top-right X or pressing Escape, route through a single helper so the grid refreshes consistently:   
+
+const handleCloseSuccessModal = async () => {
+    setPaymentSuccessInfo(null);
+    try {
+      await fetchDetailsForAction();
+    } catch (err) {
+      console.error('Failed to refresh details after payment success:', err);
+    }
+  };
+
+
+  //Then update the <Modal> props (lines 5952–5958):   
+
+  onClose={handleCloseSuccessModal}
+  onCancel={handleCloseSuccessModal}
+  footer={
+    <El className="lmn-d-flex lmn-justify-content-end">
+      <Button color="primary" onClick={handleCloseSuccessModal}>
+        OK
+      </Button>
+    </El>
   }
