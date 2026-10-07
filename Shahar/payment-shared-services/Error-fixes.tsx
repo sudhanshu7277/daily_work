@@ -1,40 +1,32 @@
-// Update line 5957 in InstructionDetailPage.tsx (shown in image_24.png) so the OK button closes the modal and executes fetchDetailsForAction():   
+//In SSPaymentFlow.tsx, add a dedicated useEffect (or update your hydration effect) that watches for when formValues.instructedAmount gets populated:
 
-<Button
-  color="primary"
-  onClick={async () => {
-    setPaymentSuccessInfo(null);
-    try {
-      await fetchDetailsForAction();
-    } catch (err) {
-      console.error('Failed to refresh details after payment success:', err);
-    }
-  }}
->
-  OK
-</Button>
+//Add the Ref and Effects (place near your other hooks, e.g., around lines 570–585):
 
+// 1. Ref to ensure the pre-population check runs once per loaded payment/record
+const hasVerifiedPrepopulatedAmountRef = useRef<boolean>(false);
 
-//Also update onClose and onCancel (Lines 5952–5953)If the user dismisses the modal using the top-right X or pressing Escape, route through a single helper so the grid refreshes consistently:   
+// 2. Reset the ref whenever the active record changes (e.g. Next / Prev navigation)
+useEffect(() => {
+  hasVerifiedPrepopulatedAmountRef.current = false;
+}, [paymentInput?.paymentId, paymentInput?.accountId]); 
 
-const handleCloseSuccessModal = async () => {
-    setPaymentSuccessInfo(null);
-    try {
-      await fetchDetailsForAction();
-    } catch (err) {
-      console.error('Failed to refresh details after payment success:', err);
-    }
-  };
+// 3. Trigger verification when instructedAmount gets pre-populated
+useEffect(() => {
+  const amount = formValues?.instructedAmount;
+  const isPopulated =
+    amount !== undefined &&
+    amount !== null &&
+    amount !== '' &&
+    amount !== 0 &&
+    amount !== '0';
 
+  if (isPopulated && !hasVerifiedPrepopulatedAmountRef.current) {
+    hasVerifiedPrepopulatedAmountRef.current = true;
 
-  //Then update the <Modal> props (lines 5952–5958):   
+    // Trigger dual-blind validation for instructedAmount
+    validateSingleDualBlindKeyField?.("instructedAmount");
 
-  onClose={handleCloseSuccessModal}
-  onCancel={handleCloseSuccessModal}
-  footer={
-    <El className="lmn-d-flex lmn-justify-content-end">
-      <Button color="primary" onClick={handleCloseSuccessModal}>
-        OK
-      </Button>
-    </El>
+    // Trigger the verify API / hardcap check
+    onAmountBlur?.();
   }
+}, [formValues?.instructedAmount, onAmountBlur, validateSingleDualBlindKeyField]);
