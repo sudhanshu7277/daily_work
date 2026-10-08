@@ -1,32 +1,43 @@
-//In SSPaymentFlow.tsx, add a dedicated useEffect (or update your hydration effect) that watches for when formValues.instructedAmount gets populated:
+//To keep filter: true enabled and eliminate all Error #200 entries, 
+// register the filter modules in AG Grid's ModuleRegistry.  
+//  In InstructionDetailPage.tsxUpdate the imports and module 
+// registration at the top of the file (lines 24–30):   
 
-//Add the Ref and Effects (place near your other hooks, e.g., around lines 570–585):
 
-// 1. Ref to ensure the pre-population check runs once per loaded payment/record
-const hasVerifiedPrepopulatedAmountRef = useRef<boolean>(false);
+import { AgGridReact } from "ag-grid-react";
+import type {
+  ColDef,
+  ICellRendererParams,
+  ValueGetterParams,
+} from "ag-grid-community";
+import {
+  ModuleRegistry,
+  ClientSideRowModelModule,
+  PaginationModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  ValidationModule,
+} from "ag-grid-community";
 
-// 2. Reset the ref whenever the active record changes (e.g. Next / Prev navigation)
-useEffect(() => {
-  hasVerifiedPrepopulatedAmountRef.current = false;
-}, [paymentInput?.paymentId, paymentInput?.accountId]); 
+// Register all required feature modules before rendering the grid
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  PaginationModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  ValidationModule,
+]);
 
-// 3. Trigger verification when instructedAmount gets pre-populated
-useEffect(() => {
-  const amount = formValues?.instructedAmount;
-  const isPopulated =
-    amount !== undefined &&
-    amount !== null &&
-    amount !== '' &&
-    amount !== 0 &&
-    amount !== '0';
 
-  if (isPopulated && !hasVerifiedPrepopulatedAmountRef.current) {
-    hasVerifiedPrepopulatedAmountRef.current = true;
+//In defaultColDef (Line 941)
+//Keep filter: true intact:
 
-    // Trigger dual-blind validation for instructedAmount
-    validateSingleDualBlindKeyField?.("instructedAmount");
-
-    // Trigger the verify API / hardcap check
-    onAmountBlur?.();
-  }
-}, [formValues?.instructedAmount, onAmountBlur, validateSingleDualBlindKeyField]);
+defaultColDef={{
+    resizable: true,
+    sortable: true,
+    filter: true,
+    flex: 1,
+    minWidth: 100,
+  }}
