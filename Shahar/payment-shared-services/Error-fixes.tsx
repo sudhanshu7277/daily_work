@@ -1,60 +1,78 @@
-//In InstructionDetailPage.tsx1. Fix Error #200 (Missing RowAutoHeightModule and CellStyleModule)Update your imports and ModuleRegistry.registerModules near lines 24–30:   
+//1. InstructionDetailPage.tsx — Update fetchDetailsForAction to set allStagesData
+//In fetchDetailsForAction (around line 2235), update 
+// the response handling so it updates setAllStagesData:
 
 
-import { AgGridReact } from "ag-grid-react";
-import type {
-  ColDef,
-  ICellRendererParams,
-  ValueGetterParams,
-} from "ag-grid-community";
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  ValidationModule,
-  RowAutoHeightModule,
-  CellStyleModule,
-} from "ag-grid-community";
+const res = await fetch(resolveApiUrl(endpoint), {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      SOEID: loggedInUser && loggedInUser,
+    },
+    body: JSON.stringify({
+      instructionId: currentId,
+      applicationName: 'GAB',
+      moduleName: 'GAB-LATAM',
+    }),
+  });
 
-ModuleRegistry.registerModules([
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  ValidationModule,
-  RowAutoHeightModule,
-  CellStyleModule,
-]);
+  if (!res.ok) {
+    console.warn('fetchDetailsForAction failed with status:', res.status);
+    return [];
+  }
 
+  const resData = await res.json();
+  const updatedStages = Array.isArray(resData) ? resData : resData?.data || [];
 
-//2. Fix Error #239 (Quartz Theme Clash)Around lines 30–31, delete line 30 (ag-grid.css) and keep only Quartz:   
+  // Update state so rowsWithDynamicStatus recomputes automatically
+  setAllStagesData(updatedStages);
 
-// REMOVE line 30: import "ag-grid-community/styles/ag-grid.css";
-// KEEP line 31:
-import "ag-grid-community/styles/ag-theme-quartz.css";
-
-//3. Fix Warning #306 (Deprecated sortingOrder)If <AgGridReact> has sortingOrder={...} declared directly as a root prop, remove it and place it inside defaultColDef (lines 941–947):   
-
-defaultColDef={{
-    resizable: true,
-    sortable: true,
-    filter: true,
-    sortingOrder: ['asc', 'desc', null],
-    flex: 1,
-    minWidth: 100,
-  }}
+  return updatedStages;
 
 
-  //4. Fix React Router Future Flag WarningsIn your root route configuration (App.tsx or index.tsx), add the future flags to your router:   
+  //2. InstructionDetailPage.tsx — Trigger fetchDetailsForAction on Success Modal "OK"
+//Around line 5955, update the onClick handler of the OK button:
+
+<Modal
+  visible={Boolean(paymentSuccessInfo)}
+  title="Payment Instruction Created"
+  closable
+  wrapClassName="top-priority-modal"
+  style={{ zIndex: 9999 }}
+  onClose={() => setPaymentSuccessInfo(null)}
+  onCancel={() => setPaymentSuccessInfo(null)}
+  footer={
+    <El className="lmn-d-flex lmn-justify-content-end">
+      <Button
+        color="primary"
+        onClick={async () => {
+          setPaymentSuccessInfo(null);
+          await fetchDetailsForAction();
+        }}
+      >
+        OK
+      </Button>
+    </El>
+  }
+></Modal>
 
 
-  <BrowserRouter
-  future={{
-    v7_startTransition: true,
-    v7_relativeSplatPath: true,
-  }}
-></BrowserRouter>
+
+//3. PaymentInfoCard (inside InstructionDetailPage.tsx) — Keep the Existing Dynamic Merging
+//Keep lines 850–858 intact as you already have it:
+
+return {
+    ...account,
+    status: resolvedStatus,
+    statusDescription: stageMatch.statusDescription || resolvedStatus,
+    statusCode: stageMatch.statusCode,
+    stageDetails: stageMatch, // Store stage data inside the row object
+  };
+
+
+  
+
+
+
