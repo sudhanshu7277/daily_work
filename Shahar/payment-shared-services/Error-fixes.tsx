@@ -1,195 +1,249 @@
-//1. In handleDoubleClickFailedField (around line 700)
-// Only block dual-blind fields from being flagged:
+//Step 1: Update handleDoubleClickFailedField in 
+// SSPaymentFlow.tsxLocate handleDoubleClickFailedField 
+// (around lines 699–717). Replace it with:   
+
 
 const handleDoubleClickFailedField = (fieldName: string, e?: any) => {
-    if (e && typeof e.stopPropagation === 'function') {
-      e.stopPropagation();
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
     }
+
+    // 1. Only checker mode can flag fields
     if (!isChecker) return;
 
-    // Only dual-blind rekey fields cannot be flagged
-    if (
+    // 2. Dual-blind rekey fields CANNOT be flagged (checker must re-enter these)
+    const isDualBlind =
       isDualBlindEnabled &&
-      (paymentInput?.dualBlindKeyFields?.includes(fieldName) || fieldName === 'instructedAmount')
-    ) {
-      return;
-    }
+      ((paymentInput as any)?.dualBlindKeyFields?.includes(fieldName) ||
+        fieldName === 'instructedAmount');
 
+    if (isDualBlind) return;
+
+    // 3. Toggle in failedFields list
     setFailedFields((prev) => {
       const exists = prev.includes(fieldName);
       const next = exists
         ? prev.filter((f) => f !== fieldName)
         : [...prev, fieldName];
 
+      // Notify parent component immediately
       onFailedFieldListChange?.(next);
       return next;
     });
   };
 
 
-  //2. In renderField input/select elements (lines 896, 918, 934)
-// Support explicit cfg?.disabled from fieldConfig while using readOnly for Checker mode:
+  //Step 2: Update renderField in SSPaymentFlow.tsx 
+  // (Lines 865–945)Replace the JSX return block of 
+  // renderField (from image_54.png, image_55.png, and image_56.png)
+  //  with this code.   Notice the following enhancements:
 
-const fieldCfg = configMap.get(fieldName as string);
-const isExplicitlyDisabled = Boolean(fieldCfg && (fieldCfg as any).disabled);
+  const isDualBlindKey =
+      isDualBlindEnabled &&
+      ((paymentInput as any)?.dualBlindKeyFields?.includes(fieldName as string) ||
+        fieldName === 'instructedAmount');
+
+    const canBeFlagged = isChecker && !isDualBlindKey;
+
+    return (
+      <div
+        key={fieldName as string}
+        className={containerClass}
+        onDoubleClick={(e) => {
+          if (canBeFlagged) {
+            handleDoubleClickFailedField(fieldName as string, e);
+          }
+        }}
+        title={canBeFlagged ? "Double click to flag/unflag incorrect field" : undefined}
+      >
+        <label
+          htmlFor={fieldName as string}
+          className={labelClass}
+          style={{ cursor: canBeFlagged ? "pointer" : undefined, userSelect: "none" }}
+          onDoubleClick={(e) => {
+            if (canBeFlagged) {
+              handleDoubleClickFailedField(fieldName as string, e);
+            }
+          }}
+        >
+          {resolvedLabel}
+          {showMandatoryIndicator && (
+            <span className="mandatory-indicator">*</span>
+          )}
+        </label>
+
+        {opts.options ? (
+          <div
+            style={{ position: "relative", width: "100%", display: "block" }}
+            onDoubleClick={(e) => {
+              if (canBeFlagged) {
+                handleDoubleClickFailedField(fieldName as string, e);
+              }
+            }}
+          >
+            <select
+              id={fieldName as string}
+              name={fieldName as string}
+              value={value}
+              disabled={isReadonly}
+              className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
+              style={{
+                width: "100%",
+                ...(isFailed
+                  ? {
+                      borderColor: "#dc3545",
+                      backgroundColor: "#fff5f5",
+                      color: "#dc3545",
+                    }
+                  : {}),
+              }}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                setField(fieldName, e.target.value)
+              }
+              onBlur={() => setTouched((t) => ({ ...t, [fieldName]: true }))}
+            >
+              <option value="">
+                {opts.placeholder || `-- Select ${resolvedLabel} --`}
+              </option>
+              {opts.options.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+
+            {/* Click shield for disabled select in Checker mode */}
+            {canBeFlagged && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  cursor: "pointer",
+                  zIndex: 2,
+                }}
+                onDoubleClick={(e) => {
+                  handleDoubleClickFailedField(fieldName as string, e);
+                }}
+                title="Double click to flag/unflag incorrect field"
+              />
+            )}
+          </div>
+        ) : opts.type === "textarea" ? (
+          <textarea
+            id={fieldName as string}
+            name={fieldName as string}
+            value={value}
+            rows={3}
+            readOnly={isReadonly}
+            disabled={isExplicitlyDisabled}
+            className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
+            style={{
+              cursor: canBeFlagged ? "pointer" : undefined,
+              userSelect: canBeFlagged ? "none" : undefined,
+              ...(isFailed
+                ? {
+                    borderColor: "#dc3545",
+                    backgroundColor: "#fff5f5",
+                    boxShadow: "0 0 0 1px #dc3545",
+                    color: "#dc3545",
+                  }
+                : {}),
+            }}
+            onDoubleClick={(e) => {
+              if (canBeFlagged) {
+                handleDoubleClickFailedField(fieldName as string, e);
+              }
+            }}
+            title={canBeFlagged ? "Double click to flag/unflag incorrect field" : undefined}
+            maxLength={opts.maxLength || rule?.maxLength}
+            placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
+            onChange={handleTextChange}
+            onBlur={() => {
+              setTouched((t) => ({ ...t, [fieldName]: true }));
+              validateSingleDualBlindKeyField(fieldName as string);
+            }}
+          />
+        ) : (
+          <input
+            id={fieldName as string}
+            name={fieldName as string}
+            type={opts.type || "text"}
+            value={value}
+            readOnly={isReadonly}
+            disabled={isExplicitlyDisabled}
+            min={opts.minDate}
+            className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
+            style={{
+              cursor: canBeFlagged ? "pointer" : undefined,
+              userSelect: canBeFlagged ? "none" : undefined,
+              ...(isFailed
+                ? {
+                    borderColor: "#dc3545",
+                    backgroundColor: "#fff5f5",
+                    boxShadow: "0 0 0 1px #dc3545",
+                    color: "#dc3545",
+                  }
+                : {}),
+            }}
+            onDoubleClick={(e) => {
+              if (canBeFlagged) {
+                handleDoubleClickFailedField(fieldName as string, e);
+              }
+            }}
+            title={canBeFlagged ? "Double click to flag/unflag incorrect field" : undefined}
+            maxLength={opts.maxLength || rule?.maxLength}
+            placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
+            onChange={handleTextChange}
+            onBlur={() => {
+              setTouched((t) => ({ ...t, [fieldName]: true }));
+              validateSingleDualBlindKeyField(fieldName as string);
+            }}
+          />
+        )}
+
+        {hasDualBlindErr && (
+          <div className="field-error dual-blind-error">
+            {dualBlindErrors.get(fieldName as string)}
+          </div>
+        )}
+        {isRequiredMissing && (
+          <div className="field-error">
+            {opts.errorFallback || `${resolvedLabel} is required`}
+          </div>
+        )}
+        {isPatternInvalid && (
+          <div className="field-error">
+            {rule?.patternMessage || "Invalid format"}
+          </div>
+        )}
+      </div>
+    );
 
 
-//On <input>:
+    //Step 3: Add CSS in src/styles/index.css
+// Ensure the red border and light red background override native read-only styling:
 
-<input
-  id={fieldName as string}
-  name={fieldName as string}
-  type={opts.type || "text"}
-  value={value}
-  disabled={isExplicitlyDisabled}
-  readOnly={isReadonly}
-  min={opts.minDate}
-  className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
-  style={isFailed ? { borderColor: "#dc3545", backgroundColor: "#fff5f5" } : undefined}
-  onDoubleClick={(e) => {
-    handleDoubleClickFailedField(fieldName as string, e);
+.field-failed-border,
+.failed-field input,
+.failed-field select,
+.failed-field textarea,
+.form-field.failed-field input,
+.form-field.failed-field select,
+.form-field.failed-field textarea {
+  border: 1.5px solid #dc3545 !important;
+  background-color: #fff5f5 !important;
+  box-shadow: 0 0 0 1px #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+
+//Step 4: Ensure PaymentParent.tsx Callback is Connected (Line 1042)
+// In PaymentParent.tsx, keep line 1042 wired directly:
+
+onFailedFieldListChange={(fields: string[]) => {
+    setCheckerFailedFields(fields);
   }}
-  maxLength={opts.maxLength || rule?.maxLength}
-  placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
-  onChange={handleTextChange}
-  onBlur={() => {
-    setTouched((t) => ({ ...t, [fieldName]: true }));
-    validateSingleDualBlindKeyField(fieldName as string);
-  }}
-/>
-
-
-
-//Part 2: Complete SSPaymentFlow.spec.tsx
-// Replace projects/payment-flow-ui-lib/src/components/SSPaymentFlow.spec.tsx 
-// with this clean, complete Vitest suite that passes all 5 test scenarios:
-
-
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { SSPaymentFlow } from './SSPaymentFlow';
-import { FormFieldConfig, PaymentComponentInput } from '../models';
-
-describe('SSPaymentFlow Component', () => {
-  const defaultPaymentInput: PaymentComponentInput = {
-    paymentId: 'PAY-1001',
-    accountId: 'ACC-999',
-    currency: 'USD',
-    amount: 5000,
-    dualBlindKeyFlag: 'N',
-    dualBlindKeyFields: [],
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders all primary form sections and populates default data', () => {
-    const { container } = render(
-      <SSPaymentFlow
-        paymentInput={defaultPaymentInput}
-        isMakerMode={true}
-      />
-    );
-
-    expect(screen.getByText(/Payment Information/i)).toBeInTheDocument();
-    expect(screen.getByText(/Debtor Information/i)).toBeInTheDocument();
-    expect(screen.getByText(/Beneficiary Details/i)).toBeInTheDocument();
-    expect(container.querySelectorAll('.form-field').length).toBeGreaterThan(0);
-  });
-
-  it('handles field config: disables, hides, and overrides labels correctly', () => {
-    const fieldConfig: FormFieldConfig[] = [
-      {
-        fieldName: 'debtorName',
-        disabled: true,
-        label: 'Custom Debtor Title',
-      } as any,
-      {
-        fieldName: 'taxIdNumber',
-        hide: true,
-      } as any,
-    ];
-
-    render(
-      <SSPaymentFlow
-        paymentInput={defaultPaymentInput}
-        fieldConfig={fieldConfig}
-        isMakerMode={true}
-      />
-    );
-
-    const debtorNameInput = screen.getByLabelText(/Custom Debtor Title/i) as HTMLInputElement;
-    expect(debtorNameInput).toBeInTheDocument();
-    expect(debtorNameInput.disabled).toBe(true);
-
-    expect(screen.queryByLabelText(/Tax ID Number/i)).toBeNull();
-  });
-
-  it('triggers onAmountChange and onFormChange when transaction amount is modified', async () => {
-    const onAmountChange = vi.fn();
-    const onFormChange = vi.fn();
-
-    render(
-      <SSPaymentFlow
-        paymentInput={defaultPaymentInput}
-        isMakerMode={true}
-        onAmountChange={onAmountChange}
-        onFormChange={onFormChange}
-      />
-    );
-
-    const amountInput = screen.getByPlaceholderText(/Enter Transaction Amount/i);
-    fireEvent.change(amountInput, { target: { value: '7500' } });
-
-    await waitFor(() => {
-      expect(onFormChange).toHaveBeenCalled();
-    });
-  });
-
-  it('toggles red flagged error class and emits onFailedFieldListChange on double-click in Checker mode', () => {
-    const onFailedFieldListChange = vi.fn();
-
-    const { container } = render(
-      <SSPaymentFlow
-        paymentInput={defaultPaymentInput}
-        isCheckerMode={true}
-        onFailedFieldListChange={onFailedFieldListChange}
-      />
-    );
-
-    const debtorNameInput = screen.getByLabelText(/Debtor Name/i);
-    const fieldContainer = debtorNameInput.closest('.form-field');
-    expect(fieldContainer).toBeInTheDocument();
-
-    // First double click: Flags the field
-    fireEvent.doubleClick(fieldContainer!);
-    expect(fieldContainer!.className).toContain('failed-field');
-    expect(onFailedFieldListChange).toHaveBeenCalledWith(['debtorName']);
-
-    // Second double click: Unflags the field
-    fireEvent.doubleClick(fieldContainer!);
-    expect(fieldContainer!.className).not.toContain('failed-field');
-    expect(onFailedFieldListChange).toHaveBeenCalledWith([]);
-  });
-
-  it('applies amber review and green modified classes correctly in Repair mode', () => {
-    const { container } = render(
-      <SSPaymentFlow
-        paymentInput={defaultPaymentInput}
-        isRepairMode={true}
-        repairReviewFieldList={['debtorName']}
-        repairNewlyModifyFieldList={['creditorName']}
-      />
-    );
-
-    const debtorInput = screen.getByLabelText(/Debtor Name/i);
-    const debtorContainer = debtorInput.closest('.form-field');
-    expect(debtorContainer?.className).toContain('repair-review-field');
-
-    const creditorInput = screen.getByLabelText(/Creditor Name/i);
-    const creditorContainer = creditorInput.closest('.form-field');
-    expect(creditorContainer?.className).toContain('repair-newly-modify-field');
-  });
-});
