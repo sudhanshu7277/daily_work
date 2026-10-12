@@ -61,32 +61,27 @@ onFailedFieldListChange={(fields: string[]) => {
 }}
 
 
-//2. Changes in SSPaymentFlow.tsx
-//Change 2.1: Keep the component props in sync with parent state
-// Near line 187 where failedFields is declared, 
-// add an effect to synchronize when the parent updates:
+
+//2. In SSPaymentFlow.tsx
+//A. Lines 190–195: Remove the broken effect
+//Delete the useEffect that referenced props.flaggedFields. 
+// failedFields stays as its own standard local state
+
 
 const [failedFields, setFailedFields] = useState<string[]>(
-    () => (props as any)?.flaggedFields ?? (paymentInput as any)?.rejectedFieldList ?? []
+    () => (paymentInput as any)?.rejectedFieldList ?? []
   );
+
+
+  //B. Lines 699–722: Double-click flagging 
+  // functionEnsure handleDoubleClickFailedField matches this implementation:  
   
-  useEffect(() => {
-    if ((props as any)?.flaggedFields !== undefined) {
-      setFailedFields((props as any).flaggedFields);
-    }
-  }, [(props as any)?.flaggedFields]);
-
-
-  //Change 2.2: Ensure handleDoubleClickFailedField matches 
-  // (Lines 699–722)Verify lines 699–722 match this implementation:   
-
   const handleDoubleClickFailedField = (fieldName: string, e?: any) => {
     if (e && typeof e.stopPropagation === 'function') {
       e.stopPropagation();
     }
     if (!isChecker) return;
   
-    // Only dual-blind rekey fields cannot be flagged
     if (
       isDualBlindEnabled &&
       (paymentInput?.dualBlindKeyFields?.includes(fieldName) || fieldName === 'instructedAmount')
@@ -106,12 +101,14 @@ const [failedFields, setFailedFields] = useState<string[]>(
   };
 
 
-  //Change 2.3: Update renderField return block (Lines 873–965)In
-  //  renderField, remove all inner onDoubleClick handlers and e.stopPropagation() 
-  // calls from the child inputs/selects/textareas. Attach onDoubleClick 
-  // strictly to the outer container <div>.   Apply pointerEvents:
-  //  canBeFlagged ? "none" : undefined to the inner inputs when 
-  // flagged to prevent the browser from highlighting text or swallowing double clicks:  
+  //C. Lines 873–965: Clean container event handling 
+  // in renderFieldIn the JSX return block of renderField, 
+  // remove all inner onDoubleClick handlers and 
+  // e.stopPropagation() calls from <select>, <textarea>, 
+  // and <input>.   Attach onDoubleClick exclusively to the 
+  // wrapping <div className={containerClass}>, and set 
+  // pointerEvents: canBeFlagged ? "none" : undefined on t
+  // he inputs so native mouse handling doesn't block the event:  
   
   
   const isDualBlindKey =
@@ -181,9 +178,8 @@ const [failedFields, setFailedFields] = useState<string[]>(
               pointerEvents: canBeFlagged ? "none" : undefined,
               ...(isFailed
                 ? {
-                    borderColor: "#dc3545 !important",
-                    backgroundColor: "#fff5f5 !important",
-                    boxShadow: "0 0 0 1px #dc3545",
+                    borderColor: "#dc3545",
+                    backgroundColor: "#fff5f5",
                     color: "#dc3545",
                   }
                 : {}),
@@ -210,9 +206,8 @@ const [failedFields, setFailedFields] = useState<string[]>(
               pointerEvents: canBeFlagged ? "none" : undefined,
               ...(isFailed
                 ? {
-                    borderColor: "#dc3545 !important",
-                    backgroundColor: "#fff5f5 !important",
-                    boxShadow: "0 0 0 1px #dc3545",
+                    borderColor: "#dc3545",
+                    backgroundColor: "#fff5f5",
                     color: "#dc3545",
                   }
                 : {}),
@@ -246,8 +241,8 @@ const [failedFields, setFailedFields] = useState<string[]>(
     );
 
 
-    //3. Changes in index.css
-// Ensure read-only styling is properly overridden by adding this to index.css:
+    //3. In index.css
+// Ensure the failed border color overrides browser defaults for disabled/readonly elements:
 
 
 .form-field.failed-field input,
@@ -261,20 +256,3 @@ textarea.field-failed-border {
   box-shadow: 0 0 0 1px #dc3545 !important;
   color: #dc3545 !important;
 }
-
-
-
-//Option B: Add flaggedFields to SSPaymentFlowProps (If you want full two-way control)
-//If you prefer PaymentParent to control the list directly, 
-// add the optional prop to the interface in SSPaymentFlow.tsx:
-
-//Locate export interface SSPaymentFlowProps near the top of 
-// SSPaymentFlow.tsx (around lines 40–55) and add:
-
-
-export interface SSPaymentFlowProps {
-    // ... existing props
-    flaggedFields?: string[];
-    onFailedFieldListChange?: (fields: string[]) => void;
-  }
-
