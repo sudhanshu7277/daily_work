@@ -262,3 +262,19 @@ textarea.field-failed-border {
   color: #dc3545 !important;
 }
 
+
+
+//Option B: Add flaggedFields to SSPaymentFlowProps (If you want full two-way control)
+//If you prefer PaymentParent to control the list directly, 
+// add the optional prop to the interface in SSPaymentFlow.tsx:
+
+//Locate export interface SSPaymentFlowProps near the top of 
+// SSPaymentFlow.tsx (around lines 40–55) and add:
+
+
+export interface SSPaymentFlowProps {
+    // ... existing props
+    flaggedFields?: string[];
+    onFailedFieldListChange?: (fields: string[]) => void;
+  }
+
