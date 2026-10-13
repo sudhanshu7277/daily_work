@@ -334,3 +334,17 @@ function formatPhoneNumber(phone) {
           this.cdr.markForCheck();
         }
       }
+
+
+      // The Fix in search-legal-hold.component.htmlReplace the error wrapper div (lines 22–33) with:   
+      <div class="email-error-message-wrapper" id="legal-hold-name-error" role="alert">
+        @if (searchForm.get('holdName')?.hasError('required') && searchForm.get('holdName')?.touched) {
+          <span class="email-error-message">Enter Legal Hold Name</span>
+        } @else if (searchForm.get('holdName')?.hasError('maxlength')) {
+          <span class="email-error-message">
+            {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Maximum length 50 characters exceeded') | translate }}
+          </span>
+        } @else if (searchForm.get('holdName')?.hasError('pattern') && (searchForm.get('holdName')?.dirty || searchForm.get('holdName')?.touched)) {
+          <span class="email-error-message">Invalid characters entered in Legal Hold Name</span>
+        }
+      </div>
