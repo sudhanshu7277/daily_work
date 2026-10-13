@@ -300,3 +300,37 @@ function formatPhoneNumber(phone) {
           </span>
         }
       </div>
+
+
+
+      //2. search-legal-hold.component.tsIn search-legal-hold.component.ts,
+      //  update lines 334 to 356 (the onBeforeInputCheck method) to ensure c
+      // dr.markForCheck() is called so the error UI updates instantly on OnPush:   
+
+
+      onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
+        const inputEvent = event as InputEvent;
+        if (!inputEvent.data) {
+          const ctrl = this.searchForm.get(controlName);
+          if (ctrl?.hasError('maxlength')) {
+            const { maxlength, ...rest } = ctrl.errors || {};
+            ctrl.setErrors(Object.keys(rest).length ? rest : null);
+            this.cdr.markForCheck();
+          }
+          return;
+        }
+    
+        const target = inputEvent.target as HTMLInputElement;
+        const currentVal = target.value || '';
+        const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
+        const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
+    
+        if (newTotalLength > maxLen) {
+          inputEvent.preventDefault();
+          const ctrl = this.searchForm.get(controlName);
+          ctrl?.setErrors({ ...(ctrl.errors || {}), maxlength: true });
+          ctrl?.markAsDirty();
+          ctrl?.markAsTouched();
+          this.cdr.markForCheck();
+        }
+      }
