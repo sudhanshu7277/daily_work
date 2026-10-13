@@ -268,3 +268,35 @@ function formatPhoneNumber(phone) {
   
   // Example:
   console.log(formatPhoneNumber('6475621111')); // "647-562-1111"S
+
+
+
+  // The Clean Template FixIn search-legal-hold.component.html, replace lines 7–33 with:   
+
+
+  <input
+        id="legal-hold-name"
+        class="hold-name"
+        [class.input-error]="searchForm.get('holdName')?.invalid && (searchForm.get('holdName')?.touched || searchForm.get('holdName')?.dirty)"
+        [attr.aria-describedby]="'legal-hold-name-error'"
+        [attr.aria-invalid]="searchForm.get('holdName')?.invalid && (searchForm.get('holdName')?.touched || searchForm.get('holdName')?.dirty)"
+        aria-required="true"
+        formControlName="holdName"
+        [placeholder]="searchLegalHoldVerbiage.placeholderEnterHoldName | translate"
+        [matAutocomplete]="autoHoldName"
+        (focus)="onHoldNameFocus(); sharedDataInternally()"
+        (beforeinput)="onBeforeInputCheck($event, 'holdName', 50)"
+      />
+      <div class="email-error-message-wrapper" id="legal-hold-name-error" role="alert">
+        <span *ngIf="searchForm.get('holdName')?.hasError('required') && searchForm.get('holdName')?.touched" class="email-error-message">
+          Enter Legal Hold Name
+        </span>
+        <span *ngIf="searchForm.get('holdName')?.hasError('pattern') && (searchForm.get('holdName')?.dirty || searchForm.get('holdName')?.touched)" class="email-error-message">
+          Invalid characters entered in Legal Hold Name
+        </span>
+        @if (searchForm.get('holdName')?.hasError('maxlength')) {
+          <span class="email-error-message" style="position: static;">
+            {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Maximum length 50 characters exceeded') | translate }}
+          </span>
+        }
+      </div>
