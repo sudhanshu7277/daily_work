@@ -336,15 +336,14 @@ function formatPhoneNumber(phone) {
       }
 
 
-      // The Fix in search-legal-hold.component.htmlReplace the error wrapper div (lines 22–33) with:   
-      <div class="email-error-message-wrapper" id="legal-hold-name-error" role="alert">
+      <div id="legal-hold-name-error" role="alert" style="position: absolute; top: 100%; margin-top: 2px; left: 0; display: flex; flex-direction: column; gap: 2px; width: 100%;">
         @if (searchForm.get('holdName')?.hasError('required') && searchForm.get('holdName')?.touched) {
-          <span class="email-error-message">Enter Legal Hold Name</span>
-        } @else if (searchForm.get('holdName')?.hasError('maxlength')) {
-          <span class="email-error-message">
-            {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Maximum length 50 characters exceeded') | translate }}
-          </span>
-        } @else if (searchForm.get('holdName')?.hasError('pattern') && (searchForm.get('holdName')?.dirty || searchForm.get('holdName')?.touched)) {
-          <span class="email-error-message">Invalid characters entered in Legal Hold Name</span>
+          <small class="error-text" style="position: static;">Enter Legal Hold Name</small>
+        }
+        @if (searchForm.get('holdName')?.hasError('pattern') && (searchForm.get('holdName')?.dirty || searchForm.get('holdName')?.touched)) {
+          <small class="error-text" style="position: static;">Invalid characters entered in Legal Hold Name</small>
+        }
+        @if (searchForm.get('holdName')?.hasError('maxlength')) {
+          <small class="error-text" style="position: static;">{{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}</small>
         }
       </div>
