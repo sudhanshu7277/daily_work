@@ -256,3 +256,15 @@ textarea.field-failed-border {
   box-shadow: 0 0 0 1px #dc3545 !important;
   color: #dc3545 !important;
 }
+
+
+
+
+// PHONE NUMBER FORMATTING
+
+function formatPhoneNumber(phone) {
+    return String(phone).replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  }
+  
+  // Example:
+  console.log(formatPhoneNumber('6475621111')); // "647-562-1111"S
