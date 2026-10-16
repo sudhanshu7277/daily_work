@@ -100,3 +100,80 @@ const apiMessage =
   error?.message ||
   'Instruction status updated';
 
+
+
+
+
+
+  //Area 1: Inside InstructionDetailPage.tsx
+//Look for where action submission handlers or toast/modal 
+// notifications are triggered (search for res.status, toast, alert, 
+// notification, or modalResponse).
+
+//Update error/success extractions to prioritize the server's 
+// descriptive message over fallback HTTP codes:
+
+// Replace patterns like:
+// const msg = `Action failed with status: ${res.status}`;
+
+// With dynamic parsing:
+let errorMsg = 'An error occurred while processing instruction';
+try {
+  const errJson = await res.json();
+  errorMsg = errJson?.message || errJson?.error || errJson?.statusDesc || `Action failed with status: ${res.status}`;
+} catch {
+  errorMsg = `Action failed with status: ${res.status}`;
+}
+
+
+//Area 2: In PaymentParent.tsx (Lines 884–913 and Lines 938–958)
+//Inside handleCheckerDecision and handleRepairResubmit:
+
+//1. In handleCheckerDecision (Image 29 / 30)
+//Change the catch block from:
+
+catch (err: any) {
+  setModalResponse({
+    title: 'ACTION FAILED',
+    referenceId: instructionId_,
+    status: 'ERROR',
+    message: err?.message || 'Failed to approve payment instruction.',
+    color: '#d64545',
+  });
+}
+
+
+//To:
+
+catch (err: any) {
+  const apiMessage =
+    err?.response?.data?.message ||
+    err?.response?.data?.error ||
+    err?.message ||
+    'Failed to process payment decision.';
+
+  setModalResponse({
+    title: 'ACTION FAILED',
+    referenceId: instructionId_,
+    status: 'ERROR',
+    message: apiMessage,
+    color: '#d64545',
+  });
+}
+
+
+//2. In handleRepairResubmit (Image 31 / 32)
+//Update the error response handling:
+
+
+if (!res.ok) {
+  const errData = await res.json().catch(() => ({}));
+  const displayMsg =
+    errData?.message ||
+    errData?.error ||
+    `Repair resubmission failed (Status: ${res.status})`;
+
+  throw new Error(displayMsg);
+}
+
+
