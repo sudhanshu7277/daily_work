@@ -6,42 +6,45 @@
 // rekey fields. Update lines 420–448 so tax fields are non-mandatory, 
 // pre-populated, and disabled for Checker:
 
+// In Checker mode, only core dual-blind fields are rekeyed; tax fields are NOT rekeyed
 const activeRekeyFields = DUAL_BLIND_REKEY_FIELDS;
 
-    if (activeTab === 'checker') {
-      return baseConfig.map((cfg) => {
-        const isRekeyField = activeRekeyFields.includes(cfg.fieldName);
-        const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+if (activeTab === 'checker') {
+  return baseConfig.map((cfg) => {
+    const isRekeyField = activeRekeyFields.includes(cfg.fieldName);
+    const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
 
-        if (isTaxField) {
-          return {
-            ...cfg,
-            required: false,
-            hidden: false,
-            disabled: true,
-          };
-        }
-
-        return {
-          ...cfg,
-          required: cfg.required,
-          hidden: cfg.hidden,
-          disabled: !isRekeyField,
-        };
-      });
-    }
-
-    // Maker or Repair mode: Tax details are mandatory for LATAM
-    return baseConfig.map((cfg) => {
-      const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+    if (isTaxField) {
       return {
         ...cfg,
-        disabled: false,
-        required: isNonUsPayment && isTaxField ? true : cfg.required,
-        hidden: isNonUsPayment && isTaxField ? false : cfg.hidden,
+        // Non-mandatory for checker
+        required: false,
+        // Show section if LATAM payment so checker can inspect maker values
+        hidden: !isNonUsPayment,
+        // Disabled/readonly so checker cannot edit it
+        disabled: true,
       };
-    });
+    }
 
+    return {
+      ...cfg,
+      required: cfg.required,
+      hidden: cfg.hidden,
+      disabled: !isRekeyField,
+    };
+  });
+}
+
+// Maker or Repair mode: Tax details are mandatory for LATAM
+return baseConfig.map((cfg) => {
+  const isTaxField = TAX_DUAL_BLIND_REKEY_FIELDS.includes(cfg.fieldName);
+  return {
+    ...cfg,
+    disabled: false,
+    required: isNonUsPayment && isTaxField ? true : cfg.required,
+    hidden: isNonUsPayment && isTaxField ? false : cfg.hidden,
+  };
+});
 
     //Change 1.2: Restrict Dual-Blind Fields in dynamicPaymentInput (Lines 480–488)
 //Revert the case 'checker' dual-blind key list so it strictly contains 
@@ -97,4 +100,3 @@ const apiMessage =
   error?.message ||
   'Instruction status updated';
 
-  
