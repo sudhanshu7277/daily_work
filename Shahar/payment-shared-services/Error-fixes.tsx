@@ -1,349 +1,59 @@
-//1. Changes in PaymentParent.tsx
-//Change 1.1: Fix the state variable declaration (Line 200)
-// Find line 200:
+//Here are the exact changes across both files.
 
-const [_, setCheckerDualBlindPassed] = useState<boolean>(false);
-
-/// Change it to:
-
-const [checkerDualBlindPassed, setCheckerDualBlindPassed] = useState<boolean>(false);
-
-//Change 1.2: Stop clearing manual flags in handlePaymentOutput
-//  (Lines 601–605)Find lines 601–605:   
-
-const isManualPassed = failed.length === 0;
-const isPassed = isManualPassed || Boolean(newDualBlind);
-setCheckerDualBlindPassed(isPassed);
-setCheckerFailedFields(failed);
+//1. selection-panel.component.scss
+//In selection-panel.component.scss, replace lines 168 through 203 with this exact block:
 
 
-//Replace those lines with:
+.mat-mdc-tooltip.suspect-tooltip-selection-panel.mdc-tooltip__surface,
+.mat-tooltip.suspect-tooltip-selection-panel {
+  background-color: #ffffff !important;
+  color: #2b2b2b !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  width: 285px !important;
+  max-width: 285px !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  white-space: pre-line !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16) !important;
+  position: relative !important;
+  overflow: visible !important;
+  text-align: left !important;
+  margin-left: 10px !important;
+  margin-top: 0 !important;
 
-const isManualPassed = failed.length === 0;
-const isPassed = isManualPassed && Boolean(newDualBlind);
-setCheckerDualBlindPassed(isPassed);
-// Line 604 removal: Do NOT call setCheckerFailedFields(failed) here.
-// Dual-blind status is tracked by checkerDualBlindPassed.
-// checkerFailedFields tracks manually flagged fields via onFailedFieldListChange.
+  &::first-line {
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
 
-
-//Change 1.3: Update isCheckerApproveDisabled (Lines 964–967)
-///Find lines 964–967:
-
-const isCheckerApproveDisabled =
-  isSubmitting ||
-  checkerFailedFields.length > 0;
-const isCheckerRejectDisabled = isSubmitting;
-
-
-//Replace those lines with:
-
-const isCheckerApproveDisabled =
-  isSubmitting ||
-  !isCurrentFormValid ||
-  !checkerDualBlindPassed ||
-  checkerFailedFields.length > 0;
-const isCheckerRejectDisabled = isSubmitting;
-
-
-//Change 1.4: Pass flaggedFields to SSPaymentFlow (Around line 1004)Find lines 1005–1007:   
-
-onFailedFieldListChange={(fields: string[]) => {
-    setCheckerFailedFields(fields);
-  }}
-
-
-  //Add flaggedFields={checkerFailedFields} right above it:
-
-  flaggedFields={checkerFailedFields}
-onFailedFieldListChange={(fields: string[]) => {
-  setCheckerFailedFields(fields);
-}}
-
-
-
-//2. In SSPaymentFlow.tsx
-//A. Lines 190–195: Remove the broken effect
-//Delete the useEffect that referenced props.flaggedFields. 
-// failedFields stays as its own standard local state
-
-
-const [failedFields, setFailedFields] = useState<string[]>(
-    () => (paymentInput as any)?.rejectedFieldList ?? []
-  );
-
-
-  //B. Lines 699–722: Double-click flagging 
-  // functionEnsure handleDoubleClickFailedField matches this implementation:  
-  
-  const handleDoubleClickFailedField = (fieldName: string, e?: any) => {
-    if (e && typeof e.stopPropagation === 'function') {
-      e.stopPropagation();
-    }
-    if (!isChecker) return;
-  
-    if (
-      isDualBlindEnabled &&
-      (paymentInput?.dualBlindKeyFields?.includes(fieldName) || fieldName === 'instructedAmount')
-    ) {
-      return;
-    }
-  
-    setFailedFields((prev) => {
-      const exists = prev.includes(fieldName);
-      const next = exists
-        ? prev.filter((f) => f !== fieldName)
-        : [...prev, fieldName];
-  
-      onFailedFieldListChange?.(next);
-      return next;
-    });
-  };
-
-
-  //C. Lines 873–965: Clean container event handling 
-  // in renderFieldIn the JSX return block of renderField, 
-  // remove all inner onDoubleClick handlers and 
-  // e.stopPropagation() calls from <select>, <textarea>, 
-  // and <input>.   Attach onDoubleClick exclusively to the 
-  // wrapping <div className={containerClass}>, and set 
-  // pointerEvents: canBeFlagged ? "none" : undefined on t
-  // he inputs so native mouse handling doesn't block the event:  
-  
-  
-  const isDualBlindKey =
-      isDualBlindEnabled &&
-      (paymentInput?.dualBlindKeyFields?.includes(fieldName as string) ||
-        fieldName === 'instructedAmount');
-
-    const canBeFlagged = isChecker && !isDualBlindKey;
-
-    return (
-      <div
-        key={fieldName as string}
-        className={`${containerClass} ${isFailed ? "failed-field" : ""}`.trim()}
-        onDoubleClick={(e) => {
-          if (canBeFlagged) {
-            handleDoubleClickFailedField(fieldName as string, e);
-          }
-        }}
-        style={{
-          cursor: canBeFlagged ? "pointer" : undefined,
-          userSelect: canBeFlagged ? "none" : undefined,
-        }}
-        title={canBeFlagged ? "Double click to flag/unflag incorrect field" : undefined}
-      >
-        <label htmlFor={fieldName as string} className={labelClass}>
-          {resolvedLabel}
-          {showMandatoryIndicator && (
-            <span className="mandatory-indicator">*</span>
-          )}
-        </label>
-
-        {opts.options ? (
-          <select
-            id={fieldName as string}
-            name={fieldName as string}
-            value={value}
-            disabled={isExplicitlyDisabled || isReadonly}
-            className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
-            style={{
-              pointerEvents: canBeFlagged ? "none" : undefined,
-              ...(isFailed ? { borderColor: "#dc3545", backgroundColor: "#fff5f5", color: "#dc3545" } : {}),
-            }}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              setField(fieldName, e.target.value)
-            }
-            onBlur={() => setTouched((t) => ({ ...t, [fieldName]: true }))}
-          >
-            <option value="">
-              {opts.placeholder || `-- Select ${resolvedLabel} --`}
-            </option>
-            {opts.options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        ) : opts.type === "textarea" ? (
-          <textarea
-            id={fieldName as string}
-            name={fieldName as string}
-            value={value}
-            rows={3}
-            disabled={isExplicitlyDisabled}
-            readOnly={isReadonly}
-            className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
-            style={{
-              pointerEvents: canBeFlagged ? "none" : undefined,
-              ...(isFailed
-                ? {
-                    borderColor: "#dc3545",
-                    backgroundColor: "#fff5f5",
-                    color: "#dc3545",
-                  }
-                : {}),
-            }}
-            maxLength={opts.maxLength || rule?.maxLength}
-            placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
-            onChange={handleTextChange}
-            onBlur={() => {
-              setTouched((t) => ({ ...t, [fieldName]: true }));
-              validateSingleDualBlindKeyField(fieldName as string);
-            }}
-          />
-        ) : (
-          <input
-            id={fieldName as string}
-            name={fieldName as string}
-            type={opts.type || "text"}
-            value={value}
-            disabled={isExplicitlyDisabled}
-            readOnly={isReadonly}
-            min={opts.minDate}
-            className={`${hasInputError ? "input-error" : ""} ${isFailed ? "field-failed-border" : ""}`.trim()}
-            style={{
-              pointerEvents: canBeFlagged ? "none" : undefined,
-              ...(isFailed
-                ? {
-                    borderColor: "#dc3545",
-                    backgroundColor: "#fff5f5",
-                    color: "#dc3545",
-                  }
-                : {}),
-            }}
-            maxLength={opts.maxLength || rule?.maxLength}
-            placeholder={opts.placeholder || `Enter ${resolvedLabel}`}
-            onChange={handleTextChange}
-            onBlur={() => {
-              setTouched((t) => ({ ...t, [fieldName]: true }));
-              validateSingleDualBlindKeyField(fieldName as string);
-            }}
-          />
-        )}
-
-        {hasDualBlindErr && (
-          <div className="field-error dual-blind-error">
-            {dualBlindErrors.get(fieldName as string)}
-          </div>
-        )}
-        {isRequiredMissing && (
-          <div className="field-error">
-            {opts.errorFallback || `${resolvedLabel} is required`}
-          </div>
-        )}
-        {isPatternInvalid && (
-          <div className="field-error">
-            {rule?.patternMessage || "Invalid format"}
-          </div>
-        )}
-      </div>
-    );
-
-
-    //3. In index.css
-// Ensure the failed border color overrides browser defaults for disabled/readonly elements:
-
-
-.form-field.failed-field input,
-.form-field.failed-field select,
-.form-field.failed-field textarea,
-input.field-failed-border,
-select.field-failed-border,
-textarea.field-failed-border {
-  border: 1.5px solid #dc3545 !important;
-  background-color: #fff5f5 !important;
-  box-shadow: 0 0 0 1px #dc3545 !important;
-  color: #dc3545 !important;
+  &::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: -8px !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-top: 7px solid transparent !important;
+    border-bottom: 7px solid transparent !important;
+    border-right: 8px solid #ffffff !important;
+    filter: drop-shadow(-2px 0 1px rgba(0, 0, 0, 0.05)) !important;
+  }
 }
 
 
+// 2. selection-panel.component.htmlIn selection-panel.component.html,
+//  update the .suspect-icon span (lines 26–33) to remove 
+// [matTooltipPositionAtOrigin]="true".   CDK tooltip works best when 
+// anchoring to the element's actual layout box with standard matTooltipPosition="right"
 
 
-// PHONE NUMBER FORMATTING
-
-function formatPhoneNumber(phone) {
-    return String(phone).replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  }
-  
-  // Example:
-  console.log(formatPhoneNumber('6475621111')); // "647-562-1111"S
-
-
-
-  // The Clean Template FixIn search-legal-hold.component.html, replace lines 7–33 with:   
-
-
-  <input
-        id="legal-hold-name"
-        class="hold-name"
-        [class.input-error]="searchForm.get('holdName')?.invalid && (searchForm.get('holdName')?.touched || searchForm.get('holdName')?.dirty)"
-        [attr.aria-describedby]="'legal-hold-name-error'"
-        [attr.aria-invalid]="searchForm.get('holdName')?.invalid && (searchForm.get('holdName')?.touched || searchForm.get('holdName')?.dirty)"
-        aria-required="true"
-        formControlName="holdName"
-        [placeholder]="searchLegalHoldVerbiage.placeholderEnterHoldName | translate"
-        [matAutocomplete]="autoHoldName"
-        (focus)="onHoldNameFocus(); sharedDataInternally()"
-        (beforeinput)="onBeforeInputCheck($event, 'holdName', 50)"
-      />
-      <div class="email-error-message-wrapper" id="legal-hold-name-error" role="alert">
-        <span *ngIf="searchForm.get('holdName')?.hasError('required') && searchForm.get('holdName')?.touched" class="email-error-message">
-          Enter Legal Hold Name
-        </span>
-        <span *ngIf="searchForm.get('holdName')?.hasError('pattern') && (searchForm.get('holdName')?.dirty || searchForm.get('holdName')?.touched)" class="email-error-message">
-          Invalid characters entered in Legal Hold Name
-        </span>
-        @if (searchForm.get('holdName')?.hasError('maxlength')) {
-          <span class="email-error-message" style="position: static;">
-            {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Maximum length 50 characters exceeded') | translate }}
+<span
+            class="suspect-icon"
+            style="display: inline-flex; align-items: center; vertical-align: middle; cursor: pointer;"
+            matTooltipPosition="right"
+            matTooltipClass="suspect-tooltip-selection-panel"
+            matTooltip="Suspect profile(s) found for this profile&#10;Search for the profile separately to make sure all associated profile(s) are selected.">
+            !
           </span>
-        }
-      </div>
-
-
-
-      //2. search-legal-hold.component.tsIn search-legal-hold.component.ts,
-      //  update lines 334 to 356 (the onBeforeInputCheck method) to ensure c
-      // dr.markForCheck() is called so the error UI updates instantly on OnPush:   
-
-
-      onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
-        const inputEvent = event as InputEvent;
-        if (!inputEvent.data) {
-          const ctrl = this.searchForm.get(controlName);
-          if (ctrl?.hasError('maxlength')) {
-            const { maxlength, ...rest } = ctrl.errors || {};
-            ctrl.setErrors(Object.keys(rest).length ? rest : null);
-            this.cdr.markForCheck();
-          }
-          return;
-        }
-    
-        const target = inputEvent.target as HTMLInputElement;
-        const currentVal = target.value || '';
-        const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
-        const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
-    
-        if (newTotalLength > maxLen) {
-          inputEvent.preventDefault();
-          const ctrl = this.searchForm.get(controlName);
-          ctrl?.setErrors({ ...(ctrl.errors || {}), maxlength: true });
-          ctrl?.markAsDirty();
-          ctrl?.markAsTouched();
-          this.cdr.markForCheck();
-        }
-      }
-
-
-      <div id="legal-hold-name-error" role="alert" style="position: absolute; top: 100%; margin-top: 2px; left: 0; display: flex; flex-direction: column; gap: 2px; width: 100%;">
-        @if (searchForm.get('holdName')?.hasError('required') && searchForm.get('holdName')?.touched) {
-          <small class="error-text" style="position: static;">Enter Legal Hold Name</small>
-        }
-        @if (searchForm.get('holdName')?.hasError('pattern') && (searchForm.get('holdName')?.dirty || searchForm.get('holdName')?.touched)) {
-          <small class="error-text" style="position: static;">Invalid characters entered in Legal Hold Name</small>
-        }
-        @if (searchForm.get('holdName')?.hasError('maxlength')) {
-          <small class="error-text" style="position: static;">{{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}</small>
-        }
-      </div>
