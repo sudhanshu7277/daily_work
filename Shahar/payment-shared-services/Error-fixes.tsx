@@ -74,3 +74,11 @@ useEffect(() => {
 }, [isDetailsAllStageLoaded]);
 
 
+//If you want to preserve the exact original spacing / whitespace intact:
+// Use a regex replace with \b[a-z] or word boundaries so spaces, tabs, or multiple gaps are completely untouched:
+
+export const capitalizeFirstLetter = (str: string): string => {
+  if (!str) return "";
+  return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+};
+
