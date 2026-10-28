@@ -126,3 +126,54 @@ npm run dev
 "scripts": {
   "dev": "cross-env ROLLUP_SKIP_NODE_NATIVE=true vite"
 }
+
+
+// previous and next button modal fix
+
+
+//The Fix in SplitPaymentMakerModal.tsx
+//1. Derive canGoPrev and canGoNext from both the index and the props
+// Find where hasPrev or the disabled state is evaluated (or right before the footer JSX):
+// Derive true navigation state using currentIndex / wireIndex fallback
+
+
+const resolvedCurrentIndex = currentIndex ?? wireIndex ?? 0;
+const resolvedTotal = totalCount ?? 0;
+
+const canGoPrev = hasPrev || resolvedCurrentIndex > 0;
+const canGoNext = hasNext || (resolvedTotal > 0 && resolvedCurrentIndex < resolvedTotal - 1);
+
+//2. Update the Previous Button in the Modal Footer JSX
+//Locate the <button> for Previous Payment in the JSX (around lines 750–820):
+
+// Change:
+<button
+  type="button"
+  className="..."
+  disabled={!hasPrev} // ❌ Causes the button to stay disabled if parent doesn't update hasPrev
+  onClick={() => requestNavigation('prev')}
+>
+  « Previous Payment
+</button>
+
+// To:
+<button
+  type="button"
+  className={canGoPrev ? "lmn-btn lmn-btn-secondary" : "lmn-btn lmn-btn-disabled"}
+  disabled={!canGoPrev} // ✅ Automatically enables whenever index > 0
+  onClick={() => requestNavigation('prev')}
+>
+  « Previous Payment
+</button>
+
+
+//And do the same for the Next button:
+
+<button
+  type="button"
+  className={canGoNext ? "lmn-btn lmn-btn-primary" : "lmn-btn lmn-btn-disabled"}
+  disabled={!canGoNext}
+  onClick={() => requestNavigation('next')}
+>
+  Next Payment »
+</button>
