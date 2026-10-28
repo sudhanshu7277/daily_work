@@ -82,3 +82,17 @@ export const capitalizeFirstLetter = (str: string): string => {
   return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
 };
 
+
+
+
+// fix npm issue
+
+# 1. Remove the cached native binary packages
+rm -rf node_modules/@rollup node_modules/rollup
+
+# 2. Re-install the native rollup package directly
+npm install @rollup/rollup-win32-x64-msvc --save-optional
+
+# 3. Start the dev server
+npm run dev
+
