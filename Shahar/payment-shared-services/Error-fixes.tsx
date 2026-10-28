@@ -96,3 +96,26 @@ npm install @rollup/rollup-win32-x64-msvc --save-optional
 # 3. Start the dev server
 npm run dev
 
+
+
+// latest
+
+# 1. Force remove the MSVC build folder directly
+rm -rf "node_modules/@rollup/rollup-win32-x64-msvc"
+
+# 2. Clear Vite dependency cache
+rm -rf "node_modules/.vite"
+
+# 3. Start dev server
+npm run dev
+
+// more optional changes
+
+
+# Check Rollup version
+npx rollup --version
+
+# Re-install the matching MSVC binary cleanly
+npm install @rollup/rollup-win32-x64-msvc@latest --force
+
+npm run dev
