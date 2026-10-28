@@ -119,3 +119,10 @@ npx rollup --version
 npm install @rollup/rollup-win32-x64-msvc@latest --force
 
 npm run dev
+
+
+
+
+"scripts": {
+  "dev": "cross-env ROLLUP_SKIP_NODE_NATIVE=true vite"
+}
