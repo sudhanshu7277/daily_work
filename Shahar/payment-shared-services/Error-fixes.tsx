@@ -13,4 +13,4 @@ lastName: ['', [Validators.required, Validators.maxLength(90), Validators.patter
 
       //In search-customer.component.ts, update line 145 (highlighted in the editor) to add the alphabet-only validator pattern:   
 
-      city: ['', [Validators.maxLength(40), Validators.pattern(/^[a-zA-Z\s]*$/)]],
+      city: ['', [Validators.maxLength(40), Validators.pattern(/^[a-zA-Z]*$/)]],
