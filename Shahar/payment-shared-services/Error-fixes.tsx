@@ -111,3 +111,39 @@ filterAlphaNumericAddress(event: Event): void {
   (beforeinput)="filterAlphaNumericAddress($event)"
 />
 
+
+
+//1. In search-customer.component.ts
+// Add a listener in ngOnInit() (or inside an existing form setup/subscription block):
+
+// Subscribe to country changes to toggle Postal Code / ZIP Code validation
+this.searchForm.get('country')?.valueChanges
+  .pipe(takeUntilDestroyed(this.destroyRef))
+  .subscribe((country: string) => {
+    this.updatePostalCodeValidation(country);
+  });
+
+
+//Add the handler method:
+
+updatePostalCodeValidation(country: string): void {
+  const postalControl = this.searchForm.get('postalCode');
+  if (!postalControl) return;
+
+  const isUS = country === 'United States of America' || country === 'USA' || country === 'US';
+
+  if (isUS) {
+    // US ZIP Code: Supports 9 digits (either 9 continuous digits: 123456789 or 5+4 format: 12345-6789)
+    postalControl.setValidators([
+      Validators.pattern(/^\d{5}(-\d{4})?$|^\d{9}$/)
+    ]);
+  } else {
+    // Default Canadian Postal Code format (A1A 1A1 or A1A1A1)
+    postalControl.setValidators([
+      Validators.pattern(/^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/)
+    ]);
+  }
+
+  postalControl.updateValueAndValidity();
+}
+
