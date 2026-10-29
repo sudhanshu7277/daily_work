@@ -53,3 +53,15 @@ updatePostalCodeValidation(country: string): void {
 
 
 
+//
+
+<input
+  id="customer-postal-code"
+  class="advanced-inputs"
+  type="text"
+  formControlName="postalCode"
+  [placeholder]="isUsSelected ? '#########' : 'xxx xxx'"
+  [maxlength]="isUsSelected ? 9 : (searchForm.get('postalCode')?.value?.includes(' ') ? 7 : 6)"
+  (input)="!isUsSelected && formatPostalCode($event)"
+  (beforeinput)="filterAlphaNumericAddress($event)"
+/>
