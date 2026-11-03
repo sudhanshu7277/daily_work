@@ -1,44 +1,29 @@
-//1. In selection-panel.component.ts
-// Update managerName in applyForm (around line 56) to remove Validators.maxLength and keep only Validators.required and the regex pattern:
-
+//1. In selection-panel.component.tsA. Update the pattern validator for holdName (line 130):Replace the current pattern on line 130 (/^[a-zA-Z0-9 ]*$/) with a pattern that allows anything except *, ,, <, and >:   
 
 this.applyForm = this.formBuilder.group({
-  holdName: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9 ]*$/)]],
+  holdName: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^[^*,<>]*$/)]],
   managerName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)]],
   lawyerEmail: ['', [Validators.required, Validators.email]]
 });
 
 
-//Add the (beforeinput) filter method to SelectionPanelComponent:
+//B. Add an input filtering handler to block those characters on typing/pasting:
+// Add this method to SelectionPanelComponent:
 
-filterNameCharacters(event: Event): void {
+filterHoldNameCharacters(event: Event): void {
   const inputEvent = event as InputEvent;
   if (!inputEvent.data) {
     return;
   }
 
-  // Disallows special characters like @, #, $, %, etc. without imposing any length limit
-  if (!/^[a-zA-Z0-9\s.'\-]+$/.test(inputEvent.data)) {
+  // Disallow *, ,, <, and >
+  if (/[*,<>]/.test(inputEvent.data)) {
     inputEvent.preventDefault();
   }
 }
 
 
 //2. In selection-panel.component.html
-// Attach (beforeinput)="filterNameCharacters($event)" to the input element (around line 165):
+// Find the input for holdName (around lines 145–155, right above managerName) and add (beforeinput):
 
-
-<input
-  id="apply-manager-name"
-  type="text"
-  formControlName="managerName"
-  placeholder="Name"
-  required
-  class="visually-hidden"
-  aria-required="true"
-  [attr.aria-invalid]="showControlError(managerNameControl)"
-  [attr.aria-describedby]="showControlError(managerNameControl) && managerNameControl.hasError('required') ? 'apply-manager-name-error' : null"
-  (beforeinput)="filterNameCharacters($event)"
-/>
-
-
+(beforeinput)="filterHoldNameCharacters($event)"
