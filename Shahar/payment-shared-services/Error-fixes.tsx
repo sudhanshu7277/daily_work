@@ -1,81 +1,42 @@
-//1. In selection-panel.component.tsA. Update the pattern validator for holdName (line 130):Replace the current pattern on line 130 (/^[a-zA-Z0-9 ]*$/) with a pattern that allows anything except *, ,, <, and >:   
-
-this.applyForm = this.formBuilder.group({
-  holdName: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^[^*,<>]*$/)]],
-  managerName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)]],
-  lawyerEmail: ['', [Validators.required, Validators.email]]
-});
+//Step 1: Fix the sourceObjectRef Export & Filename CasingThe generator created SourceObjectRef.ts with PascalCase, but index.ts exported it using camelCase.   
 
 
-//B. Add an input filtering handler to block those characters on typing/pasting:
-// Add this method to SelectionPanelComponent:
+//Open src/generated/party-arrangement-contact-point/index.ts.   Locate line 35:   
 
-filterHoldNameCharacters(event: Event): void {
-  const inputEvent = event as InputEvent;
-  if (!inputEvent.data) {
-    return;
-  }
+export type { sourceObjectRef } from './models/sourceObjectRef';
 
-  // Disallow *, ,, <, and >
-  if (/[*,<>]/.test(inputEvent.data)) {
-    inputEvent.preventDefault();
-  }
-}
+//Change it to match the PascalCase export and file name:   
 
+export type { SourceObjectRef } from './models/SourceObjectRef';
 
-//2. In selection-panel.component.html
-// Find the input for holdName (around lines 145–155, right above managerName) and add (beforeinput):
+Verification: Run npx tsc --noEmit and check that both TS2724 and TS1149 errors disappear.
 
-(beforeinput)="filterHoldNameCharacters($event)"
+//Step 2: Fix the Model Mismatches in account-contact-address.to.api.tsOpen src/app/core/mappers/account-contact-address.to.api.ts.   
+
+//1. Fix addressValidationOption (Line 89)
+
+// Current line 89:
+requestControl: { addressValidationOption: 'BYPASS' },
 
 
+//If your application requires bypassing validation and the generator schema doesn't yet define the field, use a type assertion:
 
-//1. In search-legal-hold.component.ts
-//A. Update HOLD_NAME_PATTERN on line 41:
-//Change line 41 from /^[a-zA-Z0-9\s]*$/ to /^[^*,<>]*$/:
-
-// search-legal-hold.component.ts (around line 40-41)
-  /** Allows all characters except *, ,, <, and > */
-  private static readonly HOLD_NAME_PATTERN = /^[^*,<>]*$/;
+requestControl: { addressValidationOption: 'BYPASS' } as any,
 
 
-  //B. Add character filtering in onBeforeInputCheck (or update it if already present):
-// In image_27.png line 20, the input calls (beforeinput)="onBeforeInputCheck($event, 
-// 'holdName', 100)". Update onBeforeInputCheck in search-legal-hold.component.ts to
-//  block those 4 characters before entry:
+//2. Fix floorNumber (Line 119)
 
-onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
-  const inputEvent = event as InputEvent;
-  if (!inputEvent.data) {
-    const ctrl = this.searchForm.get(controlName);
-    if (ctrl?.hasError('maxlength')) {
-      const { maxlength, ...rest } = ctrl.errors || {};
-      ctrl.setErrors(Object.keys(rest).length ? rest : null);
-      this.cdr.markForCheck();
-    }
-    return;
-  }
+// Current line 119:
+floorNumber: address.floor,
 
-  // --- ADD THIS BLOCK ---
-  if (controlName === 'holdName') {
-    if (/[*,<>]/.test(inputEvent.data)) {
-      inputEvent.preventDefault();
-      return;
-    }
-  }
-  // -----------------------
 
-  const target = inputEvent.target as HTMLInputElement;
-  const currentVal = target.value || '';
-  const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
-  const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
+//Check src/generated/party-arrangement-contact-point/models/AddressRequest.ts for how floor or unit numbers are modeled:
 
-  if (newTotalLength > maxLen) {
-    inputEvent.preventDefault();
-    const ctrl = this.searchForm.get(controlName);
-    ctrl?.setErrors({ ...(ctrl.errors || {}), maxlength: true });
-    ctrl?.markAsDirty();
-    ctrl?.markAsTouched();
-    this.cdr.markForCheck();
-  }
-}
+({ ...mappedAddress, floorNumber: address.floor } as any)
+
+
+//Step 3: Start the Application
+// Once the mapper file and index export are aligned:
+
+npm start
+
