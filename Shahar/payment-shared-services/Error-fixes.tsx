@@ -46,3 +46,28 @@
     </small>
   }
 </div>
+
+
+/////////
+
+
+.email-error-message-wrapper {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  pointer-events: none;
+}
+
+.email-error-message {
+  color: #a12000;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  position: static;
+  width: 100%;
+}
