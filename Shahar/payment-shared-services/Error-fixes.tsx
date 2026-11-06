@@ -58,3 +58,11 @@ Update .title (around line 364) to include:
   flex: 1;
   min-width: 0;
 }
+
+
+/////
+
+
+<small class="error-text" style="position: static; display: flex; align-items: flex-start; line-height: 1.25;">
+  {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
+</small>
