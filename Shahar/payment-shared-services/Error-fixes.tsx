@@ -63,36 +63,24 @@ Update .title (around line 364) to include:
 /////
 
 
-@if (searchForm.get('holdName')?.hasError('maxlength')) {
-  <style>
-    #legal-hold-name-error .error-text {
-      display: flex !important;
-      align-items: flex-start !important;
-      line-height: 1.25 !important;
-    }
-    #legal-hold-name-error .error-text::before {
-      margin-top: 1px !important;
-      vertical-align: top !important;
-      position: static !important;
-      transform: none !important;
-      flex-shrink: 0 !important;
-    }
-  </style>
+// In search-legal-hold.component.html, add a dedicated class (hold-name-error-text) directly to the <small> element for the maxlength error (line 31):   
 
-  <small class="error-text" style="position: static;">
+@if (searchForm.get('holdName')?.hasError('maxlength')) {
+  <small class="error-text hold-name-error-text" style="position: static;">
     {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
   </small>
 }
 
 
+//In search-legal-hold.component.scss, add the custom class styling.Inspect the parent .error-text in search-legal-hold.component.scss (lines 61–73) to see how the icon is positioned.   If .error-text reserves padding on the left (e.g. padding-left: 20px) and positions ::before with position: absolute; top: 50%; transform: translateY(-50%);, multi-line wrapping centers that icon vertically against the entire 2-line box.   Resetting top to align with the first text line fixes the alignment:
 
-//////
+.error-text.hold-name-error-text {
+  position: relative !important;
+  line-height: 1.3 !important;
 
-
-@if (searchForm.get('holdName')?.hasError('maxlength')) {
-  <small class="error-text" style="position: static; display: inline-flex; align-items: flex-start; gap: 4px; line-height: 1.2;">
-    <span style="display: inline-block; vertical-align: top;">
-      {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
-    </span>
-  </small>
+  &::before {
+    top: 2px !important;
+    transform: none !important;
+    vertical-align: top !important;
+  }
 }
