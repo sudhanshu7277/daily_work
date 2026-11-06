@@ -1,109 +1,146 @@
-// 1. In search-legal-hold.component.ts
-// Replace onBeforeInputCheck with this corrected logic:
+//1. In search-legal-hold.component.ts
+Add these three boolean flags to the class properties:
 
-onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
-  const inputEvent = event as InputEvent;
-  const ctrl = this.searchForm.get(controlName);
+isHoldNameMaxExceeded = false;
+  isEdiscoveryMaxExceeded = false;
+  isLawyerEmailMaxExceeded = false;
 
-  // 1. If it's a deletion (Backspace / Delete)
-  if (inputEvent.inputType === 'deleteContentBackward' || inputEvent.inputType === 'deleteContentForward') {
+
+
+  //Replace onBeforeInputCheck and add onInputChange:
+
+  onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
+    const inputEvent = event as InputEvent;
+
+    // 1. If deleting (Backspace / Delete)
+    if (inputEvent.inputType === 'deleteContentBackward' || inputEvent.inputType === 'deleteContentForward') {
+      const target = inputEvent.target as HTMLInputElement;
+      const currentVal = target.value || '';
+      const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
+      const remainingLength = selectedLength > 0 ? currentVal.length - selectedLength : currentVal.length - 1;
+
+      if (remainingLength < maxLen) {
+        if (controlName === 'holdName') this.isHoldNameMaxExceeded = false;
+        if (controlName === 'ediscoveryManager') this.isEdiscoveryMaxExceeded = false;
+        if (controlName === 'lawyerEmail') this.isLawyerEmailMaxExceeded = false;
+        this.cdr.markForCheck();
+      }
+      return;
+    }
+
+    if (!inputEvent.data) {
+      return;
+    }
+
+    // 2. Prohibited character filtering
+    if (controlName === 'holdName') {
+      if (/[*,<>]/.test(inputEvent.data)) {
+        inputEvent.preventDefault();
+        return;
+      }
+    } else if (controlName === 'ediscoveryManager') {
+      if (!/^[a-zA-Z0-9\s.'\-]+$/.test(inputEvent.data)) {
+        inputEvent.preventDefault();
+        return;
+      }
+    }
+
+    // 3. Max length limit check
     const target = inputEvent.target as HTMLInputElement;
     const currentVal = target.value || '';
     const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
-    
-    // Calculate remaining length after this deletion
-    const remainingLength = selectedLength > 0 ? currentVal.length - selectedLength : currentVal.length - 1;
+    const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
 
-    // Only clear maxlength error if the value is truly within the valid limit
-    if (remainingLength <= maxLen && ctrl?.hasError('maxlength')) {
-      const { maxlength, ...rest } = ctrl.errors || {};
-      ctrl.setErrors(Object.keys(rest).length ? rest : null);
+    if (newTotalLength > maxLen) {
+      inputEvent.preventDefault();
+
+      if (controlName === 'holdName') this.isHoldNameMaxExceeded = true;
+      if (controlName === 'ediscoveryManager') this.isEdiscoveryMaxExceeded = true;
+      if (controlName === 'lawyerEmail') this.isLawyerEmailMaxExceeded = true;
+
       this.cdr.markForCheck();
     }
-    return;
   }
 
-  if (!inputEvent.data) {
-    return;
-  }
+  onInputChange(controlName: string, maxLen: number): void {
+    const ctrl = this.searchForm.get(controlName);
+    const val = ctrl?.value || '';
 
-  // 2. Character filtering
-  if (controlName === 'holdName') {
-    if (/[*,<>]/.test(inputEvent.data)) {
-      inputEvent.preventDefault();
-      return;
-    }
-  } else if (controlName === 'ediscoveryManager') {
-    if (!/^[a-zA-Z0-9\s.'\-]+$/.test(inputEvent.data)) {
-      inputEvent.preventDefault();
-      return;
+    // Automatically resets the flag if text is cut, pasted over, or deleted below max
+    if (val.length < maxLen) {
+      if (controlName === 'holdName') this.isHoldNameMaxExceeded = false;
+      if (controlName === 'ediscoveryManager') this.isEdiscoveryMaxExceeded = false;
+      if (controlName === 'lawyerEmail') this.isLawyerEmailMaxExceeded = false;
+      this.cdr.markForCheck();
     }
   }
 
-  // 3. Max length check
-  const target = inputEvent.target as HTMLInputElement;
-  const currentVal = target.value || '';
-  const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
-  const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
 
-  if (newTotalLength > maxLen) {
-    inputEvent.preventDefault();
-    // Block the extra characters, but flag that the user tried to exceed max length
-    ctrl?.setErrors({ ...(ctrl.errors || {}), maxlength: { requiredLength: maxLen, actualLength: newTotalLength } });
-    ctrl?.markAsDirty();
-    ctrl?.markAsTouched();
-    this.cdr.markForCheck();
-  } else if (ctrl?.hasError('maxlength')) {
-    // If typing inside a selection and the new total fits, clear the error
-    const { maxlength, ...rest } = ctrl.errors || {};
-    ctrl.setErrors(Object.keys(rest).length ? rest : null);
-    this.cdr.markForCheck();
-  }
-}
+  //2. In search-legal-hold.component.html
+// Update all three inputs and their error display conditions:
+
+// A. Legal Hold Name
 
 
-
-//2. Retain Error State on Blur/Focus
-// When the user clicks out and clicks back in, Angular's default form validation runs whenever the control updates. To ensure Angular doesn't clear the maxlength error if the input is at max capacity and the user hit the ceiling, check the value length in (input) or on change detection.
-
-// Add an (input) handler to keep form status synchronized:
-
-
-onInputChange(controlName: string, maxLen: number): void {
-  const ctrl = this.searchForm.get(controlName);
-  const val = ctrl?.value || '';
-
-  // If user edited/deleted below the limit, clear the manual maxlength error
-  if (val.length < maxLen && ctrl?.hasError('maxlength')) {
-    const { maxlength, ...rest } = ctrl.errors || {};
-    ctrl.setErrors(Object.keys(rest).length ? rest : null);
-    this.cdr.markForCheck();
-  }
-}
-
-
-//In search-legal-hold.component.html:
-
-
-<!-- Legal Hold Name -->
 <input
-  ...
+  id="legal-hold-name"
+  class="hold-name"
+  [class.input-error]="(searchForm.get('holdName')?.invalid && searchForm.get('holdName')?.touched) || isHoldNameMaxExceeded"
+  formControlName="holdName"
+  [placeholder]="searchLegalHoldVerbiage.placeholderEnterHoldName | translate"
+  (focus)="onHoldNameFocus(); shareDataInternally()"
   (beforeinput)="onBeforeInputCheck($event, 'holdName', 100)"
   (input)="onInputChange('holdName', 100)"
+  [matAutocomplete]="autoHoldName"
+  aria-required="true"
 />
 
-<!-- eDiscovery Project Manager -->
+@if (isHoldNameMaxExceeded || searchForm.get('holdName')?.hasError('maxlength')) {
+  <small class="error-text hold-name-error-text" style="position: static;">
+    {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
+  </small>
+}
+
+//B. eDiscovery Project Manager
+
 <input
-  ...
+  id="ediscovery-project-manager"
+  class="ediscovery-project-manager"
+  [class.input-error]="(searchForm.get('ediscoveryManager')?.invalid && searchForm.get('ediscoveryManager')?.touched) || isEdiscoveryMaxExceeded"
+  formControlName="ediscoveryManager"
+  [placeholder]="searchLegalHoldVerbiage.placeholderEdiscoveryProjectManager | translate"
   (beforeinput)="onBeforeInputCheck($event, 'ediscoveryManager', 50)"
   (input)="onInputChange('ediscoveryManager', 50)"
 />
 
-<!-- Lawyer Email -->
+@if (isEdiscoveryMaxExceeded || searchForm.get('ediscoveryManager')?.hasError('maxlength')) {
+  <small class="error-text hold-name-error-text" style="position: static;">
+    {{ (searchLegalHoldVerbiage.ediscoveryManagerError || 'eDiscovery Project Manager Name exceeds maximum allowed length') | translate }}
+  </small>
+}
+
+
+//C. Responsible Lawyer Email
+
 <input
-  ...
+  id="legal-hold-lawyer-email"
+  class="lawyer-email"
+  [class.input-error]="(searchForm.get('lawyerEmail')?.invalid && searchForm.get('lawyerEmail')?.touched) || isLawyerEmailMaxExceeded"
+  formControlName="lawyerEmail"
+  [placeholder]="searchLegalHoldVerbiage.placeholderEmail | translate"
   (beforeinput)="onBeforeInputCheck($event, 'lawyerEmail', 50)"
   (input)="onInputChange('lawyerEmail', 50)"
 />
 
-
+<div class="email-error-message-wrapper">
+  @if (searchForm.get('lawyerEmail')?.touched && searchForm.get('lawyerEmail')?.hasError('email')) {
+    <span id="legal-hold-lawyer-email-error" class="email-error-message">
+      Enter a valid email address
+    </span>
+  }
+  @if (isLawyerEmailMaxExceeded || searchForm.get('lawyerEmail')?.hasError('maxlength')) {
+    <small class="error-text hold-name-error-text" style="position: static;">
+      {{ (searchLegalHoldVerbiage.lawyerEmailError || 'Responsible Lawyer Email exceeds maximum allowed length') | translate }}
+    </small>
+  }
+</div>
