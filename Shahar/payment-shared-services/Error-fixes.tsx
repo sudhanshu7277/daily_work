@@ -81,3 +81,15 @@ Update .title (around line 364) to include:
   display: block !important;
   line-height: 1.3 !important;
 }
+
+/////
+
+
+#apply-hold-name-maxlength-error {
+  align-items: flex-start;
+
+  .validation-error-icon {
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+}
