@@ -75,12 +75,9 @@ Update .title (around line 364) to include:
 //In search-legal-hold.component.scss, add the custom class styling.Inspect the parent .error-text in search-legal-hold.component.scss (lines 61–73) to see how the icon is positioned.   If .error-text reserves padding on the left (e.g. padding-left: 20px) and positions ::before with position: absolute; top: 50%; transform: translateY(-50%);, multi-line wrapping centers that icon vertically against the entire 2-line box.   Resetting top to align with the first text line fixes the alignment:
 
 .error-text.hold-name-error-text {
-  position: relative !important;
+  background-position: left 2px !important;
+  background-repeat: no-repeat !important;
+  padding-left: 20px !important;
+  display: block !important;
   line-height: 1.3 !important;
-
-  &::before {
-    top: 2px !important;
-    transform: none !important;
-    vertical-align: top !important;
-  }
 }
