@@ -42,25 +42,19 @@
 // .confirmation-message and .title:
 
 
-.confirmation-modal {
-  .title {
-    word-break: break-all;
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
-}
+//In selection-panel.component.scss
+Update .title (around line 364) to include:
 
-.confirmation-message {
-  margin: 10px 0 14px;
-  font-size: 14px;
-  color: #333;
+
+.title {
+  margin: 0;
+  color: #08253a;
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 700;
+  text-align: center;
   word-break: break-all;
   overflow-wrap: anywhere;
-  white-space: normal;
-
-  p {
-    margin: 0;
-    word-break: break-all;
-    overflow-wrap: anywhere;
-  }
+  flex: 1;
+  min-width: 0;
 }
