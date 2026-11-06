@@ -63,6 +63,23 @@ Update .title (around line 364) to include:
 /////
 
 
-<small class="error-text" style="position: static; display: flex; align-items: flex-start; line-height: 1.25;">
-  {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
-</small>
+@if (searchForm.get('holdName')?.hasError('maxlength')) {
+  <style>
+    #legal-hold-name-error .error-text {
+      display: flex !important;
+      align-items: flex-start !important;
+      line-height: 1.25 !important;
+    }
+    #legal-hold-name-error .error-text::before {
+      margin-top: 1px !important;
+      vertical-align: top !important;
+      position: static !important;
+      transform: none !important;
+      flex-shrink: 0 !important;
+    }
+  </style>
+
+  <small class="error-text" style="position: static;">
+    {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
+  </small>
+}
