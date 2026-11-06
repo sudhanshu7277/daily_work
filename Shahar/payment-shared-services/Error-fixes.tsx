@@ -83,3 +83,16 @@ Update .title (around line 364) to include:
     {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
   </small>
 }
+
+
+
+//////
+
+
+@if (searchForm.get('holdName')?.hasError('maxlength')) {
+  <small class="error-text" style="position: static; display: inline-flex; align-items: flex-start; gap: 4px; line-height: 1.2;">
+    <span style="display: inline-block; vertical-align: top;">
+      {{ (searchLegalHoldVerbiage.legalHoldNameError || 'Legal Hold Name exceeds maximum allowed length') | translate }}
+    </span>
+  </small>
+}
