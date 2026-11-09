@@ -1,5 +1,6 @@
 //purge-pause.component.ts
 
+
 import { Component, OnInit, ChangeDetectorRef, TemplateRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,16 +10,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 export interface PurgePauseRecord {
-  id?: string;
+  id: string;
   classActionProject: string;
   pauseRequestDate: string;
   pauseLiftDate?: string;
-  pauseStatus: 'Active (Paused)' | 'Lifted' | 'Failed';
+  pauseStatus: 'Active (Paused)' | 'Lifted' | 'Failed' | 'Submitted';
   ediscoveryProjectManager: string;
   responsibleLawyerEmail: string;
-  fileName?: string;
-  uploadDate?: string;
-  status?: string;
 }
 
 export type SortColumn =
@@ -50,28 +48,35 @@ export class PurgePauseComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
 
+  // Modal Template References
   @ViewChild('submitConfirmDialog') submitConfirmDialog!: TemplateRef<any>;
+  @ViewChild('submittedSuccessDialog') submittedSuccessDialog!: TemplateRef<any>;
+  @ViewChild('editClassActionDialog') editClassActionDialog!: TemplateRef<any>;
+
   private dialogRef?: MatDialogRef<any>;
 
-  // Form instances
+  // Form Groups
   pauseForm!: FormGroup;
   searchForm!: FormGroup;
+  editForm!: FormGroup;
 
-  // Max-length tracking flags for Pause form (Top card)
+  // Character limit error flags
   isPauseClassActionMaxExceeded = false;
   isPauseManagerMaxExceeded = false;
   isPauseEmailMaxExceeded = false;
 
-  // Max-length tracking flags for Search form (Middle card)
   isSearchClassActionMaxExceeded = false;
   isSearchManagerMaxExceeded = false;
   isSearchEmailMaxExceeded = false;
 
-  // Edit record state
-  isEditing = false;
-  editingRecordId: string | null = null;
+  isEditManagerMaxExceeded = false;
+  isEditEmailMaxExceeded = false;
 
-  // Search Criteria Object (replaces legacy customer-search criteria)
+  // Edit Tracking
+  editingRecordId: string | null = null;
+  submittedDateDisplay = '';
+
+  // Search Criteria Object (API payload blueprint)
   criteria = {
     originatorData: {
       applicationCatalogueId: '92735',
@@ -95,7 +100,7 @@ export class PurgePauseComponent implements OnInit {
     }
   };
 
-  // Table state (matching bulk-upload pagination & sorting logic)
+  // Table & Pagination state
   records: PurgePauseRecord[] = [];
   displayedRecords: PurgePauseRecord[] = [];
   isLoading = false;
@@ -114,11 +119,12 @@ export class PurgePauseComponent implements OnInit {
     { value: '', label: 'Select' },
     { value: 'Active (Paused)', label: 'Active (Paused)' },
     { value: 'Lifted', label: 'Lifted' },
-    { value: 'Failed', label: 'Failed' }
+    { value: 'Failed', label: 'Failed' },
+    { value: 'Submitted', label: 'Submitted' }
   ];
 
-  // Master mock dataset directly matching Figma UI
-  private readonly MOCK_DATA: PurgePauseRecord[] = [
+  // Master mock dataset matching Figma UI
+  private MOCK_DATA: PurgePauseRecord[] = [
     {
       id: '1',
       classActionProject: 'Legal Hold Re 789',
@@ -163,24 +169,6 @@ export class PurgePauseComponent implements OnInit {
       pauseStatus: 'Lifted',
       ediscoveryProjectManager: 'Mayank Garg',
       responsibleLawyerEmail: 'mayankgarg@bmo.com'
-    },
-    {
-      id: '6',
-      classActionProject: 'Class Action Alpha 001',
-      pauseRequestDate: '02/15/2025',
-      pauseLiftDate: '',
-      pauseStatus: 'Active (Paused)',
-      ediscoveryProjectManager: 'Sarah Jenkins',
-      responsibleLawyerEmail: 's.jenkins@bmo.com'
-    },
-    {
-      id: '7',
-      classActionProject: 'Project Beta Risk Hold',
-      pauseRequestDate: '03/20/2025',
-      pauseLiftDate: '09/10/2025',
-      pauseStatus: 'Lifted',
-      ediscoveryProjectManager: 'Alex Chen',
-      responsibleLawyerEmail: 'achen@bmo.com'
     }
   ];
 
@@ -190,17 +178,17 @@ export class PurgePauseComponent implements OnInit {
   }
 
   private initForms(): void {
-    // 1. Pause Form (Top card - all 3 fields required)
+    // Top card (Pause) - 3 mandatory fields
     this.pauseForm = this.fb.group({
       classActionProject: ['', [
         Validators.required,
         Validators.maxLength(100),
-        Validators.pattern(/^[^*,<>]*\$/)
+        Validators.pattern(/^[^*,<>]*$/)
       ]],
       ediscoveryProjectManager: ['', [
         Validators.required,
         Validators.maxLength(50),
-        Validators.pattern(/^[a-zA-Z0-9\s.'\-]*\$/)
+        Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)
       ]],
       responsibleLawyerEmail: ['', [
         Validators.required,
@@ -209,20 +197,34 @@ export class PurgePauseComponent implements OnInit {
       ]]
     });
 
-    // 2. Search Form (Middle card - all 4 fields optional)
+    // Middle card (Search) - 4 optional fields
     this.searchForm = this.fb.group({
-      classActionProject: ['', [Validators.maxLength(100), Validators.pattern(/^[^*,<>]*\$/)]],
-      ediscoveryProjectManager: ['', [Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9\s.'\-]*\$/)]],
+      classActionProject: ['', [Validators.maxLength(100), Validators.pattern(/^[^*,<>]*$/)]],
+      ediscoveryProjectManager: ['', [Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)]],
       responsibleLawyerEmail: ['', [Validators.email, Validators.maxLength(50)]],
       pauseStatus: ['']
     });
+
+    // Edit modal form
+    this.editForm = this.fb.group({
+      classActionProject: [{ value: '', disabled: true }],
+      ediscoveryProjectManager: ['', [
+        Validators.required,
+        Validators.maxLength(50),
+        Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)
+      ]],
+      responsibleLawyerEmail: ['', [
+        Validators.required,
+        Validators.email,
+        Validators.maxLength(50)
+      ]]
+    });
   }
 
-  // --- Character Filtering & Limit Checks ---
-  onBeforeInputCheck(event: Event, formType: 'pause' | 'search', controlName: string, maxLen: number): void {
+  // --- Character & Length Controls ---
+  onBeforeInputCheck(event: Event, formType: 'pause' | 'search' | 'edit', controlName: string, maxLen: number): void {
     const inputEvent = event as InputEvent;
 
-    // Handle Backspace / Delete
     if (inputEvent.inputType === 'deleteContentBackward' || inputEvent.inputType === 'deleteContentForward') {
       const target = inputEvent.target as HTMLInputElement;
       const currentVal = target.value || '';
@@ -238,20 +240,18 @@ export class PurgePauseComponent implements OnInit {
 
     if (!inputEvent.data) return;
 
-    // Prohibited characters filter
     if (controlName === 'classActionProject') {
       if (/[*,<>]/.test(inputEvent.data)) {
         inputEvent.preventDefault();
         return;
       }
     } else if (controlName === 'ediscoveryProjectManager') {
-      if (!/^[a-zA-Z0-9\s.'\-]+\$/.test(inputEvent.data)) {
+      if (!/^[a-zA-Z0-9\s.'\-]+$/.test(inputEvent.data)) {
         inputEvent.preventDefault();
         return;
       }
     }
 
-    // Max length check
     const target = inputEvent.target as HTMLInputElement;
     const currentVal = target.value || '';
     const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
@@ -264,29 +264,39 @@ export class PurgePauseComponent implements OnInit {
     }
   }
 
-  onInputChange(formType: 'pause' | 'search', controlName: string, maxLen: number): void {
-    const form = formType === 'pause' ? this.pauseForm : this.searchForm;
-    const val = form.get(controlName)?.value || '';
+  onInputChange(formType: 'pause' | 'search' | 'edit', controlName: string, maxLen: number): void {
+    let form: FormGroup;
+    if (formType === 'pause') form = this.pauseForm;
+    else if (formType === 'search') form = this.searchForm;
+    else form = this.editForm;
 
+    const val = form.get(controlName)?.value || '';
     if (val.length < maxLen) {
       this.setLimitFlag(formType, controlName, false);
       this.cdr.markForCheck();
     }
   }
 
-  private setLimitFlag(formType: 'pause' | 'search', controlName: string, value: boolean): void {
+  private setLimitFlag(formType: 'pause' | 'search' | 'edit', controlName: string, value: boolean): void {
     if (formType === 'pause') {
       if (controlName === 'classActionProject') this.isPauseClassActionMaxExceeded = value;
       if (controlName === 'ediscoveryProjectManager') this.isPauseManagerMaxExceeded = value;
       if (controlName === 'responsibleLawyerEmail') this.isPauseEmailMaxExceeded = value;
-    } else {
+    } else if (formType === 'search') {
       if (controlName === 'classActionProject') this.isSearchClassActionMaxExceeded = value;
       if (controlName === 'ediscoveryProjectManager') this.isSearchManagerMaxExceeded = value;
       if (controlName === 'responsibleLawyerEmail') this.isSearchEmailMaxExceeded = value;
+    } else {
+      if (controlName === 'ediscoveryProjectManager') this.isEditManagerMaxExceeded = value;
+      if (controlName === 'responsibleLawyerEmail') this.isEditEmailMaxExceeded = value;
     }
   }
 
-  // --- Pause Actions & Modal Flow ---
+  // ========================================================
+  // FLOW 1: APPLY A PURGE PAUSE (Steps 1 to 5)
+  // ========================================================
+
+  // Step 1 -> Step 2: Open Confirmation Dialog
   onPauseClick(): void {
     if (
       this.pauseForm.invalid ||
@@ -305,31 +315,53 @@ export class PurgePauseComponent implements OnInit {
     });
   }
 
-  onConfirmSubmit(): void {
+  // Step 2 -> Step 3: Confirm Submit & Open Success Modal
+  onConfirmSubmitPause(): void {
     this.dialogRef?.close();
 
     const formValues = this.pauseForm.value;
+    const now = new Date();
+    this.submittedDateDisplay = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
 
-    if (this.isEditing && this.editingRecordId) {
-      const target = this.MOCK_DATA.find(r => r.id === this.editingRecordId);
-      if (target) {
-        target.classActionProject = formValues.classActionProject.trim();
-        target.ediscoveryProjectManager = formValues.ediscoveryProjectManager.trim();
-        target.responsibleLawyerEmail = formValues.responsibleLawyerEmail.trim();
+    // Provision for future CREATE API Call:
+    // this.purgePauseService.createPauseRequest(formValues).subscribe(...)
+    console.log('API CALL PROVISION: [POST] /purge-pause', {
+      originatorData: this.criteria.originatorData,
+      pauseData: formValues
+    });
+
+    // Step 4: Prepend record with 'Submitted' status
+    const newId = String(Date.now());
+    const newRecord: PurgePauseRecord = {
+      id: newId,
+      classActionProject: formValues.classActionProject.trim(),
+      pauseRequestDate: this.submittedDateDisplay,
+      pauseLiftDate: '',
+      pauseStatus: 'Submitted',
+      ediscoveryProjectManager: formValues.ediscoveryProjectManager.trim(),
+      responsibleLawyerEmail: formValues.responsibleLawyerEmail.trim()
+    };
+    this.MOCK_DATA.unshift(newRecord);
+
+    // Open Success Acknowledgment Dialog (Dialog 2)
+    this.dialogRef = this.dialog.open(this.submittedSuccessDialog, {
+      width: '460px',
+      panelClass: 'bmo-confirmation-dialog'
+    });
+
+    // Step 5: Automatically transition status from 'Submitted' to 'Active (Paused)' after 6 seconds
+    setTimeout(() => {
+      const createdItem = this.MOCK_DATA.find(r => r.id === newId);
+      if (createdItem && createdItem.pauseStatus === 'Submitted') {
+        createdItem.pauseStatus = 'Active (Paused)';
+        this.fetchPurgePauseRecords();
+        this.cdr.markForCheck();
       }
-    } else {
-      const newRecord: PurgePauseRecord = {
-        id: String(Date.now()),
-        classActionProject: formValues.classActionProject.trim(),
-        pauseRequestDate: new Date().toLocaleDateString('en-GB'),
-        pauseLiftDate: '',
-        pauseStatus: 'Active (Paused)',
-        ediscoveryProjectManager: formValues.ediscoveryProjectManager.trim(),
-        responsibleLawyerEmail: formValues.responsibleLawyerEmail.trim()
-      };
-      this.MOCK_DATA.unshift(newRecord);
-    }
+    }, 6000);
+  }
 
+  onCloseSuccessDialog(): void {
+    this.dialogRef?.close();
     this.onClearPause();
     this.fetchPurgePauseRecords();
   }
@@ -342,15 +374,65 @@ export class PurgePauseComponent implements OnInit {
     this.isPauseClassActionMaxExceeded = false;
     this.isPauseManagerMaxExceeded = false;
     this.isPauseEmailMaxExceeded = false;
-    this.isEditing = false;
-    this.editingRecordId = null;
     this.pauseForm.reset();
   }
 
-  // --- Search Criteria Payload Builder ---
+  // ========================================================
+  // FLOW 2: EDIT CLASS ACTION (Modal Flow)
+  // ========================================================
+
+  onEditRecord(record: PurgePauseRecord): void {
+    this.editingRecordId = record.id;
+    this.isEditManagerMaxExceeded = false;
+    this.isEditEmailMaxExceeded = false;
+
+    // Prefill dedicated edit modal form
+    this.editForm.patchValue({
+      classActionProject: record.classActionProject,
+      ediscoveryProjectManager: record.ediscoveryProjectManager,
+      responsibleLawyerEmail: record.responsibleLawyerEmail
+    });
+
+    this.dialogRef = this.dialog.open(this.editClassActionDialog, {
+      width: '560px',
+      panelClass: 'bmo-confirmation-dialog'
+    });
+  }
+
+  onSaveEdit(): void {
+    if (this.editForm.invalid || this.isEditManagerMaxExceeded || this.isEditEmailMaxExceeded) {
+      this.editForm.markAllAsTouched();
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const editValues = this.editForm.getRawValue();
+
+    // Provision for future PATCH/PUT API Call:
+    // this.purgePauseService.updatePauseRequest(this.editingRecordId, editValues).subscribe(...)
+    console.log(`API CALL PROVISION: [PATCH] /purge-pause/${this.editingRecordId}`, {
+      originatorData: this.criteria.originatorData,
+      updateData: editValues
+    });
+
+    // Update row in mock dataset
+    const target = this.MOCK_DATA.find(r => r.id === this.editingRecordId);
+    if (target) {
+      target.ediscoveryProjectManager = editValues.ediscoveryProjectManager.trim();
+      target.responsibleLawyerEmail = editValues.responsibleLawyerEmail.trim();
+    }
+
+    this.dialogRef?.close();
+    this.fetchPurgePauseRecords();
+    this.cdr.markForCheck();
+  }
+
+  // ========================================================
+  // SEARCH & TABLE DATA METHODS
+  // ========================================================
+
   buildSearchPayload(): any {
     const rawValues = this.searchForm.value;
-
     return {
       originatorData: { ...this.criteria.originatorData },
       purgePauseSearchCriteria: {
@@ -367,7 +449,6 @@ export class PurgePauseComponent implements OnInit {
     };
   }
 
-  // --- Search Actions ---
   onSearch(): void {
     if (
       this.searchForm.invalid ||
@@ -381,8 +462,11 @@ export class PurgePauseComponent implements OnInit {
     }
 
     this.currentPage = 1;
-    const payload = this.buildSearchPayload();
-    console.log('Purge Pause Search Criteria Payload:', payload);
+
+    // Provision for future SEARCH API Call:
+    // const payload = this.buildSearchPayload();
+    // this.purgePauseService.search(payload).subscribe(...)
+    console.log('API CALL PROVISION: [POST] /purge-pause/search', this.buildSearchPayload());
 
     this.fetchPurgePauseRecords();
   }
@@ -400,7 +484,6 @@ export class PurgePauseComponent implements OnInit {
     this.onSearch();
   }
 
-  // --- Table Data, Sorting & Pagination Methods ---
   fetchPurgePauseRecords(): void {
     this.isLoading = true;
 
@@ -497,6 +580,8 @@ export class PurgePauseComponent implements OnInit {
         return 'status-lifted';
       case 'Failed':
         return 'status-failed';
+      case 'Submitted':
+        return 'status-submitted';
       default:
         return '';
     }
@@ -507,7 +592,7 @@ export class PurgePauseComponent implements OnInit {
     const trimmed = String(value).trim();
     if (!trimmed) return '';
 
-    const ddMmYyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\$/;
+    const ddMmYyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
     const ddMmYyyyMatch = trimmed.match(ddMmYyyy);
     if (ddMmYyyyMatch) {
       const day = ddMmYyyyMatch[1].padStart(2, '0');
@@ -536,25 +621,6 @@ export class PurgePauseComponent implements OnInit {
     return trimmed;
   }
 
-  // --- Edit Hook: Populates Pause Form ---
-  onEditRecord(record: any): void {
-    this.isEditing = true;
-    this.editingRecordId = record?.id || null;
-
-    this.pauseForm.patchValue({
-      classActionProject: record.classActionProject || record.fileName || '',
-      ediscoveryProjectManager: record.ediscoveryProjectManager || '',
-      responsibleLawyerEmail: record.responsibleLawyerEmail || ''
-    });
-
-    this.isPauseClassActionMaxExceeded = false;
-    this.isPauseManagerMaxExceeded = false;
-    this.isPauseEmailMaxExceeded = false;
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    this.cdr.markForCheck();
-  }
-
   paginationFrom(): number {
     return this.totalRows === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
   }
@@ -565,8 +631,7 @@ export class PurgePauseComponent implements OnInit {
 }
 
 
-
-// purge-pause.component.html
+//purge-pause.component.html
 
 
 <div class="purge-pause-wrapper">
@@ -585,7 +650,7 @@ export class PurgePauseComponent implements OnInit {
 
     <form [formGroup]="pauseForm" class="purge-pausing-form-container" aria-live="polite">
       <div class="purge-form-grid">
-        <!-- 1. Class Action / Project (Required, max 100) -->
+        <!-- 1. Class Action / Project -->
         <div class="form-field-group">
           <label class="input-label" for="pause-class-action-project">
             {{ 'Class Action / Project' | translate }}
@@ -614,7 +679,7 @@ export class PurgePauseComponent implements OnInit {
           }
         </div>
 
-        <!-- 2. eDiscovery Project Manager (Required, max 50) -->
+        <!-- 2. eDiscovery Project Manager -->
         <div class="form-field-group">
           <label class="input-label" for="pause-ediscovery-manager">
             {{ 'eDiscovery Project Manager' | translate }}
@@ -643,7 +708,7 @@ export class PurgePauseComponent implements OnInit {
           }
         </div>
 
-        <!-- 3. Responsible Lawyer Email (Required, max 50) -->
+        <!-- 3. Responsible Lawyer Email -->
         <div class="form-field-group">
           <label class="input-label" for="pause-lawyer-email">
             {{ 'Responsible Lawyer Email' | translate }}
@@ -679,7 +744,7 @@ export class PurgePauseComponent implements OnInit {
           {{ 'CLEAR' | translate }}
         </button>
         <button type="button" class="search-pill-btn pause-btn" (click)="onPauseClick()">
-          {{ (isEditing ? 'UPDATE' : 'PAUSE') | translate }}
+          {{ 'PAUSE' | translate }}
         </button>
       </div>
     </form>
@@ -780,7 +845,7 @@ export class PurgePauseComponent implements OnInit {
         </div>
       </div>
 
-      <!-- Action Buttons (Hardcoded 'SEARCH' literal prevents [object Object] errors) -->
+      <!-- Action Buttons -->
       <div class="purge-form-actions">
         <button type="button" class="clear-text-btn-blue" (click)="onClearSearch()">
           {{ 'CLEAR' | translate }}
@@ -902,19 +967,19 @@ export class PurgePauseComponent implements OnInit {
               </td>
             </tr>
           } @else {
-            @for (record of displayedRecords; track record.id || $index) {
+            @for (record of displayedRecords; track record.id) {
               <tr>
-                <td>{{ record.classActionProject || record.fileName }}</td>
-                <td>{{ formatDate(record.pauseRequestDate || record.uploadDate) }}</td>
+                <td>{{ record.classActionProject }}</td>
+                <td>{{ formatDate(record.pauseRequestDate) }}</td>
                 <td>{{ formatDate(record.pauseLiftDate) || '-' }}</td>
                 <td>
-                  <span class="status-indicator" [ngClass]="getStatusClass(record.pauseStatus || record.status || '')">
+                  <span class="status-indicator" [ngClass]="getStatusClass(record.pauseStatus)">
                     <span class="status-dot"></span>
-                    {{ record.pauseStatus || record.status }}
+                    {{ record.pauseStatus }}
                   </span>
                 </td>
-                <td>{{ record.ediscoveryProjectManager || '-' }}</td>
-                <td>{{ record.responsibleLawyerEmail || '-' }}</td>
+                <td>{{ record.ediscoveryProjectManager }}</td>
+                <td>{{ record.responsibleLawyerEmail }}</td>
                 <td class="col-edit-action">
                   <button type="button" class="edit-icon-btn" (click)="onEditRecord(record)" aria-label="Edit record">
                     <mat-icon>edit</mat-icon>
@@ -927,7 +992,7 @@ export class PurgePauseComponent implements OnInit {
       </table>
     </div>
 
-    <!-- Pagination Controls (Standard [value] + (change) binding) -->
+    <!-- Pagination Controls -->
     @if (!isLoading && totalRows > 0) {
       <div class="cs-pagination">
         <div class="cs-pagination_left">
@@ -986,9 +1051,9 @@ export class PurgePauseComponent implements OnInit {
   </div>
 </div>
 
-<!-- ============================================== -->
-<!-- 4. "SUBMIT PURGE PAUSE?" CONFIRMATION MODAL    -->
-<!-- ============================================== -->
+<!-- ======================================================== -->
+<!-- MODAL 1: "SUBMIT PURGE PAUSE?" CONFIRMATION DIALOG       -->
+<!-- ======================================================== -->
 <ng-template #submitConfirmDialog>
   <div class="bmo-modal-container">
     <div class="bmo-modal-header">
@@ -1006,9 +1071,109 @@ export class PurgePauseComponent implements OnInit {
       <button type="button" class="bmo-btn-link" (click)="onCancelDialog()">
         CANCEL
       </button>
-      <button type="button" class="bmo-btn-primary" (click)="onConfirmSubmit()">
+      <button type="button" class="bmo-btn-primary" (click)="onConfirmSubmitPause()">
         SUBMIT
       </button>
     </div>
+  </div>
+</ng-template>
+
+<!-- ======================================================== -->
+<!-- MODAL 2: "PURGE PAUSE REQUEST SUBMITTED" SUCCESS DIALOG   -->
+<!-- ======================================================== -->
+<ng-template #submittedSuccessDialog>
+  <div class="bmo-modal-container">
+    <div class="bmo-modal-header">
+      <h3 class="bmo-modal-title">Purge pause request submitted</h3>
+      <button type="button" class="bmo-modal-close-btn" (click)="onCloseSuccessDialog()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="bmo-modal-body">
+      <p class="bmo-modal-message">
+        Purge Pause request has been submitted on {{ submittedDateDisplay }}.<br>
+        Purge Pause status will be updated to 'Active (Paused)' within the following weekly purge cycle.
+      </p>
+    </div>
+    <div class="bmo-modal-actions">
+      <button type="button" class="bmo-btn-primary" (click)="onCloseSuccessDialog()">
+        CLOSE
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<!-- ======================================================== -->
+<!-- MODAL 3: "EDITING PURGE PAUSE REQUEST" (EDIT FLOW)       -->
+<!-- ======================================================== -->
+<ng-template #editClassActionDialog>
+  <div class="bmo-modal-container edit-modal-container">
+    <div class="bmo-modal-header">
+      <h3 class="bmo-modal-title">Editing Purge Pause Request</h3>
+      <button type="button" class="bmo-modal-close-btn" (click)="onCancelDialog()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form [formGroup]="editForm" class="edit-modal-form">
+      <div class="bmo-modal-body">
+        <!-- Class Action / Project (Read-only / Identifies row) -->
+        <div class="modal-form-group">
+          <label class="modal-input-label">Class Action / Project *</label>
+          <input
+            type="text"
+            class="modal-input modal-input-disabled"
+            formControlName="classActionProject"
+          />
+        </div>
+
+        <!-- eDiscovery Project Manager -->
+        <div class="modal-form-group">
+          <label class="modal-input-label">eDiscovery Project Manager *</label>
+          <input
+            type="text"
+            class="modal-input"
+            [class.input-error]="editForm.get('ediscoveryProjectManager')?.invalid && editForm.get('ediscoveryProjectManager')?.touched"
+            formControlName="ediscoveryProjectManager"
+            (beforeinput)="onBeforeInputCheck($event, 'edit', 'ediscoveryProjectManager', 50)"
+            (input)="onInputChange('edit', 'ediscoveryProjectManager', 50)"
+          />
+          @if (editForm.get('ediscoveryProjectManager')?.touched && editForm.get('ediscoveryProjectManager')?.hasError('required')) {
+            <small class="modal-error-text">Enter eDiscovery Project Manager Name</small>
+          }
+          @if (editForm.get('ediscoveryProjectManager')?.hasError('pattern')) {
+            <small class="modal-error-text">Special characters are not allowed</small>
+          }
+        </div>
+
+        <!-- Responsible Lawyer Email -->
+        <div class="modal-form-group">
+          <label class="modal-input-label">Responsible Lawyer Email *</label>
+          <input
+            type="email"
+            class="modal-input"
+            [class.input-error]="editForm.get('responsibleLawyerEmail')?.invalid && editForm.get('responsibleLawyerEmail')?.touched"
+            formControlName="responsibleLawyerEmail"
+            (beforeinput)="onBeforeInputCheck($event, 'edit', 'responsibleLawyerEmail', 50)"
+            (input)="onInputChange('edit', 'responsibleLawyerEmail', 50)"
+          />
+          @if (editForm.get('responsibleLawyerEmail')?.touched && editForm.get('responsibleLawyerEmail')?.hasError('required')) {
+            <small class="modal-error-text">Enter Responsible Lawyer Email</small>
+          }
+          @if (editForm.get('responsibleLawyerEmail')?.hasError('email')) {
+            <small class="modal-error-text">Enter a valid email address</small>
+          }
+        </div>
+      </div>
+
+      <div class="bmo-modal-actions">
+        <button type="button" class="bmo-btn-link" (click)="onCancelDialog()">
+          CANCEL
+        </button>
+        <button type="button" class="bmo-btn-primary" (click)="onSaveEdit()">
+          SAVE
+        </button>
+      </div>
+    </form>
   </div>
 </ng-template>
