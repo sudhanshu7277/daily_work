@@ -1,4 +1,5 @@
-//purge-pause.component.ts
+//2. Complete Updated Code
+// purge-pause.component.ts
 
 
 import { Component, OnInit, ChangeDetectorRef, TemplateRef, ViewChild, inject } from '@angular/core';
@@ -48,10 +49,11 @@ export class PurgePauseComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
 
-  // Modal Template References
+  // Modal Templates
   @ViewChild('submitConfirmDialog') submitConfirmDialog!: TemplateRef<any>;
   @ViewChild('submittedSuccessDialog') submittedSuccessDialog!: TemplateRef<any>;
   @ViewChild('editClassActionDialog') editClassActionDialog!: TemplateRef<any>;
+  @ViewChild('editSuccessDialog') editSuccessDialog!: TemplateRef<any>;
 
   private dialogRef?: MatDialogRef<any>;
 
@@ -60,7 +62,7 @@ export class PurgePauseComponent implements OnInit {
   searchForm!: FormGroup;
   editForm!: FormGroup;
 
-  // Character limit error flags
+  // Character limit guards
   isPauseClassActionMaxExceeded = false;
   isPauseManagerMaxExceeded = false;
   isPauseEmailMaxExceeded = false;
@@ -72,11 +74,12 @@ export class PurgePauseComponent implements OnInit {
   isEditManagerMaxExceeded = false;
   isEditEmailMaxExceeded = false;
 
-  // Edit Tracking
+  // Edit State & Modal Error Banner
   editingRecordId: string | null = null;
+  editModalErrorMessage: string | null = null;
   submittedDateDisplay = '';
 
-  // Search Criteria Object (API payload blueprint)
+  // API Criteria Payload Blueprint
   criteria = {
     originatorData: {
       applicationCatalogueId: '92735',
@@ -100,7 +103,7 @@ export class PurgePauseComponent implements OnInit {
     }
   };
 
-  // Table & Pagination state
+  // Table & Pagination
   records: PurgePauseRecord[] = [];
   displayedRecords: PurgePauseRecord[] = [];
   isLoading = false;
@@ -114,7 +117,6 @@ export class PurgePauseComponent implements OnInit {
   sortColumn: SortColumn = 'pauseRequestDate';
   sortDirection: SortDirection = 'desc';
 
-  // Dropdown options
   statusOptions = [
     { value: '', label: 'Select' },
     { value: 'Active (Paused)', label: 'Active (Paused)' },
@@ -123,7 +125,7 @@ export class PurgePauseComponent implements OnInit {
     { value: 'Submitted', label: 'Submitted' }
   ];
 
-  // Master mock dataset matching Figma UI
+  // Mock data matching Figma rows
   private MOCK_DATA: PurgePauseRecord[] = [
     {
       id: '1',
@@ -178,7 +180,7 @@ export class PurgePauseComponent implements OnInit {
   }
 
   private initForms(): void {
-    // Top card (Pause) - 3 mandatory fields
+    // 1. Pause Form
     this.pauseForm = this.fb.group({
       classActionProject: ['', [
         Validators.required,
@@ -197,7 +199,7 @@ export class PurgePauseComponent implements OnInit {
       ]]
     });
 
-    // Middle card (Search) - 4 optional fields
+    // 2. Search Form
     this.searchForm = this.fb.group({
       classActionProject: ['', [Validators.maxLength(100), Validators.pattern(/^[^*,<>]*$/)]],
       ediscoveryProjectManager: ['', [Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)]],
@@ -205,7 +207,7 @@ export class PurgePauseComponent implements OnInit {
       pauseStatus: ['']
     });
 
-    // Edit modal form
+    // 3. Edit Form (Project is disabled / read-only)
     this.editForm = this.fb.group({
       classActionProject: [{ value: '', disabled: true }],
       ediscoveryProjectManager: ['', [
@@ -221,7 +223,7 @@ export class PurgePauseComponent implements OnInit {
     });
   }
 
-  // --- Character & Length Controls ---
+  // --- Input Filtering & Limit Checks ---
   onBeforeInputCheck(event: Event, formType: 'pause' | 'search' | 'edit', controlName: string, maxLen: number): void {
     const inputEvent = event as InputEvent;
 
@@ -293,10 +295,8 @@ export class PurgePauseComponent implements OnInit {
   }
 
   // ========================================================
-  // FLOW 1: APPLY A PURGE PAUSE (Steps 1 to 5)
+  // FLOW 1: APPLY PURGE PAUSE
   // ========================================================
-
-  // Step 1 -> Step 2: Open Confirmation Dialog
   onPauseClick(): void {
     if (
       this.pauseForm.invalid ||
@@ -315,7 +315,6 @@ export class PurgePauseComponent implements OnInit {
     });
   }
 
-  // Step 2 -> Step 3: Confirm Submit & Open Success Modal
   onConfirmSubmitPause(): void {
     this.dialogRef?.close();
 
@@ -323,14 +322,10 @@ export class PurgePauseComponent implements OnInit {
     const now = new Date();
     this.submittedDateDisplay = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
 
-    // Provision for future CREATE API Call:
-    // this.purgePauseService.createPauseRequest(formValues).subscribe(...)
-    console.log('API CALL PROVISION: [POST] /purge-pause', {
-      originatorData: this.criteria.originatorData,
-      pauseData: formValues
-    });
+    // Provision for Future POST API:
+    // this.purgePauseService.createPause(formValues).subscribe(...)
+    console.log('API CALL PROVISION: [POST] /purge-pause', formValues);
 
-    // Step 4: Prepend record with 'Submitted' status
     const newId = String(Date.now());
     const newRecord: PurgePauseRecord = {
       id: newId,
@@ -343,13 +338,12 @@ export class PurgePauseComponent implements OnInit {
     };
     this.MOCK_DATA.unshift(newRecord);
 
-    // Open Success Acknowledgment Dialog (Dialog 2)
     this.dialogRef = this.dialog.open(this.submittedSuccessDialog, {
       width: '460px',
       panelClass: 'bmo-confirmation-dialog'
     });
 
-    // Step 5: Automatically transition status from 'Submitted' to 'Active (Paused)' after 6 seconds
+    // Auto-transition to Active (Paused) in UI
     setTimeout(() => {
       const createdItem = this.MOCK_DATA.find(r => r.id === newId);
       if (createdItem && createdItem.pauseStatus === 'Submitted') {
@@ -368,6 +362,7 @@ export class PurgePauseComponent implements OnInit {
 
   onCancelDialog(): void {
     this.dialogRef?.close();
+    this.editModalErrorMessage = null;
   }
 
   onClearPause(): void {
@@ -378,15 +373,14 @@ export class PurgePauseComponent implements OnInit {
   }
 
   // ========================================================
-  // FLOW 2: EDIT CLASS ACTION (Modal Flow)
+  // FLOW 2: EDIT CLASS ACTION (Modal & Confirmation)
   // ========================================================
-
   onEditRecord(record: PurgePauseRecord): void {
     this.editingRecordId = record.id;
+    this.editModalErrorMessage = null;
     this.isEditManagerMaxExceeded = false;
     this.isEditEmailMaxExceeded = false;
 
-    // Prefill dedicated edit modal form
     this.editForm.patchValue({
       classActionProject: record.classActionProject,
       ediscoveryProjectManager: record.ediscoveryProjectManager,
@@ -394,8 +388,8 @@ export class PurgePauseComponent implements OnInit {
     });
 
     this.dialogRef = this.dialog.open(this.editClassActionDialog, {
-      width: '560px',
-      panelClass: 'bmo-confirmation-dialog'
+      width: '840px',
+      panelClass: 'bmo-wide-modal-panel'
     });
   }
 
@@ -408,14 +402,10 @@ export class PurgePauseComponent implements OnInit {
 
     const editValues = this.editForm.getRawValue();
 
-    // Provision for future PATCH/PUT API Call:
-    // this.purgePauseService.updatePauseRequest(this.editingRecordId, editValues).subscribe(...)
-    console.log(`API CALL PROVISION: [PATCH] /purge-pause/${this.editingRecordId}`, {
-      originatorData: this.criteria.originatorData,
-      updateData: editValues
-    });
+    // Provision for Future PATCH API:
+    // this.purgePauseService.updateRecord(this.editingRecordId, editValues).subscribe(...)
+    console.log(`API CALL PROVISION: [PATCH] /purge-pause/${this.editingRecordId}`, editValues);
 
-    // Update row in mock dataset
     const target = this.MOCK_DATA.find(r => r.id === this.editingRecordId);
     if (target) {
       target.ediscoveryProjectManager = editValues.ediscoveryProjectManager.trim();
@@ -423,14 +413,25 @@ export class PurgePauseComponent implements OnInit {
     }
 
     this.dialogRef?.close();
+
+    // Show Confirmation Modal after save
+    this.dialogRef = this.dialog.open(this.editSuccessDialog, {
+      width: '460px',
+      panelClass: 'bmo-confirmation-dialog'
+    });
+
     this.fetchPurgePauseRecords();
     this.cdr.markForCheck();
   }
 
-  // ========================================================
-  // SEARCH & TABLE DATA METHODS
-  // ========================================================
+  onCloseEditSuccessDialog(): void {
+    this.dialogRef?.close();
+    this.fetchPurgePauseRecords();
+  }
 
+  // ========================================================
+  // SEARCH & TABLE DATA
+  // ========================================================
   buildSearchPayload(): any {
     const rawValues = this.searchForm.value;
     return {
@@ -462,12 +463,7 @@ export class PurgePauseComponent implements OnInit {
     }
 
     this.currentPage = 1;
-
-    // Provision for future SEARCH API Call:
-    // const payload = this.buildSearchPayload();
-    // this.purgePauseService.search(payload).subscribe(...)
     console.log('API CALL PROVISION: [POST] /purge-pause/search', this.buildSearchPayload());
-
     this.fetchPurgePauseRecords();
   }
 
@@ -633,7 +629,6 @@ export class PurgePauseComponent implements OnInit {
 
 //purge-pause.component.html
 
-
 <div class="purge-pause-wrapper">
   <!-- Page Header -->
   <div class="page-header">
@@ -641,7 +636,7 @@ export class PurgePauseComponent implements OnInit {
   </div>
 
   <!-- ============================================== -->
-  <!-- 1. PAUSE FORM CARD (Top Creation Section)      -->
+  <!-- 1. PAUSE FORM CARD (Apply a Purge Pause)       -->
   <!-- ============================================== -->
   <div class="purge-pause-content-section-one">
     <div class="purge-heading">
@@ -751,7 +746,7 @@ export class PurgePauseComponent implements OnInit {
   </div>
 
   <!-- ============================================== -->
-  <!-- 2. SEARCH FORM CARD (All 4 Optional)          -->
+  <!-- 2. SEARCH FORM CARD                            -->
   <!-- ============================================== -->
   <div class="purge-pause-content-section-two">
     <div class="purge-search-heading">
@@ -832,7 +827,7 @@ export class PurgePauseComponent implements OnInit {
           }
         </div>
 
-        <!-- 4. Pause Status (Dropdown) -->
+        <!-- 4. Pause Status -->
         <div class="form-field-group">
           <label class="input-label" for="search-pause-status">
             {{ 'Pause Status' | translate }}
@@ -1104,10 +1099,10 @@ export class PurgePauseComponent implements OnInit {
 </ng-template>
 
 <!-- ======================================================== -->
-<!-- MODAL 3: "EDITING PURGE PAUSE REQUEST" (EDIT FLOW)       -->
+<!-- MODAL 3: EDIT CLASS ACTION (3 Horizontal Columns)        -->
 <!-- ======================================================== -->
 <ng-template #editClassActionDialog>
-  <div class="bmo-modal-container edit-modal-container">
+  <div class="bmo-modal-container bmo-wide-edit-modal">
     <div class="bmo-modal-header">
       <h3 class="bmo-modal-title">Editing Purge Pause Request</h3>
       <button type="button" class="bmo-modal-close-btn" (click)="onCancelDialog()" aria-label="Close">
@@ -1115,10 +1110,18 @@ export class PurgePauseComponent implements OnInit {
       </button>
     </div>
 
+    <!-- In-Modal Alert Banner (From Error Handling Screens) -->
+    @if (editModalErrorMessage) {
+      <div class="modal-error-alert-banner">
+        <mat-icon class="alert-icon">error</mat-icon>
+        <span class="alert-text">{{ editModalErrorMessage }}</span>
+      </div>
+    }
+
     <form [formGroup]="editForm" class="edit-modal-form">
-      <div class="bmo-modal-body">
-        <!-- Class Action / Project (Read-only / Identifies row) -->
-        <div class="modal-form-group">
+      <div class="edit-modal-grid">
+        <!-- 1. Class Action / Project (Read-Only) -->
+        <div class="edit-field-col">
           <label class="modal-input-label">Class Action / Project *</label>
           <input
             type="text"
@@ -1127,13 +1130,13 @@ export class PurgePauseComponent implements OnInit {
           />
         </div>
 
-        <!-- eDiscovery Project Manager -->
-        <div class="modal-form-group">
+        <!-- 2. eDiscovery Project Manager -->
+        <div class="edit-field-col">
           <label class="modal-input-label">eDiscovery Project Manager *</label>
           <input
             type="text"
             class="modal-input"
-            [class.input-error]="editForm.get('ediscoveryProjectManager')?.invalid && editForm.get('ediscoveryProjectManager')?.touched"
+            [class.input-error]="(editForm.get('ediscoveryProjectManager')?.invalid && editForm.get('ediscoveryProjectManager')?.touched) || isEditManagerMaxExceeded"
             formControlName="ediscoveryProjectManager"
             (beforeinput)="onBeforeInputCheck($event, 'edit', 'ediscoveryProjectManager', 50)"
             (input)="onInputChange('edit', 'ediscoveryProjectManager', 50)"
@@ -1144,15 +1147,18 @@ export class PurgePauseComponent implements OnInit {
           @if (editForm.get('ediscoveryProjectManager')?.hasError('pattern')) {
             <small class="modal-error-text">Special characters are not allowed</small>
           }
+          @if (isEditManagerMaxExceeded || editForm.get('ediscoveryProjectManager')?.hasError('maxlength')) {
+            <small class="modal-error-text">Name exceeds maximum allowed length</small>
+          }
         </div>
 
-        <!-- Responsible Lawyer Email -->
-        <div class="modal-form-group">
+        <!-- 3. Responsible Lawyer Email -->
+        <div class="edit-field-col">
           <label class="modal-input-label">Responsible Lawyer Email *</label>
           <input
             type="email"
             class="modal-input"
-            [class.input-error]="editForm.get('responsibleLawyerEmail')?.invalid && editForm.get('responsibleLawyerEmail')?.touched"
+            [class.input-error]="(editForm.get('responsibleLawyerEmail')?.invalid && editForm.get('responsibleLawyerEmail')?.touched) || isEditEmailMaxExceeded"
             formControlName="responsibleLawyerEmail"
             (beforeinput)="onBeforeInputCheck($event, 'edit', 'responsibleLawyerEmail', 50)"
             (input)="onInputChange('edit', 'responsibleLawyerEmail', 50)"
@@ -1162,6 +1168,9 @@ export class PurgePauseComponent implements OnInit {
           }
           @if (editForm.get('responsibleLawyerEmail')?.hasError('email')) {
             <small class="modal-error-text">Enter a valid email address</small>
+          }
+          @if (isEditEmailMaxExceeded || editForm.get('responsibleLawyerEmail')?.hasError('maxlength')) {
+            <small class="modal-error-text">Email exceeds maximum allowed length</small>
           }
         </div>
       </div>
@@ -1177,3 +1186,134 @@ export class PurgePauseComponent implements OnInit {
     </form>
   </div>
 </ng-template>
+
+<!-- ======================================================== -->
+<!-- MODAL 4: EDIT SUCCESS CONFIRMATION DIALOG                -->
+<!-- ======================================================== -->
+<ng-template #editSuccessDialog>
+  <div class="bmo-modal-container">
+    <div class="bmo-modal-header">
+      <h3 class="bmo-modal-title">Purge pause request updated</h3>
+      <button type="button" class="bmo-modal-close-btn" (click)="onCloseEditSuccessDialog()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="bmo-modal-body">
+      <p class="bmo-modal-message">
+        Your changes to the Purge Pause record have been successfully updated.
+      </p>
+    </div>
+    <div class="bmo-modal-actions">
+      <button type="button" class="bmo-btn-primary" (click)="onCloseEditSuccessDialog()">
+        CLOSE
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+
+// purge-pause.component.scss
+
+// Wide Edit Modal Card (~840px)
+.bmo-wide-edit-modal {
+  width: 100%;
+  max-width: 840px;
+  padding: 28px 32px;
+  box-sizing: border-box;
+
+  .edit-modal-form {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+  }
+
+  // 3-Column horizontal grid matching Figma
+  .edit-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+
+    .edit-field-col {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: 22px; // Reserves vertical space for error messages
+
+      .modal-input-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #333333;
+        margin-bottom: 6px;
+      }
+
+      .modal-input {
+        background-color: #ffffff !important;
+        border: 1px solid #767676;
+        border-radius: 4px;
+        height: 42px;
+        padding: 8px 12px;
+        font-size: 14px;
+        color: #1a1a1a;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:focus {
+          border-color: #0079c1;
+          box-shadow: 0 0 0 1px #0079c1;
+        }
+
+        &.modal-input-disabled {
+          background-color: #f4f4f4 !important;
+          color: #555555;
+          border-color: #d3d3d3;
+          cursor: not-allowed;
+        }
+
+        &.input-error {
+          border-color: #a12000 !important;
+          box-shadow: 0 0 0 1px #a12000;
+        }
+      }
+
+      .modal-error-text {
+        position: absolute;
+        top: calc(100% - 18px);
+        left: 0;
+        color: #a12000;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+// In-Modal System/Duplicate Error Alert Banner (from Error Handling Figma)
+.modal-error-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fdf2f2;
+  border: 1px solid #f5c2c7;
+  border-left: 4px solid #a12000;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+
+  .alert-icon {
+    color: #a12000;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .alert-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #842029;
+  }
+}
