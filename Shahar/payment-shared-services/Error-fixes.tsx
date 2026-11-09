@@ -1,4 +1,4 @@
-//1. purge-pause.component.ts
+//purge-pause.component.ts
 
 import { Component, OnInit, ChangeDetectorRef, TemplateRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -57,12 +57,12 @@ export class PurgePauseComponent implements OnInit {
   pauseForm!: FormGroup;
   searchForm!: FormGroup;
 
-  // Max-length tracking flags for Pause form
+  // Max-length tracking flags for Pause form (Top card)
   isPauseClassActionMaxExceeded = false;
   isPauseManagerMaxExceeded = false;
   isPauseEmailMaxExceeded = false;
 
-  // Max-length tracking flags for Search form
+  // Max-length tracking flags for Search form (Middle card)
   isSearchClassActionMaxExceeded = false;
   isSearchManagerMaxExceeded = false;
   isSearchEmailMaxExceeded = false;
@@ -71,7 +71,31 @@ export class PurgePauseComponent implements OnInit {
   isEditing = false;
   editingRecordId: string | null = null;
 
-  // Table state (preserved from bulk-upload)
+  // Search Criteria Object (replaces legacy customer-search criteria)
+  criteria = {
+    originatorData: {
+      applicationCatalogueId: '92735',
+      country: 'CAD',
+      locationId: 'OCT132643',
+      locationType: 'workstation number',
+      channel: 'LHUI',
+      employeeUserId: 'tnoymsn',
+      transitNumber: 'string'
+    },
+    purgePauseSearchCriteria: {
+      classActionProject: '',
+      ediscoveryProjectManager: '',
+      responsibleLawyerEmail: '',
+      pauseStatus: ''
+    },
+    requestPaginationInfo: {
+      returnAvailableResultCount: 'true',
+      pageStartIndex: '1',
+      pageEndIndex: '10'
+    }
+  };
+
+  // Table state (matching bulk-upload pagination & sorting logic)
   records: PurgePauseRecord[] = [];
   displayedRecords: PurgePauseRecord[] = [];
   isLoading = false;
@@ -85,12 +109,79 @@ export class PurgePauseComponent implements OnInit {
   sortColumn: SortColumn = 'pauseRequestDate';
   sortDirection: SortDirection = 'desc';
 
-  // Pause Status dropdown options
+  // Dropdown options
   statusOptions = [
     { value: '', label: 'Select' },
     { value: 'Active (Paused)', label: 'Active (Paused)' },
     { value: 'Lifted', label: 'Lifted' },
     { value: 'Failed', label: 'Failed' }
+  ];
+
+  // Master mock dataset directly matching Figma UI
+  private readonly MOCK_DATA: PurgePauseRecord[] = [
+    {
+      id: '1',
+      classActionProject: 'Legal Hold Re 789',
+      pauseRequestDate: '1/12/2025',
+      pauseLiftDate: '',
+      pauseStatus: 'Failed',
+      ediscoveryProjectManager: 'Mayank Garg',
+      responsibleLawyerEmail: 'mayankgarg@bmo.com'
+    },
+    {
+      id: '2',
+      classActionProject: 'Legal Hold Re 456',
+      pauseRequestDate: '11/12/2025',
+      pauseLiftDate: '',
+      pauseStatus: 'Active (Paused)',
+      ediscoveryProjectManager: 'Mayank Garg',
+      responsibleLawyerEmail: 'mayankgarg@bmo.com'
+    },
+    {
+      id: '3',
+      classActionProject: 'Legal Hold Re 456',
+      pauseRequestDate: '11/12/2025',
+      pauseLiftDate: '',
+      pauseStatus: 'Active (Paused)',
+      ediscoveryProjectManager: 'Mayank Garg',
+      responsibleLawyerEmail: 'mayankgarg@bmo.com'
+    },
+    {
+      id: '4',
+      classActionProject: 'Legal Hold Re 123',
+      pauseRequestDate: '11/12/2025',
+      pauseLiftDate: '11/12/2026',
+      pauseStatus: 'Lifted',
+      ediscoveryProjectManager: 'Mayank Garg',
+      responsibleLawyerEmail: 'mayankgarg@bmo.com'
+    },
+    {
+      id: '5',
+      classActionProject: 'Legal Hold Re 123',
+      pauseRequestDate: '11/12/2025',
+      pauseLiftDate: '11/12/2026',
+      pauseStatus: 'Lifted',
+      ediscoveryProjectManager: 'Mayank Garg',
+      responsibleLawyerEmail: 'mayankgarg@bmo.com'
+    },
+    {
+      id: '6',
+      classActionProject: 'Class Action Alpha 001',
+      pauseRequestDate: '02/15/2025',
+      pauseLiftDate: '',
+      pauseStatus: 'Active (Paused)',
+      ediscoveryProjectManager: 'Sarah Jenkins',
+      responsibleLawyerEmail: 's.jenkins@bmo.com'
+    },
+    {
+      id: '7',
+      classActionProject: 'Project Beta Risk Hold',
+      pauseRequestDate: '03/20/2025',
+      pauseLiftDate: '09/10/2025',
+      pauseStatus: 'Lifted',
+      ediscoveryProjectManager: 'Alex Chen',
+      responsibleLawyerEmail: 'achen@bmo.com'
+    }
   ];
 
   ngOnInit(): void {
@@ -99,17 +190,17 @@ export class PurgePauseComponent implements OnInit {
   }
 
   private initForms(): void {
-    // 1. Pause Form (All 3 fields mandatory)
+    // 1. Pause Form (Top card - all 3 fields required)
     this.pauseForm = this.fb.group({
       classActionProject: ['', [
         Validators.required,
         Validators.maxLength(100),
-        Validators.pattern(/^[^*,<>]*$/)
+        Validators.pattern(/^[^*,<>]*\$/)
       ]],
       ediscoveryProjectManager: ['', [
         Validators.required,
         Validators.maxLength(50),
-        Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)
+        Validators.pattern(/^[a-zA-Z0-9\s.'\-]*\$/)
       ]],
       responsibleLawyerEmail: ['', [
         Validators.required,
@@ -118,10 +209,10 @@ export class PurgePauseComponent implements OnInit {
       ]]
     });
 
-    // 2. Search Form (All 4 fields optional)
+    // 2. Search Form (Middle card - all 4 fields optional)
     this.searchForm = this.fb.group({
-      classActionProject: ['', [Validators.maxLength(100), Validators.pattern(/^[^*,<>]*$/)]],
-      ediscoveryProjectManager: ['', [Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9\s.'\-]*$/)]],
+      classActionProject: ['', [Validators.maxLength(100), Validators.pattern(/^[^*,<>]*\$/)]],
+      ediscoveryProjectManager: ['', [Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9\s.'\-]*\$/)]],
       responsibleLawyerEmail: ['', [Validators.email, Validators.maxLength(50)]],
       pauseStatus: ['']
     });
@@ -147,20 +238,20 @@ export class PurgePauseComponent implements OnInit {
 
     if (!inputEvent.data) return;
 
-    // Prohibited characters filtering
+    // Prohibited characters filter
     if (controlName === 'classActionProject') {
       if (/[*,<>]/.test(inputEvent.data)) {
         inputEvent.preventDefault();
         return;
       }
     } else if (controlName === 'ediscoveryProjectManager') {
-      if (!/^[a-zA-Z0-9\s.'\-]+$/.test(inputEvent.data)) {
+      if (!/^[a-zA-Z0-9\s.'\-]+\$/.test(inputEvent.data)) {
         inputEvent.preventDefault();
         return;
       }
     }
 
-    // Max length enforcement
+    // Max length check
     const target = inputEvent.target as HTMLInputElement;
     const currentVal = target.value || '';
     const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
@@ -217,15 +308,30 @@ export class PurgePauseComponent implements OnInit {
   onConfirmSubmit(): void {
     this.dialogRef?.close();
 
-    const payload = {
-      classActionProject: this.pauseForm.value.classActionProject?.trim(),
-      ediscoveryProjectManager: this.pauseForm.value.ediscoveryProjectManager?.trim(),
-      responsibleLawyerEmail: this.pauseForm.value.responsibleLawyerEmail?.trim(),
-      recordId: this.editingRecordId
-    };
+    const formValues = this.pauseForm.value;
 
-    console.log(this.isEditing ? 'Updating Pause Record:' : 'Creating Pause Record:', payload);
+    if (this.isEditing && this.editingRecordId) {
+      const target = this.MOCK_DATA.find(r => r.id === this.editingRecordId);
+      if (target) {
+        target.classActionProject = formValues.classActionProject.trim();
+        target.ediscoveryProjectManager = formValues.ediscoveryProjectManager.trim();
+        target.responsibleLawyerEmail = formValues.responsibleLawyerEmail.trim();
+      }
+    } else {
+      const newRecord: PurgePauseRecord = {
+        id: String(Date.now()),
+        classActionProject: formValues.classActionProject.trim(),
+        pauseRequestDate: new Date().toLocaleDateString('en-GB'),
+        pauseLiftDate: '',
+        pauseStatus: 'Active (Paused)',
+        ediscoveryProjectManager: formValues.ediscoveryProjectManager.trim(),
+        responsibleLawyerEmail: formValues.responsibleLawyerEmail.trim()
+      };
+      this.MOCK_DATA.unshift(newRecord);
+    }
+
     this.onClearPause();
+    this.fetchPurgePauseRecords();
   }
 
   onCancelDialog(): void {
@@ -239,6 +345,26 @@ export class PurgePauseComponent implements OnInit {
     this.isEditing = false;
     this.editingRecordId = null;
     this.pauseForm.reset();
+  }
+
+  // --- Search Criteria Payload Builder ---
+  buildSearchPayload(): any {
+    const rawValues = this.searchForm.value;
+
+    return {
+      originatorData: { ...this.criteria.originatorData },
+      purgePauseSearchCriteria: {
+        classActionProject: rawValues.classActionProject?.trim() || '',
+        ediscoveryProjectManager: rawValues.ediscoveryProjectManager?.trim() || '',
+        responsibleLawyerEmail: rawValues.responsibleLawyerEmail?.trim() || '',
+        pauseStatus: rawValues.pauseStatus?.trim() || ''
+      },
+      requestPaginationInfo: {
+        returnAvailableResultCount: 'true',
+        pageStartIndex: String((this.currentPage - 1) * this.pageSize + 1),
+        pageEndIndex: String(this.currentPage * this.pageSize)
+      }
+    };
   }
 
   // --- Search Actions ---
@@ -255,6 +381,9 @@ export class PurgePauseComponent implements OnInit {
     }
 
     this.currentPage = 1;
+    const payload = this.buildSearchPayload();
+    console.log('Purge Pause Search Criteria Payload:', payload);
+
     this.fetchPurgePauseRecords();
   }
 
@@ -274,6 +403,22 @@ export class PurgePauseComponent implements OnInit {
   // --- Table Data, Sorting & Pagination Methods ---
   fetchPurgePauseRecords(): void {
     this.isLoading = true;
+
+    const filters = this.searchForm.value;
+    const projectFilter = (filters.classActionProject || '').trim().toLowerCase();
+    const managerFilter = (filters.ediscoveryProjectManager || '').trim().toLowerCase();
+    const emailFilter = (filters.responsibleLawyerEmail || '').trim().toLowerCase();
+    const statusFilter = (filters.pauseStatus || '').trim();
+
+    this.records = this.MOCK_DATA.filter(item => {
+      const matchProject = !projectFilter || item.classActionProject.toLowerCase().includes(projectFilter);
+      const matchManager = !managerFilter || item.ediscoveryProjectManager.toLowerCase().includes(managerFilter);
+      const matchEmail = !emailFilter || item.responsibleLawyerEmail.toLowerCase().includes(emailFilter);
+      const matchStatus = !statusFilter || item.pauseStatus === statusFilter;
+      return matchProject && matchManager && matchEmail && matchStatus;
+    });
+
+    this.sortRecords();
     this.updatePagination();
     this.isLoading = false;
     this.cdr.markForCheck();
@@ -319,7 +464,9 @@ export class PurgePauseComponent implements OnInit {
     this.updatePagination();
   }
 
-  onPageSizeChange(): void {
+  onPageSizeChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.pageSize = parseInt(target.value, 10) || 10;
     this.currentPage = 1;
     this.updatePagination();
   }
@@ -360,7 +507,7 @@ export class PurgePauseComponent implements OnInit {
     const trimmed = String(value).trim();
     if (!trimmed) return '';
 
-    const ddMmYyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const ddMmYyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\$/;
     const ddMmYyyyMatch = trimmed.match(ddMmYyyy);
     if (ddMmYyyyMatch) {
       const day = ddMmYyyyMatch[1].padStart(2, '0');
@@ -419,7 +566,8 @@ export class PurgePauseComponent implements OnInit {
 
 
 
-//2. purge-pause.component.html
+// purge-pause.component.html
+
 
 <div class="purge-pause-wrapper">
   <!-- Page Header -->
@@ -428,7 +576,7 @@ export class PurgePauseComponent implements OnInit {
   </div>
 
   <!-- ============================================== -->
-  <!-- 1. PAUSE FORM CARD (All 3 Mandatory)          -->
+  <!-- 1. PAUSE FORM CARD (Top Creation Section)      -->
   <!-- ============================================== -->
   <div class="purge-pause-content-section-one">
     <div class="purge-heading">
@@ -437,7 +585,7 @@ export class PurgePauseComponent implements OnInit {
 
     <form [formGroup]="pauseForm" class="purge-pausing-form-container" aria-live="polite">
       <div class="purge-form-grid">
-        <!-- 1. Class Action / Project -->
+        <!-- 1. Class Action / Project (Required, max 100) -->
         <div class="form-field-group">
           <label class="input-label" for="pause-class-action-project">
             {{ 'Class Action / Project' | translate }}
@@ -466,7 +614,7 @@ export class PurgePauseComponent implements OnInit {
           }
         </div>
 
-        <!-- 2. eDiscovery Project Manager -->
+        <!-- 2. eDiscovery Project Manager (Required, max 50) -->
         <div class="form-field-group">
           <label class="input-label" for="pause-ediscovery-manager">
             {{ 'eDiscovery Project Manager' | translate }}
@@ -495,7 +643,7 @@ export class PurgePauseComponent implements OnInit {
           }
         </div>
 
-        <!-- 3. Responsible Lawyer Email -->
+        <!-- 3. Responsible Lawyer Email (Required, max 50) -->
         <div class="form-field-group">
           <label class="input-label" for="pause-lawyer-email">
             {{ 'Responsible Lawyer Email' | translate }}
@@ -632,7 +780,7 @@ export class PurgePauseComponent implements OnInit {
         </div>
       </div>
 
-      <!-- Action Buttons (Fixed string literal for search button) -->
+      <!-- Action Buttons (Hardcoded 'SEARCH' literal prevents [object Object] errors) -->
       <div class="purge-form-actions">
         <button type="button" class="clear-text-btn-blue" (click)="onClearSearch()">
           {{ 'CLEAR' | translate }}
@@ -779,7 +927,7 @@ export class PurgePauseComponent implements OnInit {
       </table>
     </div>
 
-    <!-- Pagination Controls (Preserved from bulk-upload) -->
+    <!-- Pagination Controls (Standard [value] + (change) binding) -->
     @if (!isLoading && totalRows > 0) {
       <div class="cs-pagination">
         <div class="cs-pagination_left">
@@ -788,9 +936,8 @@ export class PurgePauseComponent implements OnInit {
           <select
             id="pp-page-size-select"
             class="cs-pg-select"
-            [(ngModel)]="pageSize"
-            [ngModelOptions]="{ standalone: true }"
-            (change)="onPageSizeChange()"
+            [value]="pageSize"
+            (change)="onPageSizeChange($event)"
           >
             @for (opt of pageSizeOpts; track opt) {
               <option [value]="opt">{{ opt }}</option>
@@ -865,650 +1012,3 @@ export class PurgePauseComponent implements OnInit {
     </div>
   </div>
 </ng-template>
-
-
-//3. purge-pause.component.scss
-
-// ==========================================================================
-// 1. Theme Variables & Subheading Bar
-// ==========================================================================
-$bmo-blue: #0079c1;
-$bmo-blue-hover: #005a91;
-$bmo-white: #ffffff;
-$bmo-black: #000000;
-$bmo-text: #1a1a1a;
-$bmo-grey: #a0a0a0;
-$bmo-border-grey: #767676;
-$border-lightgrey: #d3d3d3;
-$bmo-error-red: #a12000;
-
-.purge-pause-wrapper {
-  width: 100%;
-  margin-top: -25px;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 70px;
-  background-color: $bmo-white;
-  border-bottom: 2px solid $border-lightgrey;
-  margin: 0 -32px 30px -32px;
-  padding: 0 57px;
-
-  .page-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: $bmo-black;
-    margin: 0;
-  }
-}
-
-// ==========================================================================
-// 2. Card Containers & Forms
-// ==========================================================================
-.purge-pause-content-section-one,
-.purge-pause-content-section-two {
-  background: $bmo-white;
-  border: 1px solid $border-lightgrey;
-  border-radius: 4px;
-  padding: 24px 32px 32px 32px;
-  margin-bottom: 30px;
-
-  .purge-heading,
-  .purge-search-heading {
-    margin-bottom: 20px;
-
-    h2 {
-      font-size: 20px;
-      font-weight: 600;
-      color: $bmo-text;
-      margin: 0;
-    }
-  }
-}
-
-.purge-pausing-form-container {
-  display: flex;
-  flex-direction: column;
-  font-family: 'BMO Sans', Arial, sans-serif;
-
-  .purge-form-grid {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    align-items: flex-start;
-    width: 100%;
-
-    &.search-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      align-items: flex-start;
-    }
-  }
-
-  .form-field-group {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 180px;
-    padding-bottom: 30px; // Reserves vertical space for the error message
-
-    .input-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: #333333;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-
-      .required-star {
-        color: $bmo-error-red;
-        margin-left: 2px;
-        font-weight: bold;
-      }
-    }
-
-    // Force Pure White background for all text, email, and select inputs
-    input[type="text"],
-    input[type="email"],
-    select.pause-status-select {
-      background-color: #ffffff !important;
-      border: 1px solid $bmo-border-grey;
-      border-radius: 4px;
-      height: 42px;
-      padding: 8px 12px;
-      font-size: 14px;
-      color: $bmo-text;
-      box-sizing: border-box;
-      width: 100%;
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-      &::placeholder {
-        color: #767676;
-      }
-
-      &:focus {
-        border-color: $bmo-blue;
-        box-shadow: 0 0 0 1px $bmo-blue;
-      }
-
-      &.input-error {
-        border-color: $bmo-error-red !important;
-        box-shadow: 0 0 0 1px $bmo-error-red;
-      }
-    }
-
-    select.pause-status-select {
-      cursor: pointer;
-      appearance: auto;
-    }
-
-    // Error Message: Positioned cleanly below the input border with a comfortable gap
-    .error-text {
-      position: absolute;
-      top: calc(100% - 24px + 6px); // Clean gap down from bottom border
-      left: 0;
-      color: $bmo-error-red;
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.3;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      pointer-events: none;
-      animation: fadeInError 0.15s ease-in-out forwards;
-
-      &::before {
-        content: '';
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a12000'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-size: contain;
-        flex-shrink: 0;
-      }
-    }
-  }
-
-  // Action Buttons
-  .purge-form-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 18px;
-    margin-top: 6px;
-
-    .clear-text-btn-blue {
-      background: none;
-      border: none;
-      color: $bmo-blue;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      padding: 0 16px;
-      height: 40px;
-      letter-spacing: 0.2px;
-      text-transform: uppercase;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    .search-pill-btn {
-      background-color: $bmo-blue;
-      color: $bmo-white;
-      border: none;
-      border-radius: 25px;
-      padding: 0 28px;
-      height: 40px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.3px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      transition: background-color 0.2s ease;
-      text-transform: uppercase;
-
-      &:hover {
-        background-color: $bmo-blue-hover;
-      }
-    }
-  }
-}
-
-@keyframes fadeInError {
-  from {
-    opacity: 0;
-    transform: translateY(-2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// ==========================================================================
-// 3. Results Table (Preserved bulk-upload structure)
-// ==========================================================================
-.results-header-container {
-  margin-top: 32px;
-  margin-bottom: 16px;
-
-  .results-count-text {
-    font-size: 13px;
-    color: #555555;
-    margin: 0 0 4px 0;
-  }
-
-  .results-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: $bmo-text;
-    margin: 0;
-  }
-}
-
-.pp-table-container {
-  overflow-x: auto !important;
-  border-radius: 4px;
-  background: $bmo-white;
-
-  .pp-table {
-    width: 100%;
-    border-collapse: collapse;
-
-    thead {
-      tr {
-        border-bottom: 2px solid #d8e4e6;
-      }
-
-      th {
-        text-align: left;
-        font-size: 13px;
-        font-weight: 700;
-        color: #1c2333;
-        padding: 14px 20px;
-        white-space: nowrap;
-        background: $bmo-white;
-
-        &:last-child {
-          border-right: none;
-        }
-
-        &.sortable {
-          cursor: pointer;
-          user-select: none;
-        }
-
-        &.col-class-action { width: 22%; }
-        &.col-request-date { width: 14%; }
-        &.col-lift-date    { width: 14%; }
-        &.col-status       { width: 15%; }
-        &.col-manager      { width: 16%; }
-        &.col-lawyer-email { width: 14%; }
-        &.col-edit-action  { width: 5%; text-align: center; }
-      }
-    }
-
-    tbody {
-      tr {
-        border-bottom: 1px solid #d8e4e6;
-
-        &:last-child {
-          border-bottom: none;
-        }
-
-        &:hover {
-          background-color: #f5f9fa;
-        }
-
-        td {
-          font-size: 13px;
-          color: #1c2333;
-          padding: 14px 20px;
-          vertical-align: middle;
-
-          &.col-edit-action {
-            text-align: center;
-          }
-        }
-      }
-    }
-  }
-}
-
-// Sort Icon Styling (Preserved from bulk-upload)
-.sort-icon {
-  display: inline-flex;
-  margin-left: 6px;
-  vertical-align: middle;
-
-  svg path {
-    opacity: 0.35;
-    transition: opacity 0.15s;
-  }
-
-  &[data-dir="asc"] .sort-asc {
-    opacity: 1;
-    color: #5a6474;
-  }
-
-  &[data-dir="desc"] .sort-desc {
-    opacity: 1;
-    color: #5a6474;
-  }
-
-  &[data-dir="none"] svg path {
-    opacity: 0.65;
-  }
-}
-
-// Loading Cell & Spinner
-.loading-cell {
-  text-align: center;
-  padding: 40px 20px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-size: 13px;
-  color: #6b7a8a;
-}
-
-.spinner {
-  width: 22px;
-  height: 22px;
-  border: 3px solid #d4e6ea;
-  border-top-color: $bmo-blue;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-// Status Dots matching Figma
-.status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
-
-  .status-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    vertical-align: middle;
-  }
-
-  &.status-active-paused {
-    color: #1a1a1a;
-    .status-dot {
-      background-color: #1a1a1a;
-    }
-  }
-
-  &.status-lifted {
-    color: #555555;
-    .status-dot {
-      background-color: #767676;
-    }
-  }
-
-  &.status-failed {
-    color: $bmo-error-red;
-    .status-dot {
-      background-color: $bmo-error-red;
-    }
-  }
-}
-
-// Edit Icon Button
-.edit-icon-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  color: #555555;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-
-  &:hover {
-    color: $bmo-blue;
-    background-color: #f0f7fb;
-  }
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
-}
-
-// ==========================================================================
-// 4. Pagination (Preserved from bulk-upload)
-// ==========================================================================
-.cs-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  height: 52px;
-  padding: 0 20px;
-  border-top: 1px solid #d8e4e6;
-  background: $bmo-white;
-
-  &_left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  &_right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-}
-
-.cs-pg-count {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1c2333;
-  white-space: nowrap;
-}
-
-.cs-pg-label {
-  font-size: 13px;
-  color: $bmo-black;
-  white-space: nowrap;
-  font-family: 'BMO Sans', Arial, sans-serif;
-  font-weight: bold;
-}
-
-.cs-pg-select {
-  height: 32px;
-  padding: 0 26px 0 10px;
-  border: 1px solid #c5d0d3;
-  border-radius: 4px;
-  background-color: $bmo-white;
-  font-size: 13px;
-  color: #1c2333;
-  cursor: pointer;
-  font-weight: bold;
-
-  &:focus {
-    outline: 2px solid $bmo-blue;
-    outline-offset: 1px;
-  }
-}
-
-.cs-pg-nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  font-size: 13px;
-  color: #1c2333;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.12s;
-  outline: none;
-  font-family: 'BMO Sans', Arial, sans-serif;
-  color: $bmo-blue;
-  font-weight: bold;
-
-  &:hover:not(.cs-pg-nav--disabled) {
-    color: $bmo-blue;
-  }
-
-  &:disabled,
-  &--disabled {
-    color: #b0bec5;
-    cursor: default;
-    pointer-events: none;
-  }
-}
-
-.cs-pg-active {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: $bmo-blue;
-  color: $bmo-white;
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
-  user-select: none;
-}
-
-.cs-pg-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 32px;
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  font-size: 13px;
-  color: #1c2333;
-  cursor: pointer;
-  border-radius: 50%;
-  outline: none;
-  font-family: 'BMO Sans', Arial, sans-serif;
-  font-weight: bold;
-
-  &:hover {
-    background: #e8f4fd;
-    color: $bmo-blue;
-  }
-}
-
-.cs-pg-dots {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 32px;
-  font-size: 13px;
-  color: #6b7a8a;
-}
-
-// ==========================================================================
-// 5. "Submit Purge Pause?" Confirmation Modal
-// ==========================================================================
-.bmo-modal-container {
-  padding: 24px;
-  background: $bmo-white;
-  border-radius: 4px;
-
-  .bmo-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .bmo-modal-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: $bmo-text;
-      margin: 0;
-    }
-
-    .bmo-modal-close-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #555555;
-      padding: 0;
-      display: flex;
-      align-items: center;
-    }
-  }
-
-  .bmo-modal-body {
-    margin-bottom: 24px;
-
-    .bmo-modal-message {
-      font-size: 14px;
-      line-height: 1.4;
-      color: #555555;
-      margin: 0;
-    }
-  }
-
-  .bmo-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 16px;
-
-    .bmo-btn-link {
-      background: none;
-      border: none;
-      color: $bmo-blue;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      text-transform: uppercase;
-      padding: 8px 16px;
-    }
-
-    .bmo-btn-primary {
-      background-color: $bmo-blue;
-      color: $bmo-white;
-      border: none;
-      border-radius: 20px;
-      padding: 8px 24px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      text-transform: uppercase;
-
-      &:hover {
-        background-color: $bmo-blue-hover;
-      }
-    }
-  }
-}
