@@ -257,3 +257,45 @@ submitApply(confirmTemplate: TemplateRef<any>): void {
   {{ 'APPLY' }}
 </button>
 
+
+// In selection-panel.component.scss
+// Update the rule where #apply-hold-name-maxlength-error was added 
+// to include the other two error IDs (#apply-manager-name-maxlength-error
+//  and #apply-lawyer-email-maxlength-error):
+
+
+#apply-hold-name-maxlength-error,
+#apply-manager-name-maxlength-error,
+#apply-lawyer-email-maxlength-error {
+  align-items: flex-start !important;
+
+  .validation-error-icon {
+    margin-top: 1px !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+
+//In selection-panel.component.html
+// Ensure the IDs on the maxlength error blocks match those selectors:
+
+// For Manager Name:
+
+
+@if (isEdiscoveryMaxExceeded || (showControlError(managerNameControl) && managerNameControl.hasError('maxlength'))) {
+  <div id="apply-manager-name-maxlength-error" class="validation-error inline-field-error" role="alert">
+    <mat-icon class="validation-error-icon" aria-hidden="true">error_outline</mat-icon>
+    <span>eDiscovery Project Manager Name exceeds maximum allowed length</span>
+  </div>
+}
+
+
+//For Lawyer Email:
+
+@if (isLawyerEmailMaxExceeded || (showControlError(lawyerEmailControl) && lawyerEmailControl.hasError('maxlength'))) {
+  <div id="apply-lawyer-email-maxlength-error" class="validation-error inline-field-error" role="alert">
+    <mat-icon class="validation-error-icon" aria-hidden="true">error_outline</mat-icon>
+    <span>Responsible Lawyer Email exceeds maximum allowed length</span>
+  </div>
+}
+
