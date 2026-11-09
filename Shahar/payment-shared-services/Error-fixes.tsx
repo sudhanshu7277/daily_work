@@ -1317,3 +1317,359 @@ export class PurgePauseComponent implements OnInit {
     color: #842029;
   }
 }
+
+
+
+///Step 1: Open with the Exact Width in purge-pause.component.ts
+//Make sure the dialog open call explicitly specifies width: '740px' and maxWidth: '90vw', 
+// and handles the post-save confirmation modal:
+
+
+// --- In purge-pause.component.ts ---
+
+onEditRecord(record: PurgePauseRecord): void {
+  this.editingRecordId = record.id;
+  this.editModalErrorMessage = null;
+  this.isEditManagerMaxExceeded = false;
+  this.isEditEmailMaxExceeded = false;
+
+  this.editForm.patchValue({
+    classActionProject: record.classActionProject,
+    ediscoveryProjectManager: record.ediscoveryProjectManager,
+    responsibleLawyerEmail: record.responsibleLawyerEmail
+  });
+
+  // Pass 740px width and panelClass
+  this.dialogRef = this.dialog.open(this.editClassActionDialog, {
+    width: '740px',
+    maxWidth: '90vw',
+    panelClass: 'bmo-edit-dialog-panel'
+  });
+}
+
+onSaveEdit(): void {
+  if (this.editForm.invalid || this.isEditManagerMaxExceeded || this.isEditEmailMaxExceeded) {
+    this.editForm.markAllAsTouched();
+    this.cdr.markForCheck();
+    return;
+  }
+
+  const editValues = this.editForm.getRawValue();
+
+  // Mock row update
+  const target = this.MOCK_DATA.find(r => r.id === this.editingRecordId);
+  if (target) {
+    target.ediscoveryProjectManager = editValues.ediscoveryProjectManager.trim();
+    target.responsibleLawyerEmail = editValues.responsibleLawyerEmail.trim();
+  }
+
+  // Close edit modal
+  this.dialogRef?.close();
+
+  // Open post-save confirmation modal
+  this.dialogRef = this.dialog.open(this.editSuccessDialog, {
+    width: '460px',
+    panelClass: 'bmo-confirmation-dialog'
+  });
+
+  this.fetchPurgePauseRecords();
+  this.cdr.markForCheck();
+}
+
+onCloseEditSuccessDialog(): void {
+  this.dialogRef?.close();
+}
+
+
+//Step 2: Clean Template for the Edit Modal in purge-pause.component.html
+//Replace the #editClassActionDialog and #editSuccessDialog blocks with the exact 
+// Figma layout (also ensuring the search button has a plain string literal):
+
+
+<!-- Search button fix to permanently eliminate [OBJECT OBJECT] -->
+<button type="button" class="search-pill-btn" (click)="onSearch()">
+  {{ 'SEARCH' | translate }}
+</button>
+
+<!-- ======================================================== -->
+<!-- MODAL 3: "EDITING PURGE PAUSE REQUEST" (Matching Figma)  -->
+<!-- ======================================================== -->
+<ng-template #editClassActionDialog>
+  <div class="edit-modal-wrapper">
+    <!-- Header -->
+    <div class="edit-modal-header">
+      <h3 class="edit-modal-title">Editing Purge Pause Request</h3>
+      <button type="button" class="edit-modal-close-btn" (click)="onCancelDialog()" aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Optional In-Modal Error Alert -->
+    @if (editModalErrorMessage) {
+      <div class="modal-error-alert-banner">
+        <mat-icon class="alert-icon">error</mat-icon>
+        <span class="alert-text">{{ editModalErrorMessage }}</span>
+      </div>
+    }
+
+    <!-- Form: 3 Equal Horizontal Columns -->
+    <form [formGroup]="editForm" class="edit-modal-form" (ngSubmit)="onSaveEdit()">
+      <div class="edit-modal-grid">
+        <!-- 1. Class Action / Project (Read-only / disabled) -->
+        <div class="edit-col">
+          <label class="edit-label" for="edit-class-action">Class Action / Project *</label>
+          <input
+            id="edit-class-action"
+            type="text"
+            class="edit-input edit-input-readonly"
+            formControlName="classActionProject"
+            readonly
+          />
+        </div>
+
+        <!-- 2. eDiscovery Project Manager -->
+        <div class="edit-col">
+          <label class="edit-label" for="edit-manager">eDiscovery Project Manager *</label>
+          <input
+            id="edit-manager"
+            type="text"
+            class="edit-input"
+            [class.input-error]="(editForm.get('ediscoveryProjectManager')?.invalid && editForm.get('ediscoveryProjectManager')?.touched) || isEditManagerMaxExceeded"
+            formControlName="ediscoveryProjectManager"
+            (beforeinput)="onBeforeInputCheck($event, 'edit', 'ediscoveryProjectManager', 50)"
+            (input)="onInputChange('edit', 'ediscoveryProjectManager', 50)"
+          />
+          @if (editForm.get('ediscoveryProjectManager')?.touched && editForm.get('ediscoveryProjectManager')?.hasError('required')) {
+            <small class="edit-field-error">Enter eDiscovery Project Manager Name</small>
+          }
+          @if (editForm.get('ediscoveryProjectManager')?.hasError('pattern')) {
+            <small class="edit-field-error">Special characters are not allowed</small>
+          }
+          @if (isEditManagerMaxExceeded || editForm.get('ediscoveryProjectManager')?.hasError('maxlength')) {
+            <small class="edit-field-error">Name exceeds maximum allowed length</small>
+          }
+        </div>
+
+        <!-- 3. Responsible Lawyer Email -->
+        <div class="edit-col">
+          <label class="edit-label" for="edit-email">Responsible Lawyer Email *</label>
+          <input
+            id="edit-email"
+            type="email"
+            class="edit-input"
+            [class.input-error]="(editForm.get('responsibleLawyerEmail')?.invalid && editForm.get('responsibleLawyerEmail')?.touched) || isEditEmailMaxExceeded"
+            formControlName="responsibleLawyerEmail"
+            (beforeinput)="onBeforeInputCheck($event, 'edit', 'responsibleLawyerEmail', 50)"
+            (input)="onInputChange('edit', 'responsibleLawyerEmail', 50)"
+          />
+          @if (editForm.get('responsibleLawyerEmail')?.touched && editForm.get('responsibleLawyerEmail')?.hasError('required')) {
+            <small class="edit-field-error">Enter Responsible Lawyer Email</small>
+          }
+          @if (editForm.get('responsibleLawyerEmail')?.hasError('email')) {
+            <small class="edit-field-error">Enter a valid email address</small>
+          }
+          @if (isEditEmailMaxExceeded || editForm.get('responsibleLawyerEmail')?.hasError('maxlength')) {
+            <small class="edit-field-error">Email exceeds maximum allowed length</small>
+          }
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="edit-modal-actions">
+        <button type="button" class="btn-cancel" (click)="onCancelDialog()">
+          CANCEL
+        </button>
+        <button type="submit" class="btn-save">
+          SAVE
+        </button>
+      </div>
+    </form>
+  </div>
+</ng-template>
+
+<!-- ======================================================== -->
+<!-- MODAL 4: EDIT SUCCESS CONFIRMATION DIALOG                -->
+<!-- ======================================================== -->
+<ng-template #editSuccessDialog>
+  <div class="bmo-modal-container">
+    <div class="bmo-modal-header">
+      <h3 class="bmo-modal-title">Purge pause request updated</h3>
+      <button type="button" class="bmo-modal-close-btn" (click)="onCloseEditSuccessDialog()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="bmo-modal-body">
+      <p class="bmo-modal-message">
+        Your changes to the Purge Pause record have been successfully updated.
+      </p>
+    </div>
+    <div class="bmo-modal-actions">
+      <button type="button" class="bmo-btn-primary" (click)="onCloseEditSuccessDialog()">
+        CLOSE
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+
+//Step 3: Exact SCSS for the Edit Modal in purge-pause.component.scss
+//Add these styles to purge-pause.component.scss (including 
+// ::ng-deep on .bmo-edit-dialog-panel
+
+
+// Override Angular Material's panel constraints for the wide edit dialog
+::ng-deep .bmo-edit-dialog-panel {
+  .mat-mdc-dialog-container,
+  .mdc-dialog__surface {
+    max-width: 760px !important;
+    width: 740px !important;
+    border-radius: 4px !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    overflow: visible !important;
+  }
+}
+
+// Edit Modal Content Styles
+.edit-modal-wrapper {
+  padding: 24px 28px 20px 28px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-family: 'BMO Sans', Arial, sans-serif;
+
+  .edit-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    .edit-modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0;
+    }
+
+    .edit-modal-close-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #666666;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+
+      &:hover {
+        color: #1a1a1a;
+      }
+    }
+  }
+
+  // Horizontal 3-column row matching Figma
+  .edit-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+
+    .edit-col {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: 20px; // Space for validation error text
+
+      .edit-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #333333;
+        margin-bottom: 6px;
+        white-space: nowrap; // Keeps labels on a single clean line
+      }
+
+      .edit-input {
+        background-color: #ffffff !important;
+        border: 1px solid #767676;
+        border-radius: 4px;
+        height: 38px;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: #1a1a1a;
+        box-sizing: border-box;
+        width: 100%;
+        outline: none;
+
+        &:focus {
+          border-color: #0079c1;
+          box-shadow: 0 0 0 1px #0079c1;
+        }
+
+        &.edit-input-readonly {
+          background-color: #f4f4f4 !important;
+          color: #555555;
+          border-color: #d3d3d3;
+          cursor: not-allowed;
+        }
+
+        &.input-error {
+          border-color: #a12000 !important;
+          box-shadow: 0 0 0 1px #a12000;
+        }
+      }
+
+      .edit-field-error {
+        position: absolute;
+        top: calc(100% - 16px);
+        left: 0;
+        color: #a12000;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  // Footer Actions
+  .edit-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+
+    .btn-cancel {
+      background: transparent;
+      border: none;
+      color: #0079c1;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 14px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .btn-save {
+      background-color: #0079c1;
+      color: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 24px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        background-color: #005a91;
+      }
+    }
+  }
+}
