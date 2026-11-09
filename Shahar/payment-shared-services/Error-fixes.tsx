@@ -47,3 +47,45 @@ onEditRecord(record: PurgePauseRecord): void {
   background-color: transparent !important;
   opacity: 0 !important;
 }
+
+
+
+///////////////////////////////////////
+
+
+
+this.dialogRef = this.dialog.open(this.editClassActionDialog, {
+  width: '780px',
+  maxWidth: '90vw',
+  panelClass: 'bmo-edit-dialog-panel',
+  backdropClass: 'bmo-dimmed-backdrop', // Semi-transparent grey backdrop
+  hasBackdrop: true,
+  autoFocus: false
+});
+
+
+..///////////
+
+
+// Semi-transparent grey overlay behind the modal matching Figma
+::ng-deep .bmo-dimmed-backdrop {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  opacity: 1 !important;
+  transition: opacity 0.2s ease-in-out;
+}
+
+// Scoped body overflow override when the dialog is open
+::ng-deep body.purge-pause-dialog-open {
+  overflow-x: visible !important;
+
+  &.cdk-global-scrollblock {
+    overflow-x: visible !important;
+  }
+}
+
+
+////////////////
+
+<button type="button" class="search-pill-btn" (click)="onSearch()">
+  SEARCH
+</button>
