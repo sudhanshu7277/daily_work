@@ -255,7 +255,60 @@ export interface AddressRowView {
     </tr>
   }
 
+
+
+  //Fix in src/app/pages/accounts-by-address/accounts-by-address.component.ts
+  // Line 16 — Import EnumPartyIdType alongside AddressFacade:  
+  // 
+  //  Old:
+
+  import { AddressFacade } from '../../core/facades/address.facade';
+
+  //New:
+  import { AddressFacade, EnumPartyIdType } from '../../core/facades/address.facade';
+
+  //Lines 181–193 (ngOnInit) — Resolve ecifId and set partyIdType:
+
+  //Old:
+
+  ngOnInit(): void {
+    const context = this.addressFacade.getActivePartyContext();
+    if (context?.partyId) {
+      this.addressFacade
+        .loadAddresses({
+          partyId: context.partyId,
+          partyIdType: context.partyIdType,
+          partyType: context.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+    }
   
+    this.accountFacade.retrieveAccounts().subscribe();
+  }
+
+  //New:
+
+  ngOnInit(): void {
+    const context = this.addressFacade.getActivePartyContext();
+    const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+    const partyId = resolvedEcifId ?? context?.partyId;
+  
+    if (partyId) {
+      this.addressFacade
+        .loadAddresses({
+          partyId,
+          partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+          partyType: context?.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+    }
+  
+    this.accountFacade.retrieveAccounts().subscribe();
+  }
+
+
 
 
 
