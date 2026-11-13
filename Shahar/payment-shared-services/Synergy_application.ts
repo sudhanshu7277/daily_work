@@ -528,7 +528,61 @@ effect(() => {
       this.accountFacade.retrieveAccounts().subscribe();
     }
   });
+
+
+
+
+
+
+
+
+
+
+
+  /////
+
+  //1. Temporary Local Dev Seed (accounts-by-address.component.ts)
+// In src/app/pages/accounts-by-address/accounts-by-address.component.ts, 
+// inside your constructor() data-loading effect(), add a temporary 
+// fallback to seed a real test ocifId (or ecifId) when running locally 
+// without the Synergy host container:
+
+
+effect(() => {
+    // TEMPORARY LOCAL DEV SEED — remove before committing!
+    if (!this.appStore.ocifId() && !this.appStore.ecifId() && !this.appStore.partyContext().partyId) {
+      this.appStore.setAppContext({
+        ocifId: 'YOUR_TEST_OCIF_ID', // <-- replace with your real test OCIF ID
+        // Or if testing with an ECIF ID instead, comment out ocifId above and use:
+        // ecifId: 'YOUR_TEST_ECIF_ID',
+        // partyContext: { partyId: 'YOUR_TEST_ECIF_ID', partyType: 'I', partyIdType: 'ECIF' },
+      });
+      return; // Effect will immediately re-run with the seeded ID
+    }
+
+    const context = this.addressFacade.getActivePartyContext();
+    const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+    const ocifId = this.appStore.ocifId();
+    const partyId = resolvedEcifId || context?.partyId || ocifId;
+
+    if (partyId) {
+      this.addressFacade
+        .loadAddresses({
+          partyId,
+          partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+          partyType: context?.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+    }
+
+    if (ocifId) {
+      this.accountFacade.retrieveAccounts().subscribe();
+    }
+  });
+
   
+
 
 
 
