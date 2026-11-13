@@ -464,7 +464,74 @@ constructor() {
     });
   }
 
+
+
+  //Add a console.log inside the data-loading effect() 
+  // in src/app/pages/accounts-by-address/accounts-by-address.component.ts 
+  // so you can see the exact state of AppStore (partyContext, ocifId, ecifId) 
+  // when the component mounts:
+
+
+  effect(() => {
+    const context = this.addressFacade.getActivePartyContext();
+    const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+    const ocifId = this.appStore.ocifId();
+    const partyId = resolvedEcifId || context?.partyId || ocifId;
+
+    console.log('[AccountsByAddress] effect triggered:', {
+      context,
+      resolvedEcifId,
+      ocifId,
+      partyId,
+    });
+
+    if (partyId) {
+      console.log('[AccountsByAddress] Calling loadAddresses for:', partyId);
+      this.addressFacade
+        .loadAddresses({
+          partyId,
+          partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+          partyType: context?.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+    }
+
+    if (ocifId) {
+      console.log('[AccountsByAddress] Calling retrieveAccounts for ocifId:', ocifId);
+      this.accountFacade.retrieveAccounts().subscribe();
+    }
+  });
+
+
+  //1. Code Fix (accounts-by-address.component.ts)
+//Update the data-loading effect() inside constructor() to use || instead of ??:
+
+effect(() => {
+    const context = this.addressFacade.getActivePartyContext();
+    const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+    const ocifId = this.appStore.ocifId();
+    const partyId = resolvedEcifId || context?.partyId || ocifId;
   
+    if (partyId) {
+      this.addressFacade
+        .loadAddresses({
+          partyId,
+          partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+          partyType: context?.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+    }
+  
+    if (ocifId) {
+      this.accountFacade.retrieveAccounts().subscribe();
+    }
+  });
+  
+
+
+
 
 
 
