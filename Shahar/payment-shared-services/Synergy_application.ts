@@ -310,6 +310,167 @@ export interface AddressRowView {
 
 
 
+  //In the meantime, make sure you have replaced ngOnInit() 
+  // in accounts-by-address.component.ts with the reactive 
+  // effect() so it never misses an asynchronous ocifId arrival:
+
+  effect(() => {
+    const context = this.addressFacade.getActivePartyContext();
+    const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+    const partyId = resolvedEcifId ?? context?.partyId;
+
+    if (partyId) {
+      this.addressFacade
+        .loadAddresses({
+          partyId,
+          partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+          partyType: context?.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+
+      this.accountFacade.retrieveAccounts().subscribe();
+    }
+  });
+
+
+
+
+
+
+
+
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  //Final Exact Code Changes in accounts-by-address.component.ts
+//Line 4 — Remove OnInit from @angular/core:
+
+//Old:
+
+import {
+    ChangeDetectionStrategy,
+    Component,
+    OnInit,
+    computed,
+    effect,
+    inject,
+    signal,
+  } from '@angular/core';
+
+  //New:
+
+  import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    inject,
+    signal,
+  } from '@angular/core';
+
+
+  //Line 18 — Import AppStore so we also react to appStore.ocifId() arriving from the host:
+
+// Add:
+
+import { AppStore } from '../../core/stores/app.store';
+
+//Lines 94–97 — Remove implements OnInit and inject AppStore:
+
+// Old:
+
+export class AccountsByAddressComponent implements OnInit {
+    private readonly addressFacade = inject(AddressFacade);
+    private readonly accountFacade = inject(AccountFacade);
+
+    //New:
+
+    export class AccountsByAddressComponent {
+        private readonly appStore = inject(AppStore);
+        private readonly addressFacade = inject(AddressFacade);
+        private readonly accountFacade = inject(AccountFacade);
+
+
+
+//Lines 169–196 — Replace ngOnInit with two reactive effect() blocks inside constructor() (one for customer addresses, one for accounts):
+
+// Old:
+
+constructor() {
+    effect(() => {
+      const list = this.addresses();
+      const current = this.selectedAddressId();
+      if (list.length > 0 && !list.some(row => row.id === current)) {
+        this.selectedAddressId.set(list[0].id);
+      } else if (list.length === 0 && current !== '') {
+        this.selectedAddressId.set('');
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    const context = this.addressFacade.getActivePartyContext();
+    const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+    const partyId = resolvedEcifId ?? context?.partyId;
+
+    if (partyId) {
+      this.addressFacade
+        .loadAddresses({
+          partyId,
+          partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+          partyType: context?.partyType,
+          inquiryLevel: 'FULL',
+        })
+        .subscribe();
+    }
+
+    this.accountFacade.retrieveAccounts().subscribe();
+  }
+
+
+  //New:
+
+  constructor() {
+    effect(() => {
+      const list = this.addresses();
+      const current = this.selectedAddressId();
+      if (list.length > 0 && !list.some(row => row.id === current)) {
+        this.selectedAddressId.set(list[0].id);
+      } else if (list.length === 0 && current !== '') {
+        this.selectedAddressId.set('');
+      }
+    });
+
+    effect(() => {
+      const context = this.addressFacade.getActivePartyContext();
+      const resolvedEcifId = this.addressFacade.getResolvedEcifId();
+      const partyId = resolvedEcifId ?? context?.partyId ?? this.appStore.ocifId();
+
+      if (partyId) {
+        this.addressFacade
+          .loadAddresses({
+            partyId,
+            partyIdType: resolvedEcifId ? EnumPartyIdType.Ecif : EnumPartyIdType.Ocif,
+            partyType: context?.partyType,
+            inquiryLevel: 'FULL',
+          })
+          .subscribe();
+      }
+
+      if (this.appStore.ocifId()) {
+        this.accountFacade.retrieveAccounts().subscribe();
+      }
+    });
+  }
+
+  
+
+
+
+
+
+
 
 
 
