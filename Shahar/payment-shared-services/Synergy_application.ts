@@ -1,276 +1,139 @@
-//accounts-by-address.component.spec.ts
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
-import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { TranslateModule, TranslatePipe } from '@ngx-translate/core';
-import { MockPipe } from 'ng-mocks';
-import { of } from 'rxjs';
+import { RouterModule } from '@angular/router';
 
-import { AccountFacade } from '../../core/facades/account.facade';
-import { AddressFacade, EnumPartyIdType } from '../../core/facades/address.facade';
-import { type Account } from '../../core/models/account.model';
+import { TranslateModule } from '@ngx-translate/core';
+import type { AccountRow, AddressRow } from '../../../mock-data';
+
 import {
-  ADDRESS_TYPE_BUSINESS,
-  ADDRESS_TYPE_HOME,
-  ADDRESS_TYPE_MAILING,
-  type Address,
-} from '../../core/models/address.model';
-import { AppStore } from '../../core/stores/app.store';
-import { AccountsByAddressComponent } from './accounts-by-address.component';
 
-describe('AccountsByAddressComponent', () => {
-  let fixture: ComponentFixture<AccountsByAddressComponent>;
-  let component: AccountsByAddressComponent;
+ADDRESS_TYPE_BUSINESS,
 
-  const addressesSignal = signal<Address[]>([]);
-  const accountsSignal = signal<Account[]>([]);
-  const ocifIdSignal = signal<string>('');
-  const ecifIdSignal = signal<string>('');
-  const partyContextSignal = signal({ partyId: '', partyType: '', partyIdType: '' });
+ADDRESS_TYPE_HOME,
 
-  let loadAddressesMock: jest.Mock;
-  let retrieveAccountsMock: jest.Mock;
-  let getActivePartyContextMock: jest.Mock;
-  let getResolvedEcifIdMock: jest.Mock;
+ADDRESS_TYPE_MAILING,
 
-  const mockHomeAddress: Address = {
-    addressType: ADDRESS_TYPE_HOME,
-    streetNumber: '123',
-    streetName: 'Main St',
-    city: 'Toronto',
-    province: 'ON',
-    canadianPostalCode: 'M5V 1A1',
-    country: 'CA',
-    countryName: 'Canada',
-  } as Address;
+type Address,
 
-  const mockBusinessAddress: Address = {
-    addressType: ADDRESS_TYPE_BUSINESS,
-    streetNumber: '456',
-    streetName: 'King St W',
-    city: 'Toronto',
-    province: 'ON',
-    canadianPostalCode: 'M5V 2B2',
-    country: 'CA',
-    countryName: 'Canada',
-  } as Address;
+type AddressType,
 
-  const mockMailingAddress: Address = {
-    addressType: ADDRESS_TYPE_MAILING,
-    streetNumber: '789',
-    streetName: 'Queen St E',
-    city: 'Toronto',
-    province: 'ON',
-    canadianPostalCode: 'M4M 1H6',
-    country: 'CA',
-    countryName: 'Canada',
-  } as Address;
+} from '../../../core/models/address.model';
 
-  const mockAddresses: Address[] = [
-    mockHomeAddress,
-    mockBusinessAddress,
-    mockMailingAddress,
-  ];
+import { AddressFacade } from '../../../core/facades/address.facade';
 
-  const mockHomeAccount: Account = {
-    id: 'acc-1',
-    accountNumber: '1001-234',
-    accountType: 'Chequing',
-    address: { ...mockHomeAddress },
-  } as unknown as Account;
+import { AccountFacade } from '../../../core/facades/account.facade';
+const ADDRESS_TYPE_LABELS: Record<AddressType, string> = { : 'Home', : 'Business', : 'Mailing', : 'Account', : 'Local Office', : 'Physical',
 
-  const mockBusinessAccount: Account = {
-    id: 'acc-2',
-    accountNumber: '2002-567',
-    accountType: 'Savings',
-    address: { ...mockBusinessAddress },
-  } as unknown as Account;
+};
+function formatAddress(addr: Address): string {
 
-  const mockAccounts: Account[] = [mockHomeAccount, mockBusinessAccount];
+const parts: string[] = [];
 
-  beforeEach(async () => {
-    addressesSignal.set(mockAddresses);
-    accountsSignal.set(mockAccounts);
-    ocifIdSignal.set('');
-    ecifIdSignal.set('');
-    partyContextSignal.set({ partyId: '', partyType: '', partyIdType: '' });
+const street = .filter(Boolean)
 
-    loadAddressesMock = jest.fn().mockReturnValue(of([]));
-    retrieveAccountsMock = jest.fn().mockReturnValue(of([]));
-    getActivePartyContextMock = jest.fn().mockReturnValue(null);
-    getResolvedEcifIdMock = jest.fn().mockReturnValue('');
+.join(' ')
 
-    await TestBed.configureTestingModule({
-      imports: [AccountsByAddressComponent, TranslateModule.forRoot()],
-      declarations: [MockPipe(TranslatePipe, (key: string) => `Mocked: ${key}`)],
-      providers: [
-        provideRouter([]),
-        {
-          provide: AppStore,
-          useValue: {
-            ocifId: ocifIdSignal,
-            ecifId: ecifIdSignal,
-            partyContext: partyContextSignal,
-          },
-        },
-        {
-          provide: AddressFacade,
-          useValue: {
-            addresses: addressesSignal,
-            loadAddresses: (...args: unknown[]) => loadAddressesMock(...args),
-            getActivePartyContext: (...args: unknown[]) => getActivePartyContextMock(...args),
-            getResolvedEcifId: (...args: unknown[]) => getResolvedEcifIdMock(...args),
-          },
-        },
-        {
-          provide: AccountFacade,
-          useValue: {
-            accounts: accountsSignal,
-            retrieveAccounts: (...args: unknown[]) => retrieveAccountsMock(...args),
-          },
-        },
-      ],
-    }).compileComponents();
+.trim();
 
-    fixture = TestBed.createComponent(AccountsByAddressComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+if (street) parts.push(street);
+const cityProv = .filter(Boolean).join(', ');
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+if (cityProv) parts.push(cityProv);
+const postal =
 
-  describe('API data loading', () => {
-    it('does not call APIs when no customer ID is present in AppStore', () => {
-      expect(loadAddressesMock).not.toHaveBeenCalled();
-      expect(retrieveAccountsMock).not.toHaveBeenCalled();
-    });
+addr.country === 'CA'
 
-    it('calls loadAddresses (OCIF) and retrieveAccounts when ocifId arrives', () => {
-      ocifIdSignal.set('987654321');
-      fixture.detectChanges();
+? addr.canadianPostalCode
 
-      expect(loadAddressesMock).toHaveBeenCalledTimes(1);
-      expect(loadAddressesMock).toHaveBeenCalledWith({
-        partyId: '987654321',
-        partyIdType: EnumPartyIdType.Ocif,
-        partyType: undefined,
-        inquiryLevel: 'FULL',
-      });
-      expect(retrieveAccountsMock).toHaveBeenCalledTimes(1);
-      expect(retrieveAccountsMock).toHaveBeenCalledWith({ force: true });
-    });
+: addr.country === 'US'
 
-    it('prefers ECIF ID when ecifId is available', () => {
-      ocifIdSignal.set('987654321');
-      ecifIdSignal.set('ECIF-112233');
-      getActivePartyContextMock.mockReturnValue({
-        partyId: 'ECIF-112233',
-        partyType: 'I',
-        partyIdType: 'ECIF',
-      });
-      fixture.detectChanges();
+? addr.usZipCode
 
-      expect(loadAddressesMock).toHaveBeenCalledWith({
-        partyId: 'ECIF-112233',
-        partyIdType: EnumPartyIdType.Ecif,
-        partyType: 'I',
-        inquiryLevel: 'FULL',
-      });
-      expect(retrieveAccountsMock).toHaveBeenCalledWith({ force: true });
-    });
-  });
+: addr.internationalPostalCode;
 
-  describe('address table', () => {
-    it('lists every customer address with its type', () => {
-      const rows = Array.from(
-        fixture.nativeElement.querySelectorAll('.address-table tbody tr'),
-      ) as HTMLElement[];
+if (postal) parts.push(postal);
+if (addr.country) parts.push(addr.country);
 
-      expect(rows).toHaveLength(mockAddresses.length);
-      expect(rows.map(row => row.querySelector('td')?.textContent?.trim())).toEqual([
-        'Home',
-        'Business',
-        'Mailing',
-      ]);
-    });
+return parts.join(' ');
 
-    it('selects the first address by default', () => {
-      expect(component.selectedAddressId()).toBe(ADDRESS_TYPE_HOME);
-      expect(fixture.nativeElement.querySelectorAll('.address-table tbody tr.selected')).toHaveLength(1);
-    });
+}
+function toAddressRow(addr: Address): AddressRow {
 
-    it('highlights the address row the user clicks', () => {
-      const rows = Array.from(
-        fixture.nativeElement.querySelectorAll('.address-table tbody tr'),
-      ) as HTMLElement[];
-      rows[1].click();
-      fixture.detectChanges();
+return {
 
-      expect(component.selectedAddressId()).toBe(ADDRESS_TYPE_BUSINESS);
-      expect(rows[1].classList.contains('selected')).toBe(true);
-      expect(rows[0].classList.contains('selected')).toBe(false);
-    });
-  });
+id: addr.addressType,
 
-  describe('selected address view toggle', () => {
-    it('is off by default', () => {
-      expect(component.selectedAddressView()).toBe(false);
-      const toggle = fixture.nativeElement.querySelector('.toggle-btn') as HTMLElement;
-      expect(toggle?.getAttribute('aria-checked')).toBe('false');
-    });
+type: ADDRESS_TYPE_LABELS ?? addr.addressType,
 
-    it('shows every account and highlights the associated ones while off', () => {
-      component.selectAddress(ADDRESS_TYPE_HOME);
-      fixture.detectChanges();
+address: formatAddress(addr),
 
-      expect(component.visibleAccounts()).toEqual(mockAccounts);
+};
 
-      const rows = Array.from(
-        fixture.nativeElement.querySelectorAll('.accounts-table tbody tr'),
-      ) as HTMLElement[];
-      expect(rows).toHaveLength(mockAccounts.length);
-      expect(rows[0].classList.contains('associated')).toBe(true);
-      expect(rows[1].classList.contains('associated')).toBe(false);
-    });
+}
+@Component({
 
-    it('filters the accounts table to the selected address when switched on', () => {
-      component.selectAddress(ADDRESS_TYPE_BUSINESS);
-      const toggle = fixture.nativeElement.querySelector('.toggle-btn') as HTMLElement;
-      toggle.click();
-      fixture.detectChanges();
+selector: 'app-accounts-by-address',
 
-      expect(component.selectedAddressView()).toBe(true);
-      expect(component.visibleAccounts()).toEqual([mockBusinessAccount]);
-      expect(fixture.nativeElement.querySelectorAll('.accounts-table tbody tr')).toHaveLength(1);
-    });
+imports: ,
 
-    it('re-filters when a different address is selected while switched on', () => {
-      component.toggleSelectedAddressView();
-      component.selectAddress(ADDRESS_TYPE_HOME);
-      fixture.detectChanges();
+templateUrl: './accounts-by-address.component.html',
 
-      expect(component.visibleAccounts()).toEqual([mockHomeAccount]);
-    });
+styleUrl: './accounts-by-address.component.scs',
 
-    it('shows an empty state when no account uses the selected address', () => {
-      component.toggleSelectedAddressView();
-      component.selectAddress(ADDRESS_TYPE_MAILING);
-      fixture.detectChanges();
+changeDetection: ChangeDetectionStrategy.OnPush,
 
-      expect(component.visibleAccounts()).toHaveLength(0);
-      expect(fixture.nativeElement.querySelector('.accounts-table')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.no-accounts')).not.toBeNull();
-    });
-  });
+})
 
-  describe('navigation', () => {
-    it('routes the back button to the accounts tab', () => {
-      const btn = fixture.nativeElement.querySelector('.navigation-buttons button') as HTMLElement;
-      expect(btn?.getAttribute('href')).toBeNull();
-      expect(component.backRoute).toBe('/account');
-    });
-  });
-});
+export class AccountsByAddressComponent {
+
+private readonly addressFacade = inject(AddressFacade);
+
+private readonly accountFacade = inject(AccountFacade);
+readonly backRoute = '/account';
+readonly addresses: AddressRow[] = this.addressFacade.addresses()
+
+.map(toAddressRow)
+
+.filter(row => !!row.address);
+private readonly accounts: AccountRow[] = this.accountFacade.accounts().map(acc => ({
+
+accountType: acc.productNameEnglish || acc.productName || acc.productShortName || '',
+
+accountNumber: acc.arrangementId ?? '',
+
+// TODO: wire real association once backend confirms which field
+
+// links an account to an address (addressType code or similar).
+
+addressId: '',
+
+}));
+readonly selectedAddressId = signal(this.addresses[0]?.id ?? '');
+
+readonly selectedAddressView = signal(false);
+readonly visibleAccounts = computed(() =>
+
+this.selectedAddressView()
+
+? this.accounts.filter(account => account.addressId === this.selectedAddressId())
+
+: this.accounts,
+
+);
+selectAddress(addressId: string): void {
+
+this.selectedAddressId.set(addressId);
+
+}
+toggleSelectedAddressView(): void {
+
+this.selectedAddressView.update(isOn => !isOn);
+
+}
+isAssociated(account: AccountRow): boolean {
+
+return account.addressId === this.selectedAddressId();
+
+}
+
+}
