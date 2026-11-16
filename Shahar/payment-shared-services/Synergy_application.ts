@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 
-import type { AccountRow, AddressRow } from '../../../mock-data';
+import type { AccountRow, AddressRow } from '../../mock-data';
 import {
   ADDRESS_TYPE_BUSINESS,
   ADDRESS_TYPE_HOME,
@@ -79,10 +79,11 @@ export class AccountsByAddressComponent {
     .filter(row => !!row.address);
 
   private readonly accounts: AccountRow[] = this.accountFacade.accounts().map(acc => ({
-    accountType: acc.productNameEnglish || acc.productName || acc.productShortName || '',
-    accountNumber: acc.arrangementId ?? '',
+    accountType: acc.type,
+    accountNumber: acc.number,
     // TODO: wire real association once backend confirms which field
-    // links an account to an address (addressType code or similar).
+    // links an account to a party address (Home/Business/Mailing).
+    // Account.addresses are account-scoped and do not carry the party address type.
     addressId: '',
   }));
 
