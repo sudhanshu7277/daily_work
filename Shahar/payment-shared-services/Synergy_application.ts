@@ -12,9 +12,9 @@ import {
   ADDRESS_TYPE_PHYSICAL,
   type Address,
   type AddressType,
-} from '../../../core/models/address.model';
-import { AddressFacade } from '../../../core/facades/address.facade';
-import { AccountFacade } from '../../../core/facades/account.facade';
+} from '../../core/models/address.model';
+import { AddressFacade } from '../../core/facades/address.facade';
+import { AccountFacade } from '../../core/facades/account.facade';
 
 const ADDRESS_TYPE_LABELS: Record<AddressType, string> = {
   [ADDRESS_TYPE_HOME]: 'Home',
