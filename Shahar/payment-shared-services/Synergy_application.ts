@@ -454,3 +454,39 @@ describe('AccountsByAddressComponent', () => {
     });
   });
 });
+
+
+/// file data object
+
+const mockHomeAddress: Address = {
+    addressType: ADDRESS_TYPE_HOME,
+    streetNumber: '123',
+    streetName: 'Main St',
+    city: 'Toronto',
+    province: 'ON',
+    canadianPostalCode: 'M5V 1A1',
+    country: 'CA',
+    countryName: 'Canada',
+  } as Address;
+
+  const mockBusinessAddress: Address = {
+    addressType: ADDRESS_TYPE_BUSINESS,
+    streetNumber: '456',
+    streetName: 'King St W',
+    city: 'Toronto',
+    province: 'ON',
+    canadianPostalCode: 'M5V 2B2',
+    country: 'CA',
+    countryName: 'Canada',
+  } as Address;
+
+  const mockMailingAddress: Address = {
+    addressType: ADDRESS_TYPE_MAILING,
+    streetNumber: '789',
+    streetName: 'Queen St E',
+    city: 'Toronto',
+    province: 'ON',
+    canadianPostalCode: 'M4M 1H6',
+    country: 'CA',
+    countryName: 'Canada',
+  } as Address;
