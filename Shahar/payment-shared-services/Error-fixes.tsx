@@ -1,12 +1,21 @@
-//additional-details-section.component.ts — form control setup (ya parent form jahan siteCompartment define hai):
+//1. address.service.ts — createAddressForm() mein:
 
 siteCompartment: ['', [
     Validators.maxLength(40),
-    Validators.pattern(/^[A-Za-z0-9/\s]*$/),
+    Validators.pattern(/^[A-Za-z0-9/\s.\\,]*$/),
   ]],
 
 
-  //Agar validators already kisi aur jagah (address form component) lag rahe hain, to wahan add karo. Pattern alphanumeric + / + space allow karta hai.
+  //2. app-form.factory.ts — same:
+
+  siteCompartment: ['', [
+    Validators.maxLength(40),
+    Validators.pattern(/^[A-Za-z0-9/\s.\\,]*$/),
+  ]],
+
+
+
+  //3. additional-details-section.component.html — input:
 
   <input
   type="text"
@@ -15,5 +24,20 @@ siteCompartment: ['', [
   id="siteCompartment"
   formControlName="siteCompartment"
   maxlength="40"
+  (keydown)="onSiteCompartmentKeydown($event)"
   aria-describedby="helper-siteCompartment"
 />
+
+
+//4. additional-details-section.component.ts — method add:
+
+onSiteCompartmentKeydown(event: KeyboardEvent): void {
+    const allowed = /^[A-Za-z0-9/\s.\\,]$/;
+    const key = event.key;
+  
+    if (event.ctrlKey || event.metaKey || key.length > 1) return;
+  
+    if (!allowed.test(key)) {
+      event.preventDefault();
+    }
+  }
