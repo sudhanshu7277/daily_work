@@ -1,4 +1,19 @@
-import { getDocumentPreviewBlob } from '@/api/documents';
+//additional-details-section.component.ts — form control setup (ya parent form jahan siteCompartment define hai):
+
+siteCompartment: ['', [
+    Validators.maxLength(40),
+    Validators.pattern(/^[A-Za-z0-9/\s]*$/),
+  ]],
 
 
-$field-error-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='7' stroke='%23a12000' stroke-width='1.8'/%3E%3Cpath d='M8 4.6V8.2' stroke='%23a12000' stroke-width='1.9' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='11' r='1.05' fill='%23a12000'/%3E%3C/svg%3E");
+  //Agar validators already kisi aur jagah (address form component) lag rahe hain, to wahan add karo. Pattern alphanumeric + / + space allow karta hai.
+
+  <input
+  type="text"
+  class="input text"
+  name="siteCompartment"
+  id="siteCompartment"
+  formControlName="siteCompartment"
+  maxlength="40"
+  aria-describedby="helper-siteCompartment"
+/>
