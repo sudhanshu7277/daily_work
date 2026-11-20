@@ -1,59 +1,78 @@
-//1. Define a Shared Constant (or Reuse in Form Factories)
-// In your character-set constants file (or at the top of app-form.factory.ts and address.service.ts):
+//Here is the complete, consolidated set of final changes across all 5 files for both 
+// Site / Compartment, Lot / Concession (3.3.2) and Building (3.3.3):   
+// 1. src/app/core/validators/address-field.validators.tsExport the shared AlphaNumericPlusWithSlash regex pattern:  
 
 export const ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN =
   /^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]*$/;
 
 
-  //src/app/core/factories/app-form.factory.ts (around line 219):   
+  //2. src/app/core/factories/app-form.factory.tsImport ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN 
+  // from ../validators/address-field.validators and update siteCompartment and building (lines 214–222):   
 
+  siteCompartment: ['', [
+    Validators.maxLength(40),
+    Validators.pattern(ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN),
+  ]],
+  lotConcession: [''],
   building: ['', [
     Validators.maxLength(30),
     Validators.pattern(ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN),
   ]],
 
-  //src/app/services/address.service.ts (around line 264):   
 
+//3. src/app/services/address.service.ts
+//Import ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN from ../core/validators/address-field.validators 
+// and update siteCompartment and building (lines 259–267):
+
+siteCompartment: ['', [
+    Validators.maxLength(40),
+    Validators.pattern(ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN),
+  ]],
+  lotConcession: [''],
   building: ['', [
     Validators.maxLength(30),
     Validators.pattern(ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN),
   ]],
 
-  //2. src/app/components/additional-details-section/additional-details-section.component.ts
 
-  private static readonly ALPHA_NUMERIC_SLASH_CHAR_REGEX =
-  /^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]$/;
+//4. src/app/components/additional-details-section/additional-details-section.component.ts
+// Replace onSiteCompartmentKeydown (lines 41–50) with generalized keydown and input sanitization 
+// handlers for AlphaNumericPlusWithSlash
 
-private static readonly ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX =
-  /[^A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]/g;
+private static readonly ALPHA_NUMERIC_SLASH_CHAR_REGEX =
+    /^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]$/;
 
-onAlphaNumericSlashKeydown(event: KeyboardEvent): void {
-  const key = event.key;
+  private static readonly ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX =
+    /[^A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]/g;
 
-  if (event.ctrlKey || event.metaKey || key.length > 1) return;
+  onAlphaNumericSlashKeydown(event: KeyboardEvent): void {
+    const key = event.key;
 
-  if (!AdditionalDetailsSectionComponent.ALPHA_NUMERIC_SLASH_CHAR_REGEX.test(key)) {
-    event.preventDefault();
+    if (event.ctrlKey || event.metaKey || key.length > 1) return;
+
+    if (!AdditionalDetailsSectionComponent.ALPHA_NUMERIC_SLASH_CHAR_REGEX.test(key)) {
+      event.preventDefault();
+    }
   }
-}
 
-onAlphaNumericSlashInput(event: Event, controlName: string): void {
-  const input = event.target as HTMLInputElement;
-  const sanitized = input.value.replace(
-    AdditionalDetailsSectionComponent.ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX,
-    '',
-  );
-  if (sanitized !== input.value) {
-    input.value = sanitized;
-    this.parentForm?.get(controlName)?.setValue(sanitized);
+  onAlphaNumericSlashInput(event: Event, controlName: string): void {
+    const input = event.target as HTMLInputElement;
+    const sanitized = input.value.replace(
+      AdditionalDetailsSectionComponent.ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX,
+      '',
+    );
+    if (sanitized !== input.value) {
+      input.value = sanitized;
+      this.parentForm?.get(controlName)?.setValue(sanitized);
+    }
   }
-}
 
 
-//3. src/app/components/additional-details-section/additional-details-section.
-// component.htmlUpdate both <input> elements (siteCompartment and building) to use the generalized handlers:   
+  //5. src/app/components/additional-details-section/additional-details-section.component.
+  // htmlBind both (keydown) and (input) on siteCompartment and building (lines 38–65):   
 
-<!-- Site / Compartment, Lot / Concession -->
+
+  <!-- Site / Compartment, Lot / Concession -->
 <input
   type="text"
   class="input text"
@@ -78,5 +97,3 @@ onAlphaNumericSlashInput(event: Event, controlName: string): void {
   (input)="onAlphaNumericSlashInput($event, 'building')"
   aria-describedby="helper-building"
 />
-
-
