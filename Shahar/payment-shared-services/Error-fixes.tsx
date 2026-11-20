@@ -1,57 +1,59 @@
-//1. src/app/core/factories/app-form.factory.ts (around line 214)
-// Replace the siteCompartment validator pattern with the exact AlphaNumericPlusWithSlash character set:
+//1. Define a Shared Constant (or Reuse in Form Factories)
+// In your character-set constants file (or at the top of app-form.factory.ts and address.service.ts):
 
-siteCompartment: ['', [
-    Validators.maxLength(40),
-    Validators.pattern(/^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]*$/),
+export const ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN =
+  /^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]*$/;
+
+
+  //src/app/core/factories/app-form.factory.ts (around line 219):   
+
+  building: ['', [
+    Validators.maxLength(30),
+    Validators.pattern(ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN),
   ]],
 
+  //src/app/services/address.service.ts (around line 264):   
 
-//2. src/app/services/address.service.ts (around line 259)Update the duplicate siteCompartment form control definition to match:   
-
-siteCompartment: ['', [
-    Validators.maxLength(40),
-    Validators.pattern(/^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]*$/),
+  building: ['', [
+    Validators.maxLength(30),
+    Validators.pattern(ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN),
   ]],
 
+  //2. src/app/components/additional-details-section/additional-details-section.component.ts
 
-  // 3. src/app/components/additional-details-section/additional-details-section.component.ts
-// Update onSiteCompartmentKeydown (line 41) and add an onSiteCompartmentInput handler 
-// so pasted values also strip disallowed characters (like , or \):
-
-private static readonly SITE_COMPARTMENT_CHAR_REGEX =
+  private static readonly ALPHA_NUMERIC_SLASH_CHAR_REGEX =
   /^[A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]$/;
 
-private static readonly SITE_COMPARTMENT_DISALLOWED_REGEX =
+private static readonly ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX =
   /[^A-Za-z0-9éèêëàâäîïôöùûüçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜÇÎÔÛ .'\-/]/g;
 
-onSiteCompartmentKeydown(event: KeyboardEvent): void {
+onAlphaNumericSlashKeydown(event: KeyboardEvent): void {
   const key = event.key;
 
   if (event.ctrlKey || event.metaKey || key.length > 1) return;
 
-  if (!AdditionalDetailsSectionComponent.SITE_COMPARTMENT_CHAR_REGEX.test(key)) {
+  if (!AdditionalDetailsSectionComponent.ALPHA_NUMERIC_SLASH_CHAR_REGEX.test(key)) {
     event.preventDefault();
   }
 }
 
-onSiteCompartmentInput(event: Event): void {
+onAlphaNumericSlashInput(event: Event, controlName: string): void {
   const input = event.target as HTMLInputElement;
   const sanitized = input.value.replace(
-    AdditionalDetailsSectionComponent.SITE_COMPARTMENT_DISALLOWED_REGEX,
+    AdditionalDetailsSectionComponent.ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX,
     '',
   );
   if (sanitized !== input.value) {
     input.value = sanitized;
-    this.parentForm?.get('siteCompartment')?.setValue(sanitized, { emitEvent: false });
+    this.parentForm?.get(controlName)?.setValue(sanitized);
   }
 }
 
 
-//4. src/app/components/additional-details-section/additional-details-section.component.html 
-// (around line 38)Bind (input)="onSiteCompartmentInput($event)" on the siteCompartment <input> element:  
+//3. src/app/components/additional-details-section/additional-details-section.
+// component.htmlUpdate both <input> elements (siteCompartment and building) to use the generalized handlers:   
 
-
+<!-- Site / Compartment, Lot / Concession -->
 <input
   type="text"
   class="input text"
@@ -59,8 +61,22 @@ onSiteCompartmentInput(event: Event): void {
   id="siteCompartment"
   formControlName="siteCompartment"
   maxlength="40"
-  (keydown)="onSiteCompartmentKeydown($event)"
-  (input)="onSiteCompartmentInput($event)"
+  (keydown)="onAlphaNumericSlashKeydown($event)"
+  (input)="onAlphaNumericSlashInput($event, 'siteCompartment')"
   aria-describedby="helper-siteCompartment"
 />
+
+<!-- Building -->
+<input
+  type="text"
+  class="input text"
+  name="building"
+  id="building"
+  formControlName="building"
+  maxlength="30"
+  (keydown)="onAlphaNumericSlashKeydown($event)"
+  (input)="onAlphaNumericSlashInput($event, 'building')"
+  aria-describedby="helper-building"
+/>
+
 
