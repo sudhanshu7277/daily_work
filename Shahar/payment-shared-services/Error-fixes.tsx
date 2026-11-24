@@ -250,11 +250,25 @@ const handlePaymentOutput = useCallback(
 
 
 //////
+// Keep const [paymentParentGabLatamPaymentsFeatureFlag] = useState(true); 
+// in PaymentParent.tsx, and update the it.each test on lines 259–267 of 
+// PaymentParent.test.tsx to assert that /payments/payment/details-all-stage 
+// is called on mount when region === 'LATAM' and the flag is on:   
+// Exact Change in PaymentParent.test.tsx (Lines 259–267)Replace lines 259–267:   
 
-//</div>Exact Fix in PaymentParent.tsx (Lines 452–453)Restore 
-// paymentParentGabLatamPaymentsFeatureFlag to false (matching commit #310):   
-
-const [paymentParentGabLatamPaymentsFeatureFlag] = useState(false);
+it.each([
+    ['LATAM Peru', PERU_INSTRUCTION],
+    ['other LATAM', { instructionId: 'INS-1', region: 'LATAM', country: 'AR' }],
+  ])(
+    'looks up details on mount for an %s instruction while the LATAM payments flag is on',
+    async (_label, instruction) => {
+      render(<PaymentParent instructionId="INS-1" instruction={instruction as any} />);
+      await waitFor(() => {
+        expect(findFetchCallTo('/payments/payment/details-all-stage')).toBeDefined();
+      });
+    }
+  );
+  
 
 
 
