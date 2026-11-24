@@ -13,3 +13,12 @@ readonly AddressCountry = AddressCountry;
   *ngIf="activeForm.get('country')?.value !== AddressCountry.Other"
   [parentForm]="activeForm"
 ></app-search-address-section>
+
+
+
+////
+
+//Exact Change in src/app/core/validators/address-field.validators.ts (Lines 92–93)
+
+export const ALPHA_NUMERIC_PLUS_WITH_SLASH_PATTERN =
+  /^[A-Za-z0-9éèêëàâäîïôöùûüÿçÇÉÈÊËÀÂÄÎÏÔÖÙÛÜŸÇÎÔÛ .'\-/]*$/;
