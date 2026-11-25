@@ -1,46 +1,58 @@
-//1. src/app/components/additional-details-section/additional-details-section.component.tsUpdate
-//  ALPHA_NUMERIC_SLASH_CHAR_REGEX and ALPHA_NUMERIC_SLASH_DISALLOWED_REGEX to match 
-// C2_CHARACTER_SET (by adding , or importing C2_MASK_PATTERNS / C2_CHARACTER_SET directly 
-// from address-field.validators.ts):   Option A — Reuse C2_MASK_PATTERNS directly f
-// rom address-field.validators.ts (Single Source of Truth):   
+Change 1: UI/src/environments/environment.perf.ts
+Add mockUserEmail:
 
 
-import {
-  C2_MASK_PATTERNS,
-  DESCRIPTION_MAX_LENGTH,
-  SITE_COMPARTMENT_MAX_LENGTH,
-  BUILDING_MAX_LENGTH,
-  FLOOR_MAX_LENGTH,
-} from '../../core/validators/address-field.validators';
-
-
-//Then inside AdditionalDetailsSectionComponent:
-
-private static readonly C2_CHAR_REGEX = C2_MASK_PATTERNS.C.pattern;
-private static readonly C2_DISALLOWED_REGEX = new RegExp(
-  `[^${C2_MASK_PATTERNS.C.pattern.source.slice(1, -1)}]`,
-  'g',
-);
-
-onAlphaNumericSlashKeydown(event: KeyboardEvent): void {
-  const key = event.key;
-
-  if (event.ctrlKey || event.metaKey || key.length > 1) return;
-
-  if (!AdditionalDetailsSectionComponent.C2_CHAR_REGEX.test(key)) {
-    event.preventDefault();
+export const environment = {
+  production: false,
+  ssoEnabled: false,
+  useMock: false,
+  apiURL: 'https://LEGALHOLD-ECS-NETWLB-perf1-cc1-7626e69add191d8b.elb.ca-central-1.amazonaws.com',
+  mockUserEmail: 'dinesh.manivannan@nesbittburns.com',
+  azureSso: {
+    auth: {
+      clientId: '7d4650a5-3622-4b46-a878-7c1b699c54b2',
+      cloudInstanceId: 'https://login.microsoftonline.com',
+      tenantId: '4adafc24-ca8c-4e85-a961-5fb6ecd37ed9',
+      redirectUri: 'https://legalhold-sit.hcloud.bmogc.net/legal-hold',
+      postLogoutRedirectUri: '/',
+      scopes: ['api://7d4650a5-3622-4b46-a878-7c1b699c54b2/service-directory-legalhold-apis.list']
+    },
+    cache: {
+      cacheLocation: 'localStorage'
+    }
   }
-}
+};
 
-onAlphaNumericSlashInput(event: Event, controlName: string): void {
-  const input = event.target as HTMLInputElement;
-  const sanitized = input.value.replace(
-    AdditionalDetailsSectionComponent.C2_DISALLOWED_REGEX,
-    '',
-  );
-  if (sanitized !== input.value) {
-    input.value = sanitized;
-    this.parentForm?.get(controlName)?.setValue(sanitized);
-  }
-}
 
+
+Change 2: UI/src/environments/environment.ts (and environment.qa.ts, environment.dev.ts, environment.prod.ts, environment.local.ts)
+Add mockUserEmail: '', right under useMock: false, so every environment file shares the exact same TypeScript shape:
+
+  production: false,
+  ssoEnabled: false,
+  useMock: false,
+  mockUserEmail: '',
+
+
+Change 3: UI/src/app/core/auth-token.interceptor.ts (Replace Lines 37–53)
+Check !
+
+
+    // Only attach headers for API requests - skip local assets (translations, etc.)
+    if (!req.url.startsWith(environment.apiURL)) {
+      return next.handle(req).pipe(
+        catchError((err) => this.handleHttpError(err))
+      );
+    }
+
+    if (!environment.ssoEnabled) {
+      const cloned = req.clone({
+        setHeaders: {
+          ...(environment.mockUserEmail ? { 'X-User-Email': environment.mockUserEmail } : {}),
+          'X-Correlation-Id': crypto.randomUUID(),
+        },
+      });
+      return next.handle(cloned).pipe(
+        catchError((err) => this.handleHttpError(err))
+      );
+    }
