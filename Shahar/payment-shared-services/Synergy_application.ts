@@ -71,3 +71,31 @@ Check !
       line-height: 20px !important;
       white-space: pre-line !important; // Preserves multiline breaks for bullets/subtext
     }
+
+
+
+    //////////////////////////////
+
+
+
+  onSortChanged(): void {
+    const allowedSortCols = new Set(['profileName', 'legalHoldStatus']); // match exact colId/field names
+    const sortState = this.gridApi?.getColumnState().find(s => s.sort != null);
+
+    if (!sortState) {
+      this.currentPage = 1;
+      this.refresh();
+      return;
+    }
+
+    if (!allowedSortCols.has(sortState.colId)) {
+      this.gridApi?.applyColumnState({
+        defaultState: { sort: null },
+      });
+      return;
+    }
+
+    const field = sortState.colId;
+    const dir = sortState.sort as 'asc' | 'desc';
+    // ... rest of sortFn and sortRecursive unchanged
+
