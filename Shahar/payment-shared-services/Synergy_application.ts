@@ -56,3 +56,18 @@ Check !
         catchError((err) => this.handleHttpError(err))
       );
     }
+
+
+    //
+
+    &_text,
+    &__text {
+      flex: 1 1 auto !important;
+      width: auto !important;
+      margin-left: 0 !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: #102333 !important;
+      line-height: 20px !important;
+      white-space: pre-line !important; // Preserves multiline breaks for bullets/subtext
+    }
