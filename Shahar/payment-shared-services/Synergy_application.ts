@@ -239,15 +239,60 @@ preventLeadingSpace(event: Event): void {
 //Remove lines 273–277 from the deleteContentBackward block, and place the check right
 //  after if (!inputEvent.data) { return; }:
 
-if (!inputEvent.data) {
-  return;
+onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
+  const inputEvent = event as InputEvent;
+
+  if (inputEvent.inputType === 'deleteContentBackward' || inputEvent.inputType === 'deleteContentForward') {
+    const target = inputEvent.target as HTMLInputElement;
+    const currentVal = target.value || '';
+    const selectedLength = (target.selectionEnd ?? 0) - (target.selectionStart ?? 0);
+    const remainingLength = selectedLength > 0 ? currentVal.length - selectedLength : currentVal.length - 1;
+
+    if (remainingLength < maxLen) {
+      if (controlName === 'holdName') this.isHoldNameMaxExceeded = false;
+      if (controlName === 'ediscoveryManager') this.isEdiscoveryMaxExceeded = false;
+      if (controlName === 'lawyerEmail') this.isLawyerEmailMaxExceeded = false;
+      this.cdr.markForCheck();
+    }
+    return;
+  }
+
+  if (!inputEvent.data) {
+    return;
+  }
+
+  const target = inputEvent.target as HTMLInputElement;
+  const currentVal = target.value || '';
+  const selectionStart = target.selectionStart ?? 0;
+
+  if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
+    inputEvent.preventDefault();
+    return;
+  }
+
+  if (controlName === 'holdName') {
+    if (/[*,<>]/.test(inputEvent.data)) {
+      inputEvent.preventDefault();
+      return;
+    }
+  } else if (controlName === 'ediscoveryManager') {
+    if (!/^[a-zA-Z0-9\s.'\-]+$/.test(inputEvent.data)) {
+      inputEvent.preventDefault();
+      return;
+    }
+  }
+
+  const selectedLength = (target.selectionEnd ?? 0) - selectionStart;
+  const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
+
+  if (newTotalLength > maxLen) {
+    inputEvent.preventDefault();
+
+    if (controlName === 'holdName') this.isHoldNameMaxExceeded = true;
+    if (controlName === 'ediscoveryManager') this.isEdiscoveryMaxExceeded = true;
+    if (controlName === 'lawyerEmail') this.isLawyerEmailMaxExceeded = true;
+
+    this.cdr.markForCheck();
+  }
 }
 
-const target = inputEvent.target as HTMLInputElement;
-const currentVal = target.value || '';
-const selectionStart = target.selectionStart ?? 0;
-
-if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
-  inputEvent.preventDefault();
-  return;
-}
