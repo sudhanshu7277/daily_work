@@ -231,3 +231,23 @@ preventLeadingSpace(event: Event): void {
           (focus)="shareDataInternally()"
           (beforeinput)="preventLeadingSpace($event)"
           [placeholder]="searchCustomerVerbiage.middleName | translate" />
+
+
+
+
+          // Exact Fix in search-legal-hold.component.ts (Lines 268–295)
+//Remove lines 273–277 from the deleteContentBackward block, and place the check right
+//  after if (!inputEvent.data) { return; }:
+
+if (!inputEvent.data) {
+  return;
+}
+
+const target = inputEvent.target as HTMLInputElement;
+const currentVal = target.value || '';
+const selectionStart = target.selectionStart ?? 0;
+
+if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
+  inputEvent.preventDefault();
+  return;
+}
