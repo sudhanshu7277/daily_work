@@ -140,3 +140,61 @@ private validateDuplicateHoldName() {
     ? 'SELECTED_PROFILES.DUPLICATE_HOLD_NAME_TITLE'
     : '';
 }
+
+
+
+///// 
+/// 1. search-customer.component.ts (inside onBeforeInputCheck,
+//  lines 555–576)Block any leading whitespace at index 0 (whether typed as ' '
+//  or pasted with leading spaces) right after if (!inputEvent.data) { return; }:   
+
+
+onBeforeInputCheck(event: Event, controlName: string, maxLen: number): void {
+  const inputEvent = event as InputEvent;
+  if (!inputEvent.data) {
+    const ctrl = this.searchForm.get(controlName);
+    if (ctrl?.hasError('maxlength')) {
+      const { maxlength, ...rest } = ctrl.errors || {};
+      ctrl.setErrors(Object.keys(rest).length ? rest : null);
+    }
+    return;
+  }
+
+  const target = inputEvent.target as HTMLInputElement;
+  const currentVal = target.value || '';
+  const selectionStart = target.selectionStart ?? 0;
+
+  // Prevent leading spaces at the start of the input
+  if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
+    inputEvent.preventDefault();
+    return;
+  }
+
+  const selectedLength = (target.selectionEnd ?? 0) - selectionStart;
+  const newTotalLength = currentVal.length - selectedLength + inputEvent.data.length;
+  if (newTotalLength > maxLen) {
+    inputEvent.preventDefault();
+    const ctrl = this.searchForm.get(controlName);
+    ctrl?.setErrors({ ...(ctrl.errors || {}), maxlength: true });
+    ctrl?.markAsDirty();
+  }
+}
+
+
+/// 2. search-legal-hold.component.ts (inside onBeforeInputCheck, l
+// ines 265–312)Add the exact same leading-space check right after if (!inputEvent.data) { return; }:   
+
+
+if (!inputEvent.data) {
+  return;
+}
+
+const target = inputEvent.target as HTMLInputElement;
+const currentVal = target.value || '';
+const selectionStart = target.selectionStart ?? 0;
+
+// Prevent leading spaces at the start of the input
+if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
+  inputEvent.preventDefault();
+  return;
+}
