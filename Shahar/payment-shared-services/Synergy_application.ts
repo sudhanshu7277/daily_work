@@ -198,3 +198,36 @@ if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
   inputEvent.preventDefault();
   return;
 }
+
+
+
+///1. search-customer.component.tsAdd this generic method right next to onBeforeInputCheck (around line 576):   
+
+preventLeadingSpace(event: Event): void {
+  const inputEvent = event as InputEvent;
+  if (!inputEvent.data) {
+    return;
+  }
+
+  const target = inputEvent.target as HTMLInputElement;
+  const selectionStart = target.selectionStart ?? 0;
+
+  if (selectionStart === 0 && /^\s/.test(inputEvent.data)) {
+    inputEvent.preventDefault();
+  }
+}
+
+
+/// 2. search-customer.component.htmlAdd (beforeinput)="preventLeadingSpace($event)" 
+// on middleName (lines 53–59) and any other input in search-customer.component.html 
+// that doesn't already have (beforeinput)="onBeforeInputCheck(...)":   
+
+
+<input class="middle-name"
+          id="customer-middle-name"
+          [class.input-error]="searchForm.get('middleName')?.hasError('maxlength')"
+          type="text"
+          formControlName="middleName"
+          (focus)="shareDataInternally()"
+          (beforeinput)="preventLeadingSpace($event)"
+          [placeholder]="searchCustomerVerbiage.middleName | translate" />
