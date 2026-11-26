@@ -63,3 +63,80 @@
       this.restoreDialogFocus();
     }
 
+
+    /// Single File Change: UI/src/app/shared/components/selection-panel/selection-panel.component.ts
+//Add getCachedSearchProfiles() right above validateDuplicateHoldName() (lines 587–604) 
+// and update validateDuplicateHoldName() to check both this.selectedProfiles and any cached 
+// search record sharing an ecifId with a selected profile:
+
+
+private getCachedSearchProfiles(): any[] {
+  const keys = [
+    'individualSearchResult',
+    'entitySearchResult',
+    'legalHoldSearchResult',
+  ];
+  const results: any[] = [];
+
+  for (const key of keys) {
+    const raw = this.sessionStorageService.getItem<any>(key);
+    if (!raw) continue;
+
+    let parsed = raw;
+    if (typeof raw === 'string') {
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+    }
+
+    const list = Array.isArray(parsed)
+      ? parsed
+      : parsed?.data || parsed?.profiles || parsed?.items || [];
+
+    if (Array.isArray(list)) {
+      for (const row of list) {
+        results.push(row);
+        if (Array.isArray(row?.children)) results.push(...row.children);
+        if (Array.isArray(row?.rolePlayers)) results.push(...row.rolePlayers);
+      }
+    }
+  }
+
+  return results;
+}
+
+private validateDuplicateHoldName() {
+  const normalizedHoldName = this.normalize(this.holdNameControl.value || '');
+  if (!normalizedHoldName) {
+    this.duplicateHoldError = '';
+    return;
+  }
+
+  const hasSameAppliedHold = (profile: any): boolean => {
+    const existingHoldName = this.normalize(profile?.holdName || '');
+    const statusValue = profile?.legalHoldStatus ?? profile?.status;
+    const isAlreadyAppliedStatus =
+      mapLegalHoldStatusToUi(statusValue) === UiLegalHoldStatus.LegalHold;
+    return isAlreadyAppliedStatus && existingHoldName === normalizedHoldName;
+  };
+
+  const selectedEcifs = new Set(
+    (this.selectedProfiles || [])
+      .map((p: any) => this.getProfileEcif(p))
+      .filter(Boolean)
+  );
+
+  const duplicateExists =
+    (this.selectedProfiles || []).some((profile: any) => hasSameAppliedHold(profile)) ||
+    (selectedEcifs.size > 0 &&
+      this.getCachedSearchProfiles().some((profile: any) => {
+        const ecif = this.getProfileEcif(profile);
+        return !!ecif && selectedEcifs.has(ecif) && hasSameAppliedHold(profile);
+      }));
+
+  this.duplicateHoldError = duplicateExists
+    ? 'SELECTED_PROFILES.DUPLICATE_HOLD_NAME_TITLE'
+    : '';
+}
