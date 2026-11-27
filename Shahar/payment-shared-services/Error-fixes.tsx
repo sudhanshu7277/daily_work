@@ -152,4 +152,44 @@ const handlePaymentOutput = useCallback(
       {activeTab === 'maker' && (
 
 
+/////////// BIC ERROR BANNER FIXES
+//To move that existing bicValidationError inline beneath the BIC fields without adding any 
+// createPortal, extra useState, or extra useEffect, you can just inject/clear a tiny 
+// <div class="gab-bic-error"> directly inside the existing handlePaymentOutput where 
+// bicError is already calculated—zero new hooks, zero portals, ~12 lines total:
+
+//Shorten the 3 Messages (Lines 410–414)
+
+export const BKT_BIC_MISMATCH_MESSAGE = 'Debtor & Creditor BIC must match for BKT.';
+export const DFT_BIC_COUNTRY_MESSAGE = 'Debtor & Creditor BIC countries must match for DFT.';
+export const CBT_BIC_COUNTRY_MESSAGE = 'Debtor & Creditor BIC countries must differ for CBT.';
+
+
+//2. Render the Inline Message Inside handlePaymentOutput (Right After setBicValidationError(...))
+//Add this small helper call right where bicError is already computed, and delete the bottom 
+// {bicValidationError && ...} banner at line 1380:
+
+
+const wrapper = paymentWrapperRef.current;
+      if (wrapper) {
+        wrapper.querySelectorAll('.gab-bic-inline-err').forEach((el) => el.remove());
+        if (bicError) {
+          ['debtorAgentBIC', 'creditorAgentFinancialInstitutionBIC'].forEach((name) => {
+            const parent = wrapper.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.parentElement;
+            if (parent) {
+              const div = document.createElement('div');
+              div.className = 'gab-bic-inline-err';
+              div.style.cssText = 'color:#d64545;font-size:11px;margin-top:4px;';
+              div.textContent = bicError;
+              parent.appendChild(div);
+            }
+          });
+        }
+      }
+
+
+
+
+
+
 
