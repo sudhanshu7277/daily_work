@@ -161,3 +161,49 @@ export const registerPaymentFormRules = (): void => {
     formRules: [...(rules.formRules ?? []), DEBTOR_COUNTRY_TOWN_RULE],
   });
 };
+
+
+
+
+
+
+////////////FINAL CHANGES
+
+//Here is the exact placement for both blocks in PaymentParent.tsx:   
+// 1. First Block (isPositiveAmount & effectiveValid — inside handlePaymentOutput)Search 
+// for const handlePaymentOutput = useCallback( (around line 825–835) and place it 
+// right after if (!pData) { setIsCurrentFormValid(false); return; } (replacing the 
+// old setIsCurrentFormValid((prev) => (prev !== newValid ? newValid : prev));):   
+
+
+const pData: any = output?.paymentData;
+      if (!pData) {
+        setIsCurrentFormValid(false);
+        return;
+      }
+
+      const rawAmountStr = String(pData.instructedAmount ?? '').trim();
+      const numericAmount = Number(rawAmountStr);
+      const isPositiveAmount =
+        rawAmountStr !== '' && Number.isFinite(numericAmount) && numericAmount > 0;
+      const effectiveValid = newValid && isPositiveAmount;
+      setIsCurrentFormValid((prev) => (prev !== effectiveValid ? effectiveValid : prev));
+
+
+//And ~20 lines lower inside that same handlePaymentOutput function (in the if 
+// (activeTab === 'checker') block), update the existing setIsCurrentFormValid(...) 
+// line to include && isPositiveAmount:   
+
+
+setIsCurrentFormValid(Boolean(output?.isValid) && isBktBicCountryValid && isPositiveAmount);
+
+
+//2. Second Block (if (field === 'instructedAmount') — inside isRekeyMismatch)Search for const 
+// isRekeyMismatch (around line 390–400, above the PaymentParent component definition) and replace
+//  the existing if (field === 'instructedAmount') block with:   
+
+
+if (field === 'instructedAmount') {
+  const cNum = Number(checkerVal);
+  return !checkerVal || !Number.isFinite(cNum) || cNum <= 0 || Number(makerVal) !== cNum;
+}
