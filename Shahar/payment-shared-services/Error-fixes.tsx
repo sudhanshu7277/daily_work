@@ -191,5 +191,42 @@ const wrapper = paymentWrapperRef.current;
 
 
 
+      ///  That const wrapper = paymentWrapperRef.current; block 
+      // (lines 173–186 in your first image) goes inside handlePaymentOutput 
+      // (around line 930–940 of PaymentParent.tsx) right after setBicValidationError(...)—not
+      //  down at line 1374 inside handleRepairResubmit.   Here is the exact spot in handlePaymentOutput 
+      // (search for const bicError = getPaymentTypeBicError(pData); in PaymentParent.tsx):
+
+
+      const bicError = getPaymentTypeBicError(pData);
+      const isBicRuleValid = bicError === '';
+      setBicValidationError((prev) => (prev !== bicError ? bicError : prev));
+
+      const wrapper = paymentWrapperRef.current;
+      if (wrapper) {
+        wrapper.querySelectorAll('.gab-bic-inline-err').forEach((el) => el.remove());
+        if (bicError) {
+          ['debtorAgentBIC', 'creditorAgentFinancialInstitutionBIC'].forEach((name) => {
+            const parent = wrapper.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.parentElement;
+            if (parent) {
+              const div = document.createElement('div');
+              div.className = 'gab-bic-inline-err';
+              div.style.cssText = 'color:#d64545;font-size:11px;margin-top:4px;';
+              div.textContent = bicError;
+              parent.appendChild(div);
+            }
+          });
+        }
+      }
+
+
+      //And down in the JSX (around line 1425, right after </SSPaymentFlow>'s closing </div> 
+      // and right above {activeTab === 'maker' && (), simply remove the {bicValidationError && ( ... )} 
+      // banner block if you added it there so only the inline messages under the BIC inputs appear.
+
+
+
+
+
 
 
