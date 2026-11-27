@@ -1,233 +1,155 @@
-//1. Add the Inline Validation Rule for instructedAmount (Lines 90–105)
-//Check how validationRulesService works in your existing registerPaymentFormRules (lines 93–105): 
-// fields holds FieldValidationRule[] keyed by fieldName. To display "please enter amount greater than 0" when the user enters 0 (or 0.00 / non-positive) without interfering with empty/required handling or any other field:
-
-//Add POSITIVE_INSTRUCTED_AMOUNT_RULE right above registerPaymentFormRules (line 90) and 
-// attach it only to fields.instructedAmount:
-
-
-export const POSITIVE_AMOUNT_MESSAGE = 'please enter amount greater than 0';
-
-export const POSITIVE_INSTRUCTED_AMOUNT_RULE: FieldValidationRule = {
-  priority: 25,
-  description: 'Transaction Amount must be greater than 0',
-  conditions: [
-    {
-      sourceField: 'instructedAmount',
-      operator: 'neq',
-      value: '',
-    },
-  ],
-  effect: {
-    pattern: '^(?!0+(\\.0+)?$)\\d+(\\.\\d+)?$',
-    patternMessage: POSITIVE_AMOUNT_MESSAGE,
-  },
-};
-
-
-//(Notice the conditions: [{ sourceField: 'instructedAmount', operator: 'neq', value: '' }] — this ensures the rule only evaluates once the user has actually typed something, avoiding any clash with the library's built-in required: true check when the field is blank!)
-
-//And inside registerPaymentFormRules (around line 97):
-
-fields.instructedAmount = [
-  POSITIVE_INSTRUCTED_AMOUNT_RULE,
-  ...(fields.instructedAmount ?? []),
-];
-
-
-//2. Block - and Non-Numeric Characters in Transaction Amount via Keystroke/Paste Guard (Lines 538 & 1265)
-// To stop the user from entering -0999 or letters in the type="text" Transaction Amount input—without 
-// dispatching synthetic input events that caused issues earlier—attach a lightweight keydown + paste 
-// listener on paymentWrapperRef:
-
-
-const paymentWrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const wrapper = paymentWrapperRef.current;
-    if (!wrapper) return;
-
-    const isTransactionAmountInput = (target: EventTarget | null): target is HTMLInputElement => {
-      if (!(target instanceof HTMLInputElement)) return false;
-      const identifier = [
-        target.name,
-        target.id,
-        target.getAttribute('aria-label'),
-      ]
-        .filter(Boolean)
-        .join(' ');
-      return /instructedamount|transaction\s*amount/i.test(identifier);
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isTransactionAmountInput(e.target)) return;
-      if (
-        e.ctrlKey ||
-        e.metaKey ||
-        ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)
-      ) {
-        return;
-      }
-      if (!/^[0-9.]$/.test(e.key) || (e.key === '.' && e.target.value.includes('.'))) {
-        e.preventDefault();
-      }
-    };
-
-    const handlePaste = (e: ClipboardEvent) => {
-      if (!isTransactionAmountInput(e.target)) return;
-      const pasted = e.clipboardData?.getData('text') ?? '';
-      if (!/^\d+(\.\d+)?$/.test(pasted.trim())) {
-        e.preventDefault();
-      }
-    };
-
-    wrapper.addEventListener('keydown', handleKeyDown, true);
-    wrapper.addEventListener('paste', handlePaste, true);
-
-    return () => {
-      wrapper.removeEventListener('keydown', handleKeyDown, true);
-      wrapper.removeEventListener('paste', handlePaste, true);
-    };
-  }, []);
-
-
-  //And attach ref={paymentWrapperRef} on line 1265:
-
-  <div ref={paymentWrapperRef} className="payment-component-wrapper">
-
-
-  </div>
-
-  //3. Parse String instructedAmount & Reject <= 0 in handleAmountChange and handlePaymentOutput
-// Since instructedAmount is now a string coming out of SSPaymentFlow:
-
-// In handleAmountChange (lines 551–569) — parse as Number so 0 / <= 0 / NaN never
-//  triggers the hardcap API, and pass a number to verifyHardCap:
-
-
-const numericAmount = Number(String(instructedAmount ?? '').trim());
-if (!instructedAmount || !Number.isFinite(numericAmount) || numericAmount <= 0) {
-  hardcapInputRef.current = null;
-  setMakerHardcapResult(null);
-  return;
-}
-
-//(And on line 568: paymentAmount: numericAmount,)
-
-// In handlePaymentOutput (lines 810–835) — ensure Number(pData.instructedAmount) > 0 
-// before allowing isCurrentFormValid to be true:
-
-
-const rawAmountStr = String(pData.instructedAmount ?? '').trim();
-const numericAmount = Number(rawAmountStr);
-const isPositiveAmount =
-  rawAmountStr !== '' && Number.isFinite(numericAmount) && numericAmount > 0;
-const effectiveValid = newValid && isPositiveAmount;
-setIsCurrentFormValid((prev) => (prev !== effectiveValid ? effectiveValid : prev));
-
-
-//(And in checker mode at line 834: setIsCurrentFormValid(Boolean(output?.isValid) && isBktBicCountryValid && isPositiveAmount);)
-
-//In isRekeyMismatch (lines 377–381) — reject <= 0 if a checker re-keys 0 or a negative value:
-
-if (field === 'instructedAmount') {
-  const cNum = Number(checkerVal);
-  return !checkerVal || !Number.isFinite(cNum) || cNum <= 0 || Number(makerVal) !== cNum;
-}
-
-
-
-
-
-
-///
-
-
-
-export const registerPaymentFormRules = (): void => {
-  const rules = validationRulesService.getRules();
-  if (rules.formRules?.some((rule) => rule.id === DEBTOR_COUNTRY_TOWN_RULE.id)) return;
-  const fields = { ...(rules.fields ?? {}) };
-  AGENT_BIC_FIELDS.forEach((field) => {
-    fields[field] = [BIC_11_CHARACTER_RULE, BIC_8_OR_11_CHARACTER_RULE, ...(fields[field] ?? [])];
-  });
-  fields.instructedAmount = [
-    POSITIVE_INSTRUCTED_AMOUNT_RULE,
-    ...(fields.instructedAmount ?? []),
-  ];
-  validationRulesService.setRules({
-    ...rules,
-    fields,
-    formRules: [...(rules.formRules ?? []), DEBTOR_COUNTRY_TOWN_RULE],
-  });
-};
-
-
-
-
-
-
-////////////FINAL CHANGES
-
-//Here is the exact placement for both blocks in PaymentParent.tsx:   
-// 1. First Block (isPositiveAmount & effectiveValid — inside handlePaymentOutput)Search 
-// for const handlePaymentOutput = useCallback( (around line 825–835) and place it 
-// right after if (!pData) { setIsCurrentFormValid(false); return; } (replacing the 
-// old setIsCurrentFormValid((prev) => (prev !== newValid ? newValid : prev));):   
-
-
-const pData: any = output?.paymentData;
-      if (!pData) {
-        setIsCurrentFormValid(false);
-        return;
-      }
-
-      const rawAmountStr = String(pData.instructedAmount ?? '').trim();
-      const numericAmount = Number(rawAmountStr);
-      const isPositiveAmount =
-        rawAmountStr !== '' && Number.isFinite(numericAmount) && numericAmount > 0;
-      const effectiveValid = newValid && isPositiveAmount;
-      setIsCurrentFormValid((prev) => (prev !== effectiveValid ? effectiveValid : prev));
-
-
-//And ~20 lines lower inside that same handlePaymentOutput function (in the if 
-// (activeTab === 'checker') block), update the existing setIsCurrentFormValid(...) 
-// line to include && isPositiveAmount:   
-
-
-setIsCurrentFormValid(Boolean(output?.isValid) && isBktBicCountryValid && isPositiveAmount);
-
-
-//2. Second Block (if (field === 'instructedAmount') — inside isRekeyMismatch)Search for const 
-// isRekeyMismatch (around line 390–400, above the PaymentParent component definition) and replace
-//  the existing if (field === 'instructedAmount') block with:   
-
-
-if (field === 'instructedAmount') {
-  const cNum = Number(checkerVal);
-  return !checkerVal || !Number.isFinite(cNum) || cNum <= 0 || Number(makerVal) !== cNum;
-}
-
-
-
-//// Look at why that happened: the Currency field's name or id in SSPaymentFlow 
-// is instructedAmountCurrencyCode. Because isTransactionAmountInput matched /instructedamount/i 
-// as a substring, it matched instructedAmountCurrencyCode and blocked letters in the Currency 
-// field while allowing 567!   Replace isTransactionAmountInput in your useEffect (lines 50–60) 
-// with an exact check that excludes Currency / Code and checks the exact field name or label:   
-
-
-const isTransactionAmountInput = (target: EventTarget | null): target is HTMLInputElement => {
-  if (!(target instanceof HTMLInputElement)) return false;
-  const nameOrId = `${target.name ?? ''} ${target.id ?? ''}`.trim();
-  const ariaOrPlaceholder = `${target.getAttribute('aria-label') ?? ''} ${target.placeholder ?? ''}`.trim();
-
-  if (/currency|code/i.test(`${nameOrId} ${ariaOrPlaceholder}`)) {
-    return false;
+// Change 1: Replace hasValidBktBicCountries with getPaymentTypeBicError (Lines 410–419)Replace 
+// lines 410–419 with a pure helper that checks the exact rules from Jira IS-86442 and returns 
+// the exact Jira error message (or '' when valid):   
+
+
+export const BKT_BIC_MISMATCH_MESSAGE =
+  'For BKT payments, Debtor Agent BIC and Creditor Agent BIC must be the same.';
+export const DFT_BIC_COUNTRY_MESSAGE =
+  'For DFT payments, Debtor Agent BIC and Creditor Agent BIC must belong to the same country.';
+export const CBT_BIC_COUNTRY_MESSAGE =
+  'For CBT payments, Debtor Agent BIC and Creditor Agent BIC must belong to different countries.';
+
+/** Validates BKT, DFT, and CBT BIC rules and returns the Jira error message when violated. */
+export const getPaymentTypeBicError = (pData: any): string => {
+  const paymentMethodType = String(
+    pData?.painPaymentMethodType || pData?.paymentType || ''
+  )
+    .trim()
+    .toUpperCase();
+
+  const debtorBic = String(pData?.debtorAgentBIC || '')
+    .trim()
+    .toUpperCase();
+  const creditorBic = String(
+    pData?.creditorAgentFinancialInstitutionBIC || pData?.creditorAgentBIC || ''
+  )
+    .trim()
+    .toUpperCase();
+
+  if (!debtorBic || !creditorBic) return '';
+
+  if (paymentMethodType === 'BKT') {
+    return debtorBic === creditorBic ? '' : BKT_BIC_MISMATCH_MESSAGE;
   }
 
-  return (
-    /(^|[^a-z])instructedAmount([^a-z]|$)/i.test(nameOrId) ||
-    /transaction\s*amount/i.test(ariaOrPlaceholder)
-  );
+  const dCountry = bicCountry(debtorBic);
+  const cCountry = bicCountry(creditorBic);
+  if (!dCountry || !cCountry) return '';
+
+  if (paymentMethodType === 'DFT') {
+    return dCountry === cCountry ? '' : DFT_BIC_COUNTRY_MESSAGE;
+  }
+
+  if (paymentMethodType === 'CBT') {
+    return dCountry !== cCountry ? '' : CBT_BIC_COUNTRY_MESSAGE;
+  }
+
+  return '';
 };
+
+
+///Change 2: Add bicValidationError State Inside PaymentParent (Around Line 480, near isCurrentFormValid)
+//Add one state variable alongside your existing form validity states:
+
+const [bicValidationError, setBicValidationError] = useState<string>('');
+
+
+//Change 3: Enforce & Set bicValidationError Inside handlePaymentOutput 
+// (Lines 885–942)Update handlePaymentOutput (lines 885–942) so:   
+// Line 889's duplicate setIsCurrentFormValid call is removed.   
+// bicError = getPaymentTypeBicError(pData) is computed once and enforced in Maker, Checker, and Repair modes.  
+
+const handlePaymentOutput = useCallback(
+  (output: PaymentComponentOutput) => {
+    const newValid = Boolean(output?.isValid);
+    const newDualBlind = Boolean(output?.isDualBlindKeyPassed);
+    const pData: any = output?.paymentData;
+    if (!pData) {
+      setBicValidationError('');
+      setIsCurrentFormValid(false);
+      return;
+    }
+
+    const bicError = getPaymentTypeBicError(pData);
+    const isBicRuleValid = bicError === '';
+    setBicValidationError((prev) => (prev !== bicError ? bicError : prev));
+
+    const rawAmountStr = String(pData.instructedAmount ?? '').trim();
+    const numericAmount = Number(rawAmountStr);
+    const isPositiveAmount =
+      rawAmountStr !== '' && Number.isFinite(numericAmount) && numericAmount > 0;
+    const effectiveValid = newValid && isPositiveAmount && isBicRuleValid;
+    setIsCurrentFormValid((prev) => (prev !== effectiveValid ? effectiveValid : prev));
+
+    if (activeTab === 'checker') {
+      const rawInitial = (initialData as any) || {};
+      const pdr = rawInitial.paymentDetailsRequest || {};
+      const act = rawInitial.actionDetails || {};
+
+      const failed: string[] = [];
+      const rekeyFieldsToCheck = DUAL_BLIND_REKEY_FIELDS;
+      rekeyFieldsToCheck.forEach((field) => {
+        const makerRaw = resolveMakerValue(field, rawInitial, pdr, act);
+        const checkerRaw = resolveCheckerValue(field, pData, makerRaw);
+        if (isRekeyMismatch(field, normalizeValue(makerRaw), normalizeValue(checkerRaw))) {
+          failed.push(field);
+        }
+      });
+
+      const isManualPassed = failed.length === 0;
+      const isPassed = isManualPassed && Boolean(newDualBlind) && isBicRuleValid;
+      setCheckerDualBlindPassed(isPassed);
+      setIsCurrentFormValid(Boolean(output?.isValid) && isBicRuleValid && isPositiveAmount);
+      currentFormPayload.current = {
+        ...(currentFormPayload.current || {}),
+        paymentDetailsRequest: pData,
+      };
+
+      console.log('[DualBlind Rekey Check]', {
+        failedCount: failed.length,
+        failedFields: failed,
+        isPassed: failed.length === 0,
+      });
+      return;
+    } else {
+      setCheckerDualBlindPassed(newDualBlind);
+    }
+
+    const selectedPaymentMethodType = resolvePaymentMethodType(
+      pData.painPaymentMethodType,
+      pData.paymentType
+    );
+    if (!selectedPaymentMethodType) setIsCurrentFormValid(false);
+
+
+    //Change 4: Display bicValidationError Above the Action Buttons in JSX 
+    // (Line 1379)Right after </div> closing .payment-component-wrapper on line 1379
+    //  (and right above {activeTab === 'maker' && ( on line 1381), render the error 
+    // banner whenever bicValidationError is non-empty so it is visible in Maker, Checker, and Repair modes:   
+
+
+    </div>
+
+      {bicValidationError && (
+        <div
+          role="alert"
+          style={{
+            marginTop: '12px',
+            padding: '10px 14px',
+            borderRadius: '4px',
+            border: '1px solid #d64545',
+            background: '#fff2f0',
+            color: '#d64545',
+            fontSize: '13px',
+            fontWeight: 500,
+          }}
+        >
+          {bicValidationError}
+        </div>
+      )}
+
+      {activeTab === 'maker' && (
+
+
+
