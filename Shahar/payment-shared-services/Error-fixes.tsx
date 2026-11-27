@@ -207,3 +207,27 @@ if (field === 'instructedAmount') {
   const cNum = Number(checkerVal);
   return !checkerVal || !Number.isFinite(cNum) || cNum <= 0 || Number(makerVal) !== cNum;
 }
+
+
+
+//// Look at why that happened: the Currency field's name or id in SSPaymentFlow 
+// is instructedAmountCurrencyCode. Because isTransactionAmountInput matched /instructedamount/i 
+// as a substring, it matched instructedAmountCurrencyCode and blocked letters in the Currency 
+// field while allowing 567!   Replace isTransactionAmountInput in your useEffect (lines 50–60) 
+// with an exact check that excludes Currency / Code and checks the exact field name or label:   
+
+
+const isTransactionAmountInput = (target: EventTarget | null): target is HTMLInputElement => {
+  if (!(target instanceof HTMLInputElement)) return false;
+  const nameOrId = `${target.name ?? ''} ${target.id ?? ''}`.trim();
+  const ariaOrPlaceholder = `${target.getAttribute('aria-label') ?? ''} ${target.placeholder ?? ''}`.trim();
+
+  if (/currency|code/i.test(`${nameOrId} ${ariaOrPlaceholder}`)) {
+    return false;
+  }
+
+  return (
+    /(^|[^a-z])instructedAmount([^a-z]|$)/i.test(nameOrId) ||
+    /transaction\s*amount/i.test(ariaOrPlaceholder)
+  );
+};
