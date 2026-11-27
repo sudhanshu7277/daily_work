@@ -306,10 +306,7 @@ private applyHeaderValidation(file: File, rows: string[][]): void {
 
   // Defect fix: reject files with more than 17 non-empty columns (beyond Column Q)
   if (rows.some(row => row.filter(cell => cell.trim() !== '').length > 17)) {
-    this.dialogError.set('missing-headers');
-    this.dialogErrorTitle.set('BULK_UPLOAD.ERROR_MISSING_HEADERS_TITLE');
-    this.dialogErrorMessageKey.set('BULK_UPLOAD.ERROR_MISSING_HEADERS_MSG');
-    this.selectedFile.set(null);
+    this.showReadError('BULK_UPLOAD.ERROR_INVALID_FORMAT_TITLE', 'BULK_UPLOAD.ERROR_INVALID_FORMAT_MSG');
     return;
   }
 
