@@ -135,3 +135,29 @@ if (field === 'instructedAmount') {
   return !checkerVal || !Number.isFinite(cNum) || cNum <= 0 || Number(makerVal) !== cNum;
 }
 
+
+
+
+
+
+///
+
+
+
+export const registerPaymentFormRules = (): void => {
+  const rules = validationRulesService.getRules();
+  if (rules.formRules?.some((rule) => rule.id === DEBTOR_COUNTRY_TOWN_RULE.id)) return;
+  const fields = { ...(rules.fields ?? {}) };
+  AGENT_BIC_FIELDS.forEach((field) => {
+    fields[field] = [BIC_11_CHARACTER_RULE, BIC_8_OR_11_CHARACTER_RULE, ...(fields[field] ?? [])];
+  });
+  fields.instructedAmount = [
+    POSITIVE_INSTRUCTED_AMOUNT_RULE,
+    ...(fields.instructedAmount ?? []),
+  ];
+  validationRulesService.setRules({
+    ...rules,
+    fields,
+    formRules: [...(rules.formRules ?? []), DEBTOR_COUNTRY_TOWN_RULE],
+  });
+};
